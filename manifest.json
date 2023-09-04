@@ -1,0 +1,11 @@
+{
+	"id": "daily-note-flex",
+	"name": "Daily Note Flex",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "Write daily notes for any day. Use commands (yesterday, tomorrow, next/prev week/month) or calendar popup. Plan, review, or reflect on your life and work",
+	"author": "Luis Cadillo",
+	"authorUrl": "https://github.com/luiisca",
+	"fundingUrl": "https://www.buymeacoffee.com/luiisca",
+	"isDesktopOnly": false
+}
