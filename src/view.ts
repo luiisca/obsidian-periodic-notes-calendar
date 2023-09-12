@@ -20,6 +20,7 @@ export class ExampleView extends ItemView {
   }
 
   async onOpen() {
+    console.log('VIEW EL 🪟', this.contentEl)
     this.component = new Component({
       target: this.contentEl,
       props: {

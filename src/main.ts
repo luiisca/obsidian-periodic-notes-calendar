@@ -9,39 +9,55 @@ import {
 	WorkspaceLeaf,
 	WorkspaceSidedock
 } from 'obsidian';
+import { computePosition, autoUpdate, flip, offset, shift, arrow } from '@floating-ui/dom';
 import { ExampleView, VIEW_TYPE_EXAMPLE } from './view';
+import Component from './ui/Component.svelte';
 
 // Remember to rename these classes and interfaces!
 
 interface MyPluginSettings {
-	mySetting: string;
+	viewOpen: boolean;
 }
 
 const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+	viewOpen: false
 };
 
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings = DEFAULT_SETTINGS;
-	private view: ExampleView;
+	popupComponent: Component;
+	cleanupPopup: () => void;
 
-	onunload(): void {
+	onunload() {
+		console.log('ON Unload ⛰️');
+
 		this.app.workspace.getLeavesOfType(VIEW_TYPE_EXAMPLE).forEach((leaf) => leaf.detach());
+
+		this.cleanupPopup();
 	}
 
 	async onload() {
+		console.log('ON Load 🫵');
+
+		this.addSettingTab(new SettingsTab(this.app, this));
 		await this.loadSettings();
 
 		this.handleRibbon();
 
-		await this.handleView();
+		this.handleView();
 
+		// Commands
 		this.addCommand({
 			id: 'open-calendar-view',
 			name: 'Open calendar view',
 			callback: () => {
 				this.toggleView();
 			}
+		});
+
+		this.app.workspace.onLayoutReady(() => {
+			console.log('ON Layout REady 🙌');
+			this.handlePopup();
 		});
 	}
 
@@ -54,14 +70,181 @@ export default class MyPlugin extends Plugin {
 	}
 
 	handleRibbon() {
-		this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			this.toggleView();
+		this.addRibbonIcon('dice', 'daily-note-flex-plugin', () => {
+			if (this.settings.viewOpen) {
+				this.toggleView();
+
+				return;
+			}
 		});
+	}
+	handlePopup() {
+		console.log('HANDLE popup called 🍿');
+
+		console.log("ViewOPen", this.settings.viewOpen)
+		if (this.settings.viewOpen) return;
+		// Local State
+		let popupState: { open: boolean; autoUpdateCleanup: () => void } = {
+			open: false,
+			autoUpdateCleanup: () => {}
+		};
+		const options = {
+			target: 'calendarPopup'
+		};
+		const focusableAllowedList =
+			':is(a[href], button, input, textarea, select, details, [tabindex]):not([tabindex="-1"])';
+		let focusablePopupElements: HTMLElement[];
+
+		// Elements
+		const referenceEl = document.querySelector(
+			`[aria-label="daily-note-flex-plugin"]`
+		) as HTMLElement;
+		console.log("REFERENCEEl", referenceEl)
+		console.log("POPUPCOMPONENT", this.popupComponent)
+		this.popupComponent =
+			new Component({
+				target: document.body,
+				props: { variable: 32, popup: true }
+			});
+
+		const floatingEl = document.querySelector(`[data-popup="${options.target}"]`) as HTMLElement;
+		console.log('FLOATINGEL', floatingEl)
+		const arrowEl = document.createElement('div') as HTMLElement;
+
+		// State Handlers
+		function open() {
+			// Set open state to on
+			popupState.open = true;
+			// Update render settings
+			render();
+			// Update the DOM
+			floatingEl.style.display = 'block';
+			floatingEl.style.opacity = '1';
+			floatingEl.style.pointerEvents = 'auto';
+			// enable popup interactions
+			floatingEl.removeAttribute('inert');
+			// Trigger Floating UI autoUpdate (open only)
+			// https://floating-ui.com/docs/autoUpdate
+			popupState.autoUpdateCleanup = autoUpdate(referenceEl, floatingEl, render);
+		}
+		function close() {
+			// Set open state to off
+			popupState.open = false;
+			// Update the DOM
+			floatingEl.style.opacity = '0';
+			// disable popup interactions
+			floatingEl.setAttribute('inert', '');
+			// Cleanup Floating UI autoUpdate (close only)
+			if (popupState.autoUpdateCleanup) popupState.autoUpdateCleanup();
+		}
+
+		// Event Handlers
+		function toggle() {
+			console.log('ON ribbon click 🐭');
+			popupState.open ? close() : open();
+		}
+		function onWindowClick(event: any) {
+			console.log('ON window click 🪟', event);
+			// console.log("FloatingEL", floatingEl)
+			// console.log("Event target", event.target)
+			// Return if the popup is not yet open
+			if (!popupState.open) return;
+			// Return if reference element is clicked
+			if (referenceEl.contains(event.target)) return;
+			// If click outside the popup
+			if (floatingEl && floatingEl.contains(event.target) === false) {
+				close();
+				return;
+			}
+		}
+
+		// Keyboard Interactions for A11y
+		const onWindowKeyDown = (event: KeyboardEvent) => {
+			if (!popupState.open) return;
+			// Handle keys
+			const key: string = event.key;
+			// On Esc key
+			if (key === 'Escape') {
+				event.preventDefault();
+				referenceEl.focus();
+				close();
+				return;
+			}
+			// Update focusable elements (important for Autocomplete)
+			focusablePopupElements = Array.from(floatingEl?.querySelectorAll(focusableAllowedList));
+			// On Tab or ArrowDown key
+			const triggerMenuFocused: boolean = popupState.open && document.activeElement === referenceEl;
+			if (
+				triggerMenuFocused &&
+				(key === 'ArrowDown' || key === 'Tab') &&
+				focusableAllowedList.length > 0 &&
+				focusablePopupElements.length > 0
+			) {
+				event.preventDefault();
+				focusablePopupElements[0].focus();
+			}
+		};
+
+		// Event Listeners
+		referenceEl.addEventListener('click', toggle);
+		window.addEventListener('click', onWindowClick);
+		window.addEventListener('keydown', onWindowKeyDown);
+
+		// Render Floating UI Popup
+		const render = () => {
+			computePosition(referenceEl, floatingEl, {
+				placement: 'right',
+				middleware: [offset(16), shift({ padding: 8 }), flip(), arrow({ element: arrowEl })]
+			}).then(({ x, y, placement, middlewareData }) => {
+				Object.assign(floatingEl.style, {
+					left: `${x}px`,
+					top: `${y}px`
+				});
+				// Handle Arrow Placement:
+				// https://floating-ui.com/docs/arrow
+				if (arrowEl && middlewareData.arrow) {
+					const { x: arrowX, y: arrowY } = middlewareData.arrow;
+
+					const staticSide = {
+						top: 'bottom',
+						right: 'left',
+						bottom: 'top',
+						left: 'right'
+					}[placement.split('-')[0]];
+
+					staticSide &&
+						Object.assign(arrowEl.style, {
+							left: arrowX != null ? `${arrowX}px` : '',
+							top: arrowY != null ? `${arrowY}px` : '',
+							right: '',
+							bottom: '',
+							[staticSide]: '-4px'
+						});
+				}
+			});
+		};
+
+		// Render popup
+		render();
+
+		this.cleanupPopup = () => {
+			popupState = {
+				open: false,
+				autoUpdateCleanup: () => {}
+			};
+
+			// Remove Event Listeners
+			referenceEl.removeEventListener('click', toggle);
+			window.removeEventListener('click', onWindowClick);
+			window.removeEventListener('keydown', onWindowKeyDown);
+
+			this.popupComponent && this.popupComponent.$destroy();
+		};
 	}
 
 	async handleView() {
 		// register view
-		this.registerView(VIEW_TYPE_EXAMPLE, (leaf) => (this.view = new ExampleView(leaf)));
+		this.registerView(VIEW_TYPE_EXAMPLE, (leaf) => new ExampleView(leaf));
 
 		// activate view
 		await this.initView();
@@ -165,7 +348,7 @@ class SampleModal extends Modal {
 	}
 }
 
-class SampleSettingTab extends PluginSettingTab {
+class SettingsTab extends PluginSettingTab {
 	plugin: MyPlugin;
 
 	constructor(app: App, plugin: MyPlugin) {
@@ -173,22 +356,30 @@ class SampleSettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
-	display(): void {
+	display() {
 		const { containerEl } = this;
 
 		containerEl.empty();
 
+		// TODO: improve wording
 		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc("It's a secret")
-			.addText((text) =>
-				text
-					.setPlaceholder('Enter your secret')
-					.setValue(this.plugin.settings.mySetting)
-					.onChange(async (value) => {
-						this.plugin.settings.mySetting = value;
-						await this.plugin.saveSettings();
-					})
+			.setName('Ribbon icon opens Calendar view')
+			.setDesc('Show Calendar view when clicking on ribbon icon instead of default popup')
+			.addToggle((viewOpen) =>
+				viewOpen.setValue(this.plugin.settings.viewOpen).onChange(async (viewOpen) => {
+					console.log('ON toggle setting ⚙️');
+
+					this.plugin.settings.viewOpen = viewOpen;
+
+					// destroy popup when no longer active
+					viewOpen && this.plugin.popupComponent && this.plugin.cleanupPopup();
+
+					// rerender popup when reactivated
+					!viewOpen && this.plugin.handlePopup();
+
+
+					await this.plugin.saveSettings();
+				})
 			);
 	}
 }
