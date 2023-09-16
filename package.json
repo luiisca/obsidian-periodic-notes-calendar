@@ -39,6 +39,9 @@
 	"dependencies": {
 		"@floating-ui/dom": "^1.5.1",
 		"clsx": "^2.0.0",
+		"dayjs": "^1.11.9",
+		"moment": "^2.29.4",
+		"obsidian-calendar-ui": "^0.4.0",
 		"rollup-plugin-svelte": "^7.1.6"
 	}
 }

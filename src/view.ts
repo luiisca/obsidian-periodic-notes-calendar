@@ -1,11 +1,11 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 
-import Component from "./ui/Component.svelte";
+import Calendar from "./ui/Calendar.svelte";
 
 export const VIEW_TYPE_EXAMPLE = "example-view";
 
-export class ExampleView extends ItemView {
-  component: Component;
+export class CalendarView extends ItemView {
+  calendar: Calendar;
 
   constructor(leaf: WorkspaceLeaf) {
     super(leaf);
@@ -21,10 +21,9 @@ export class ExampleView extends ItemView {
 
   async onOpen() {
     console.log('VIEW EL 🪟', this.contentEl)
-    this.component = new Component({
+    this.calendar = new Calendar({
       target: this.contentEl,
       props: {
-        variable: 1,
       }
     });
     console.log("On open view👐")
@@ -32,7 +31,7 @@ export class ExampleView extends ItemView {
 
   async onClose() {
     console.log('On close view❌')
-    this.component.$destroy();
+    this.calendar.$destroy();
     
   }
 }

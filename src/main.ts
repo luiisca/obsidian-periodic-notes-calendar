@@ -1,31 +1,16 @@
 import {
-	App,
-	MarkdownView,
-	Modal,
-	Notice,
 	Plugin,
-	PluginSettingTab,
-	Setting,
 	WorkspaceLeaf,
-	WorkspaceSidedock
 } from 'obsidian';
 import { computePosition, autoUpdate, flip, offset, shift, arrow } from '@floating-ui/dom';
-import { ExampleView, VIEW_TYPE_EXAMPLE } from './view';
-import Component from './ui/Component.svelte';
+import { CalendarView, VIEW_TYPE_EXAMPLE } from './view';
+import Calendar from './ui/Calendar.svelte';
+import { settingsStore } from './ui/stores';
+import { SettingsTab, type ISettings } from './settings';
 
-// Remember to rename these classes and interfaces!
-
-interface MyPluginSettings {
-	viewOpen: boolean;
-}
-
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	viewOpen: false
-};
-
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings = DEFAULT_SETTINGS;
-	popupComponent: Component;
+export default class DailyNoteFlexPlugin extends Plugin {
+	public settings: ISettings;
+	popupCalendar: Calendar;
 	cleanupPopup: () => void;
 
 	onunload() {
@@ -38,6 +23,11 @@ export default class MyPlugin extends Plugin {
 
 	async onload() {
 		console.log('ON Load 🫵');
+		this.register(
+			settingsStore.subscribe((settings) => {
+				this.settings = settings;
+			})
+		);
 
 		this.addSettingTab(new SettingsTab(this.app, this));
 		await this.loadSettings();
@@ -62,10 +52,19 @@ export default class MyPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const settings = await this.loadData();
+		settingsStore.update((old) => ({
+			...old,
+			...(settings || {})
+		}));
 	}
 
-	async saveSettings() {
+	async saveSettings(changeSettings: (old: ISettings) => Partial<ISettings>) {
+		settingsStore.update((old) => ({
+			...old,
+			...changeSettings(old)
+		}));
+
 		await this.saveData(this.settings);
 	}
 
@@ -81,7 +80,7 @@ export default class MyPlugin extends Plugin {
 	handlePopup() {
 		console.log('HANDLE popup called 🍿');
 
-		console.log("ViewOPen", this.settings.viewOpen)
+		console.log('HandlePopup(): ViewOPen', this.settings.viewOpen);
 		if (this.settings.viewOpen) return;
 		// Local State
 		let popupState: { open: boolean; autoUpdateCleanup: () => void } = {
@@ -99,16 +98,15 @@ export default class MyPlugin extends Plugin {
 		const referenceEl = document.querySelector(
 			`[aria-label="daily-note-flex-plugin"]`
 		) as HTMLElement;
-		console.log("REFERENCEEl", referenceEl)
-		console.log("POPUPCOMPONENT", this.popupComponent)
-		this.popupComponent =
-			new Component({
-				target: document.body,
-				props: { variable: 32, popup: true }
-			});
+		console.log('REFERENCEEl', referenceEl);
+		console.log('POPUPCOMPONENT', this.popupCalendar);
+		this.popupCalendar = new Calendar({
+			target: document.body,
+			props: { popup: true }
+		});
 
 		const floatingEl = document.querySelector(`[data-popup="${options.target}"]`) as HTMLElement;
-		console.log('FLOATINGEL', floatingEl)
+		console.log('FLOATINGEL', floatingEl);
 		const arrowEl = document.createElement('div') as HTMLElement;
 
 		// State Handlers
@@ -238,14 +236,15 @@ export default class MyPlugin extends Plugin {
 			window.removeEventListener('click', onWindowClick);
 			window.removeEventListener('keydown', onWindowKeyDown);
 
-			this.popupComponent && this.popupComponent.$destroy();
+			this.popupCalendar && this.popupCalendar.$destroy();
 		};
 	}
 
 	async handleView() {
 		// register view
-		this.registerView(VIEW_TYPE_EXAMPLE, (leaf) => new ExampleView(leaf));
+		this.registerView(VIEW_TYPE_EXAMPLE, (leaf) => new CalendarView(leaf));
 
+		// TODO: Try to not block initial loading by deferring loading with 'onLayoutReady'
 		// activate view
 		await this.initView();
 	}
@@ -329,57 +328,5 @@ export default class MyPlugin extends Plugin {
 			// 5. root split open and leaf not active -> reveal view
 			this.revealView();
 		}
-	}
-}
-
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		const { contentEl } = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const { contentEl } = this;
-		contentEl.empty();
-	}
-}
-
-class SettingsTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
-
-	display() {
-		const { containerEl } = this;
-
-		containerEl.empty();
-
-		// TODO: improve wording
-		new Setting(containerEl)
-			.setName('Ribbon icon opens Calendar view')
-			.setDesc('Show Calendar view when clicking on ribbon icon instead of default popup')
-			.addToggle((viewOpen) =>
-				viewOpen.setValue(this.plugin.settings.viewOpen).onChange(async (viewOpen) => {
-					console.log('ON toggle setting ⚙️');
-
-					this.plugin.settings.viewOpen = viewOpen;
-
-					// destroy popup when no longer active
-					viewOpen && this.plugin.popupComponent && this.plugin.cleanupPopup();
-
-					// rerender popup when reactivated
-					!viewOpen && this.plugin.handlePopup();
-
-
-					await this.plugin.saveSettings();
-				})
-			);
 	}
 }
