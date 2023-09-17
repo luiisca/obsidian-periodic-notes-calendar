@@ -1,5 +1,7 @@
 {
+  "weekStart": "tuesday",
   "viewOpen": false,
+  "localeOverride": "de-at",
   "tabOpen": true,
   "popover": false
 }

@@ -20,13 +20,12 @@ export class CalendarView extends ItemView {
   }
 
   async onOpen() {
-    console.log('VIEW EL 🪟', this.contentEl)
+    console.log("On open view👐")
     this.calendar = new Calendar({
       target: this.contentEl,
       props: {
       }
     });
-    console.log("On open view👐")
   }
 
   async onClose() {

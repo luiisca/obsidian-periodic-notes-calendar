@@ -1,12 +1,23 @@
-import {
-	Plugin,
-	WorkspaceLeaf,
-} from 'obsidian';
+import { Plugin, WorkspaceLeaf } from 'obsidian';
 import { computePosition, autoUpdate, flip, offset, shift, arrow } from '@floating-ui/dom';
 import { CalendarView, VIEW_TYPE_EXAMPLE } from './view';
 import Calendar from './ui/Calendar.svelte';
 import { settingsStore } from './ui/stores';
 import { SettingsTab, type ISettings } from './settings';
+import type { Locale, Moment, WeekSpec } from 'moment';
+
+declare module 'moment' {
+	export interface Locale {
+		_defaultWeek: {
+			dow: number;
+			doy: number;
+		};
+		_week: {
+			dow: number;
+			doy?: number;
+		};
+	}
+}
 
 export default class DailyNoteFlexPlugin extends Plugin {
 	public settings: ISettings;
@@ -47,6 +58,9 @@ export default class DailyNoteFlexPlugin extends Plugin {
 
 		this.app.workspace.onLayoutReady(() => {
 			console.log('ON Layout REady 🙌');
+			// const localeWeekStartNum = window._bundledLocaleWeekSpec.dow;
+
+			console.log('localeWeekStartNum 📅', window._bundledLocaleWeekSpec);
 			this.handlePopup();
 		});
 	}
@@ -72,6 +86,7 @@ export default class DailyNoteFlexPlugin extends Plugin {
 		this.addRibbonIcon('dice', 'daily-note-flex-plugin', () => {
 			if (this.settings.viewOpen) {
 				this.toggleView();
+				console.log('localeWeekStartNum 📅', window._bundledLocaleWeekSpec);
 
 				return;
 			}
