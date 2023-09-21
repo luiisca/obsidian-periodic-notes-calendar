@@ -1,23 +1,22 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
 import type DailyNoteFlexPlugin from './main';
-import type {
-	ILocaleOverride,
-	IWeekStartOption
-} from 'obsidian-calendar-ui';
-import { settingsStore } from './ui/stores';
+import type { ILocaleOverride, IWeekStartOption } from 'obsidian-calendar-ui';
+import { settingsStore } from './stores';
 import type { Unsubscriber } from 'svelte/store';
-import { configureGlobalMomentLocale } from './localization';
+import { configureGlobalMomentLocale } from './calendar/localization';
 
 export interface ISettings {
 	weekStart: IWeekStartOption;
 	viewOpen: boolean;
+	showWeekNums: boolean;
 
 	localeOverride: ILocaleOverride;
 }
 
-export const DEFAULT_SETTINGS = Object.freeze({
+export const DEFAULT_SETTINGS: ISettings = Object.freeze({
 	weekStart: 'locale' as IWeekStartOption,
 	viewOpen: false,
+	showWeekNums: false,
 
 	localeOverride: 'system-default'
 });
@@ -54,6 +53,7 @@ export class SettingsTab extends PluginSettingTab {
 
 		this.addWeekStartSetting();
 		this.addPopoverSetting();
+		this.addShowWeeklyNoteSetting();
 
 		this.containerEl.createEl('h3', {
 			text: 'Advanced Settings'
@@ -76,9 +76,9 @@ export class SettingsTab extends PluginSettingTab {
 		// reset default week start
 		moment.updateLocale(moment.locale(), {
 			week: {
-				dow: localeWeekStartNum,
+				dow: localeWeekStartNum
 			}
-		})
+		});
 
 		new Setting(this.containerEl)
 			.setName('Start week on:')
@@ -120,6 +120,19 @@ export class SettingsTab extends PluginSettingTab {
 					!viewOpen && this.plugin.handlePopup();
 				})
 			);
+	}
+
+	addShowWeeklyNoteSetting(): void {
+		new Setting(this.containerEl)
+			.setName('Show week number')
+			.setDesc('Enable this to add a column with the week number')
+			.addToggle((toggle) => {
+				toggle.setValue(this.plugin.settings.showWeekNums);
+				toggle.onChange(async (value) => {
+					this.plugin.saveSettings(() => ({ showWeekNums: value }));
+					this.display(); // show/hide weekly settings
+				});
+			});
 	}
 
 	addLocaleOverrideSetting() {
