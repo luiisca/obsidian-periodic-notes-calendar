@@ -4,6 +4,8 @@ import commonjs from "@rollup/plugin-commonjs";
 import typescript from "@rollup/plugin-typescript";
 import { env } from "process";
 import sveltePreprocess from "svelte-preprocess";
+import alias from "@rollup/plugin-alias";
+import json from "@rollup/plugin-json";
 
 export default {
   input: "src/main.ts",
@@ -26,5 +28,11 @@ export default {
     commonjs({
       include: "node_modules/**",
     }),
+    alias({
+      entries: {
+        '@/*': './src/*'
+      }
+    }),
+    json(),
   ],
 };

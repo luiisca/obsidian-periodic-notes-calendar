@@ -1,7 +1,19 @@
 {
-  "weekStart": "tuesday",
   "viewOpen": false,
-  "localeOverride": "de-at",
-  "tabOpen": true,
-  "popover": false
+  "localeData": {
+    "loading": false,
+    "weekStart": "Sunday",
+    "showWeekNums": false,
+    "sysLocale": "en",
+    "localeOverride": "en",
+    "localizedWeekdays": [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday"
+    ]
+  }
 }

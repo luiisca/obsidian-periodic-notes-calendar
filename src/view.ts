@@ -1,11 +1,11 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 
-import Calendar from "./ui/Calendar.svelte";
+import View from "./View.svelte";
 
 export const VIEW_TYPE_EXAMPLE = "example-view";
 
 export class CalendarView extends ItemView {
-  calendar: Calendar;
+  view: View;
 
   constructor(leaf: WorkspaceLeaf) {
     super(leaf);
@@ -21,16 +21,17 @@ export class CalendarView extends ItemView {
 
   async onOpen() {
     console.log("On open view👐")
-    this.calendar = new Calendar({
+    const context = new Map();
+    context.set('view', this)
+
+    this.view = new View({
       target: this.contentEl,
-      props: {
-      }
+      context,
     });
   }
 
   async onClose() {
     console.log('On close view❌')
-    this.calendar.$destroy();
-    
+    this.view.$destroy();
   }
 }

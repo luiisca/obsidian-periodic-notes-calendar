@@ -1,8 +1,8 @@
 import { Plugin, WorkspaceLeaf } from 'obsidian';
 import { computePosition, autoUpdate, flip, offset, shift, arrow } from '@floating-ui/dom';
 import { CalendarView, VIEW_TYPE_EXAMPLE } from './view';
-import Calendar from './ui/Calendar.svelte';
-import { settingsStore } from './ui/stores';
+import Calendar from './View.svelte';
+import { settingsStore } from './stores';
 import { SettingsTab, type ISettings } from './settings';
 import type { Locale, Moment, WeekSpec } from 'moment';
 
@@ -29,13 +29,15 @@ export default class DailyNoteFlexPlugin extends Plugin {
 
 		this.app.workspace.getLeavesOfType(VIEW_TYPE_EXAMPLE).forEach((leaf) => leaf.detach());
 
-		this.cleanupPopup();
+		this.cleanupPopup && this.cleanupPopup();
+		this.removeLocaleScripts();
 	}
 
 	async onload() {
 		console.log('ON Load 🫵');
 		this.register(
 			settingsStore.subscribe((settings) => {
+				console.log("Settingstore on plugin load, should contain custom DEFAULT_SETTNGS as it is recreated every time pluign reloads", settings)
 				this.settings = settings;
 			})
 		);
@@ -74,10 +76,13 @@ export default class DailyNoteFlexPlugin extends Plugin {
 	}
 
 	async saveSettings(changeSettings: (old: ISettings) => Partial<ISettings>) {
-		settingsStore.update((old) => ({
-			...old,
-			...changeSettings(old)
-		}));
+		settingsStore.update((old) => {
+			console.log('INside saveSettings', changeSettings(old));
+			return {
+				...old,
+				...changeSettings(old)
+			};
+		});
 
 		await this.saveData(this.settings);
 	}
@@ -100,7 +105,7 @@ export default class DailyNoteFlexPlugin extends Plugin {
 		// Local State
 		let popupState: { open: boolean; autoUpdateCleanup: () => void } = {
 			open: false,
-			autoUpdateCleanup: () => {}
+			autoUpdateCleanup: () => ({})
 		};
 		const options = {
 			target: 'calendarPopup'
@@ -243,7 +248,7 @@ export default class DailyNoteFlexPlugin extends Plugin {
 		this.cleanupPopup = () => {
 			popupState = {
 				open: false,
-				autoUpdateCleanup: () => {}
+				autoUpdateCleanup: () => ({})
 			};
 
 			// Remove Event Listeners
@@ -343,5 +348,16 @@ export default class DailyNoteFlexPlugin extends Plugin {
 			// 5. root split open and leaf not active -> reveal view
 			this.revealView();
 		}
+	}
+
+	removeLocaleScripts() {
+		console.log('removing locales scripts 🎑');
+		const existingScripts = document.querySelectorAll(
+			'script[src^="https://cdn.jsdelivr.net/npm/dayjs@1"]'
+		);
+		console.log('exisiting scirpt to remove 🤯', existingScripts);
+		existingScripts.forEach((script) => {
+			script.remove();
+		});
 	}
 }
