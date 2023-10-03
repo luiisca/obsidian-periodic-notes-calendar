@@ -6,13 +6,6 @@ export interface IDot {
   isFilled: boolean;
 }
 
-export interface IWeek {
-  days: Moment[];
-  weekNum: number;
-}
-
-export type IMonth = IWeek[];
-
 export type IHTMLAttributes = Record<string, string | number | boolean>;
 
 export interface IEvaluatedMetadata {

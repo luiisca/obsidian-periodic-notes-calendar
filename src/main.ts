@@ -4,20 +4,6 @@ import { CalendarView, VIEW_TYPE_EXAMPLE } from './view';
 import Calendar from './View.svelte';
 import { settingsStore } from './stores';
 import { SettingsTab, type ISettings } from './settings';
-import type { Locale, Moment, WeekSpec } from 'moment';
-
-declare module 'moment' {
-	export interface Locale {
-		_defaultWeek: {
-			dow: number;
-			doy: number;
-		};
-		_week: {
-			dow: number;
-			doy?: number;
-		};
-	}
-}
 
 export default class DailyNoteFlexPlugin extends Plugin {
 	public settings: ISettings;
@@ -37,7 +23,6 @@ export default class DailyNoteFlexPlugin extends Plugin {
 		console.log('ON Load 🫵');
 		this.register(
 			settingsStore.subscribe((settings) => {
-				console.log("Settingstore on plugin load, should contain custom DEFAULT_SETTNGS as it is recreated every time pluign reloads", settings)
 				this.settings = settings;
 			})
 		);
@@ -62,7 +47,6 @@ export default class DailyNoteFlexPlugin extends Plugin {
 			console.log('ON Layout REady 🙌');
 			// const localeWeekStartNum = window._bundledLocaleWeekSpec.dow;
 
-			console.log('localeWeekStartNum 📅', window._bundledLocaleWeekSpec);
 			this.handlePopup();
 		});
 	}
@@ -161,7 +145,7 @@ export default class DailyNoteFlexPlugin extends Plugin {
 			console.log('ON ribbon click 🐭');
 			popupState.open ? close() : open();
 		}
-		function onWindowClick(event: any) {
+		function onWindowClick(event: { target: Node | null; }) {
 			console.log('ON window click 🪟', event);
 			// console.log("FloatingEL", floatingEl)
 			// console.log("Event target", event.target)

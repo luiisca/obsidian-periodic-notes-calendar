@@ -23,11 +23,12 @@ export interface ISettings {
 
 	localeData: {
 		loading: boolean;
-		weekStart: string | null;
+		weekStart: string;
 		showWeekNums: boolean;
 		sysLocale: string;
 		localeOverride: string | null;
-		localizedWeekdays: string[] | null;
+		localizedWeekdays: string[];
+		localizedWeekdaysShort: string[];
 	};
 }
 
@@ -36,13 +37,14 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
 
 	localeData: {
 		loading: false,
-		weekStart: null,
+		weekStart: dayjs.weekdays()[dayjs().weekday(0).day()],
 		showWeekNums: false,
 		sysLocale:
 			navigator.languages.find((locale) => locales.has(locale.toLocaleLowerCase())) ||
 			navigator.languages[0],
 		localeOverride: null,
-		localizedWeekdays: null
+		localizedWeekdays: dayjs.weekdays(),
+		localizedWeekdaysShort: dayjs.weekdaysShort()
 	}
 });
 
@@ -322,9 +324,10 @@ export class SettingsTab extends PluginSettingTab {
 			this.plugin.saveSettings((settings) => ({
 				localeData: {
 					...settings.localeData,
+					weekStart: dayjs.weekdays()[dayjs().weekday(0).day()],
 					localeOverride: 'en',
 					localizedWeekdays: dayjs.weekdays(),
-					weekStart: dayjs.weekdays()[dayjs().weekday(0).day()]
+					localizedWeekdaysShort: dayjs.weekdaysShort()
 				}
 			}));
 
@@ -358,9 +361,10 @@ export class SettingsTab extends PluginSettingTab {
 							localeData: {
 								...settings.localeData,
 								loading: false,
+								weekStart: dayjs.weekdays()[dayjs().weekday(0).day()],
 								localeOverride: localeKey,
 								localizedWeekdays: dayjs.weekdays(),
-								weekStart: dayjs.weekdays()[dayjs().weekday(0).day()]
+								localizedWeekdaysShort: dayjs.weekdaysShort()
 							}
 						}));
 

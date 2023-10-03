@@ -1383,33 +1383,6 @@ const computePosition = (reference, floating, options) => {
 /** @returns {void} */
 function noop() {}
 
-/**
- * @template T
- * @template S
- * @param {T} tar
- * @param {S} src
- * @returns {T & S}
- */
-function assign(tar, src) {
-	// @ts-ignore
-	for (const k in src) tar[k] = src[k];
-	return /** @type {T & S} */ (tar);
-}
-
-// Adapted from https://github.com/then/is-promise/blob/master/index.js
-// Distributed under MIT License https://github.com/then/is-promise/blob/master/LICENSE
-/**
- * @param {any} value
- * @returns {value is PromiseLike<any>}
- */
-function is_promise(value) {
-	return (
-		!!value &&
-		(typeof value === 'object' || typeof value === 'function') &&
-		typeof (/** @type {any} */ (value).then) === 'function'
-	);
-}
-
 function run(fn) {
 	return fn();
 }
@@ -1465,69 +1438,9 @@ function component_subscribe(component, store, callback) {
 	component.$$.on_destroy.push(subscribe(store, callback));
 }
 
-function create_slot(definition, ctx, $$scope, fn) {
-	if (definition) {
-		const slot_ctx = get_slot_context(definition, ctx, $$scope, fn);
-		return definition[0](slot_ctx);
-	}
-}
-
-function get_slot_context(definition, ctx, $$scope, fn) {
-	return definition[1] && fn ? assign($$scope.ctx.slice(), definition[1](fn(ctx))) : $$scope.ctx;
-}
-
-function get_slot_changes(definition, $$scope, dirty, fn) {
-	if (definition[2] && fn) {
-		const lets = definition[2](fn(dirty));
-		if ($$scope.dirty === undefined) {
-			return lets;
-		}
-		if (typeof lets === 'object') {
-			const merged = [];
-			const len = Math.max($$scope.dirty.length, lets.length);
-			for (let i = 0; i < len; i += 1) {
-				merged[i] = $$scope.dirty[i] | lets[i];
-			}
-			return merged;
-		}
-		return $$scope.dirty | lets;
-	}
-	return $$scope.dirty;
-}
-
-/** @returns {void} */
-function update_slot_base(
-	slot,
-	slot_definition,
-	ctx,
-	$$scope,
-	slot_changes,
-	get_slot_context_fn
-) {
-	if (slot_changes) {
-		const slot_context = get_slot_context(slot_definition, ctx, $$scope, get_slot_context_fn);
-		slot.p(slot_context, slot_changes);
-	}
-}
-
-/** @returns {any[] | -1} */
-function get_all_dirty_from_scope($$scope) {
-	if ($$scope.ctx.length > 32) {
-		const dirty = [];
-		const length = $$scope.ctx.length / 32;
-		for (let i = 0; i < length; i++) {
-			dirty[i] = -1;
-		}
-		return dirty;
-	}
-	return -1;
-}
-
 function null_to_empty(value) {
 	return value == null ? '' : value;
 }
-
-const contenteditable_truthy_values = ['', true, 1, 'true', 'contenteditable'];
 
 /**
  * @param {Node} target
@@ -1615,15 +1528,6 @@ function element(name) {
 }
 
 /**
- * @template {keyof SVGElementTagNameMap} K
- * @param {K} name
- * @returns {SVGElement}
- */
-function svg_element(name) {
-	return document.createElementNS('http://www.w3.org/2000/svg', name);
-}
-
-/**
  * @param {string} data
  * @returns {Text}
  */
@@ -1665,41 +1569,6 @@ function attr(node, attribute, value) {
 	if (value == null) node.removeAttribute(attribute);
 	else if (node.getAttribute(attribute) !== value) node.setAttribute(attribute, value);
 }
-/**
- * List of attributes that should always be set through the attr method,
- * because updating them through the property setter doesn't work reliably.
- * In the example of `width`/`height`, the problem is that the setter only
- * accepts numeric values, but the attribute can also be set to a string like `50%`.
- * If this list becomes too big, rethink this approach.
- */
-const always_set_through_set_attribute = ['width', 'height'];
-
-/**
- * @param {Element & ElementCSSInlineStyle} node
- * @param {{ [x: string]: string }} attributes
- * @returns {void}
- */
-function set_attributes(node, attributes) {
-	// @ts-ignore
-	const descriptors = Object.getOwnPropertyDescriptors(node.__proto__);
-	for (const key in attributes) {
-		if (attributes[key] == null) {
-			node.removeAttribute(key);
-		} else if (key === 'style') {
-			node.style.cssText = attributes[key];
-		} else if (key === '__value') {
-			/** @type {any} */ (node).value = node[key] = attributes[key];
-		} else if (
-			descriptors[key] &&
-			descriptors[key].set &&
-			always_set_through_set_attribute.indexOf(key) === -1
-		) {
-			node[key] = attributes[key];
-		} else {
-			attr(node, key, attributes[key]);
-		}
-	}
-}
 
 /**
  * @param {Element} element
@@ -1718,41 +1587,6 @@ function set_data(text, data) {
 	data = '' + data;
 	if (text.data === data) return;
 	text.data = /** @type {string} */ (data);
-}
-
-/**
- * @param {Text} text
- * @param {unknown} data
- * @returns {void}
- */
-function set_data_contenteditable(text, data) {
-	data = '' + data;
-	if (text.wholeText === data) return;
-	text.data = /** @type {string} */ (data);
-}
-
-/**
- * @param {Text} text
- * @param {unknown} data
- * @param {string} attr_value
- * @returns {void}
- */
-function set_data_maybe_contenteditable(text, data, attr_value) {
-	if (~contenteditable_truthy_values.indexOf(attr_value)) {
-		set_data_contenteditable(text, data);
-	} else {
-		set_data(text, data);
-	}
-}
-
-/**
- * @returns {void} */
-function set_style(node, key, value, important) {
-	if (value == null) {
-		node.style.removeProperty(key);
-	} else {
-		node.style.setProperty(key, value, important ? 'important' : '');
-	}
 }
 
 /**
@@ -1845,6 +1679,24 @@ function createEventDispatcher() {
 		}
 		return true;
 	};
+}
+
+/**
+ * Associates an arbitrary `context` object with the current component and the specified `key`
+ * and returns that object. The context is then available to children of the component
+ * (including slotted content) with `getContext`.
+ *
+ * Like lifecycle functions, this must be called during component initialisation.
+ *
+ * https://svelte.dev/docs/svelte#setcontext
+ * @template T
+ * @param {any} key
+ * @param {T} context
+ * @returns {T}
+ */
+function setContext(key, context) {
+	get_current_component().$$.context.set(key, context);
+	return context;
 }
 
 /**
@@ -2073,102 +1925,6 @@ function transition_out(block, local, detach, callback) {
  * @property {Outro} [group]
  */
 
-/**
- * @template T
- * @param {Promise<T>} promise
- * @param {import('./private.js').PromiseInfo<T>} info
- * @returns {boolean}
- */
-function handle_promise(promise, info) {
-	const token = (info.token = {});
-	/**
-	 * @param {import('./private.js').FragmentFactory} type
-	 * @param {0 | 1 | 2} index
-	 * @param {number} [key]
-	 * @param {any} [value]
-	 * @returns {void}
-	 */
-	function update(type, index, key, value) {
-		if (info.token !== token) return;
-		info.resolved = value;
-		let child_ctx = info.ctx;
-		if (key !== undefined) {
-			child_ctx = child_ctx.slice();
-			child_ctx[key] = value;
-		}
-		const block = type && (info.current = type)(child_ctx);
-		let needs_flush = false;
-		if (info.block) {
-			if (info.blocks) {
-				info.blocks.forEach((block, i) => {
-					if (i !== index && block) {
-						group_outros();
-						transition_out(block, 1, 1, () => {
-							if (info.blocks[i] === block) {
-								info.blocks[i] = null;
-							}
-						});
-						check_outros();
-					}
-				});
-			} else {
-				info.block.d(1);
-			}
-			block.c();
-			transition_in(block, 1);
-			block.m(info.mount(), info.anchor);
-			needs_flush = true;
-		}
-		info.block = block;
-		if (info.blocks) info.blocks[index] = block;
-		if (needs_flush) {
-			flush();
-		}
-	}
-	if (is_promise(promise)) {
-		const current_component = get_current_component();
-		promise.then(
-			(value) => {
-				set_current_component(current_component);
-				update(info.then, 1, info.value, value);
-				set_current_component(null);
-			},
-			(error) => {
-				set_current_component(current_component);
-				update(info.catch, 2, info.error, error);
-				set_current_component(null);
-				if (!info.hasCatch) {
-					throw error;
-				}
-			}
-		);
-		// if we previously had a then/catch block, destroy it
-		if (info.current !== info.pending) {
-			update(info.pending, 0);
-			return true;
-		}
-	} else {
-		if (info.current !== info.then) {
-			update(info.then, 1, info.value, promise);
-			return true;
-		}
-		info.resolved = /** @type {T} */ (promise);
-	}
-}
-
-/** @returns {void} */
-function update_await_block_branch(info, ctx, dirty) {
-	const child_ctx = ctx.slice();
-	const { resolved } = info;
-	if (info.current === info.then) {
-		child_ctx[info.value] = resolved;
-	}
-	if (info.current === info.catch) {
-		child_ctx[info.error] = resolved;
-	}
-	info.block.p(child_ctx, dirty);
-}
-
 // general each functions:
 
 function ensure_array_like(array_like_or_iterator) {
@@ -2266,42 +2022,6 @@ function update_keyed_each(
 	while (n) insert(new_blocks[n - 1]);
 	run_all(updates);
 	return new_blocks;
-}
-
-/** @returns {{}} */
-function get_spread_update(levels, updates) {
-	const update = {};
-	const to_null_out = {};
-	const accounted_for = { $$scope: 1 };
-	let i = levels.length;
-	while (i--) {
-		const o = levels[i];
-		const n = updates[i];
-		if (n) {
-			for (const key in o) {
-				if (!(key in n)) to_null_out[key] = 1;
-			}
-			for (const key in n) {
-				if (!accounted_for[key]) {
-					update[key] = n[key];
-					accounted_for[key] = 1;
-				}
-			}
-			levels[i] = n;
-		} else {
-			for (const key in o) {
-				accounted_for[key] = 1;
-			}
-		}
-	}
-	for (const key in to_null_out) {
-		if (!(key in update)) update[key] = undefined;
-	}
-	return update;
-}
-
-function get_spread_object(spread_props) {
-	return typeof spread_props === 'object' && spread_props !== null ? spread_props : {};
 }
 
 /** @returns {void} */
@@ -2502,6 +2222,30 @@ if (typeof window !== 'undefined')
 
 function r(e){var t,f,n="";if("string"==typeof e||"number"==typeof e)n+=e;else if("object"==typeof e)if(Array.isArray(e))for(t=0;t<e.length;t++)e[t]&&(f=r(e[t]))&&(n&&(n+=" "),n+=f);else for(t in e)e[t]&&(n&&(n+=" "),n+=t);return n}function clsx(){for(var e,t,f=0,n="";f<arguments.length;)(e=arguments[f++])&&(t=r(e))&&(n&&(n+=" "),n+=t);return n}
 
+var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
+
+function getDefaultExportFromCjs (x) {
+	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
+}
+
+var weekOfYear$1 = {exports: {}};
+
+(function (module, exports) {
+	!function(e,t){module.exports=t();}(commonjsGlobal,(function(){var e="week",t="year";return function(i,n,r){var f=n.prototype;f.week=function(i){if(void 0===i&&(i=null),null!==i)return this.add(7*(i-this.week()),"day");var n=this.$locale().yearStart||1;if(11===this.month()&&this.date()>25){var f=r(this).startOf(t).add(1,t).date(n),s=r(this).endOf(e);if(f.isBefore(s))return 1}var a=r(this).startOf(t).date(n).startOf(e).subtract(1,"millisecond"),o=this.diff(a,e,!0);return o<0?r(this).startOf("week").week():Math.ceil(o)},f.weeks=function(e){return void 0===e&&(e=null),this.week(e)};}})); 
+} (weekOfYear$1));
+
+var weekOfYearExports = weekOfYear$1.exports;
+var weekOfYear = /*@__PURE__*/getDefaultExportFromCjs(weekOfYearExports);
+
+var isoWeek$1 = {exports: {}};
+
+(function (module, exports) {
+	!function(e,t){module.exports=t();}(commonjsGlobal,(function(){var e="day";return function(t,i,s){var a=function(t){return t.add(4-t.isoWeekday(),e)},d=i.prototype;d.isoWeekYear=function(){return a(this).year()},d.isoWeek=function(t){if(!this.$utils().u(t))return this.add(7*(t-this.isoWeek()),e);var i,d,n,o,r=a(this),u=(i=this.isoWeekYear(),d=this.$u,n=(d?s.utc:s)().year(i).startOf("year"),o=4-n.isoWeekday(),n.isoWeekday()>4&&(o+=7),n.add(o,e));return r.diff(u,"week")+1},d.isoWeekday=function(e){return this.$utils().u(e)?this.day()||7:this.day(this.day()%7?e:e-7)};var n=d.startOf;d.startOf=function(e,t){var i=this.$utils(),s=!!i.u(t)||t;return "isoweek"===i.p(e)?s?this.date(this.date()-(this.isoWeekday()-1)).startOf("day"):this.date(this.date()-1-(this.isoWeekday()-1)+7).endOf("day"):n.bind(this)(e,t)};}})); 
+} (isoWeek$1));
+
+var isoWeekExports = isoWeek$1.exports;
+var isoWeek = /*@__PURE__*/getDefaultExportFromCjs(isoWeekExports);
+
 const subscriber_queue = [];
 
 /**
@@ -2571,6 +2315,43 @@ function writable(value, start = noop) {
 		};
 	}
 	return { set, update, subscribe };
+}
+
+const IS_MOBILE = Symbol("isMobile");
+const DISPLAYED_MONTH = Symbol("displayedMonth");
+const VIEW = Symbol('view');
+
+function isMacOS() {
+    return navigator.appVersion.indexOf('Mac') !== -1;
+}
+function isMetaPressed(e) {
+    return isMacOS() ? e.metaKey : e.ctrlKey;
+}
+function isWeekend(date) {
+    return date.isoWeekday() === 6 || date.isoWeekday() === 7;
+}
+/**
+ * Generate a 2D array of daily information to power
+ * the calendar view.
+ */
+function getMonth(displayedMonth) {
+    const month = [];
+    let week = { days: [], weekNum: 0 };
+    const startOfMonth = displayedMonth.date(1);
+    const startOffset = startOfMonth.day();
+    let date = startOfMonth.subtract(startOffset, 'days');
+    for (let _day = 0; _day < 42; _day++) {
+        if (_day % 7 === 0) {
+            week = {
+                days: [],
+                weekNum: date.week()
+            };
+            month.push(week);
+        }
+        week.days.push(date);
+        date = date.add(1, 'days');
+    }
+    return month;
 }
 
 const localesMap = new Map();
@@ -2743,12 +2524,6 @@ async function fetchWithRetry(url, retries = 0) {
     }
 }
 
-var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
-
-function getDefaultExportFromCjs (x) {
-	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
-}
-
 var dayjs_min = {exports: {}};
 
 (function (module, exports) {
@@ -2782,12 +2557,13 @@ const DEFAULT_SETTINGS = Object.freeze({
     viewOpen: false,
     localeData: {
         loading: false,
-        weekStart: null,
+        weekStart: dayjs.weekdays()[dayjs().weekday(0).day()],
         showWeekNums: false,
         sysLocale: navigator.languages.find((locale) => localesMap.has(locale.toLocaleLowerCase())) ||
             navigator.languages[0],
         localeOverride: null,
-        localizedWeekdays: null
+        localizedWeekdays: dayjs.weekdays(),
+        localizedWeekdaysShort: dayjs.weekdaysShort()
     }
 });
 class SettingsTab extends require$$0.PluginSettingTab {
@@ -3009,9 +2785,10 @@ class SettingsTab extends require$$0.PluginSettingTab {
             this.plugin.saveSettings((settings) => ({
                 localeData: {
                     ...settings.localeData,
+                    weekStart: dayjs.weekdays()[dayjs().weekday(0).day()],
                     localeOverride: 'en',
                     localizedWeekdays: dayjs.weekdays(),
-                    weekStart: dayjs.weekdays()[dayjs().weekday(0).day()]
+                    localizedWeekdaysShort: dayjs.weekdaysShort()
                 }
             }));
             this.display();
@@ -3042,9 +2819,10 @@ class SettingsTab extends require$$0.PluginSettingTab {
                             localeData: {
                                 ...settings.localeData,
                                 loading: false,
+                                weekStart: dayjs.weekdays()[dayjs().weekday(0).day()],
                                 localeOverride: localeKey,
                                 localizedWeekdays: dayjs.weekdays(),
-                                weekStart: dayjs.weekdays()[dayjs().weekday(0).day()]
+                                localizedWeekdaysShort: dayjs.weekdaysShort()
                             }
                         }));
                         this.display();
@@ -3060,20 +2838,17 @@ class SettingsTab extends require$$0.PluginSettingTab {
 
 const settingsStore = writable(DEFAULT_SETTINGS);
 
-const IS_MOBILE = Symbol("isMobile");
-const DISPLAYED_MONTH = Symbol("displayedMonth");
-
 var main = {};
 
 Object.defineProperty(main, '__esModule', { value: true });
 
 var obsidian = require$$0;
 
-const DEFAULT_DAILY_NOTE_FORMAT = "YYYY-MM-DD";
+const DEFAULT_DAILY_NOTE_FORMAT$1 = "YYYY-MM-DD";
 const DEFAULT_WEEKLY_NOTE_FORMAT = "gggg-[W]ww";
 const DEFAULT_MONTHLY_NOTE_FORMAT = "YYYY-MM";
 
-function shouldUsePeriodicNotesSettings(periodicity) {
+function shouldUsePeriodicNotesSettings$1(periodicity) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const periodicNotes = window.app.plugins.getPlugin("periodic-notes");
     return periodicNotes && periodicNotes.settings?.[periodicity]?.enabled;
@@ -3082,21 +2857,21 @@ function shouldUsePeriodicNotesSettings(periodicity) {
  * Read the user settings for the `daily-notes` plugin
  * to keep behavior of creating a new note in-sync.
  */
-function getDailyNoteSettings() {
+function getDailyNoteSettings$2() {
     try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { internalPlugins, plugins } = window.app;
-        if (shouldUsePeriodicNotesSettings("daily")) {
+        if (shouldUsePeriodicNotesSettings$1("daily")) {
             const { format, folder, template } = plugins.getPlugin("periodic-notes")?.settings?.daily || {};
             return {
-                format: format || DEFAULT_DAILY_NOTE_FORMAT,
+                format: format || DEFAULT_DAILY_NOTE_FORMAT$1,
                 folder: folder?.trim() || "",
                 template: template?.trim() || "",
             };
         }
         const { folder, format, template } = internalPlugins.getPluginById("daily-notes")?.instance?.options || {};
         return {
-            format: format || DEFAULT_DAILY_NOTE_FORMAT,
+            format: format || DEFAULT_DAILY_NOTE_FORMAT$1,
             folder: folder?.trim() || "",
             template: template?.trim() || "",
         };
@@ -3109,14 +2884,14 @@ function getDailyNoteSettings() {
  * Read the user settings for the `weekly-notes` plugin
  * to keep behavior of creating a new note in-sync.
  */
-function getWeeklyNoteSettings() {
+function getWeeklyNoteSettings$1() {
     try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const pluginManager = window.app.plugins;
         const calendarSettings = pluginManager.getPlugin("calendar")?.options;
         const periodicNotesSettings = pluginManager.getPlugin("periodic-notes")
             ?.settings?.weekly;
-        if (shouldUsePeriodicNotesSettings("weekly")) {
+        if (shouldUsePeriodicNotesSettings$1("weekly")) {
             return {
                 format: periodicNotesSettings.format || DEFAULT_WEEKLY_NOTE_FORMAT,
                 folder: periodicNotesSettings.folder?.trim() || "",
@@ -3142,7 +2917,7 @@ function getMonthlyNoteSettings() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pluginManager = window.app.plugins;
     try {
-        const settings = (shouldUsePeriodicNotesSettings("monthly") &&
+        const settings = (shouldUsePeriodicNotesSettings$1("monthly") &&
             pluginManager.getPlugin("periodic-notes")?.settings?.monthly) ||
             {};
         return {
@@ -3157,7 +2932,7 @@ function getMonthlyNoteSettings() {
 }
 
 // Credit: @creationix/path.js
-function join(...partSegments) {
+function join$1(...partSegments) {
     // Split the inputs into a list of path commands.
     let parts = [];
     for (let i = 0, l = partSegments.length; i < l; i++) {
@@ -3187,25 +2962,25 @@ function basename(fullPath) {
         base = base.substring(0, base.lastIndexOf("."));
     return base;
 }
-async function ensureFolderExists(path) {
+async function ensureFolderExists$1(path) {
     const dirs = path.replace(/\\/g, "/").split("/");
     dirs.pop(); // remove basename
     if (dirs.length) {
-        const dir = join(...dirs);
+        const dir = join$1(...dirs);
         if (!window.app.vault.getAbstractFileByPath(dir)) {
             await window.app.vault.createFolder(dir);
         }
     }
 }
-async function getNotePath(directory, filename) {
+async function getNotePath$1(directory, filename) {
     if (!filename.endsWith(".md")) {
         filename += ".md";
     }
-    const path = obsidian.normalizePath(join(directory, filename));
-    await ensureFolderExists(path);
+    const path = obsidian.normalizePath(join$1(directory, filename));
+    await ensureFolderExists$1(path);
     return path;
 }
-async function getTemplateInfo(template) {
+async function getTemplateInfo$1(template) {
     const { metadataCache, vault } = window.app;
     const templatePath = obsidian.normalizePath(template);
     if (templatePath === "/") {
@@ -3249,7 +3024,7 @@ function isFormatAmbiguous(format, granularity) {
     }
     return false;
 }
-function getDateFromFile(file, granularity) {
+function getDateFromFile$1(file, granularity) {
     return getDateFromFilename(file.basename, granularity);
 }
 function getDateFromPath(path, granularity) {
@@ -3257,8 +3032,8 @@ function getDateFromPath(path, granularity) {
 }
 function getDateFromFilename(filename, granularity) {
     const getSettings = {
-        day: getDailyNoteSettings,
-        week: getWeeklyNoteSettings,
+        day: getDailyNoteSettings$2,
+        week: getWeeklyNoteSettings$1,
         month: getMonthlyNoteSettings,
     };
     const format = getSettings[granularity]().format.split("/").pop();
@@ -3288,14 +3063,14 @@ class DailyNotesFolderMissingError extends Error {
  *
  * Note: it has an added bonus that it's not 'today' specific.
  */
-async function createDailyNote(date) {
+async function createDailyNote$1(date) {
     const app = window.app;
     const { vault } = app;
     const moment = window.moment;
-    const { template, format, folder } = getDailyNoteSettings();
-    const [templateContents, IFoldInfo] = await getTemplateInfo(template);
+    const { template, format, folder } = getDailyNoteSettings$2();
+    const [templateContents, IFoldInfo] = await getTemplateInfo$1(template);
     const filename = date.format(format);
-    const normalizedPath = await getNotePath(folder, filename);
+    const normalizedPath = await getNotePath$1(folder, filename);
     try {
         const createdFile = await vault.create(normalizedPath, templateContents
             .replace(/{{\s*date\s*}}/gi, filename)
@@ -3327,7 +3102,7 @@ async function createDailyNote(date) {
         new obsidian.Notice("Unable to create new file.");
     }
 }
-function getDailyNote(date, dailyNotes) {
+function getDailyNote$1(date, dailyNotes) {
     return dailyNotes[getDateUID(date, "day")] ?? null;
 }
 function getAllDailyNotes() {
@@ -3335,7 +3110,7 @@ function getAllDailyNotes() {
      * Find all daily notes in the daily note folder
      */
     const { vault } = window.app;
-    const { folder } = getDailyNoteSettings();
+    const { folder } = getDailyNoteSettings$2();
     const dailyNotesFolder = vault.getAbstractFileByPath(obsidian.normalizePath(folder));
     if (!dailyNotesFolder) {
         throw new DailyNotesFolderMissingError("Failed to find daily notes folder");
@@ -3343,7 +3118,7 @@ function getAllDailyNotes() {
     const dailyNotes = {};
     obsidian.Vault.recurseChildren(dailyNotesFolder, (note) => {
         if (note instanceof obsidian.TFile) {
-            const date = getDateFromFile(note, "day");
+            const date = getDateFromFile$1(note, "day");
             if (date) {
                 const dateString = getDateUID(date, "day");
                 dailyNotes[dateString] = note;
@@ -3379,10 +3154,10 @@ function getDayOfWeekNumericalValue(dayOfWeekName) {
 }
 async function createWeeklyNote(date) {
     const { vault } = window.app;
-    const { template, format, folder } = getWeeklyNoteSettings();
-    const [templateContents, IFoldInfo] = await getTemplateInfo(template);
+    const { template, format, folder } = getWeeklyNoteSettings$1();
+    const [templateContents, IFoldInfo] = await getTemplateInfo$1(template);
     const filename = date.format(format);
-    const normalizedPath = await getNotePath(folder, filename);
+    const normalizedPath = await getNotePath$1(folder, filename);
     try {
         const createdFile = await vault.create(normalizedPath, templateContents
             .replace(/{{\s*(date|time)\s*(([+-]\d+)([yqmwdhs]))?\s*(:.+?)?}}/gi, (_, _timeOrDate, calc, timeDelta, unit, momentFormat) => {
@@ -3415,7 +3190,7 @@ async function createWeeklyNote(date) {
         new obsidian.Notice("Unable to create new file.");
     }
 }
-function getWeeklyNote(date, weeklyNotes) {
+function getWeeklyNote$1(date, weeklyNotes) {
     return weeklyNotes[getDateUID(date, "week")] ?? null;
 }
 function getAllWeeklyNotes() {
@@ -3424,14 +3199,14 @@ function getAllWeeklyNotes() {
         return weeklyNotes;
     }
     const { vault } = window.app;
-    const { folder } = getWeeklyNoteSettings();
+    const { folder } = getWeeklyNoteSettings$1();
     const weeklyNotesFolder = vault.getAbstractFileByPath(obsidian.normalizePath(folder));
     if (!weeklyNotesFolder) {
         throw new WeeklyNotesFolderMissingError("Failed to find weekly notes folder");
     }
     obsidian.Vault.recurseChildren(weeklyNotesFolder, (note) => {
         if (note instanceof obsidian.TFile) {
-            const date = getDateFromFile(note, "week");
+            const date = getDateFromFile$1(note, "week");
             if (date) {
                 const dateString = getDateUID(date, "week");
                 weeklyNotes[dateString] = note;
@@ -3453,9 +3228,9 @@ class MonthlyNotesFolderMissingError extends Error {
 async function createMonthlyNote(date) {
     const { vault } = window.app;
     const { template, format, folder } = getMonthlyNoteSettings();
-    const [templateContents, IFoldInfo] = await getTemplateInfo(template);
+    const [templateContents, IFoldInfo] = await getTemplateInfo$1(template);
     const filename = date.format(format);
-    const normalizedPath = await getNotePath(folder, filename);
+    const normalizedPath = await getNotePath$1(folder, filename);
     try {
         const createdFile = await vault.create(normalizedPath, templateContents
             .replace(/{{\s*(date|time)\s*(([+-]\d+)([yqmwdhs]))?\s*(:.+?)?}}/gi, (_, _timeOrDate, calc, timeDelta, unit, momentFormat) => {
@@ -3501,7 +3276,7 @@ function getAllMonthlyNotes() {
     }
     obsidian.Vault.recurseChildren(monthlyNotesFolder, (note) => {
         if (note instanceof obsidian.TFile) {
-            const date = getDateFromFile(note, "month");
+            const date = getDateFromFile$1(note, "month");
             if (date) {
                 const dateString = getDateUID(date, "month");
                 monthlyNotes[dateString] = note;
@@ -3544,1402 +3319,119 @@ function appHasMonthlyNotesPluginLoaded() {
 }
 function getPeriodicNoteSettings(granularity) {
     const getSettings = {
-        day: getDailyNoteSettings,
-        week: getWeeklyNoteSettings,
+        day: getDailyNoteSettings$2,
+        week: getWeeklyNoteSettings$1,
         month: getMonthlyNoteSettings,
     }[granularity];
     return getSettings();
 }
 function createPeriodicNote(granularity, date) {
     const createFn = {
-        day: createDailyNote,
+        day: createDailyNote$1,
         month: createMonthlyNote,
         week: createWeeklyNote,
     };
     return createFn[granularity](date);
 }
 
-main.DEFAULT_DAILY_NOTE_FORMAT = DEFAULT_DAILY_NOTE_FORMAT;
+main.DEFAULT_DAILY_NOTE_FORMAT = DEFAULT_DAILY_NOTE_FORMAT$1;
 main.DEFAULT_MONTHLY_NOTE_FORMAT = DEFAULT_MONTHLY_NOTE_FORMAT;
 main.DEFAULT_WEEKLY_NOTE_FORMAT = DEFAULT_WEEKLY_NOTE_FORMAT;
 main.appHasDailyNotesPluginLoaded = appHasDailyNotesPluginLoaded;
 main.appHasMonthlyNotesPluginLoaded = appHasMonthlyNotesPluginLoaded;
 main.appHasWeeklyNotesPluginLoaded = appHasWeeklyNotesPluginLoaded;
-main.createDailyNote = createDailyNote;
+main.createDailyNote = createDailyNote$1;
 main.createMonthlyNote = createMonthlyNote;
 main.createPeriodicNote = createPeriodicNote;
 main.createWeeklyNote = createWeeklyNote;
 main.getAllDailyNotes = getAllDailyNotes;
 main.getAllMonthlyNotes = getAllMonthlyNotes;
 main.getAllWeeklyNotes = getAllWeeklyNotes;
-main.getDailyNote = getDailyNote;
-main.getDailyNoteSettings = getDailyNoteSettings;
-main.getDateFromFile = getDateFromFile;
+main.getDailyNote = getDailyNote$1;
+main.getDailyNoteSettings = getDailyNoteSettings$2;
+main.getDateFromFile = getDateFromFile$1;
 main.getDateFromPath = getDateFromPath;
-var getDateUID_1 = main.getDateUID = getDateUID;
+main.getDateUID = getDateUID;
 main.getMonthlyNote = getMonthlyNote;
 main.getMonthlyNoteSettings = getMonthlyNoteSettings;
 main.getPeriodicNoteSettings = getPeriodicNoteSettings;
-main.getTemplateInfo = getTemplateInfo;
-main.getWeeklyNote = getWeeklyNote;
-main.getWeeklyNoteSettings = getWeeklyNoteSettings;
-
-/* src/calendar/components/Dot.svelte generated by Svelte v4.2.0 */
-
-function add_css$5(target) {
-	append_styles(target, "svelte-1hxp8c1", ".dot.svelte-1hxp8c1{display:inline-block;height:6px;width:6px;margin:0 1px}.active.svelte-1hxp8c1{color:var(--text-on-accent)}");
-}
-
-function create_fragment$6(ctx) {
-	let svg;
-	let circle;
-	let circle_stroke_value;
-	let circle_fill_value;
-
-	return {
-		c() {
-			svg = svg_element("svg");
-			circle = svg_element("circle");
-			attr(circle, "stroke", circle_stroke_value = !/*isFilled*/ ctx[1] ? 'currentColor' : 'none');
-			attr(circle, "fill", circle_fill_value = /*isFilled*/ ctx[1] ? 'currentColor' : 'none');
-			attr(circle, "cx", "3");
-			attr(circle, "cy", "3");
-			attr(circle, "r", "2");
-			attr(svg, "class", "dot svelte-1hxp8c1");
-			set_style(svg, "color", /*color*/ ctx[0]);
-			attr(svg, "viewBox", "0 0 6 6");
-			attr(svg, "xmlns", "http://www.w3.org/2000/svg");
-			toggle_class(svg, "active", /*isActive*/ ctx[2]);
-		},
-		m(target, anchor) {
-			insert(target, svg, anchor);
-			append(svg, circle);
-		},
-		p(ctx, [dirty]) {
-			if (dirty & /*isFilled*/ 2 && circle_stroke_value !== (circle_stroke_value = !/*isFilled*/ ctx[1] ? 'currentColor' : 'none')) {
-				attr(circle, "stroke", circle_stroke_value);
-			}
-
-			if (dirty & /*isFilled*/ 2 && circle_fill_value !== (circle_fill_value = /*isFilled*/ ctx[1] ? 'currentColor' : 'none')) {
-				attr(circle, "fill", circle_fill_value);
-			}
-
-			if (dirty & /*color*/ 1) {
-				set_style(svg, "color", /*color*/ ctx[0]);
-			}
-
-			if (dirty & /*isActive*/ 4) {
-				toggle_class(svg, "active", /*isActive*/ ctx[2]);
-			}
-		},
-		i: noop,
-		o: noop,
-		d(detaching) {
-			if (detaching) {
-				detach(svg);
-			}
-		}
-	};
-}
-
-function instance$6($$self, $$props, $$invalidate) {
-	let { color } = $$props;
-	let { isFilled } = $$props;
-	let { isActive } = $$props;
-
-	$$self.$$set = $$props => {
-		if ('color' in $$props) $$invalidate(0, color = $$props.color);
-		if ('isFilled' in $$props) $$invalidate(1, isFilled = $$props.isFilled);
-		if ('isActive' in $$props) $$invalidate(2, isActive = $$props.isActive);
-	};
-
-	return [color, isFilled, isActive];
-}
-
-class Dot extends SvelteComponent {
-	constructor(options) {
-		super();
-		init(this, options, instance$6, create_fragment$6, safe_not_equal, { color: 0, isFilled: 1, isActive: 2 }, add_css$5);
-	}
-}
-
-/* src/calendar/components/Dots.svelte generated by Svelte v4.2.0 */
-
-function add_css$4(target) {
-	append_styles(target, "svelte-pa7w19", ".dot-container.svelte-pa7w19{display:flex;flex-wrap:wrap;line-height:6px;min-height:6px}.centered.svelte-pa7w19{justify-content:center}");
-}
-
-function get_each_context$1(ctx, list, i) {
-	const child_ctx = ctx.slice();
-	child_ctx[3] = list[i].color;
-	child_ctx[4] = list[i].display;
-	child_ctx[5] = list[i].dots !== undefined ? list[i].dots : [];
-	return child_ctx;
-}
-
-function get_each_context_1$1(ctx, list, i) {
-	const child_ctx = ctx.slice();
-	child_ctx[8] = list[i];
-	return child_ctx;
-}
-
-// (10:2) {#if metadata}
-function create_if_block$2(ctx) {
-	let each_1_anchor;
-	let current;
-	let each_value = ensure_array_like(/*sortedMeta*/ ctx[2]);
-	let each_blocks = [];
-
-	for (let i = 0; i < each_value.length; i += 1) {
-		each_blocks[i] = create_each_block$1(get_each_context$1(ctx, each_value, i));
-	}
-
-	const out = i => transition_out(each_blocks[i], 1, 1, () => {
-		each_blocks[i] = null;
-	});
-
-	return {
-		c() {
-			for (let i = 0; i < each_blocks.length; i += 1) {
-				each_blocks[i].c();
-			}
-
-			each_1_anchor = empty();
-		},
-		m(target, anchor) {
-			for (let i = 0; i < each_blocks.length; i += 1) {
-				if (each_blocks[i]) {
-					each_blocks[i].m(target, anchor);
-				}
-			}
-
-			insert(target, each_1_anchor, anchor);
-			current = true;
-		},
-		p(ctx, dirty) {
-			if (dirty & /*sortedMeta, MAX_DOTS_PER_SOURCE*/ 4) {
-				each_value = ensure_array_like(/*sortedMeta*/ ctx[2]);
-				let i;
-
-				for (i = 0; i < each_value.length; i += 1) {
-					const child_ctx = get_each_context$1(ctx, each_value, i);
-
-					if (each_blocks[i]) {
-						each_blocks[i].p(child_ctx, dirty);
-						transition_in(each_blocks[i], 1);
-					} else {
-						each_blocks[i] = create_each_block$1(child_ctx);
-						each_blocks[i].c();
-						transition_in(each_blocks[i], 1);
-						each_blocks[i].m(each_1_anchor.parentNode, each_1_anchor);
-					}
-				}
-
-				group_outros();
-
-				for (i = each_value.length; i < each_blocks.length; i += 1) {
-					out(i);
-				}
-
-				check_outros();
-			}
-		},
-		i(local) {
-			if (current) return;
-
-			for (let i = 0; i < each_value.length; i += 1) {
-				transition_in(each_blocks[i]);
-			}
-
-			current = true;
-		},
-		o(local) {
-			each_blocks = each_blocks.filter(Boolean);
-
-			for (let i = 0; i < each_blocks.length; i += 1) {
-				transition_out(each_blocks[i]);
-			}
-
-			current = false;
-		},
-		d(detaching) {
-			if (detaching) {
-				detach(each_1_anchor);
-			}
-
-			destroy_each(each_blocks, detaching);
-		}
-	};
-}
-
-// (12:6) {#if display === "calendar-and-menu"}
-function create_if_block_1$1(ctx) {
-	let each_1_anchor;
-	let current;
-	let each_value_1 = ensure_array_like(/*dots*/ ctx[5].slice(0, MAX_DOTS_PER_SOURCE));
-	let each_blocks = [];
-
-	for (let i = 0; i < each_value_1.length; i += 1) {
-		each_blocks[i] = create_each_block_1$1(get_each_context_1$1(ctx, each_value_1, i));
-	}
-
-	const out = i => transition_out(each_blocks[i], 1, 1, () => {
-		each_blocks[i] = null;
-	});
-
-	return {
-		c() {
-			for (let i = 0; i < each_blocks.length; i += 1) {
-				each_blocks[i].c();
-			}
-
-			each_1_anchor = empty();
-		},
-		m(target, anchor) {
-			for (let i = 0; i < each_blocks.length; i += 1) {
-				if (each_blocks[i]) {
-					each_blocks[i].m(target, anchor);
-				}
-			}
-
-			insert(target, each_1_anchor, anchor);
-			current = true;
-		},
-		p(ctx, dirty) {
-			if (dirty & /*sortedMeta, MAX_DOTS_PER_SOURCE*/ 4) {
-				each_value_1 = ensure_array_like(/*dots*/ ctx[5].slice(0, MAX_DOTS_PER_SOURCE));
-				let i;
-
-				for (i = 0; i < each_value_1.length; i += 1) {
-					const child_ctx = get_each_context_1$1(ctx, each_value_1, i);
-
-					if (each_blocks[i]) {
-						each_blocks[i].p(child_ctx, dirty);
-						transition_in(each_blocks[i], 1);
-					} else {
-						each_blocks[i] = create_each_block_1$1(child_ctx);
-						each_blocks[i].c();
-						transition_in(each_blocks[i], 1);
-						each_blocks[i].m(each_1_anchor.parentNode, each_1_anchor);
-					}
-				}
-
-				group_outros();
-
-				for (i = each_value_1.length; i < each_blocks.length; i += 1) {
-					out(i);
-				}
-
-				check_outros();
-			}
-		},
-		i(local) {
-			if (current) return;
-
-			for (let i = 0; i < each_value_1.length; i += 1) {
-				transition_in(each_blocks[i]);
-			}
-
-			current = true;
-		},
-		o(local) {
-			each_blocks = each_blocks.filter(Boolean);
-
-			for (let i = 0; i < each_blocks.length; i += 1) {
-				transition_out(each_blocks[i]);
-			}
-
-			current = false;
-		},
-		d(detaching) {
-			if (detaching) {
-				detach(each_1_anchor);
-			}
-
-			destroy_each(each_blocks, detaching);
-		}
-	};
-}
-
-// (13:8) {#each dots.slice(0, MAX_DOTS_PER_SOURCE) as dot}
-function create_each_block_1$1(ctx) {
-	let dot_1;
-	let current;
-	const dot_1_spread_levels = [/*dot*/ ctx[8], { color: /*color*/ ctx[3] }];
-	let dot_1_props = {};
-
-	for (let i = 0; i < dot_1_spread_levels.length; i += 1) {
-		dot_1_props = assign(dot_1_props, dot_1_spread_levels[i]);
-	}
-
-	dot_1 = new Dot({ props: dot_1_props });
-
-	return {
-		c() {
-			create_component(dot_1.$$.fragment);
-		},
-		m(target, anchor) {
-			mount_component(dot_1, target, anchor);
-			current = true;
-		},
-		p(ctx, dirty) {
-			const dot_1_changes = (dirty & /*sortedMeta, MAX_DOTS_PER_SOURCE*/ 4)
-			? get_spread_update(dot_1_spread_levels, [
-					get_spread_object(/*dot*/ ctx[8]),
-					dirty & /*sortedMeta*/ 4 && { color: /*color*/ ctx[3] }
-				])
-			: {};
-
-			dot_1.$set(dot_1_changes);
-		},
-		i(local) {
-			if (current) return;
-			transition_in(dot_1.$$.fragment, local);
-			current = true;
-		},
-		o(local) {
-			transition_out(dot_1.$$.fragment, local);
-			current = false;
-		},
-		d(detaching) {
-			destroy_component(dot_1, detaching);
-		}
-	};
-}
-
-// (11:4) {#each sortedMeta as { color, display, dots = [] }}
-function create_each_block$1(ctx) {
-	let if_block_anchor;
-	let current;
-	let if_block = /*display*/ ctx[4] === "calendar-and-menu" && create_if_block_1$1(ctx);
-
-	return {
-		c() {
-			if (if_block) if_block.c();
-			if_block_anchor = empty();
-		},
-		m(target, anchor) {
-			if (if_block) if_block.m(target, anchor);
-			insert(target, if_block_anchor, anchor);
-			current = true;
-		},
-		p(ctx, dirty) {
-			if (/*display*/ ctx[4] === "calendar-and-menu") {
-				if (if_block) {
-					if_block.p(ctx, dirty);
-
-					if (dirty & /*sortedMeta*/ 4) {
-						transition_in(if_block, 1);
-					}
-				} else {
-					if_block = create_if_block_1$1(ctx);
-					if_block.c();
-					transition_in(if_block, 1);
-					if_block.m(if_block_anchor.parentNode, if_block_anchor);
-				}
-			} else if (if_block) {
-				group_outros();
-
-				transition_out(if_block, 1, 1, () => {
-					if_block = null;
-				});
-
-				check_outros();
-			}
-		},
-		i(local) {
-			if (current) return;
-			transition_in(if_block);
-			current = true;
-		},
-		o(local) {
-			transition_out(if_block);
-			current = false;
-		},
-		d(detaching) {
-			if (detaching) {
-				detach(if_block_anchor);
-			}
-
-			if (if_block) if_block.d(detaching);
-		}
-	};
-}
-
-function create_fragment$5(ctx) {
-	let div;
-	let current;
-	let if_block = /*metadata*/ ctx[1] && create_if_block$2(ctx);
-
-	return {
-		c() {
-			div = element("div");
-			if (if_block) if_block.c();
-			attr(div, "class", "dot-container svelte-pa7w19");
-			toggle_class(div, "centered", /*centered*/ ctx[0]);
-		},
-		m(target, anchor) {
-			insert(target, div, anchor);
-			if (if_block) if_block.m(div, null);
-			current = true;
-		},
-		p(ctx, [dirty]) {
-			if (/*metadata*/ ctx[1]) {
-				if (if_block) {
-					if_block.p(ctx, dirty);
-
-					if (dirty & /*metadata*/ 2) {
-						transition_in(if_block, 1);
-					}
-				} else {
-					if_block = create_if_block$2(ctx);
-					if_block.c();
-					transition_in(if_block, 1);
-					if_block.m(div, null);
-				}
-			} else if (if_block) {
-				group_outros();
-
-				transition_out(if_block, 1, 1, () => {
-					if_block = null;
-				});
-
-				check_outros();
-			}
-
-			if (!current || dirty & /*centered*/ 1) {
-				toggle_class(div, "centered", /*centered*/ ctx[0]);
-			}
-		},
-		i(local) {
-			if (current) return;
-			transition_in(if_block);
-			current = true;
-		},
-		o(local) {
-			transition_out(if_block);
-			current = false;
-		},
-		d(detaching) {
-			if (detaching) {
-				detach(div);
-			}
-
-			if (if_block) if_block.d();
-		}
-	};
-}
-
-const MAX_DOTS_PER_SOURCE = 5;
-
-function instance$5($$self, $$props, $$invalidate) {
-	let { centered = true } = $$props;
-	let { metadata } = $$props;
-	let sortedMeta;
-
-	$$self.$$set = $$props => {
-		if ('centered' in $$props) $$invalidate(0, centered = $$props.centered);
-		if ('metadata' in $$props) $$invalidate(1, metadata = $$props.metadata);
-	};
-
-	$$self.$$.update = () => {
-		if ($$self.$$.dirty & /*metadata*/ 2) {
-			$$invalidate(2, sortedMeta = metadata && metadata.sort((a, b) => a.order - b.order));
-		}
-	};
-
-	return [centered, metadata, sortedMeta];
-}
-
-class Dots extends SvelteComponent {
-	constructor(options) {
-		super();
-		init(this, options, instance$5, create_fragment$5, safe_not_equal, { centered: 0, metadata: 1 }, add_css$4);
-	}
-}
-
-/* src/calendar/components/MetadataResolver.svelte generated by Svelte v4.2.0 */
-const get_default_slot_changes_2 = dirty => ({});
-const get_default_slot_context_2 = ctx => ({ metadata: null });
-const get_default_slot_changes_1 = dirty => ({ metadata: dirty & /*metadata*/ 1 });
-const get_default_slot_context_1 = ctx => ({ metadata: /*resolvedMeta*/ ctx[3] });
-const get_default_slot_changes = dirty => ({});
-const get_default_slot_context = ctx => ({ metadata: null });
-
-// (12:0) {:else}
-function create_else_block(ctx) {
-	let current;
-	const default_slot_template = /*#slots*/ ctx[2].default;
-	const default_slot = create_slot(default_slot_template, ctx, /*$$scope*/ ctx[1], get_default_slot_context_2);
-
-	return {
-		c() {
-			if (default_slot) default_slot.c();
-		},
-		m(target, anchor) {
-			if (default_slot) {
-				default_slot.m(target, anchor);
-			}
-
-			current = true;
-		},
-		p(ctx, dirty) {
-			if (default_slot) {
-				if (default_slot.p && (!current || dirty & /*$$scope*/ 2)) {
-					update_slot_base(
-						default_slot,
-						default_slot_template,
-						ctx,
-						/*$$scope*/ ctx[1],
-						!current
-						? get_all_dirty_from_scope(/*$$scope*/ ctx[1])
-						: get_slot_changes(default_slot_template, /*$$scope*/ ctx[1], dirty, get_default_slot_changes_2),
-						get_default_slot_context_2
-					);
-				}
-			}
-		},
-		i(local) {
-			if (current) return;
-			transition_in(default_slot, local);
-			current = true;
-		},
-		o(local) {
-			transition_out(default_slot, local);
-			current = false;
-		},
-		d(detaching) {
-			if (default_slot) default_slot.d(detaching);
-		}
-	};
-}
-
-// (6:0) {#if metadata}
-function create_if_block$1(ctx) {
-	let await_block_anchor;
-	let promise;
-	let current;
-
-	let info = {
-		ctx,
-		current: null,
-		token: null,
-		hasCatch: false,
-		pending: create_pending_block,
-		then: create_then_block,
-		catch: create_catch_block,
-		value: 3,
-		blocks: [,,,]
-	};
-
-	handle_promise(promise = /*metadata*/ ctx[0], info);
-
-	return {
-		c() {
-			await_block_anchor = empty();
-			info.block.c();
-		},
-		m(target, anchor) {
-			insert(target, await_block_anchor, anchor);
-			info.block.m(target, info.anchor = anchor);
-			info.mount = () => await_block_anchor.parentNode;
-			info.anchor = await_block_anchor;
-			current = true;
-		},
-		p(new_ctx, dirty) {
-			ctx = new_ctx;
-			info.ctx = ctx;
-
-			if (dirty & /*metadata*/ 1 && promise !== (promise = /*metadata*/ ctx[0]) && handle_promise(promise, info)) ; else {
-				update_await_block_branch(info, ctx, dirty);
-			}
-		},
-		i(local) {
-			if (current) return;
-			transition_in(info.block);
-			current = true;
-		},
-		o(local) {
-			for (let i = 0; i < 3; i += 1) {
-				const block = info.blocks[i];
-				transition_out(block);
-			}
-
-			current = false;
-		},
-		d(detaching) {
-			if (detaching) {
-				detach(await_block_anchor);
-			}
-
-			info.block.d(detaching);
-			info.token = null;
-			info = null;
-		}
-	};
-}
-
-// (1:0) <svelte:options immutable />  <script lang="ts">export let metadata; </script>  {#if metadata}
-function create_catch_block(ctx) {
-	return {
-		c: noop,
-		m: noop,
-		p: noop,
-		i: noop,
-		o: noop,
-		d: noop
-	};
-}
-
-// (9:2) {:then resolvedMeta}
-function create_then_block(ctx) {
-	let current;
-	const default_slot_template = /*#slots*/ ctx[2].default;
-	const default_slot = create_slot(default_slot_template, ctx, /*$$scope*/ ctx[1], get_default_slot_context_1);
-
-	return {
-		c() {
-			if (default_slot) default_slot.c();
-		},
-		m(target, anchor) {
-			if (default_slot) {
-				default_slot.m(target, anchor);
-			}
-
-			current = true;
-		},
-		p(ctx, dirty) {
-			if (default_slot) {
-				if (default_slot.p && (!current || dirty & /*$$scope, metadata*/ 3)) {
-					update_slot_base(
-						default_slot,
-						default_slot_template,
-						ctx,
-						/*$$scope*/ ctx[1],
-						!current
-						? get_all_dirty_from_scope(/*$$scope*/ ctx[1])
-						: get_slot_changes(default_slot_template, /*$$scope*/ ctx[1], dirty, get_default_slot_changes_1),
-						get_default_slot_context_1
-					);
-				}
-			}
-		},
-		i(local) {
-			if (current) return;
-			transition_in(default_slot, local);
-			current = true;
-		},
-		o(local) {
-			transition_out(default_slot, local);
-			current = false;
-		},
-		d(detaching) {
-			if (default_slot) default_slot.d(detaching);
-		}
-	};
-}
-
-// (7:19)      <slot metadata="{null}
-function create_pending_block(ctx) {
-	let current;
-	const default_slot_template = /*#slots*/ ctx[2].default;
-	const default_slot = create_slot(default_slot_template, ctx, /*$$scope*/ ctx[1], get_default_slot_context);
-
-	return {
-		c() {
-			if (default_slot) default_slot.c();
-		},
-		m(target, anchor) {
-			if (default_slot) {
-				default_slot.m(target, anchor);
-			}
-
-			current = true;
-		},
-		p(ctx, dirty) {
-			if (default_slot) {
-				if (default_slot.p && (!current || dirty & /*$$scope*/ 2)) {
-					update_slot_base(
-						default_slot,
-						default_slot_template,
-						ctx,
-						/*$$scope*/ ctx[1],
-						!current
-						? get_all_dirty_from_scope(/*$$scope*/ ctx[1])
-						: get_slot_changes(default_slot_template, /*$$scope*/ ctx[1], dirty, get_default_slot_changes),
-						get_default_slot_context
-					);
-				}
-			}
-		},
-		i(local) {
-			if (current) return;
-			transition_in(default_slot, local);
-			current = true;
-		},
-		o(local) {
-			transition_out(default_slot, local);
-			current = false;
-		},
-		d(detaching) {
-			if (default_slot) default_slot.d(detaching);
-		}
-	};
-}
-
-function create_fragment$4(ctx) {
-	let current_block_type_index;
-	let if_block;
-	let if_block_anchor;
-	let current;
-	const if_block_creators = [create_if_block$1, create_else_block];
-	const if_blocks = [];
-
-	function select_block_type(ctx, dirty) {
-		if (/*metadata*/ ctx[0]) return 0;
-		return 1;
-	}
-
-	current_block_type_index = select_block_type(ctx);
-	if_block = if_blocks[current_block_type_index] = if_block_creators[current_block_type_index](ctx);
-
-	return {
-		c() {
-			if_block.c();
-			if_block_anchor = empty();
-		},
-		m(target, anchor) {
-			if_blocks[current_block_type_index].m(target, anchor);
-			insert(target, if_block_anchor, anchor);
-			current = true;
-		},
-		p(ctx, [dirty]) {
-			let previous_block_index = current_block_type_index;
-			current_block_type_index = select_block_type(ctx);
-
-			if (current_block_type_index === previous_block_index) {
-				if_blocks[current_block_type_index].p(ctx, dirty);
-			} else {
-				group_outros();
-
-				transition_out(if_blocks[previous_block_index], 1, 1, () => {
-					if_blocks[previous_block_index] = null;
-				});
-
-				check_outros();
-				if_block = if_blocks[current_block_type_index];
-
-				if (!if_block) {
-					if_block = if_blocks[current_block_type_index] = if_block_creators[current_block_type_index](ctx);
-					if_block.c();
-				} else {
-					if_block.p(ctx, dirty);
-				}
-
-				transition_in(if_block, 1);
-				if_block.m(if_block_anchor.parentNode, if_block_anchor);
-			}
-		},
-		i(local) {
-			if (current) return;
-			transition_in(if_block);
-			current = true;
-		},
-		o(local) {
-			transition_out(if_block);
-			current = false;
-		},
-		d(detaching) {
-			if (detaching) {
-				detach(if_block_anchor);
-			}
-
-			if_blocks[current_block_type_index].d(detaching);
-		}
-	};
-}
-
-function instance$4($$self, $$props, $$invalidate) {
-	let { $$slots: slots = {}, $$scope } = $$props;
-	let { metadata } = $$props;
-
-	$$self.$$set = $$props => {
-		if ('metadata' in $$props) $$invalidate(0, metadata = $$props.metadata);
-		if ('$$scope' in $$props) $$invalidate(1, $$scope = $$props.$$scope);
-	};
-
-	return [metadata, $$scope, slots];
-}
-
-class MetadataResolver extends SvelteComponent {
-	constructor(options) {
-		super();
-		init(this, options, instance$4, create_fragment$4, not_equal, { metadata: 0 });
-	}
-}
-
-function isMacOS() {
-    return navigator.appVersion.indexOf("Mac") !== -1;
-}
-function isMetaPressed(e) {
-    return isMacOS() ? e.metaKey : e.ctrlKey;
-}
-function isWeekend(date) {
-    return date.isoWeekday() === 6 || date.isoWeekday() === 7;
-}
-function getStartOfWeek(days) {
-    return days[0].weekday(0);
-}
-// daysjs useful mehtods
-// initial day of the week -> dayjs().weekday(0)
-
-/* src/calendar/components/Day.svelte generated by Svelte v4.2.0 */
-
-function add_css$3(target) {
-	append_styles(target, "svelte-npyy3h", ".day.svelte-npyy3h{background-color:var(--color-background-day);border-radius:4px;color:var(--color-text-day);cursor:pointer;font-size:0.8em;height:100%;padding:4px;position:relative;text-align:center;transition:background-color 0.1s ease-in, color 0.1s ease-in;vertical-align:baseline}.day.svelte-npyy3h:hover{background-color:var(--interactive-hover)}.day.active.svelte-npyy3h:hover{background-color:var(--interactive-accent-hover)}.adjacent-month.svelte-npyy3h{opacity:0.25}.today.svelte-npyy3h{color:var(--color-text-today)}.day.svelte-npyy3h:active,.active.svelte-npyy3h,.active.today.svelte-npyy3h{color:var(--text-on-accent);background-color:var(--interactive-accent)}");
-}
-
-// (71:2) <MetadataResolver metadata="{metadata}" let:metadata>
-function create_default_slot$1(ctx) {
-	let div;
-	let t0_value = /*date*/ ctx[0].format("D") + "";
-	let t0;
-	let t1;
-	let dots;
-	let div_draggable_value;
-	let current;
-	let mounted;
-	let dispose;
-	dots = new Dots({ props: { metadata: /*metadata*/ ctx[6] } });
-
-	let div_levels = [
-		{ class: "day" },
-		{ draggable: div_draggable_value = true },
-		getAttributes(/*metadata*/ ctx[6])
-	];
-
-	let div_data = {};
-
-	for (let i = 0; i < div_levels.length; i += 1) {
-		div_data = assign(div_data, div_levels[i]);
-	}
-
-	function click_handler(...args) {
-		return /*click_handler*/ ctx[16](/*metadata*/ ctx[6], ...args);
-	}
-
-	function pointerenter_handler(...args) {
-		return /*pointerenter_handler*/ ctx[17](/*metadata*/ ctx[6], ...args);
-	}
-
-	return {
-		c() {
-			div = element("div");
-			t0 = text(t0_value);
-			t1 = space();
-			create_component(dots.$$.fragment);
-			set_attributes(div, div_data);
-			toggle_class(div, "active", /*selectedId*/ ctx[3] === getDateUID_1(/*date*/ ctx[0], 'day'));
-			toggle_class(div, "adjacent-month", !/*date*/ ctx[0].isSame(/*$displayedMonth*/ ctx[5], 'month'));
-			toggle_class(div, "has-note", !!/*file*/ ctx[4]);
-			toggle_class(div, "today", /*date*/ ctx[0].isSame(/*today*/ ctx[2], 'day'));
-			toggle_class(div, "svelte-npyy3h", true);
-		},
-		m(target, anchor) {
-			insert(target, div, anchor);
-			append(div, t0);
-			append(div, t1);
-			mount_component(dots, div, null);
-			current = true;
-
-			if (!mounted) {
-				dispose = [
-					listen(div, "click", click_handler),
-					listen(div, "contextmenu", /*handleContextmenu*/ ctx[11]),
-					listen(div, "pointerenter", pointerenter_handler),
-					listen(div, "pointerleave", /*endHover*/ ctx[10]),
-					listen(div, "dragstart", /*dragstart_handler*/ ctx[18])
-				];
-
-				mounted = true;
-			}
-		},
-		p(new_ctx, dirty) {
-			ctx = new_ctx;
-			if ((!current || dirty & /*date*/ 1) && t0_value !== (t0_value = /*date*/ ctx[0].format("D") + "")) set_data_maybe_contenteditable(t0, t0_value, div_data['contenteditable']);
-			const dots_changes = {};
-			if (dirty & /*metadata*/ 64) dots_changes.metadata = /*metadata*/ ctx[6];
-			dots.$set(dots_changes);
-
-			set_attributes(div, div_data = get_spread_update(div_levels, [
-				{ class: "day" },
-				{ draggable: div_draggable_value },
-				dirty & /*metadata*/ 64 && getAttributes(/*metadata*/ ctx[6])
-			]));
-
-			toggle_class(div, "active", /*selectedId*/ ctx[3] === getDateUID_1(/*date*/ ctx[0], 'day'));
-			toggle_class(div, "adjacent-month", !/*date*/ ctx[0].isSame(/*$displayedMonth*/ ctx[5], 'month'));
-			toggle_class(div, "has-note", !!/*file*/ ctx[4]);
-			toggle_class(div, "today", /*date*/ ctx[0].isSame(/*today*/ ctx[2], 'day'));
-			toggle_class(div, "svelte-npyy3h", true);
-		},
-		i(local) {
-			if (current) return;
-			transition_in(dots.$$.fragment, local);
-			current = true;
-		},
-		o(local) {
-			transition_out(dots.$$.fragment, local);
-			current = false;
-		},
-		d(detaching) {
-			if (detaching) {
-				detach(div);
-			}
-
-			destroy_component(dots);
-			mounted = false;
-			run_all(dispose);
-		}
-	};
-}
-
-function create_fragment$3(ctx) {
-	let td;
-	let metadataresolver;
-	let current;
-
-	metadataresolver = new MetadataResolver({
-			props: {
-				metadata: /*metadata*/ ctx[6],
-				$$slots: {
-					default: [
-						create_default_slot$1,
-						({ metadata }) => ({ 6: metadata }),
-						({ metadata }) => metadata ? 64 : 0
-					]
-				},
-				$$scope: { ctx }
-			}
-		});
-
-	return {
-		c() {
-			td = element("td");
-			create_component(metadataresolver.$$.fragment);
-		},
-		m(target, anchor) {
-			insert(target, td, anchor);
-			mount_component(metadataresolver, td, null);
-			current = true;
-		},
-		p(ctx, [dirty]) {
-			const metadataresolver_changes = {};
-			if (dirty & /*metadata*/ 64) metadataresolver_changes.metadata = /*metadata*/ ctx[6];
-
-			if (dirty & /*$$scope, metadata, selectedId, date, $displayedMonth, file, today, fileCache*/ 2097279) {
-				metadataresolver_changes.$$scope = { dirty, ctx };
-			}
-
-			metadataresolver.$set(metadataresolver_changes);
-		},
-		i(local) {
-			if (current) return;
-			transition_in(metadataresolver.$$.fragment, local);
-			current = true;
-		},
-		o(local) {
-			transition_out(metadataresolver.$$.fragment, local);
-			current = false;
-		},
-		d(detaching) {
-			if (detaching) {
-				detach(td);
-			}
-
-			destroy_component(metadataresolver);
-		}
-	};
-}
-
-function getAttributes(metadata) {
-	if (!metadata) {
-		return {};
-	}
-
-	return metadata.filter(meta => meta.display === "calendar-and-menu").reduce(
-		(acc, meta) => {
-			return { ...acc, ...meta.attrs };
-		},
-		{}
-	);
-}
-
-function instance$3($$self, $$props, $$invalidate) {
-	let $displayedMonth;
-	let { date } = $$props;
-	let { fileCache } = $$props;
-	let { getSourceSettings } = $$props;
-	let file;
-	let { onHover } = $$props;
-	let { onClick } = $$props;
-	let { onContextMenu } = $$props;
-	let { today } = $$props;
-	let { selectedId = null } = $$props;
-	const isMobile = getContext(IS_MOBILE);
-	const displayedMonth = getContext(DISPLAYED_MONTH);
-	component_subscribe($$self, displayedMonth, value => $$invalidate(5, $displayedMonth = value));
-	const dispatch = createEventDispatcher();
-	let metadata;
-
-	fileCache.store.subscribe(() => {
-		$$invalidate(4, file = fileCache.getFile(date, "day"));
-		$$invalidate(6, metadata = fileCache.getEvaluatedMetadata("day", date, getSourceSettings));
-	});
-
-	function handleClick(event, meta) {
-		onClick?.("day", date, file, isMetaPressed(event));
-
-		if (isMobile) {
-			dispatch("hoverDay", {
-				date,
-				metadata: meta,
-				target: event.target
-			});
-		}
-	}
-
-	function handleHover(event, meta) {
-		onHover?.("day", date, file, event.target, isMetaPressed(event));
-
-		dispatch("hoverDay", {
-			date,
-			metadata: meta,
-			target: event.target
-		});
-	}
-
-	function endHover(event) {
-		dispatch("endHoverDay", { target: event.target });
-	}
-
-	function handleContextmenu(event) {
-		onContextMenu?.("day", date, file, event);
-		endHover(event);
-	}
-
-	const click_handler = (metadata, event) => handleClick(event, metadata);
-	const pointerenter_handler = (metadata, event) => handleHover(event, metadata);
-	const dragstart_handler = event => fileCache.onDragStart(event, file);
-
-	$$self.$$set = $$props => {
-		if ('date' in $$props) $$invalidate(0, date = $$props.date);
-		if ('fileCache' in $$props) $$invalidate(1, fileCache = $$props.fileCache);
-		if ('getSourceSettings' in $$props) $$invalidate(12, getSourceSettings = $$props.getSourceSettings);
-		if ('onHover' in $$props) $$invalidate(13, onHover = $$props.onHover);
-		if ('onClick' in $$props) $$invalidate(14, onClick = $$props.onClick);
-		if ('onContextMenu' in $$props) $$invalidate(15, onContextMenu = $$props.onContextMenu);
-		if ('today' in $$props) $$invalidate(2, today = $$props.today);
-		if ('selectedId' in $$props) $$invalidate(3, selectedId = $$props.selectedId);
-	};
-
-	return [
-		date,
-		fileCache,
-		today,
-		selectedId,
-		file,
-		$displayedMonth,
-		metadata,
-		displayedMonth,
-		handleClick,
-		handleHover,
-		endHover,
-		handleContextmenu,
-		getSourceSettings,
-		onHover,
-		onClick,
-		onContextMenu,
-		click_handler,
-		pointerenter_handler,
-		dragstart_handler
-	];
-}
-
-class Day extends SvelteComponent {
-	constructor(options) {
-		super();
-
-		init(
-			this,
-			options,
-			instance$3,
-			create_fragment$3,
-			not_equal,
-			{
-				date: 0,
-				fileCache: 1,
-				getSourceSettings: 12,
-				onHover: 13,
-				onClick: 14,
-				onContextMenu: 15,
-				today: 2,
-				selectedId: 3
-			},
-			add_css$3
-		);
-	}
-}
-
-/* src/calendar/components/WeekNum.svelte generated by Svelte v4.2.0 */
+main.getTemplateInfo = getTemplateInfo$1;
+main.getWeeklyNote = getWeeklyNote$1;
+main.getWeeklyNoteSettings = getWeeklyNoteSettings$1;
+
+/* src/calendar-ui/components/Day.svelte generated by Svelte v4.2.0 */
 
 function add_css$2(target) {
-	append_styles(target, "svelte-2uqv35", "td.svelte-2uqv35{border-right:1px solid var(--background-modifier-border)}.week-num.svelte-2uqv35{background-color:var(--color-background-weeknum);border-radius:4px;color:var(--color-text-weeknum);cursor:pointer;font-size:0.65em;height:100%;padding:4px;text-align:center;transition:background-color 0.1s ease-in, color 0.1s ease-in;vertical-align:baseline}.week-num.svelte-2uqv35:hover{background-color:var(--interactive-hover)}.week-num.active.svelte-2uqv35:hover{background-color:var(--interactive-accent-hover)}.active.svelte-2uqv35{color:var(--text-on-accent);background-color:var(--interactive-accent)}");
-}
-
-// (45:2) <MetadataResolver metadata="{metadata}" let:metadata>
-function create_default_slot(ctx) {
-	let div;
-	let t0;
-	let t1;
-	let dots;
-	let current;
-	let mounted;
-	let dispose;
-	dots = new Dots({ props: { metadata: /*metadata*/ ctx[8] } });
-
-	function pointerenter_handler(...args) {
-		return /*pointerenter_handler*/ ctx[16](/*metadata*/ ctx[8], ...args);
-	}
-
-	return {
-		c() {
-			div = element("div");
-			t0 = text(/*weekNum*/ ctx[0]);
-			t1 = space();
-			create_component(dots.$$.fragment);
-			attr(div, "class", "week-num svelte-2uqv35");
-			attr(div, "draggable", true);
-			toggle_class(div, "active", /*selectedId*/ ctx[5] === getDateUID_1(/*days*/ ctx[1][0], 'week'));
-		},
-		m(target, anchor) {
-			insert(target, div, anchor);
-			append(div, t0);
-			append(div, t1);
-			mount_component(dots, div, null);
-			current = true;
-
-			if (!mounted) {
-				dispose = [
-					listen(div, "click", function () {
-						if (is_function(/*onClick*/ ctx[2] && /*click_handler*/ ctx[13])) (/*onClick*/ ctx[2] && /*click_handler*/ ctx[13]).apply(this, arguments);
-					}),
-					listen(div, "contextmenu", function () {
-						if (is_function(/*onContextMenu*/ ctx[3] && /*contextmenu_handler*/ ctx[14])) (/*onContextMenu*/ ctx[3] && /*contextmenu_handler*/ ctx[14]).apply(this, arguments);
-					}),
-					listen(div, "dragstart", /*dragstart_handler*/ ctx[15]),
-					listen(div, "pointerenter", pointerenter_handler),
-					listen(div, "pointerleave", /*endHover*/ ctx[10])
-				];
-
-				mounted = true;
-			}
-		},
-		p(new_ctx, dirty) {
-			ctx = new_ctx;
-			if (!current || dirty & /*weekNum*/ 1) set_data(t0, /*weekNum*/ ctx[0]);
-			const dots_changes = {};
-			if (dirty & /*metadata*/ 256) dots_changes.metadata = /*metadata*/ ctx[8];
-			dots.$set(dots_changes);
-
-			if (!current || dirty & /*selectedId, days*/ 34) {
-				toggle_class(div, "active", /*selectedId*/ ctx[5] === getDateUID_1(/*days*/ ctx[1][0], 'week'));
-			}
-		},
-		i(local) {
-			if (current) return;
-			transition_in(dots.$$.fragment, local);
-			current = true;
-		},
-		o(local) {
-			transition_out(dots.$$.fragment, local);
-			current = false;
-		},
-		d(detaching) {
-			if (detaching) {
-				detach(div);
-			}
-
-			destroy_component(dots);
-			mounted = false;
-			run_all(dispose);
-		}
-	};
+	append_styles(target, "svelte-1fn1hj9", ".day.svelte-1fn1hj9{background-color:var(--color-background-day);border-radius:4px;color:var(--color-text-day);cursor:pointer;font-size:0.8em;height:100%;padding:4px;position:relative;text-align:center;transition:background-color 0.1s ease-in, color 0.1s ease-in;vertical-align:baseline}.day.svelte-1fn1hj9:hover{background-color:var(--interactive-hover)}.day.svelte-1fn1hj9:active{color:var(--text-on-accent);background-color:var(--interactive-accent)}");
 }
 
 function create_fragment$2(ctx) {
 	let td;
-	let metadataresolver;
-	let current;
-
-	metadataresolver = new MetadataResolver({
-			props: {
-				metadata: /*metadata*/ ctx[8],
-				$$slots: {
-					default: [
-						create_default_slot,
-						({ metadata }) => ({ 8: metadata }),
-						({ metadata }) => metadata ? 256 : 0
-					]
-				},
-				$$scope: { ctx }
-			}
-		});
+	let button;
+	let t_value = /*date*/ ctx[0].format('D') + "";
+	let t;
+	let mounted;
+	let dispose;
 
 	return {
 		c() {
 			td = element("td");
-			create_component(metadataresolver.$$.fragment);
-			attr(td, "class", "svelte-2uqv35");
+			button = element("button");
+			t = text(t_value);
+			attr(button, "class", "day svelte-1fn1hj9");
 		},
 		m(target, anchor) {
 			insert(target, td, anchor);
-			mount_component(metadataresolver, td, null);
-			current = true;
+			append(td, button);
+			append(button, t);
+
+			if (!mounted) {
+				dispose = listen(button, "click", /*click_handler*/ ctx[2]);
+				mounted = true;
+			}
 		},
 		p(ctx, [dirty]) {
-			const metadataresolver_changes = {};
-			if (dirty & /*metadata*/ 256) metadataresolver_changes.metadata = /*metadata*/ ctx[8];
-
-			if (dirty & /*$$scope, selectedId, days, onClick, startOfWeek, file, onContextMenu, fileCache, metadata, weekNum*/ 262655) {
-				metadataresolver_changes.$$scope = { dirty, ctx };
-			}
-
-			metadataresolver.$set(metadataresolver_changes);
+			if (dirty & /*date*/ 1 && t_value !== (t_value = /*date*/ ctx[0].format('D') + "")) set_data(t, t_value);
 		},
-		i(local) {
-			if (current) return;
-			transition_in(metadataresolver.$$.fragment, local);
-			current = true;
-		},
-		o(local) {
-			transition_out(metadataresolver.$$.fragment, local);
-			current = false;
-		},
+		i: noop,
+		o: noop,
 		d(detaching) {
 			if (detaching) {
 				detach(td);
 			}
 
-			destroy_component(metadataresolver);
+			mounted = false;
+			dispose();
 		}
 	};
 }
 
 function instance$2($$self, $$props, $$invalidate) {
-	let { weekNum } = $$props;
-	let { days } = $$props;
-	let { getSourceSettings } = $$props;
-	let { onHover } = $$props;
-	let { onClick } = $$props;
-	let { onContextMenu } = $$props;
-	let { fileCache } = $$props;
-	let { selectedId = null } = $$props;
-	let file;
-	let startOfWeek;
-	let metadata;
+	let { date } = $$props;
 
-	fileCache.store.subscribe(() => {
-		$$invalidate(6, file = fileCache.getFile(days[0], "week"));
-		$$invalidate(8, metadata = fileCache.getEvaluatedMetadata("week", days[0], getSourceSettings));
-	});
+	// Global state
+	getContext(IS_MOBILE);
 
-	const dispatch = createEventDispatcher();
-
-	// TODO: find a way to open link preview using vanilla featuers
-	function handleHover(event, meta) {
-		onHover?.("week", days[0], file, event.target, isMetaPressed(event));
-
-		dispatch("hoverDay", {
-			date: days[0],
-			metadata: meta,
-			target: event.target
-		});
-	}
-
-	function endHover(event) {
-		dispatch("endHoverDay", { target: event.target });
-	}
-
-	const click_handler = e => onClick('week', startOfWeek, file, isMetaPressed(e));
-	const contextmenu_handler = e => onContextMenu('week', days[0], file, e);
-	const dragstart_handler = event => fileCache.onDragStart(event, file);
-	const pointerenter_handler = (metadata, event) => handleHover(event, metadata);
+	getContext(DISPLAYED_MONTH);
+	createEventDispatcher();
+	const { eventHandlers: { day: eventHandlers } } = getContext(VIEW);
+	const click_handler = event => eventHandlers.onClick({ date, isNewSplit: isMetaPressed(event) });
 
 	$$self.$$set = $$props => {
-		if ('weekNum' in $$props) $$invalidate(0, weekNum = $$props.weekNum);
-		if ('days' in $$props) $$invalidate(1, days = $$props.days);
-		if ('getSourceSettings' in $$props) $$invalidate(11, getSourceSettings = $$props.getSourceSettings);
-		if ('onHover' in $$props) $$invalidate(12, onHover = $$props.onHover);
-		if ('onClick' in $$props) $$invalidate(2, onClick = $$props.onClick);
-		if ('onContextMenu' in $$props) $$invalidate(3, onContextMenu = $$props.onContextMenu);
-		if ('fileCache' in $$props) $$invalidate(4, fileCache = $$props.fileCache);
-		if ('selectedId' in $$props) $$invalidate(5, selectedId = $$props.selectedId);
+		if ('date' in $$props) $$invalidate(0, date = $$props.date);
 	};
 
-	$$self.$$.update = () => {
-		if ($$self.$$.dirty & /*days*/ 2) {
-			$$invalidate(7, startOfWeek = getStartOfWeek(days));
-		}
-	};
-
-	return [
-		weekNum,
-		days,
-		onClick,
-		onContextMenu,
-		fileCache,
-		selectedId,
-		file,
-		startOfWeek,
-		metadata,
-		handleHover,
-		endHover,
-		getSourceSettings,
-		onHover,
-		click_handler,
-		contextmenu_handler,
-		dragstart_handler,
-		pointerenter_handler
-	];
+	return [date, eventHandlers, click_handler];
 }
 
-class WeekNum extends SvelteComponent {
+class Day extends SvelteComponent {
 	constructor(options) {
 		super();
-
-		init(
-			this,
-			options,
-			instance$2,
-			create_fragment$2,
-			not_equal,
-			{
-				weekNum: 0,
-				days: 1,
-				getSourceSettings: 11,
-				onHover: 12,
-				onClick: 2,
-				onContextMenu: 3,
-				fileCache: 4,
-				selectedId: 5
-			},
-			add_css$2
-		);
+		init(this, options, instance$2, create_fragment$2, not_equal, { date: 0 }, add_css$2);
 	}
 }
 
-/* src/calendar/components/Calendar.svelte generated by Svelte v4.2.0 */
+/* src/calendar-ui/components/Calendar.svelte generated by Svelte v4.2.0 */
 
 function add_css$1(target) {
 	append_styles(target, "svelte-193a61l", ".container.svelte-193a61l{--color-background-heading:transparent;--color-background-day:transparent;--color-background-weeknum:transparent;--color-background-weekend:transparent;--color-dot:var(--text-muted);--color-arrow:var(--text-muted);--color-button:var(--text-muted);--color-text-title:var(--text-normal);--color-text-heading:var(--text-muted);--color-text-day:var(--text-normal);--color-text-today:var(--interactive-accent);--color-text-weeknum:var(--text-muted);padding:0 8px}.weekend.svelte-193a61l{background-color:var(--color-background-weekend)}.calendar.svelte-193a61l{border-collapse:collapse;width:100%}th.svelte-193a61l{background-color:var(--color-background-heading);color:var(--color-text-heading);font-size:0.6em;letter-spacing:1px;padding:4px;text-align:center;text-transform:uppercase}");
@@ -4947,30 +3439,30 @@ function add_css$1(target) {
 
 function get_each_context(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[2] = list[i];
+	child_ctx[7] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_1(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[5] = list[i];
+	child_ctx[10] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_2(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[8] = list[i];
+	child_ctx[13] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_3(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[11] = list[i];
+	child_ctx[16] = list[i];
 	return child_ctx;
 }
 
-// (78:6) {#if $settingsStore.showWeekNums}
-function create_if_block_2(ctx) {
+// (82:3) {#if showWeekNums}
+function create_if_block_1(ctx) {
 	let col;
 
 	return {
@@ -4988,7 +3480,7 @@ function create_if_block_2(ctx) {
 	};
 }
 
-// (81:6) {#each month[1].days as date}
+// (85:3) {#each month[1].days as date}
 function create_each_block_3(ctx) {
 	let col;
 
@@ -4996,14 +3488,14 @@ function create_each_block_3(ctx) {
 		c() {
 			col = element("col");
 			attr(col, "class", "svelte-193a61l");
-			toggle_class(col, "weekend", isWeekend(/*date*/ ctx[11]));
+			toggle_class(col, "weekend", isWeekend(/*date*/ ctx[16]));
 		},
 		m(target, anchor) {
 			insert(target, col, anchor);
 		},
 		p(ctx, dirty) {
-			if (dirty & /*month*/ 0) {
-				toggle_class(col, "weekend", isWeekend(/*date*/ ctx[11]));
+			if (dirty & /*month*/ 1) {
+				toggle_class(col, "weekend", isWeekend(/*date*/ ctx[16]));
 			}
 		},
 		d(detaching) {
@@ -5014,8 +3506,8 @@ function create_each_block_3(ctx) {
 	};
 }
 
-// (87:8) {#if $settingsStore.showWeekNums}
-function create_if_block_1(ctx) {
+// (91:4) {#if showWeekNums}
+function create_if_block(ctx) {
 	let th;
 
 	return {
@@ -5035,20 +3527,25 @@ function create_if_block_1(ctx) {
 	};
 }
 
-// (90:8) {#each daysOfWeek as dayOfWeek}
+// (94:4) {#each localizedWeekdaysShort as dayOfWeek}
 function create_each_block_2(ctx) {
 	let th;
+	let t_value = /*dayOfWeek*/ ctx[13] + "";
+	let t;
 
 	return {
 		c() {
 			th = element("th");
-			th.textContent = `${/*dayOfWeek*/ ctx[8]}`;
+			t = text(t_value);
 			attr(th, "class", "svelte-193a61l");
 		},
 		m(target, anchor) {
 			insert(target, th, anchor);
+			append(th, t);
 		},
-		p: noop,
+		p(ctx, dirty) {
+			if (dirty & /*localizedWeekdaysShort*/ 2 && t_value !== (t_value = /*dayOfWeek*/ ctx[13] + "")) set_data(t, t_value);
+		},
 		d(detaching) {
 			if (detaching) {
 				detach(th);
@@ -5057,89 +3554,12 @@ function create_each_block_2(ctx) {
 	};
 }
 
-// (98:10) {#if $settingsStore.showWeekNums}
-function create_if_block(ctx) {
-	let weeknum;
-	let current;
-
-	const weeknum_spread_levels = [
-		{ fileCache },
-		{ selectedId },
-		{ getSourceSettings },
-		/*week*/ ctx[2],
-		eventHandlers
-	];
-
-	let weeknum_props = {};
-
-	for (let i = 0; i < weeknum_spread_levels.length; i += 1) {
-		weeknum_props = assign(weeknum_props, weeknum_spread_levels[i]);
-	}
-
-	weeknum = new WeekNum({ props: weeknum_props });
-	weeknum.$on("hoverDay", updatePopover);
-	weeknum.$on("endHoverDay", dismissPopover);
-
-	return {
-		c() {
-			create_component(weeknum.$$.fragment);
-		},
-		m(target, anchor) {
-			mount_component(weeknum, target, anchor);
-			current = true;
-		},
-		p(ctx, dirty) {
-			const weeknum_changes = (dirty & /*fileCache, selectedId, getSourceSettings, month, eventHandlers*/ 0)
-			? get_spread_update(weeknum_spread_levels, [
-					dirty & /*fileCache*/ 0 && { fileCache },
-					dirty & /*selectedId*/ 0 && { selectedId },
-					dirty & /*getSourceSettings*/ 0 && { getSourceSettings },
-					dirty & /*month*/ 0 && get_spread_object(/*week*/ ctx[2]),
-					dirty & /*eventHandlers*/ 0 && get_spread_object(eventHandlers)
-				])
-			: {};
-
-			weeknum.$set(weeknum_changes);
-		},
-		i(local) {
-			if (current) return;
-			transition_in(weeknum.$$.fragment, local);
-			current = true;
-		},
-		o(local) {
-			transition_out(weeknum.$$.fragment, local);
-			current = false;
-		},
-		d(detaching) {
-			destroy_component(weeknum, detaching);
-		}
-	};
-}
-
-// (109:10) {#each week.days as day (day.format())}
+// (113:5) {#each week.days as day (day.format())}
 function create_each_block_1(key_1, ctx) {
 	let first;
 	let day_1;
 	let current;
-
-	const day_1_spread_levels = [
-		{ date: /*day*/ ctx[5] },
-		{ fileCache },
-		{ getSourceSettings },
-		{ today },
-		{ selectedId },
-		eventHandlers
-	];
-
-	let day_1_props = {};
-
-	for (let i = 0; i < day_1_spread_levels.length; i += 1) {
-		day_1_props = assign(day_1_props, day_1_spread_levels[i]);
-	}
-
-	day_1 = new Day({ props: day_1_props });
-	day_1.$on("hoverDay", updatePopover);
-	day_1.$on("endHoverDay", dismissPopover);
+	day_1 = new Day({ props: { date: /*day*/ ctx[10] } });
 
 	return {
 		key: key_1,
@@ -5156,18 +3576,8 @@ function create_each_block_1(key_1, ctx) {
 		},
 		p(new_ctx, dirty) {
 			ctx = new_ctx;
-
-			const day_1_changes = (dirty & /*month, fileCache, getSourceSettings, today, selectedId, eventHandlers*/ 0)
-			? get_spread_update(day_1_spread_levels, [
-					dirty & /*month*/ 0 && { date: /*day*/ ctx[5] },
-					dirty & /*fileCache*/ 0 && { fileCache },
-					dirty & /*getSourceSettings*/ 0 && { getSourceSettings },
-					dirty & /*today*/ 0 && { today },
-					dirty & /*selectedId*/ 0 && { selectedId },
-					dirty & /*eventHandlers*/ 0 && get_spread_object(eventHandlers)
-				])
-			: {};
-
+			const day_1_changes = {};
+			if (dirty & /*month*/ 1) day_1_changes.date = /*day*/ ctx[10];
 			day_1.$set(day_1_changes);
 		},
 		i(local) {
@@ -5189,17 +3599,15 @@ function create_each_block_1(key_1, ctx) {
 	};
 }
 
-// (96:6) {#each month as week (week.weekNum)}
+// (100:3) {#each month as week (week.weekNum)}
 function create_each_block(key_1, ctx) {
 	let tr;
-	let t0;
 	let each_blocks = [];
 	let each_1_lookup = new Map();
-	let t1;
+	let t;
 	let current;
-	let if_block = /*$settingsStore*/ ctx[0].showWeekNums && create_if_block(ctx);
-	let each_value_1 = ensure_array_like(/*week*/ ctx[2].days);
-	const get_key = ctx => /*day*/ ctx[5].format();
+	let each_value_1 = ensure_array_like(/*week*/ ctx[7].days);
+	const get_key = ctx => /*day*/ ctx[10].format();
 
 	for (let i = 0; i < each_value_1.length; i += 1) {
 		let child_ctx = get_each_context_1(ctx, each_value_1, i);
@@ -5212,20 +3620,16 @@ function create_each_block(key_1, ctx) {
 		first: null,
 		c() {
 			tr = element("tr");
-			if (if_block) if_block.c();
-			t0 = space();
 
 			for (let i = 0; i < each_blocks.length; i += 1) {
 				each_blocks[i].c();
 			}
 
-			t1 = space();
+			t = space();
 			this.first = tr;
 		},
 		m(target, anchor) {
 			insert(target, tr, anchor);
-			if (if_block) if_block.m(tr, null);
-			append(tr, t0);
 
 			for (let i = 0; i < each_blocks.length; i += 1) {
 				if (each_blocks[i]) {
@@ -5233,45 +3637,21 @@ function create_each_block(key_1, ctx) {
 				}
 			}
 
-			append(tr, t1);
+			append(tr, t);
 			current = true;
 		},
 		p(new_ctx, dirty) {
 			ctx = new_ctx;
 
-			if (/*$settingsStore*/ ctx[0].showWeekNums) {
-				if (if_block) {
-					if_block.p(ctx, dirty);
-
-					if (dirty & /*$settingsStore*/ 1) {
-						transition_in(if_block, 1);
-					}
-				} else {
-					if_block = create_if_block(ctx);
-					if_block.c();
-					transition_in(if_block, 1);
-					if_block.m(tr, t0);
-				}
-			} else if (if_block) {
+			if (dirty & /*month*/ 1) {
+				each_value_1 = ensure_array_like(/*week*/ ctx[7].days);
 				group_outros();
-
-				transition_out(if_block, 1, 1, () => {
-					if_block = null;
-				});
-
-				check_outros();
-			}
-
-			if (dirty & /*month, fileCache, getSourceSettings, today, selectedId, eventHandlers, updatePopover, dismissPopover*/ 0) {
-				each_value_1 = ensure_array_like(/*week*/ ctx[2].days);
-				group_outros();
-				each_blocks = update_keyed_each(each_blocks, dirty, get_key, 1, ctx, each_value_1, each_1_lookup, tr, outro_and_destroy_block, create_each_block_1, t1, get_each_context_1);
+				each_blocks = update_keyed_each(each_blocks, dirty, get_key, 1, ctx, each_value_1, each_1_lookup, tr, outro_and_destroy_block, create_each_block_1, t, get_each_context_1);
 				check_outros();
 			}
 		},
 		i(local) {
 			if (current) return;
-			transition_in(if_block);
 
 			for (let i = 0; i < each_value_1.length; i += 1) {
 				transition_in(each_blocks[i]);
@@ -5280,8 +3660,6 @@ function create_each_block(key_1, ctx) {
 			current = true;
 		},
 		o(local) {
-			transition_out(if_block);
-
 			for (let i = 0; i < each_blocks.length; i += 1) {
 				transition_out(each_blocks[i]);
 			}
@@ -5293,8 +3671,6 @@ function create_each_block(key_1, ctx) {
 				detach(tr);
 			}
 
-			if (if_block) if_block.d();
-
 			for (let i = 0; i < each_blocks.length; i += 1) {
 				each_blocks[i].d();
 			}
@@ -5303,39 +3679,37 @@ function create_each_block(key_1, ctx) {
 }
 
 function create_fragment$1(ctx) {
-	let div0;
-	let t1;
-	let div1;
+	let div;
 	let table;
 	let colgroup;
-	let t2;
-	let t3;
+	let t0;
+	let t1;
 	let thead;
 	let tr;
-	let t4;
-	let t5;
+	let t2;
+	let t3;
 	let tbody;
 	let each_blocks = [];
 	let each2_lookup = new Map();
 	let current;
-	let if_block0 = /*$settingsStore*/ ctx[0].showWeekNums && create_if_block_2();
-	let each_value_3 = ensure_array_like(month[1].days);
+	let if_block0 = /*showWeekNums*/ ctx[2] && create_if_block_1();
+	let each_value_3 = ensure_array_like(/*month*/ ctx[0][1].days);
 	let each_blocks_2 = [];
 
 	for (let i = 0; i < each_value_3.length; i += 1) {
 		each_blocks_2[i] = create_each_block_3(get_each_context_3(ctx, each_value_3, i));
 	}
 
-	let if_block1 = /*$settingsStore*/ ctx[0].showWeekNums && create_if_block_1();
-	let each_value_2 = ensure_array_like(daysOfWeek);
+	let if_block1 = /*showWeekNums*/ ctx[2] && create_if_block();
+	let each_value_2 = ensure_array_like(/*localizedWeekdaysShort*/ ctx[1]);
 	let each_blocks_1 = [];
 
 	for (let i = 0; i < each_value_2.length; i += 1) {
 		each_blocks_1[i] = create_each_block_2(get_each_context_2(ctx, each_value_2, i));
 	}
 
-	let each_value = ensure_array_like(month);
-	const get_key = ctx => /*week*/ ctx[2].weekNum;
+	let each_value = ensure_array_like(/*month*/ ctx[0]);
+	const get_key = ctx => /*week*/ ctx[7].weekNum;
 
 	for (let i = 0; i < each_value.length; i += 1) {
 		let child_ctx = get_each_context(ctx, each_value, i);
@@ -5345,30 +3719,27 @@ function create_fragment$1(ctx) {
 
 	return {
 		c() {
-			div0 = element("div");
-			div0.textContent = "Hello world!";
-			t1 = space();
-			div1 = element("div");
+			div = element("div");
 			table = element("table");
 			colgroup = element("colgroup");
 			if (if_block0) if_block0.c();
-			t2 = space();
+			t0 = space();
 
 			for (let i = 0; i < each_blocks_2.length; i += 1) {
 				each_blocks_2[i].c();
 			}
 
-			t3 = space();
+			t1 = space();
 			thead = element("thead");
 			tr = element("tr");
 			if (if_block1) if_block1.c();
-			t4 = space();
+			t2 = space();
 
 			for (let i = 0; i < each_blocks_1.length; i += 1) {
 				each_blocks_1[i].c();
 			}
 
-			t5 = space();
+			t3 = space();
 			tbody = element("tbody");
 
 			for (let i = 0; i < each_blocks.length; i += 1) {
@@ -5376,17 +3747,15 @@ function create_fragment$1(ctx) {
 			}
 
 			attr(table, "class", "calendar svelte-193a61l");
-			attr(div1, "id", "calendar-container");
-			attr(div1, "class", "container svelte-193a61l");
+			attr(div, "id", "calendar-container");
+			attr(div, "class", "container svelte-193a61l");
 		},
 		m(target, anchor) {
-			insert(target, div0, anchor);
-			insert(target, t1, anchor);
-			insert(target, div1, anchor);
-			append(div1, table);
+			insert(target, div, anchor);
+			append(div, table);
 			append(table, colgroup);
 			if (if_block0) if_block0.m(colgroup, null);
-			append(colgroup, t2);
+			append(colgroup, t0);
 
 			for (let i = 0; i < each_blocks_2.length; i += 1) {
 				if (each_blocks_2[i]) {
@@ -5394,11 +3763,11 @@ function create_fragment$1(ctx) {
 				}
 			}
 
-			append(table, t3);
+			append(table, t1);
 			append(table, thead);
 			append(thead, tr);
 			if (if_block1) if_block1.m(tr, null);
-			append(tr, t4);
+			append(tr, t2);
 
 			for (let i = 0; i < each_blocks_1.length; i += 1) {
 				if (each_blocks_1[i]) {
@@ -5406,7 +3775,7 @@ function create_fragment$1(ctx) {
 				}
 			}
 
-			append(table, t5);
+			append(table, t3);
 			append(table, tbody);
 
 			for (let i = 0; i < each_blocks.length; i += 1) {
@@ -5418,19 +3787,19 @@ function create_fragment$1(ctx) {
 			current = true;
 		},
 		p(ctx, [dirty]) {
-			if (/*$settingsStore*/ ctx[0].showWeekNums) {
+			if (/*showWeekNums*/ ctx[2]) {
 				if (if_block0) ; else {
-					if_block0 = create_if_block_2();
+					if_block0 = create_if_block_1();
 					if_block0.c();
-					if_block0.m(colgroup, t2);
+					if_block0.m(colgroup, t0);
 				}
 			} else if (if_block0) {
 				if_block0.d(1);
 				if_block0 = null;
 			}
 
-			if (dirty & /*month*/ 0) {
-				each_value_3 = ensure_array_like(month[1].days);
+			if (dirty & /*month*/ 1) {
+				each_value_3 = ensure_array_like(/*month*/ ctx[0][1].days);
 				let i;
 
 				for (i = 0; i < each_value_3.length; i += 1) {
@@ -5452,19 +3821,19 @@ function create_fragment$1(ctx) {
 				each_blocks_2.length = each_value_3.length;
 			}
 
-			if (/*$settingsStore*/ ctx[0].showWeekNums) {
+			if (/*showWeekNums*/ ctx[2]) {
 				if (if_block1) ; else {
-					if_block1 = create_if_block_1();
+					if_block1 = create_if_block();
 					if_block1.c();
-					if_block1.m(tr, t4);
+					if_block1.m(tr, t2);
 				}
 			} else if (if_block1) {
 				if_block1.d(1);
 				if_block1 = null;
 			}
 
-			if (dirty & /*daysOfWeek*/ 0) {
-				each_value_2 = ensure_array_like(daysOfWeek);
+			if (dirty & /*localizedWeekdaysShort*/ 2) {
+				each_value_2 = ensure_array_like(/*localizedWeekdaysShort*/ ctx[1]);
 				let i;
 
 				for (i = 0; i < each_value_2.length; i += 1) {
@@ -5486,8 +3855,8 @@ function create_fragment$1(ctx) {
 				each_blocks_1.length = each_value_2.length;
 			}
 
-			if (dirty & /*month, fileCache, getSourceSettings, today, selectedId, eventHandlers, updatePopover, dismissPopover, $settingsStore*/ 1) {
-				each_value = ensure_array_like(month);
+			if (dirty & /*month*/ 1) {
+				each_value = ensure_array_like(/*month*/ ctx[0]);
 				group_outros();
 				each_blocks = update_keyed_each(each_blocks, dirty, get_key, 1, ctx, each_value, each2_lookup, tbody, outro_and_destroy_block, create_each_block, null, get_each_context);
 				check_outros();
@@ -5511,9 +3880,7 @@ function create_fragment$1(ctx) {
 		},
 		d(detaching) {
 			if (detaching) {
-				detach(div0);
-				detach(t1);
-				detach(div1);
+				detach(div);
 			}
 
 			if (if_block0) if_block0.d();
@@ -5529,11 +3896,52 @@ function create_fragment$1(ctx) {
 }
 
 function instance$1($$self, $$props, $$invalidate) {
+	let showWeekNums;
+	let localizedWeekdaysShort;
+	let month;
+	let $displayedMonthStore;
 	let $settingsStore;
-	component_subscribe($$self, settingsStore, $$value => $$invalidate(0, $settingsStore = $$value));
-	const { app } = getContext('view');
+	component_subscribe($$self, settingsStore, $$value => $$invalidate(5, $settingsStore = $$value));
+	window.dayjs.extend(weekOfYear);
+	window.dayjs.extend(isoWeek);
+
+	// export let localeData: Locale;
+	// // External sources (All optional)
+	// export let plugin: Plugin;
+	// export let sources: ICalendarSource[] = [];
+	// export let getSourceSettings: (sourceId: string) => ISourceSettings;
+	// export let selectedId: string;
+	// // Override-able local state
+	// export let today: Moment = window.moment();
+	// export let displayedMonth: Moment = today;
+	const { app } = getContext(VIEW);
+
 	console.log('CONTEXT 🤯', app);
-	return [$settingsStore];
+
+	// setContext(IS_MOBILE, (this.app as any).isMobile);
+	let displayedMonthStore = writable(window.dayjs());
+
+	component_subscribe($$self, displayedMonthStore, value => $$invalidate(4, $displayedMonthStore = value));
+	setContext(DISPLAYED_MONTH, displayedMonthStore);
+
+	$$self.$$.update = () => {
+		if ($$self.$$.dirty & /*$settingsStore*/ 32) {
+			$$invalidate(2, { localeData: { showWeekNums, localizedWeekdaysShort } } = $settingsStore, showWeekNums, ($$invalidate(1, localizedWeekdaysShort), $$invalidate(5, $settingsStore)));
+		}
+
+		if ($$self.$$.dirty & /*$displayedMonthStore*/ 16) {
+			$$invalidate(0, month = getMonth($displayedMonthStore));
+		}
+	};
+
+	return [
+		month,
+		localizedWeekdaysShort,
+		showWeekNums,
+		displayedMonthStore,
+		$displayedMonthStore,
+		$settingsStore
+	];
 }
 
 class Calendar extends SvelteComponent {
@@ -5546,7 +3954,7 @@ class Calendar extends SvelteComponent {
 /* src/View.svelte generated by Svelte v4.2.0 */
 
 function add_css(target) {
-	append_styles(target, "svelte-awuoct", ".svelte-awuoct,.svelte-awuoct::before,.svelte-awuoct::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-awuoct::before,.svelte-awuoct::after{--tw-content:''}.svelte-awuoct:-moz-focusring{outline:auto}.svelte-awuoct:-moz-ui-invalid{box-shadow:none}.svelte-awuoct::-webkit-inner-spin-button,.svelte-awuoct::-webkit-outer-spin-button{height:auto}.svelte-awuoct::-webkit-search-decoration{-webkit-appearance:none}.svelte-awuoct::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}.svelte-awuoct:disabled{cursor:default}.svelte-awuoct,.svelte-awuoct::before,.svelte-awuoct::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-awuoct::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.container.svelte-awuoct{width:100%}@media(min-width: 640px){.container.svelte-awuoct{max-width:640px}}@media(min-width: 768px){.container.svelte-awuoct{max-width:768px}}@media(min-width: 1024px){.container.svelte-awuoct{max-width:1024px}}@media(min-width: 1280px){.container.svelte-awuoct{max-width:1280px}}@media(min-width: 1536px){.container.svelte-awuoct{max-width:1536px}}.pointer-events-none.svelte-awuoct{pointer-events:none}.visible.svelte-awuoct{visibility:visible}.invisible.svelte-awuoct{visibility:hidden}.collapse.svelte-awuoct{visibility:collapse}.absolute.svelte-awuoct{position:absolute}.relative.svelte-awuoct{position:relative}.left-0.svelte-awuoct{left:0px}.top-0.svelte-awuoct{top:0px}.block.svelte-awuoct{display:block}.flex.svelte-awuoct{display:flex}.table.svelte-awuoct{display:table}.grid.svelte-awuoct{display:grid}.contents.svelte-awuoct{display:contents}.hidden.svelte-awuoct{display:none}.w-max.svelte-awuoct{width:-moz-max-content;width:max-content}.flex-shrink.svelte-awuoct{flex-shrink:1}.border-collapse.svelte-awuoct{border-collapse:collapse}.transform.svelte-awuoct{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.flex-wrap.svelte-awuoct{flex-wrap:wrap}.uppercase.svelte-awuoct{text-transform:uppercase}.ordinal.svelte-awuoct{--tw-ordinal:ordinal;font-variant-numeric:var(--tw-ordinal) var(--tw-slashed-zero) var(--tw-numeric-figure) var(--tw-numeric-spacing) var(--tw-numeric-fraction)}.opacity-0.svelte-awuoct{opacity:0}.filter.svelte-awuoct{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.transition.svelte-awuoct{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.duration-300.svelte-awuoct{transition-duration:300ms}");
+	append_styles(target, "svelte-15cu4pd", ".svelte-15cu4pd,.svelte-15cu4pd::before,.svelte-15cu4pd::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-15cu4pd::before,.svelte-15cu4pd::after{--tw-content:''}.svelte-15cu4pd:-moz-focusring{outline:auto}.svelte-15cu4pd:-moz-ui-invalid{box-shadow:none}.svelte-15cu4pd::-webkit-inner-spin-button,.svelte-15cu4pd::-webkit-outer-spin-button{height:auto}.svelte-15cu4pd::-webkit-search-decoration{-webkit-appearance:none}.svelte-15cu4pd::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}.svelte-15cu4pd:disabled{cursor:default}.svelte-15cu4pd,.svelte-15cu4pd::before,.svelte-15cu4pd::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-15cu4pd::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.container.svelte-15cu4pd{width:100%}@media(min-width: 640px){.container.svelte-15cu4pd{max-width:640px}}@media(min-width: 768px){.container.svelte-15cu4pd{max-width:768px}}@media(min-width: 1024px){.container.svelte-15cu4pd{max-width:1024px}}@media(min-width: 1280px){.container.svelte-15cu4pd{max-width:1280px}}@media(min-width: 1536px){.container.svelte-15cu4pd{max-width:1536px}}.pointer-events-none.svelte-15cu4pd{pointer-events:none}.visible.svelte-15cu4pd{visibility:visible}.invisible.svelte-15cu4pd{visibility:hidden}.collapse.svelte-15cu4pd{visibility:collapse}.absolute.svelte-15cu4pd{position:absolute}.relative.svelte-15cu4pd{position:relative}.left-0.svelte-15cu4pd{left:0px}.top-0.svelte-15cu4pd{top:0px}.block.svelte-15cu4pd{display:block}.flex.svelte-15cu4pd{display:flex}.table.svelte-15cu4pd{display:table}.grid.svelte-15cu4pd{display:grid}.contents.svelte-15cu4pd{display:contents}.hidden.svelte-15cu4pd{display:none}.w-max.svelte-15cu4pd{width:-moz-max-content;width:max-content}.flex-shrink.svelte-15cu4pd{flex-shrink:1}.border-collapse.svelte-15cu4pd{border-collapse:collapse}.transform.svelte-15cu4pd{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.flex-wrap.svelte-15cu4pd{flex-wrap:wrap}.uppercase.svelte-15cu4pd{text-transform:uppercase}.opacity-0.svelte-15cu4pd{opacity:0}.filter.svelte-15cu4pd{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.transition.svelte-15cu4pd{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.duration-300.svelte-15cu4pd{transition-duration:300ms}");
 }
 
 function create_fragment(ctx) {
@@ -5561,7 +3969,7 @@ function create_fragment(ctx) {
 		c() {
 			div = element("div");
 			create_component(calendar.$$.fragment);
-			attr(div, "class", div_class_value = "" + (null_to_empty(clsx('space-y-4', /*popup*/ ctx[0] && 'w-max opacity-0 pointer-events-none absolute top-0 left-0 duration-300')) + " svelte-awuoct"));
+			attr(div, "class", div_class_value = "" + (null_to_empty(clsx(/*popup*/ ctx[0] && 'w-max opacity-0 pointer-events-none absolute top-0 left-0 duration-300')) + " svelte-15cu4pd"));
 			attr(div, "data-popup", div_data_popup_value = /*popup*/ ctx[0] && 'calendarPopup');
 		},
 		m(target, anchor) {
@@ -5570,7 +3978,7 @@ function create_fragment(ctx) {
 			current = true;
 		},
 		p(ctx, [dirty]) {
-			if (!current || dirty & /*popup*/ 1 && div_class_value !== (div_class_value = "" + (null_to_empty(clsx('space-y-4', /*popup*/ ctx[0] && 'w-max opacity-0 pointer-events-none absolute top-0 left-0 duration-300')) + " svelte-awuoct"))) {
+			if (!current || dirty & /*popup*/ 1 && div_class_value !== (div_class_value = "" + (null_to_empty(clsx(/*popup*/ ctx[0] && 'w-max opacity-0 pointer-events-none absolute top-0 left-0 duration-300')) + " svelte-15cu4pd"))) {
 				attr(div, "class", div_class_value);
 			}
 
@@ -5597,26 +4005,14 @@ function create_fragment(ctx) {
 	};
 }
 
-function getToday(settings) {
-	return window.moment();
-}
-
 function instance($$self, $$props, $$invalidate) {
-	let $settingsStore;
-	component_subscribe($$self, settingsStore, $$value => $$invalidate(1, $settingsStore = $$value));
 	let { popup = false } = $$props;
 
 	$$self.$$set = $$props => {
 		if ('popup' in $$props) $$invalidate(0, popup = $$props.popup);
 	};
 
-	$$self.$$.update = () => {
-		if ($$self.$$.dirty & /*$settingsStore*/ 2) {
-			getToday();
-		}
-	};
-
-	return [popup, $settingsStore];
+	return [popup];
 }
 
 class View extends SvelteComponent {
@@ -5626,30 +4022,350 @@ class View extends SvelteComponent {
 	}
 }
 
-const VIEW_TYPE_EXAMPLE = "example-view";
+const DEFAULT_DAILY_NOTE_FORMAT = "YYYY-MM-DD";
+
+function shouldUsePeriodicNotesSettings(periodicity) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const periodicNotes = window.app.plugins.getPlugin('periodic-notes');
+    return periodicNotes && periodicNotes.settings?.[periodicity]?.enabled;
+}
+/**
+ * Read the user settings for the `daily-notes` plugin
+ * to keep behavior of creating a new note in-sync.
+ */
+function getDailyNoteSettings$1() {
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { internalPlugins, plugins } = window.app;
+        if (shouldUsePeriodicNotesSettings('daily')) {
+            const { format, folder, template } = plugins.getPlugin('periodic-notes')?.settings?.daily || {};
+            return {
+                format: format || DEFAULT_DAILY_NOTE_FORMAT,
+                folder: folder?.trim() || '/',
+                template: template?.trim() || ''
+            };
+        }
+        const { folder, format, template } = internalPlugins.getPluginById('daily-notes')?.instance?.options || {};
+        return {
+            format: format || DEFAULT_DAILY_NOTE_FORMAT,
+            folder: folder?.trim() || '/',
+            template: template?.trim() || ''
+        };
+    }
+    catch (err) {
+        console.info('No custom daily note settings found! Ensure the plugin is active.', err);
+        return {
+            format: DEFAULT_DAILY_NOTE_FORMAT,
+            folder: '/',
+            template: ''
+        };
+    }
+}
+
+// Credit: @creationix/path.js
+function join(...partSegments) {
+    // Split the inputs into a list of path commands.
+    let parts = [];
+    for (let i = 0, l = partSegments.length; i < l; i++) {
+        parts = parts.concat(partSegments[i].split("/"));
+    }
+    // Interpret the path commands to get the new resolved path.
+    const newParts = [];
+    for (let i = 0, l = parts.length; i < l; i++) {
+        const part = parts[i];
+        // Remove leading and trailing slashes
+        // Also remove "." segments
+        if (!part || part === ".")
+            continue;
+        // Push new path segments.
+        else
+            newParts.push(part);
+    }
+    // Preserve the initial slash if there was one.
+    if (parts[0] === "")
+        newParts.unshift("");
+    // Turn back into a single string path.
+    return newParts.join("/");
+}
+async function ensureFolderExists(path) {
+    const dirs = path.replace(/\\/g, "/").split("/");
+    dirs.pop(); // remove basename
+    if (dirs.length) {
+        const dir = join(...dirs);
+        if (!window.app.vault.getAbstractFileByPath(dir)) {
+            await window.app.vault.createFolder(dir);
+        }
+    }
+}
+async function getNotePath(directory, filename) {
+    if (!filename.endsWith(".md")) {
+        filename += ".md";
+    }
+    const path = require$$0.normalizePath(join(directory, filename));
+    await ensureFolderExists(path);
+    return path;
+}
+async function getTemplateInfo(template) {
+    const { metadataCache, vault } = window.app;
+    const templatePath = require$$0.normalizePath(template);
+    if (templatePath === "/") {
+        return Promise.resolve(["", null]);
+    }
+    try {
+        // get First file matching given templatePath
+        const templateFile = metadataCache.getFirstLinkpathDest(templatePath, "");
+        const contents = await vault.cachedRead(templateFile);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const IFoldInfo = window.app.foldManager.load(templateFile);
+        return [contents, IFoldInfo];
+    }
+    catch (err) {
+        console.error(`Failed to read the daily note template '${templatePath}'`, err);
+        new require$$0.Notice("Failed to read the daily note template");
+        return ["", null];
+    }
+}
+
+/**
+ * This function mimics the behavior of the daily-notes plugin
+ * so it will replace {{date}}, {{title}}, and {{time}} with the
+ * formatted timestamp.
+ *
+ * Note: it has an added bonus that it's not 'today' specific.
+ */
+async function createDailyNote(date) {
+    const app = window.app;
+    const { vault } = app;
+    const { template, folder, format } = getDailyNoteSettings$1();
+    console.table(getDailyNoteSettings$1());
+    // TODO: Find out what IFoldInfo is used for (think it is for keeping track of openned folders)
+    const [templateContents, IFoldInfo] = await getTemplateInfo(template);
+    console.log('getTemplateInfo:', templateContents, IFoldInfo);
+    const filename = date.format(format);
+    const normalizedPath = await getNotePath(folder, filename);
+    console.log('NOrmalized path', normalizedPath);
+    try {
+        const createdFile = await vault.create(normalizedPath, templateContents
+            .replace(/{{\s*date\s*}}/gi, filename)
+            .replace(/{{\s*time\s*}}/gi, date.format('HH:mm'))
+            .replace(/{{\s*title\s*}}/gi, filename)
+            .replace(/{{\s*(date|time)\s*(([+-]\d+)([yqmwdhs]))?\s*(:.+?)?}}/gi, (_, _timeOrDate, calc, timeDelta, unit, dayjsFormat) => {
+            let currentDate = window.dayjs();
+            if (calc) {
+                currentDate = currentDate.add(parseInt(timeDelta, 10), unit);
+            }
+            if (dayjsFormat) {
+                return currentDate.format(dayjsFormat.substring(1).trim());
+            }
+            return currentDate.format(format);
+        })
+            .replace(/{{\s*yesterday\s*}}/gi, date.subtract(1, 'd').format(format))
+            .replace(/{{\s*tomorrow\s*}}/gi, date.add(1, 'd').format(format)));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        app.foldManager.save(createdFile, IFoldInfo);
+        return createdFile;
+    }
+    catch (err) {
+        console.error(`Failed to create file: '${normalizedPath}'`, err);
+        new require$$0.Notice('Unable to create new file.');
+    }
+}
+
+const VIEW_TYPE_EXAMPLE = 'example-view';
 class CalendarView extends require$$0.ItemView {
     view;
+    settings;
     constructor(leaf) {
         super(leaf);
+        this.registerEvent(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.app.workspace.on('periodic-notes:settings-updated', this.onNoteSettingsUpdate));
+        this.registerEvent(this.app.vault.on('create', this.onFileCreated));
+        this.registerEvent(this.app.vault.on('delete', this.onFileDeleted));
+        this.registerEvent(this.app.vault.on('modify', this.onFileModified));
+        this.registerEvent(this.app.workspace.on('file-open', this.onFileOpen));
+        this.register(settingsStore.subscribe((settings) => {
+            this.settings = settings;
+        }));
+    }
+    onClose() {
+        console.log('On close view❌');
+        if (this.view) {
+            this.view.$destroy();
+        }
+        return Promise.resolve();
     }
     getViewType() {
         return VIEW_TYPE_EXAMPLE;
     }
     getDisplayText() {
-        return "Example view";
+        return 'Example view';
     }
     async onOpen() {
-        console.log("On open view👐");
+        console.log('On open view👐');
         const context = new Map();
-        context.set('view', this);
+        context.set(VIEW, {
+            app: this.app,
+            eventHandlers: {
+                day: {
+                    onClick: this.onClickDay,
+                    onHover: this.onHoverDay,
+                    onContextMenu: this.onContextMenuDay
+                },
+                week: {
+                    onClick: this.onClickWeek,
+                    onHover: this.onHoverWeek,
+                    onContextMenu: this.onContextMenuWeek
+                }
+            }
+        });
         this.view = new View({
             target: this.contentEl,
-            context,
+            context
         });
     }
-    async onClose() {
-        console.log('On close view❌');
-        this.view.$destroy();
+    // app.workspace and app.vault event handlers
+    onNoteSettingsUpdate() {
+        dailyNotes.reindex();
+        weeklyNotes.reindex();
+        this.updateActiveFile();
+    }
+    async onFileDeleted(file) {
+        if (getDateFromFile(file, 'day')) {
+            dailyNotes.reindex();
+            this.updateActiveFile();
+        }
+        if (getDateFromFile(file, 'week')) {
+            weeklyNotes.reindex();
+            this.updateActiveFile();
+        }
+    }
+    async onFileModified(file) {
+        const date = getDateFromFile(file, 'day') || getDateFromFile(file, 'week');
+        if (date && this.calendar) {
+            this.calendar.tick();
+        }
+    }
+    onFileCreated(file) {
+        if (this.app.workspace.layoutReady && this.calendar) {
+            if (getDateFromFile(file, 'day')) {
+                dailyNotes.reindex();
+                this.calendar.tick();
+            }
+            if (getDateFromFile(file, 'week')) {
+                weeklyNotes.reindex();
+                this.calendar.tick();
+            }
+        }
+    }
+    onFileOpen(_file) {
+        if (this.app.workspace.layoutReady) {
+            this.updateActiveFile();
+        }
+    }
+    // Component event handlers
+    async onClickDay({ date, isNewSplit }) {
+        const { workspace } = window.app;
+        await createDailyNote(date);
+        // const existingFile = getDailyNote(date, get(dailyNotes));
+        // if (!existingFile) {
+        // 	// File doesn't exist
+        // 	await createDailyNote(date);
+        // }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mode = this.app.vault.getConfig('defaultViewMode');
+        const leaf = isNewSplit ? workspace.splitActiveLeaf() : workspace.getUnpinnedLeaf();
+        await leaf.openFile(existingFile, { active: true, mode });
+        activeFile.setFile(existingFile);
+    }
+    async onClickWeek({ date, isNewSplit }) {
+        const { workspace } = this.app;
+        const startOfWeek = date.clone().startOf('week');
+        const existingFile = getWeeklyNote(date, get(weeklyNotes));
+        if (!existingFile) {
+            // File doesn't exist
+            tryToCreateWeeklyNote(startOfWeek, inNewSplit, this.settings, (file) => {
+                activeFile.setFile(file);
+            });
+            return;
+        }
+        const leaf = inNewSplit ? workspace.splitActiveLeaf() : workspace.getUnpinnedLeaf();
+        await leaf.openFile(existingFile);
+        activeFile.setFile(existingFile);
+        workspace.setActiveLeaf(leaf, true, true);
+    }
+    onHoverDay({ date, targetEl, isMetaPressed }) {
+        if (!isMetaPressed) {
+            return;
+        }
+        const { format } = getDailyNoteSettings();
+        const note = getDailyNote(date, get(dailyNotes));
+        this.app.workspace.trigger('link-hover', this, targetEl, date.format(format), note?.path);
+    }
+    onHoverWeek({ date, targetEl, isMetaPressed }) {
+        if (!isMetaPressed) {
+            return;
+        }
+        const note = getWeeklyNote(date, get(weeklyNotes));
+        const { format } = getWeeklyNoteSettings();
+        this.app.workspace.trigger('link-hover', this, targetEl, date.format(format), note?.path);
+    }
+    onContextMenuDay({ date, event }) {
+        const note = getDailyNote(date, get(dailyNotes));
+        if (!note) {
+            // If no file exists for a given day, show nothing.
+            return;
+        }
+        showFileMenu(this.app, note, {
+            x: event.pageX,
+            y: event.pageY
+        });
+    }
+    onContextMenuWeek({ date, event }) {
+        const note = getWeeklyNote(date, get(weeklyNotes));
+        if (!note) {
+            // If no file exists for a given day, show nothing.
+            return;
+        }
+        showFileMenu(this.app, note, {
+            x: event.pageX,
+            y: event.pageY
+        });
+    }
+    // Utils
+    updateActiveFile() {
+        // get activeLeaf view
+        const { view } = this.app.workspace.activeLeaf;
+        let file = null;
+        if (view instanceof FileView) {
+            // extract file from view
+            file = view.file;
+        }
+        // save file in store activeFile
+        activeFile.setFile(file);
+        // rerender calendar to display possible different active file
+        if (this.view) {
+            this.view.tick();
+        }
+    }
+    revealActiveNote() {
+        const { moment } = window;
+        const { activeLeaf } = this.app.workspace;
+        if (activeLeaf.view instanceof FileView) {
+            // Check to see if the active note is a daily-note
+            let date = getDateFromFile(activeLeaf.view.file, 'day');
+            if (date) {
+                this.calendar.$set({ displayedMonth: date });
+                return;
+            }
+            // Check to see if the active note is a weekly-note
+            const { format } = getWeeklyNoteSettings();
+            date = moment(activeLeaf.view.file.basename, format, true);
+            if (date.isValid()) {
+                this.calendar.$set({ displayedMonth: date });
+                return;
+            }
+        }
     }
 }
 
@@ -5666,7 +4382,6 @@ class DailyNoteFlexPlugin extends require$$0.Plugin {
     async onload() {
         console.log('ON Load 🫵');
         this.register(settingsStore.subscribe((settings) => {
-            console.log("Settingstore on plugin load, should contain custom DEFAULT_SETTNGS as it is recreated every time pluign reloads", settings);
             this.settings = settings;
         }));
         this.addSettingTab(new SettingsTab(this.app, this));
@@ -5684,7 +4399,6 @@ class DailyNoteFlexPlugin extends require$$0.Plugin {
         this.app.workspace.onLayoutReady(() => {
             console.log('ON Layout REady 🙌');
             // const localeWeekStartNum = window._bundledLocaleWeekSpec.dow;
-            console.log('localeWeekStartNum 📅', window._bundledLocaleWeekSpec);
             this.handlePopup();
         });
     }

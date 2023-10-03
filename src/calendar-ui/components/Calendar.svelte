@@ -1,21 +1,27 @@
 <script lang="ts">
-	import { Plugin, debounce } from 'obsidian';
-	import type { Locale, Moment } from 'moment';
+	import type { Dayjs } from 'dayjs';
+	import weekOfYear from 'dayjs/plugin/weekOfYear';
+	import isoWeek from 'dayjs/plugin/isoWeek';
+
+	window.dayjs.extend(weekOfYear);
+	window.dayjs.extend(isoWeek);
+
+	// import { Plugin, debounce } from 'obsidian';
 	import { getContext, setContext } from 'svelte';
 	import { writable } from 'svelte/store';
 
-	import type { IDayMetadata } from '@/calendar/types';
+	// import type { IDayMetadata } from '@/calendar/types';
 
-	import { DISPLAYED_MONTH, IS_MOBILE } from '../context';
+	import { DISPLAYED_MONTH, IS_MOBILE, VIEW } from '../context';
 	// import PopoverMenu from "./popover/PopoverMenu.svelte";
-	import Day from './Day.svelte';
-	import Nav from './Nav.svelte';
-	import WeekNum from './WeekNum.svelte';
-	import type { ICalendarSource, IMonth, ISourceSettings } from '../types';
-	import { getDaysOfWeek, getMonth, isWeekend } from '../utils';
+	// import Day from './Day.svelte';
+	// import Nav from './Nav.svelte';
+	// import WeekNum from './WeekNum.svelte';
+	import { getMonth, isWeekend } from '../utils';
+	import { settingsStore } from '@/stores';
 	import PeriodicNotesCache from '../fileStore';
 	import type { CalendarView } from '@/view';
-	import { settingsStore } from '@/stores';
+	import Day from './Day.svelte';
 
 	// export let localeData: Locale;
 
@@ -29,27 +35,27 @@
 	// export let today: Moment = window.moment();
 	// export let displayedMonth: Moment = today;
 
-	const { app } = getContext('view') as CalendarView;
+	const { app } = getContext<CalendarView>(VIEW);
 
 	console.log('CONTEXT 🤯', app);
 
+	$: ({
+		localeData: { showWeekNums, localizedWeekdaysShort }
+	} = $settingsStore);
+
 	// setContext(IS_MOBILE, (this.app as any).isMobile);
 
-	// let displayedMonthStore = writable<Moment>(displayedMonth);
-	// setContext(DISPLAYED_MONTH, displayedMonthStore);
+	let displayedMonthStore = writable<Dayjs>(window.dayjs());
+	setContext(DISPLAYED_MONTH, displayedMonthStore);
 
-	// let month: IMonth;
-	// let daysOfWeek: string[];
+	$: month = getMonth($displayedMonthStore);
 
 	// let hoverTimeout: number;
 	// let showPopover: boolean = false;
 	// let popoverMetadata: IDayMetadata[];
 	// let hoveredDay = writable<HTMLElement>(null);
 
-	// $: month = getMonth($displayedMonthStore, localeData);
-	// $: daysOfWeek = window.moment.weekdaysShort(true);
-
-	// const fileCache = new PeriodicNotesCache(plugin, sources);
+	// const fileCache = new PeriodicNotesCache(plugin);
 
 	// function openPopover() {
 	//   showPopover = true;
@@ -85,10 +91,8 @@
 	// );
 </script>
 
-<div>Hello world!</div>
-
 <div id="calendar-container" class="container">
-  <!-- <Nav
+	<!-- <Nav
     fileCache="{fileCache}"
     today="{today}"
     getSourceSettings="{getSourceSettings}"
@@ -96,56 +100,47 @@
     on:hoverDay="{updatePopover}"
     on:endHoverDay="{dismissPopover}"
   /> -->
-  <table class="calendar">
-    <colgroup>
-      {#if $settingsStore.showWeekNums}
-        <col />
-      {/if}
-      {#each month[1].days as date}
-        <col class:weekend="{isWeekend(date)}" />
-      {/each}
-    </colgroup>
-    <thead>
-      <tr>
-        {#if $settingsStore.showWeekNums}
-          <th>W</th>
-        {/if}
-        {#each daysOfWeek as dayOfWeek}
-          <th>{dayOfWeek}</th>
-        {/each}
-      </tr>
-    </thead>
-    <tbody>
-      {#each month as week (week.weekNum)}
-        <tr>
-          {#if $settingsStore.showWeekNums}
-            <WeekNum
-              fileCache="{fileCache}"
-              selectedId="{selectedId}"
-              getSourceSettings="{getSourceSettings}"
-              {...week}
-              {...eventHandlers}
-              on:hoverDay="{updatePopover}"
-              on:endHoverDay="{dismissPopover}"
-            />
-          {/if}
-          {#each week.days as day (day.format())}
-            <Day
-              date="{day}"
-              fileCache="{fileCache}"
-              getSourceSettings="{getSourceSettings}"
-              today="{today}"
-              selectedId="{selectedId}"
-              {...eventHandlers}
-              on:hoverDay="{updatePopover}"
-              on:endHoverDay="{dismissPopover}"
-            />
-          {/each}
-        </tr>
-      {/each}
-    </tbody>
-  </table>
-  <!-- <PopoverMenu
+	<table class="calendar">
+		<colgroup>
+			{#if showWeekNums}
+				<col />
+			{/if}
+			{#each month[1].days as date}
+				<col class:weekend={isWeekend(date)} />
+			{/each}
+		</colgroup>
+		<thead>
+			<tr>
+				{#if showWeekNums}
+					<th>W</th>
+				{/if}
+				{#each localizedWeekdaysShort as dayOfWeek}
+					<th>{dayOfWeek}</th>
+				{/each}
+			</tr>
+		</thead>
+		<tbody>
+			{#each month as week (week.weekNum)}
+				<tr>
+					<!-- {#if showWeekNums}
+						<WeekNum
+							{fileCache}
+							{selectedId}
+							{getSourceSettings}
+							{...week}
+							{...eventHandlers}
+							on:hoverDay={updatePopover}
+							on:endHoverDay={dismissPopover}
+						/>
+					{/if} -->
+					{#each week.days as day (day.format())}
+						<Day date={day} />
+					{/each}
+				</tr>
+			{/each}
+		</tbody>
+	</table>
+	<!-- <PopoverMenu
     referenceElement="{$hoveredDay}"
     metadata="{popoverMetadata}"
     isVisible="{showPopover}"

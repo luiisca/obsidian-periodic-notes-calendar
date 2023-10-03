@@ -1,19 +1,28 @@
 {
-  "viewOpen": false,
+  "viewOpen": true,
   "localeData": {
     "loading": false,
-    "weekStart": "Sunday",
-    "showWeekNums": false,
+    "weekStart": "रविवार",
+    "showWeekNums": true,
     "sysLocale": "en",
-    "localeOverride": "en",
+    "localeOverride": "hi",
     "localizedWeekdays": [
-      "Sunday",
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday"
+      "रविवार",
+      "सोमवार",
+      "मंगलवार",
+      "बुधवार",
+      "गुरूवार",
+      "शुक्रवार",
+      "शनिवार"
+    ],
+    "localizedWeekdaysShort": [
+      "रवि",
+      "सोम",
+      "मंगल",
+      "बुध",
+      "गुरू",
+      "शुक्र",
+      "शनि"
     ]
   }
 }

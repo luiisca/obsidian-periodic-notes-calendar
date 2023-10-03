@@ -30,7 +30,7 @@ export default {
     }),
     alias({
       entries: {
-        '@/*': './src/*'
+        '@/*': './src/*',
       }
     }),
     json(),
