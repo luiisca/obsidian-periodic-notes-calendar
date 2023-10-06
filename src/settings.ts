@@ -12,14 +12,9 @@ import localeData from 'dayjs/plugin/localeData';
 dayjs.extend(weekday);
 dayjs.extend(localeData);
 
-declare global {
-	interface Window {
-		dayjs: typeof dayjs;
-	}
-}
-
 export interface ISettings {
 	viewOpen: boolean;
+	shouldConfirmBeforeCreate: boolean;
 
 	localeData: {
 		loading: boolean;
@@ -34,6 +29,7 @@ export interface ISettings {
 
 export const DEFAULT_SETTINGS: ISettings = Object.freeze({
 	viewOpen: false,
+	shouldConfirmBeforeCreate: true,
 
 	localeData: {
 		loading: false,
@@ -88,6 +84,7 @@ export class SettingsTab extends PluginSettingTab {
 		});
 
 		this.addPopoverSetting();
+		this.addConfirmCreateSetting();
 		this.addShowWeeklyNoteSetting();
 
 		this.containerEl.createEl('h3', {
@@ -122,6 +119,20 @@ export class SettingsTab extends PluginSettingTab {
 					!viewOpen && this.plugin.handlePopup();
 				})
 			);
+	}
+
+	addConfirmCreateSetting(): void {
+		new Setting(this.containerEl)
+			.setName('Confirm before creating new note')
+			.setDesc('Display a confirmation dialog before creating a new note')
+			.addToggle((toggle) => {
+				toggle.setValue(this.plugin.settings.shouldConfirmBeforeCreate);
+				toggle.onChange(async (value) => {
+					this.plugin.saveSettings(() => ({
+						shouldConfirmBeforeCreate: value
+					}));
+				});
+			});
 	}
 
 	addShowWeeklyNoteSetting(): void {

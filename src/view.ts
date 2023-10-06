@@ -1,11 +1,18 @@
-import { App, ItemView, WorkspaceLeaf, normalizePath } from 'obsidian';
+import { App, ItemView, TFile, WorkspaceLeaf, normalizePath } from 'obsidian';
 
 import View from './View.svelte';
 import type { Dayjs } from 'dayjs';
 import { VIEW } from './calendar-ui/context';
-import { settingsStore } from './stores';
+import { dailyNotesExtStore, settingsStore } from './stores';
 import type { ISettings } from './settings';
-import { createDailyNote } from './calendar-io';
+import {
+	createDailyNote,
+	getDailyNote,
+	getDailyNoteSettings,
+	getDateFromFile
+} from './calendar-io';
+import { get } from 'svelte/store';
+import { createConfirmationDialog } from './calendar-ui/modal';
 
 export const VIEW_TYPE_EXAMPLE = 'example-view';
 
@@ -44,19 +51,24 @@ export class CalendarView extends ItemView {
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
 
-		this.registerEvent(
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			(<any>this.app.workspace).on('periodic-notes:settings-updated', this.onNoteSettingsUpdate)
-		);
+		// this.registerEvent(
+		// 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		// 	(<any>this.app.workspace).on('periodic-notes:settings-updated', this.onNoteSettingsUpdate)
+		// );
 
-		this.registerEvent(this.app.vault.on('create', this.onFileCreated));
-		this.registerEvent(this.app.vault.on('delete', this.onFileDeleted));
-		this.registerEvent(this.app.vault.on('modify', this.onFileModified));
-		this.registerEvent(this.app.workspace.on('file-open', this.onFileOpen));
+		// this.registerEvent(this.app.vault.on('create', this.onFileCreated));
+		// this.registerEvent(this.app.vault.on('delete', this.onFileDeleted));
+		// this.registerEvent(this.app.vault.on('modify', this.onFileModified));
+		// this.registerEvent(this.app.workspace.on('file-open', this.onFileOpen));
 
 		this.register(
 			settingsStore.subscribe((settings) => {
+				console.log(
+					'CalendarView > constructor > this.register > settingsStore.subscibe: settings',
+					settings
+				);
 				this.settings = settings;
+				console.log(this.settings);
 			})
 		);
 	}
@@ -86,7 +98,7 @@ export class CalendarView extends ItemView {
 			app: this.app,
 			eventHandlers: {
 				day: {
-					onClick: this.onClickDay,
+					onClick: this.onClickDay.bind(this),
 					onHover: this.onHoverDay,
 					onContextMenu: this.onContextMenuDay
 				},
@@ -104,66 +116,82 @@ export class CalendarView extends ItemView {
 		});
 	}
 
-	// app.workspace and app.vault event handlers
-	private onNoteSettingsUpdate(): void {
-		dailyNotes.reindex();
-		weeklyNotes.reindex();
-		this.updateActiveFile();
-	}
+	// // app.workspace and app.vault event handlers
+	// private onNoteSettingsUpdate(): void {
+	// 	dailyNotes.reindex();
+	// 	weeklyNotes.reindex();
+	// 	this.updateActiveFile();
+	// }
 
-	private async onFileDeleted(file: TFile): Promise<void> {
-		if (getDateFromFile(file, 'day')) {
-			dailyNotes.reindex();
-			this.updateActiveFile();
-		}
-		if (getDateFromFile(file, 'week')) {
-			weeklyNotes.reindex();
-			this.updateActiveFile();
-		}
-	}
+	// private async onFileDeleted(file: TFile): Promise<void> {
+	// 	if (getDateFromFile(file, 'day')) {
+	// 		dailyNotes.reindex();
+	// 		this.updateActiveFile();
+	// 	}
+	// 	if (getDateFromFile(file, 'week')) {
+	// 		weeklyNotes.reindex();
+	// 		this.updateActiveFile();
+	// 	}
+	// }
 
-	private async onFileModified(file: TFile): Promise<void> {
-		const date = getDateFromFile(file, 'day') || getDateFromFile(file, 'week');
-		if (date && this.calendar) {
-			this.calendar.tick();
-		}
-	}
+	// private async onFileModified(file: TFile): Promise<void> {
+	// 	const date = getDateFromFile(file, 'day') || getDateFromFile(file, 'week');
+	// 	if (date && this.calendar) {
+	// 		this.calendar.tick();
+	// 	}
+	// }
 
-	private onFileCreated(file: TFile): void {
-		if (this.app.workspace.layoutReady && this.calendar) {
-			if (getDateFromFile(file, 'day')) {
-				dailyNotes.reindex();
-				this.calendar.tick();
-			}
-			if (getDateFromFile(file, 'week')) {
-				weeklyNotes.reindex();
-				this.calendar.tick();
-			}
-		}
-	}
+	// private onFileCreated(file: TFile): void {
+	// 	if (this.app.workspace.layoutReady && this.view) {
+	// 		if (getDateFromFile(file, 'day')) {
+	// 			dailyNotes.reindex();
+	// 			this.calendar.tick();
+	// 		}
+	// 		if (getDateFromFile(file, 'week')) {
+	// 			weeklyNotes.reindex();
+	// 			this.calendar.tick();
+	// 		}
+	// 	}
+	// }
 
-	public onFileOpen(_file: TFile): void {
-		if (this.app.workspace.layoutReady) {
-			this.updateActiveFile();
-		}
-	}
+	// public onFileOpen(_file: TFile): void {
+	// 	if (this.app.workspace.layoutReady) {
+	// 		this.updateActiveFile();
+	// 	}
+	// }
 
 	// Component event handlers
 	async onClickDay({ date, isNewSplit }: { date: Dayjs; isNewSplit: boolean }): Promise<void> {
 		const { workspace } = window.app;
-		await createDailyNote(date);
-		// const existingFile = getDailyNote(date, get(dailyNotes));
-		// if (!existingFile) {
-		// 	// File doesn't exist
-		// 	await createDailyNote(date);
-		// }
+
+		const { format } = getDailyNoteSettings();
+		const filename = date.format(format);
+
+		const existingFile = getDailyNote(date);
+		let newFile;
+		if (!existingFile) {
+			// File doesn't exist
+			console.log('CalendarView > onClickDay: this.settings.shouldConfirm', this.settings.shouldConfirmBeforeCreate);
+			if (this.settings.shouldConfirmBeforeCreate) {
+				createConfirmationDialog<TFile | undefined>({
+					cta: 'Create',
+					onAccept: () => createDailyNote(date),
+					text: `File ${filename} does not exist. Would you like to create it?`,
+					title: 'New Daily Note'
+				});
+			} else {
+				newFile = await createDailyNote(date);
+			}
+		}
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const mode = (this.app.vault as any).getConfig('defaultViewMode');
 		const leaf = isNewSplit ? workspace.splitActiveLeaf() : workspace.getUnpinnedLeaf();
+		// console.log('ONCLICKDAY🖱: mode & leaf', mode, leaf);
+
 		await leaf.openFile(existingFile, { active: true, mode });
 
-		activeFile.setFile(existingFile);
+		// activeFile.setFile(existingFile || newFile);
 	}
 
 	async onClickWeek({ date, isNewSplit }: { date: Dayjs; isNewSplit: boolean }): Promise<void> {

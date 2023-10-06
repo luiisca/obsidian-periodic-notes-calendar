@@ -3,7 +3,7 @@ import { computePosition, autoUpdate, flip, offset, shift, arrow } from '@floati
 import { CalendarView, VIEW_TYPE_EXAMPLE } from './view';
 import Calendar from './View.svelte';
 import { settingsStore } from './stores';
-import { SettingsTab, type ISettings } from './settings';
+import { SettingsTab, type ISettings, DEFAULT_SETTINGS } from './settings';
 
 export default class DailyNoteFlexPlugin extends Plugin {
 	public settings: ISettings;
@@ -17,10 +17,14 @@ export default class DailyNoteFlexPlugin extends Plugin {
 
 		this.cleanupPopup && this.cleanupPopup();
 		this.removeLocaleScripts();
+
+		window.plugin = null;
 	}
 
 	async onload() {
 		console.log('ON Load 🫵');
+		window.plugin = this; // access plugin methods globally
+
 		this.register(
 			settingsStore.subscribe((settings) => {
 				this.settings = settings;
@@ -53,6 +57,9 @@ export default class DailyNoteFlexPlugin extends Plugin {
 
 	async loadSettings() {
 		const settings = await this.loadData();
+		console.log('main > loadSettings: settings from this.loadData()', settings);
+		!settings && await this.saveData(DEFAULT_SETTINGS);
+
 		settingsStore.update((old) => ({
 			...old,
 			...(settings || {})
@@ -145,7 +152,7 @@ export default class DailyNoteFlexPlugin extends Plugin {
 			console.log('ON ribbon click 🐭');
 			popupState.open ? close() : open();
 		}
-		function onWindowClick(event: { target: Node | null; }) {
+		function onWindowClick(event: { target: Node | null }) {
 			console.log('ON window click 🪟', event);
 			// console.log("FloatingEL", floatingEl)
 			// console.log("Event target", event.target)
