@@ -3,10 +3,6 @@
   import type { TFile } from "obsidian";
   import { createEventDispatcher, getContext } from "svelte";
   import type { Writable } from "svelte/store";
-  import {
-    appHasMonthlyNotesPluginLoaded,
-    IGranularity,
-  } from "obsidian-daily-notes-interface";
 
   import { DISPLAYED_MONTH } from "../context";
   import Dots from "./Dots.svelte";
@@ -14,6 +10,7 @@
   import MetadataResolver from "./MetadataResolver.svelte";
   import { isMetaPressed } from "../utils";
   import type { IDayMetadata, ISourceSettings } from "../types";
+	import type { IGranularity } from "dayjs";
 
   export let fileCache: PeriodicNotesCache;
   export let getSourceSettings: (sourceId: string) => ISourceSettings;

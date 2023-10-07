@@ -1,9 +1,9 @@
-import { App, ItemView, TFile, WorkspaceLeaf, normalizePath } from 'obsidian';
+import { App, ItemView, TAbstractFile, TFile, WorkspaceLeaf, normalizePath } from 'obsidian';
 
 import View from './View.svelte';
 import type { Dayjs } from 'dayjs';
 import { VIEW } from './calendar-ui/context';
-import { dailyNotesExtStore, settingsStore } from './stores';
+import { dailyNotesExtStore, settingsStore, weeklyNotesExtStore } from './stores';
 import type { ISettings } from './settings';
 import {
 	createDailyNote,
@@ -13,20 +13,21 @@ import {
 } from './calendar-io';
 import { get } from 'svelte/store';
 import { createConfirmationDialog } from './calendar-ui/modal';
+import type { Moment } from 'moment';
 
 export const VIEW_TYPE_EXAMPLE = 'example-view';
 
-type TOnClick = ({ date, isNewSplit }: { date: Dayjs; isNewSplit: boolean }) => Promise<void>;
+type TOnClick = ({ date, isNewSplit }: { date: Moment; isNewSplit: boolean }) => Promise<void>;
 type TOnHover = ({
 	date,
 	targetEl,
 	isMetaPressed
 }: {
-	date: Dayjs;
+	date: Moment;
 	targetEl: EventTarget;
 	isMetaPressed: boolean;
 }) => void;
-type TOnContextMenu = ({ date, event }: { date: Dayjs; event: MouseEvent }) => void;
+type TOnContextMenu = ({ date, event }: { date: Moment; event: MouseEvent }) => void;
 
 export interface ICalendarViewCtx {
 	app: App;
@@ -51,24 +52,25 @@ export class CalendarView extends ItemView {
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
 
-		// this.registerEvent(
-		// 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		// 	(<any>this.app.workspace).on('periodic-notes:settings-updated', this.onNoteSettingsUpdate)
-		// );
+		this.registerEvent(
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			(<any>this.app.workspace).on('periodic-notes:settings-updated', this.onNoteSettingsUpdate)
+		);
 
-		// this.registerEvent(this.app.vault.on('create', this.onFileCreated));
-		// this.registerEvent(this.app.vault.on('delete', this.onFileDeleted));
-		// this.registerEvent(this.app.vault.on('modify', this.onFileModified));
-		// this.registerEvent(this.app.workspace.on('file-open', this.onFileOpen));
+		this.registerEvent(
+			this.app.vault.on('create', (file: TAbstractFile) => this.onFileCreated(file as TFile))
+		);
+		this.registerEvent(
+			this.app.vault.on('delete', (file: TAbstractFile) => this.onFileDeleted(file as TFile))
+		);
+		this.registerEvent(
+			this.app.vault.on('modify', (file: TAbstractFile) => this.onFileModified(file as TFile))
+		);
+		this.registerEvent(this.app.workspace.on('file-open', () => this.onFileOpen()));
 
 		this.register(
 			settingsStore.subscribe((settings) => {
-				console.log(
-					'CalendarView > constructor > this.register > settingsStore.subscibe: settings',
-					settings
-				);
 				this.settings = settings;
-				console.log(this.settings);
 			})
 		);
 	}
@@ -99,13 +101,13 @@ export class CalendarView extends ItemView {
 			eventHandlers: {
 				day: {
 					onClick: this.onClickDay.bind(this),
-					onHover: this.onHoverDay,
-					onContextMenu: this.onContextMenuDay
+					onHover: this.onHoverDay.bind(this),
+					onContextMenu: this.onContextMenuDay.bind(this)
 				},
 				week: {
-					onClick: this.onClickWeek,
-					onHover: this.onHoverWeek,
-					onContextMenu: this.onContextMenuWeek
+					onClick: this.onClickWeek.bind(this),
+					onHover: this.onHoverWeek.bind(this),
+					onContextMenu: this.onContextMenuWeek.bind(this)
 				}
 			}
 		});
@@ -117,84 +119,85 @@ export class CalendarView extends ItemView {
 	}
 
 	// // app.workspace and app.vault event handlers
-	// private onNoteSettingsUpdate(): void {
-	// 	dailyNotes.reindex();
-	// 	weeklyNotes.reindex();
-	// 	this.updateActiveFile();
-	// }
+	private onNoteSettingsUpdate(): void {
+		dailyNotesExtStore.reindex();
+		weeklyNotesExtStore.reindex();
+		this.updateActiveFile();
+	}
 
-	// private async onFileDeleted(file: TFile): Promise<void> {
-	// 	if (getDateFromFile(file, 'day')) {
-	// 		dailyNotes.reindex();
-	// 		this.updateActiveFile();
-	// 	}
-	// 	if (getDateFromFile(file, 'week')) {
-	// 		weeklyNotes.reindex();
-	// 		this.updateActiveFile();
-	// 	}
-	// }
+	private async onFileDeleted(file: TFile): Promise<void> {
+		if (getDateFromFile(file, 'day')) {
+			dailyNotesExtStore.reindex();
+			this.updateActiveFile();
+		}
+		if (getDateFromFile(file, 'week')) {
+			weeklyNotesExtStore.reindex();
+			this.updateActiveFile();
+		}
+	}
 
-	// private async onFileModified(file: TFile): Promise<void> {
-	// 	const date = getDateFromFile(file, 'day') || getDateFromFile(file, 'week');
-	// 	if (date && this.calendar) {
-	// 		this.calendar.tick();
-	// 	}
-	// }
+	private async onFileModified(file: TFile): Promise<void> {
+		const date = getDateFromFile(file, 'day') || getDateFromFile(file, 'week');
+		if (date && this.view) {
+			this.view.tick();
+		}
+	}
 
-	// private onFileCreated(file: TFile): void {
-	// 	if (this.app.workspace.layoutReady && this.view) {
-	// 		if (getDateFromFile(file, 'day')) {
-	// 			dailyNotes.reindex();
-	// 			this.calendar.tick();
-	// 		}
-	// 		if (getDateFromFile(file, 'week')) {
-	// 			weeklyNotes.reindex();
-	// 			this.calendar.tick();
-	// 		}
-	// 	}
-	// }
+	private onFileCreated(file: TFile) {
+		if (this.app.workspace.layoutReady && this.view) {
+			if (getDateFromFile(file, 'day')) {
+				dailyNotesExtStore.reindex();
+				// this.view.tick();
+			}
+			if (getDateFromFile(file, 'week')) {
+				weeklyNotesExtStore.reindex();
+				// this.view.tick();
+			}
+		}
+	}
 
-	// public onFileOpen(_file: TFile): void {
-	// 	if (this.app.workspace.layoutReady) {
-	// 		this.updateActiveFile();
-	// 	}
-	// }
+	public onFileOpen() {
+		if (this.app.workspace.layoutReady) {
+			this.updateActiveFile();
+		}
+	}
 
 	// Component event handlers
-	async onClickDay({ date, isNewSplit }: { date: Dayjs; isNewSplit: boolean }): Promise<void> {
+	async onClickDay({ date, isNewSplit }: { date: Moment; isNewSplit: boolean }): Promise<void> {
 		const { workspace } = window.app;
 
 		const { format } = getDailyNoteSettings();
 		const filename = date.format(format);
 
-		const existingFile = getDailyNote(date);
-		let newFile;
-		if (!existingFile) {
+		let file = getDailyNote(date);
+		console.log('onClickDay, existingFile, format: ', file, format);
+
+		if (!file) {
 			// File doesn't exist
-			console.log('CalendarView > onClickDay: this.settings.shouldConfirm', this.settings.shouldConfirmBeforeCreate);
 			if (this.settings.shouldConfirmBeforeCreate) {
 				createConfirmationDialog<TFile | undefined>({
 					cta: 'Create',
-					onAccept: () => createDailyNote(date),
+					onAccept: async () => (file = await createDailyNote(date)),
 					text: `File ${filename} does not exist. Would you like to create it?`,
 					title: 'New Daily Note'
 				});
 			} else {
-				newFile = await createDailyNote(date);
+				file = await createDailyNote(date);
 			}
 		}
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const mode = (this.app.vault as any).getConfig('defaultViewMode');
 		const leaf = isNewSplit ? workspace.splitActiveLeaf() : workspace.getUnpinnedLeaf();
-		// console.log('ONCLICKDAY🖱: mode & leaf', mode, leaf);
+		console.log('ONCLICKDAY 🚴: mode & leaf', mode, leaf);
+		console.log('onClickDay(), file: ', file);
 
-		await leaf.openFile(existingFile, { active: true, mode });
+		file && await leaf.openFile(file, { active: true, mode });
 
 		// activeFile.setFile(existingFile || newFile);
 	}
 
-	async onClickWeek({ date, isNewSplit }: { date: Dayjs; isNewSplit: boolean }): Promise<void> {
+	async onClickWeek({ date, isNewSplit }: { date: Moment; isNewSplit: boolean }): Promise<void> {
 		const { workspace } = this.app;
 
 		const startOfWeek = date.clone().startOf('week');
@@ -221,7 +224,7 @@ export class CalendarView extends ItemView {
 		targetEl,
 		isMetaPressed
 	}: {
-		date: Dayjs;
+		date: Moment;
 		targetEl: EventTarget;
 		isMetaPressed: boolean;
 	}): void {
@@ -238,7 +241,7 @@ export class CalendarView extends ItemView {
 		targetEl,
 		isMetaPressed
 	}: {
-		date: Dayjs;
+		date: Moment;
 		targetEl: EventTarget;
 		isMetaPressed: boolean;
 	}): void {
@@ -250,7 +253,7 @@ export class CalendarView extends ItemView {
 		this.app.workspace.trigger('link-hover', this, targetEl, date.format(format), note?.path);
 	}
 
-	private onContextMenuDay({ date, event }: { date: Dayjs; event: MouseEvent }): void {
+	private onContextMenuDay({ date, event }: { date: Moment; event: MouseEvent }): void {
 		const note = getDailyNote(date, get(dailyNotes));
 		if (!note) {
 			// If no file exists for a given day, show nothing.
@@ -262,7 +265,7 @@ export class CalendarView extends ItemView {
 		});
 	}
 
-	private onContextMenuWeek({ date, event }: { date: Dayjs; event: MouseEvent }): void {
+	private onContextMenuWeek({ date, event }: { date: Moment; event: MouseEvent }): void {
 		const note = getWeeklyNote(date, get(weeklyNotes));
 		if (!note) {
 			// If no file exists for a given day, show nothing.

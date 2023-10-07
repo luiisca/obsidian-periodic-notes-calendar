@@ -68,7 +68,7 @@ export {
   DEFAULT_YEARLY_NOTE_FORMAT,
 } from "./constants";
 
-import type { IGranularity, IPeriodicNoteSettings } from "./types";
+import type { IPeriodicNoteSettings } from "./types";
 import {
   getDailyNoteSettings,
   getWeeklyNoteSettings,
@@ -89,6 +89,7 @@ import {
   getQuarterlyNote,
 } from "./quarterly";
 import { createYearlyNote, getAllYearlyNotes, getYearlyNote } from "./yearly";
+import type { IGranularity } from "dayjs";
 
 export { getDateUID, getDateFromFile, getDateFromPath } from "./parse";
 export { getTemplateInfo } from "./vault";

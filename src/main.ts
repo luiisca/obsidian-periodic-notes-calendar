@@ -58,7 +58,7 @@ export default class DailyNoteFlexPlugin extends Plugin {
 	async loadSettings() {
 		const settings = await this.loadData();
 		console.log('main > loadSettings: settings from this.loadData()', settings);
-		!settings && await this.saveData(DEFAULT_SETTINGS);
+		!settings && (await this.saveData(DEFAULT_SETTINGS));
 
 		settingsStore.update((old) => ({
 			...old,

@@ -1,3 +1,4 @@
+import { Modal } from 'obsidian';
 import ConfirmationModalComponent from './components/ConfirmationModal.svelte';
 
 export interface IConfirmationDialogParams<T> {

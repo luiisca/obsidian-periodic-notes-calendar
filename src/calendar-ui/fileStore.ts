@@ -1,15 +1,6 @@
 import type { Moment } from "moment";
 import { App, Plugin, TAbstractFile, TFile } from "obsidian";
-import {
-  getAllDailyNotes,
-  getAllMonthlyNotes,
-  getAllWeeklyNotes,
-  getDateFromFile,
-  getDateFromPath,
-  getDateUID,
-  IGranularity,
-} from "obsidian-daily-notes-interface";
-import { get, Writable, writable } from "svelte/store";
+import { get, type Writable, writable } from "svelte/store";
 
 import type { ICalendarSource, IDayMetadata, ISourceSettings } from "./types";
 

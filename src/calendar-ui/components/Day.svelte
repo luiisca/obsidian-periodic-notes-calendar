@@ -3,7 +3,6 @@
 <script lang="ts">
 	import type { Moment } from 'moment';
 	import type { TFile } from 'obsidian';
-	import { getDateUID, IGranularity } from 'obsidian-daily-notes-interface';
 	import { createEventDispatcher, getContext } from 'svelte';
 	import type { Writable } from 'svelte/store';
 
@@ -14,10 +13,9 @@
 	import type { IDayMetadata, IHTMLAttributes, ISourceSettings } from '../types';
 	import { isMetaPressed } from '../utils';
 	import type { CalendarView, ICalendarViewCtx } from '@/view';
-	import type { Dayjs } from 'dayjs';
 
 	// Properties
-	export let date: Dayjs;
+	export let date: Moment;
 	// export let fileCache: PeriodicNotesCache;
 
 	let file: TFile | null;

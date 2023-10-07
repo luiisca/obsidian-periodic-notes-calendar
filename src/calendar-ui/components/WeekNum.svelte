@@ -3,7 +3,6 @@
 <script lang="ts">
   import type { Moment } from "moment";
   import type { TFile } from "obsidian";
-  import { getDateUID, IGranularity } from "obsidian-daily-notes-interface";
   import { createEventDispatcher } from "svelte";
 
   import Dots from "./Dots.svelte";
@@ -11,6 +10,7 @@
   import MetadataResolver from "./MetadataResolver.svelte";
   import type { IDayMetadata, ISourceSettings } from "../types";
   import { getStartOfWeek, isMetaPressed } from "../utils";
+	import type { IGranularity } from "dayjs";
 
   // Properties
   export let weekNum: number;

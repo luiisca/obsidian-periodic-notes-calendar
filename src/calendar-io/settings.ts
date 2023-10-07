@@ -58,7 +58,7 @@ export function getDailyNoteSettings(): IPeriodicNoteSettings {
  * Read the user settings for the `weekly-notes` plugin
  * to keep behavior of creating a new note in-sync.
  */
-export function getWeeklyNoteSettings(): IPeriodicNoteSettings | undefined {
+export function getWeeklyNoteSettings(): IPeriodicNoteSettings {
 	try {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const pluginManager = (<any>window.app).plugins;
@@ -93,7 +93,7 @@ export function getWeeklyNoteSettings(): IPeriodicNoteSettings | undefined {
  * Read the user settings for the `periodic-notes` plugin
  * to keep behavior of creating a new note in-sync.
  */
-export function getMonthlyNoteSettings(): IPeriodicNoteSettings | undefined {
+export function getMonthlyNoteSettings(): IPeriodicNoteSettings  {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const pluginManager = (<any>window.app).plugins;
 
@@ -121,7 +121,7 @@ export function getMonthlyNoteSettings(): IPeriodicNoteSettings | undefined {
  * Read the user settings for the `periodic-notes` plugin
  * to keep behavior of creating a new note in-sync.
  */
-export function getQuarterlyNoteSettings(): IPeriodicNoteSettings | undefined {
+export function getQuarterlyNoteSettings(): IPeriodicNoteSettings  {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const pluginManager = (<any>window.app).plugins;
 
@@ -149,7 +149,7 @@ export function getQuarterlyNoteSettings(): IPeriodicNoteSettings | undefined {
  * Read the user settings for the `periodic-notes` plugin
  * to keep behavior of creating a new note in-sync.
  */
-export function getYearlyNoteSettings(): IPeriodicNoteSettings | undefined {
+export function getYearlyNoteSettings(): IPeriodicNoteSettings {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const pluginManager = (<any>window.app).plugins;
 

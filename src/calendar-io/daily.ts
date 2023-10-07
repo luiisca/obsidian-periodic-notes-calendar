@@ -1,11 +1,13 @@
-import type { Moment } from 'moment';
 import { App, normalizePath, Notice, TFile, TFolder, Vault } from 'obsidian';
 
 import { getDateFromFile, getDateUID } from './parse';
 import { getDailyNoteSettings } from './settings';
 import { getTemplateInfo, getNotePath } from './vault';
-import dayjs, { Dayjs } from 'dayjs';
-import type { IPeriodicNoteSettings } from './types';
+import type { Dayjs } from 'dayjs';
+// import type { IPeriodicNoteSettings } from './types';
+import { get } from 'svelte/store';
+import { dailyNotesExtStore } from '@/stores';
+import type { Moment } from 'moment';
 
 export class DailyNotesFolderMissingError extends Error {}
 
@@ -16,7 +18,7 @@ export class DailyNotesFolderMissingError extends Error {}
  *
  * Note: it has an added bonus that it's not 'today' specific.
  */
-export async function createDailyNote(date: Dayjs): Promise<TFile> {
+export async function createDailyNote(date: Moment): Promise<TFile | undefined> {
 	const app = window.app as App;
 	const { vault } = app;
 
@@ -28,6 +30,7 @@ export async function createDailyNote(date: Dayjs): Promise<TFile> {
 	console.log('getTemplateInfo:', templateContents, IFoldInfo);
 
 	const filename = date.format(format);
+	console.log("onClickDay() > createDailyNote > filename, format: ", filename, format)
 	const normalizedPath = await getNotePath(folder, filename);
 	console.log('NOrmalized path', normalizedPath);
 
@@ -67,8 +70,11 @@ export async function createDailyNote(date: Dayjs): Promise<TFile> {
 	}
 }
 
-export function getDailyNote(date: Moment, dailyNotes: Record<string, TFile>): TFile {
-	return dailyNotes[getDateUID(date, 'day')] ?? null;
+export function getDailyNote(date: Moment): TFile | undefined {
+	const dailyNotes = get(dailyNotesExtStore);
+	console.log('daily.ts > getDailyNote, dailyNotes: ', dailyNotes)
+
+	return dailyNotes[getDateUID(date, 'day')];
 }
 
 export function getAllDailyNotes(): Record<string, TFile> {
@@ -78,24 +84,23 @@ export function getAllDailyNotes(): Record<string, TFile> {
 	 */
 	const { vault } = window.app;
 	try {
-		const { folder } = getDailyNoteSettings() as IPeriodicNoteSettings;
+		const { folder } = getDailyNoteSettings();
 
-		const dailyNotesFolder = vault.getAbstractFileByPath(
-			normalizePath(folder as string)
-		) as TFolder;
+		const dailyNotesFolder = vault.getAbstractFileByPath(normalizePath(folder)) as TFolder;
 
 		if (!dailyNotesFolder) {
 			throw new DailyNotesFolderMissingError(
-				"Unable to locate the daily notes folder. Check your plugin's settings."
+				"Unable to locate the daily notes folder. Check your plugin's settings or restart this plugin."
 			);
 		}
 
 		Vault.recurseChildren(dailyNotesFolder, (note) => {
 			if (note instanceof TFile) {
+				// if file name maps to a valid dayjs date, it is saved in store.
 				const date = getDateFromFile(note, 'day');
 				if (date) {
-					const dateString = getDateUID(date, 'day');
-					dailyNotes[dateString] = note;
+					const dateUID = getDateUID(date, 'day');
+					dailyNotes[dateUID] = note;
 				}
 			}
 		});

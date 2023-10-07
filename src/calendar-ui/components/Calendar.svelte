@@ -18,10 +18,11 @@
 	// import Nav from './Nav.svelte';
 	// import WeekNum from './WeekNum.svelte';
 	import { getMonth, isWeekend } from '../utils';
-	import { settingsStore } from '@/stores';
+	import { dailyNotesExtStore, settingsStore, weeklyNotesExtStore } from '@/stores';
 	import PeriodicNotesCache from '../fileStore';
 	import type { CalendarView } from '@/view';
 	import Day from './Day.svelte';
+	import type { ISettings } from '@/settings';
 
 	// export let localeData: Locale;
 
@@ -45,10 +46,10 @@
 
 	// setContext(IS_MOBILE, (this.app as any).isMobile);
 
-	let displayedMonthStore = writable<Dayjs>(window.dayjs());
-	setContext(DISPLAYED_MONTH, displayedMonthStore);
+	let displayedMonth = window.moment();
+	setContext(DISPLAYED_MONTH, displayedMonth);
 
-	$: month = getMonth($displayedMonthStore);
+	$: month = getMonth(displayedMonth);
 
 	// let hoverTimeout: number;
 	// let showPopover: boolean = false;
@@ -89,6 +90,14 @@
 	//   250,
 	//   true
 	// );
+
+	$: $settingsStore, reindexNotes();
+
+	const reindexNotes = () => {
+		console.log("calendar.svelte > reindexNotes() 🫵")
+		dailyNotesExtStore.reindex();
+		weeklyNotesExtStore.reindex();
+	};
 </script>
 
 <div id="calendar-container" class="container">

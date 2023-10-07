@@ -10,6 +10,7 @@ function createDailyNotesStore() {
 		reindex: () => {
 			try {
 				const dailyNotes = getAllDailyNotes();
+				console.log('stores.ts > reindex() > createDailyNotesStore(): ', dailyNotes);
 				if (Object.keys(dailyNotes).length === 0) {
 					throw new Error('No notes found');
 				}
