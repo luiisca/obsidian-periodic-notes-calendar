@@ -9,16 +9,11 @@
 	export let config: IConfirmationDialogParams<T>;
 	export let modalClass: ConfirmationModal<T>;
 
-	const { title, text, cta, onAccept } = config;
+	const { title, text, note, cta, onAccept } = config;
 
 	let dontConfirmAgain = false;
 
 	const shouldConfirmBeforeCreate = async () => {
-		console.log(
-			'modal 🪟 > shouldConfirmBeforeCreate(): checked, window.plugn',
-			dontConfirmAgain,
-			window.plugin
-		);
 		if (dontConfirmAgain && window.plugin) {
 			settingsStore.update((oldSettings: ISettings) => {
 				const newSettings = {
@@ -34,8 +29,6 @@
 	};
 	const handleCancel = async () => {
 		modalClass.close();
-
-		await shouldConfirmBeforeCreate();
 	};
 
 	const handleAccept = async () => {
@@ -53,7 +46,10 @@
 		<input type="checkbox" class="hover:cursor-pointer" bind:checked={dontConfirmAgain} /> Don't show
 		again
 	</label>
-	<div class="modal-button-container">
+	{#if note}
+		<p class="m-0 mt-2 text-xs text-[--text-muted]">{note}</p>
+	{/if}
+	<div class="modal-button-container mt-3">
 		<button on:click={handleCancel}>Never mind</button>
 		<button class="mod-cta" on:click={handleAccept}>{cta}</button>
 	</div>

@@ -2,11 +2,11 @@ import { Modal } from 'obsidian';
 import ConfirmationModalComponent from './components/ConfirmationModal.svelte';
 
 export interface IConfirmationDialogParams<T> {
-	cta: string;
-	// eslint-disable-next-line
-	onAccept: () => Promise<T>;
 	text: string;
 	title: string;
+	cta: string;
+	onAccept: () => Promise<T>;
+	note?: string | null;
 }
 
 export class ConfirmationModal<T> extends Modal {
@@ -23,7 +23,7 @@ export class ConfirmationModal<T> extends Modal {
 			target: svelteContainer,
 			props: {
 				config,
-				modalClass: this,
+				modalClass: this
 			}
 		});
 	}

@@ -1,16 +1,17 @@
-import { writable } from 'svelte/store';
+import { get, writable } from 'svelte/store';
 import { DEFAULT_SETTINGS, type ISettings } from './settings';
 import type { TFile } from 'obsidian';
-import { getAllDailyNotes } from './calendar-io';
+import { getAllDailyNotes, getAllWeeklyNotes } from './calendar-io';
 
 function createDailyNotesStore() {
 	let hasError = false;
 	const store = writable<Record<string, TFile>>({});
 	return {
 		reindex: () => {
+			console.log('createDailyNotesStore > reindexing')
 			try {
 				const dailyNotes = getAllDailyNotes();
-				console.log('stores.ts > reindex() > createDailyNotesStore(): ', dailyNotes);
+				// console.log('stores.ts > reindex() > createDailyNotesStore(): ', dailyNotes);
 				if (Object.keys(dailyNotes).length === 0) {
 					throw new Error('No notes found');
 				}
@@ -31,9 +32,10 @@ function createDailyNotesStore() {
 
 function createWeeklyNotesStore() {
 	let hasError = false;
-	const store = writable<Record<string, TFile>>(null);
+	const store = writable<Record<string, TFile>>({});
 	return {
 		reindex: () => {
+			console.log('createWeeklyNotesStore > reindexing')
 			try {
 				const weeklyNotes = getAllWeeklyNotes();
 				store.set(weeklyNotes);
@@ -55,3 +57,17 @@ export const dailyNotesExtStore = createDailyNotesStore();
 export const weeklyNotesExtStore = createWeeklyNotesStore();
 
 export const settingsStore = writable<ISettings>(DEFAULT_SETTINGS);
+
+function createSelectedFileStore() {
+  const store = writable<string | null>(null);
+
+  return {
+    setFile: (id: string) => {
+      store.set(id);
+	  console.log('createSelectedFileStore > store: ', get(store))
+    },
+    ...store,
+  };
+}
+
+export const activeFile = createSelectedFileStore();

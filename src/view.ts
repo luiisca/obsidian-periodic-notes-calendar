@@ -1,15 +1,28 @@
-import { App, ItemView, TAbstractFile, TFile, WorkspaceLeaf, normalizePath } from 'obsidian';
+import {
+	App,
+	FileView,
+	ItemView,
+	TAbstractFile,
+	TFile,
+	WorkspaceLeaf,
+	normalizePath
+} from 'obsidian';
 
 import View from './View.svelte';
 import type { Dayjs } from 'dayjs';
 import { VIEW } from './calendar-ui/context';
-import { dailyNotesExtStore, settingsStore, weeklyNotesExtStore } from './stores';
+import { activeFile, dailyNotesExtStore, settingsStore, weeklyNotesExtStore } from './stores';
 import type { ISettings } from './settings';
 import {
+	appHasWeeklyNotesPluginLoaded,
 	createDailyNote,
+	createWeeklyNote,
 	getDailyNote,
 	getDailyNoteSettings,
-	getDateFromFile
+	getDateFromFile,
+	getDateUID,
+	getWeeklyNote,
+	getWeeklyNoteSettings
 } from './calendar-io';
 import { get } from 'svelte/store';
 import { createConfirmationDialog } from './calendar-ui/modal';
@@ -164,59 +177,90 @@ export class CalendarView extends ItemView {
 
 	// Component event handlers
 	async onClickDay({ date, isNewSplit }: { date: Moment; isNewSplit: boolean }): Promise<void> {
-		const { workspace } = window.app;
+		// TODO: SHOW modal motivating users to activate daily notes or install
+		// periodic notes for further customization
 
-		const { format } = getDailyNoteSettings();
-		const filename = date.format(format);
+		const { workspace } = window.app;
+		const leaf = isNewSplit ? workspace.splitActiveLeaf() : workspace.getUnpinnedLeaf();
+		const openFile = async (file: TFile) => {
+			file && (await leaf.openFile(file));
+			activeFile.setFile(getDateUID(date, 'day'));
+		};
 
 		let file = getDailyNote(date);
-		console.log('onClickDay, existingFile, format: ', file, format);
 
 		if (!file) {
-			// File doesn't exist
+			const { format } = getDailyNoteSettings();
+
 			if (this.settings.shouldConfirmBeforeCreate) {
 				createConfirmationDialog<TFile | undefined>({
 					cta: 'Create',
-					onAccept: async () => (file = await createDailyNote(date)),
-					text: `File ${filename} does not exist. Would you like to create it?`,
+					onAccept: async () => {
+						file = await createDailyNote(date);
+						file && (await openFile(file));
+
+						return file;
+					},
+					text: `File ${date.format(format)} does not exist. Would you like to create it?`,
 					title: 'New Daily Note'
 				});
 			} else {
 				file = await createDailyNote(date);
+				file && (await openFile(file));
 			}
+		} else {
+			file && (await openFile(file));
 		}
-
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const mode = (this.app.vault as any).getConfig('defaultViewMode');
-		const leaf = isNewSplit ? workspace.splitActiveLeaf() : workspace.getUnpinnedLeaf();
-		console.log('ONCLICKDAY 🚴: mode & leaf', mode, leaf);
-		console.log('onClickDay(), file: ', file);
-
-		file && await leaf.openFile(file, { active: true, mode });
-
-		// activeFile.setFile(existingFile || newFile);
 	}
 
-	async onClickWeek({ date, isNewSplit }: { date: Moment; isNewSplit: boolean }): Promise<void> {
+	async onClickWeek({
+		date: startOfWeekDate,
+		isNewSplit
+	}: {
+		date: Moment;
+		isNewSplit: boolean;
+	}): Promise<void> {
 		const { workspace } = this.app;
+		const leaf = isNewSplit ? workspace.splitActiveLeaf() : workspace.getUnpinnedLeaf();
+		const openFile = async (file: TFile) => {
+			file && (await leaf.openFile(file));
 
-		const startOfWeek = date.clone().startOf('week');
+			activeFile.setFile(getDateUID(startOfWeekDate, 'week'));
+		};
 
-		const existingFile = getWeeklyNote(date, get(weeklyNotes));
+		let file = getWeeklyNote(startOfWeekDate);
 
-		if (!existingFile) {
-			// File doesn't exist
-			tryToCreateWeeklyNote(startOfWeek, inNewSplit, this.settings, (file) => {
-				activeFile.setFile(file);
-			});
-			return;
+		if (!file) {
+			const { format } = getWeeklyNoteSettings();
+
+			if (this.settings.shouldConfirmBeforeCreate) {
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				const periodicNotesPlugin = (<any>window.app).plugins.getPlugin('periodic-notes');
+				createConfirmationDialog<TFile | undefined>({
+					title: 'New Daily Note',
+					text: `File ${startOfWeekDate.format(
+						format
+					)} does not exist. Would you like to create it?`,
+					note: !periodicNotesPlugin
+						? 'Note: Missing Periodic Notes plugin! Install or activate to personalize your notes. Defaults will be used for now.'
+						: !appHasWeeklyNotesPluginLoaded()
+						? 'Note: Weekly notes in Periodic Notes are disabled. Defaults will be used for now. '
+						: null,
+					cta: 'Create',
+					onAccept: async () => {
+						file = await createWeeklyNote(startOfWeekDate);
+						file && (await openFile(file));
+
+						return file;
+					}
+				});
+			} else {
+				file = await createWeeklyNote(startOfWeekDate);
+				file && (await openFile(file));
+			}
+		} else {
+			file && (await openFile(file));
 		}
-
-		const leaf = inNewSplit ? workspace.splitActiveLeaf() : workspace.getUnpinnedLeaf();
-		await leaf.openFile(existingFile);
-
-		activeFile.setFile(existingFile);
-		workspace.setActiveLeaf(leaf, true, true);
 	}
 
 	onHoverDay({

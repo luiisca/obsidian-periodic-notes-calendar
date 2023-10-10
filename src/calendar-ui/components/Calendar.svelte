@@ -1,5 +1,4 @@
 <script lang="ts">
-	import type { Dayjs } from 'dayjs';
 	import weekOfYear from 'dayjs/plugin/weekOfYear';
 	import isoWeek from 'dayjs/plugin/isoWeek';
 
@@ -17,12 +16,13 @@
 	// import Day from './Day.svelte';
 	// import Nav from './Nav.svelte';
 	// import WeekNum from './WeekNum.svelte';
-	import { getMonth, isWeekend } from '../utils';
+	import { getMonth, getStartOfWeek, isWeekend } from '../utils';
 	import { dailyNotesExtStore, settingsStore, weeklyNotesExtStore } from '@/stores';
-	import PeriodicNotesCache from '../fileStore';
 	import type { CalendarView } from '@/view';
 	import Day from './Day.svelte';
 	import type { ISettings } from '@/settings';
+	import Nav from './Nav.svelte';
+	import WeekNum from './WeekNum.svelte';
 
 	// export let localeData: Locale;
 
@@ -94,7 +94,7 @@
 	$: $settingsStore, reindexNotes();
 
 	const reindexNotes = () => {
-		console.log("calendar.svelte > reindexNotes() 🫵")
+		console.log('calendar.svelte > reindexNotes() 🫵');
 		dailyNotesExtStore.reindex();
 		weeklyNotesExtStore.reindex();
 	};
@@ -102,13 +102,13 @@
 
 <div id="calendar-container" class="container">
 	<!-- <Nav
-    fileCache="{fileCache}"
-    today="{today}"
-    getSourceSettings="{getSourceSettings}"
-    eventHandlers="{eventHandlers}"
-    on:hoverDay="{updatePopover}"
-    on:endHoverDay="{dismissPopover}"
-  /> -->
+		{fileCache}
+		{today}
+		{getSourceSettings}
+		{eventHandlers}
+		on:hoverDay={updatePopover}
+		on:endHoverDay={dismissPopover}
+	/> -->
 	<table class="calendar">
 		<colgroup>
 			{#if showWeekNums}
@@ -131,17 +131,11 @@
 		<tbody>
 			{#each month as week (week.weekNum)}
 				<tr>
-					<!-- {#if showWeekNums}
-						<WeekNum
-							{fileCache}
-							{selectedId}
-							{getSourceSettings}
-							{...week}
-							{...eventHandlers}
-							on:hoverDay={updatePopover}
-							on:endHoverDay={dismissPopover}
-						/>
-					{/if} -->
+					{#if showWeekNums}
+						<!-- on:hoverDay={updatePopover}
+							on:endHoverDay={dismissPopover} -->
+						<WeekNum weekNum={week.weekNum} startOfWeekDate={getStartOfWeek(week.days)} />
+					{/if}
 					{#each week.days as day (day.format())}
 						<Day date={day} />
 					{/each}
