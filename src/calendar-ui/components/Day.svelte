@@ -9,7 +9,6 @@
 	import Dots from './Dots.svelte';
 	import MetadataResolver from './MetadataResolver.svelte';
 	import { DISPLAYED_MONTH, IS_MOBILE, VIEW } from '../context';
-	import type PeriodicNotesCache from '../fileStore';
 	import type { IDayMetadata, IHTMLAttributes, ISourceSettings } from '../types';
 	import { isMetaPressed } from '../utils';
 	import type { CalendarView, ICalendarViewCtx } from '@/view';

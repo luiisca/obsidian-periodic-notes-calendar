@@ -23,15 +23,15 @@ export async function createDailyNote(date: Moment): Promise<TFile | undefined> 
 	const { vault } = app;
 
 	const { template, folder, format } = getDailyNoteSettings();
-	console.table(getDailyNoteSettings());
 
 	// TODO: Find out what IFoldInfo is used for (think it is for keeping track of openned folders)
 	const [templateContents, IFoldInfo] = await getTemplateInfo(template);
-	console.log('getTemplateInfo:', templateContents, IFoldInfo);
-
 	const filename = date.format(format);
-	console.log("onClickDay() > createDailyNote > filename, format: ", filename, format)
 	const normalizedPath = await getNotePath(folder, filename);
+
+	console.table(getDailyNoteSettings());
+	console.log('getTemplateInfo:', templateContents, IFoldInfo);
+	console.log("onClickDay() > createDailyNote > filename, format: ", filename, format)
 	console.log('NOrmalized path', normalizedPath);
 
 	try {

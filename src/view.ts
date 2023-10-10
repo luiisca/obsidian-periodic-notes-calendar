@@ -14,6 +14,7 @@ import { VIEW } from './calendar-ui/context';
 import { activeFile, dailyNotesExtStore, settingsStore, weeklyNotesExtStore } from './stores';
 import type { ISettings } from './settings';
 import {
+	appHasDailyNotesPluginLoaded,
 	appHasWeeklyNotesPluginLoaded,
 	createDailyNote,
 	createWeeklyNote,
@@ -177,9 +178,6 @@ export class CalendarView extends ItemView {
 
 	// Component event handlers
 	async onClickDay({ date, isNewSplit }: { date: Moment; isNewSplit: boolean }): Promise<void> {
-		// TODO: SHOW modal motivating users to activate daily notes or install
-		// periodic notes for further customization
-
 		const { workspace } = window.app;
 		const leaf = isNewSplit ? workspace.splitActiveLeaf() : workspace.getUnpinnedLeaf();
 		const openFile = async (file: TFile) => {
@@ -193,6 +191,33 @@ export class CalendarView extends ItemView {
 			const { format } = getDailyNoteSettings();
 
 			if (this.settings.shouldConfirmBeforeCreate) {
+				const noteText = () => {
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					const perNotesPlugin = (<any>window.app).plugins.getPlugin('periodic-notes');
+					const dailyNotesInPerNotesPlugin = perNotesPlugin?.settings.daily.enabled;
+
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					const dailyNotesPlugin = (<any>app).internalPlugins.plugins['daily-notes']?.enabled;
+					console.log('noteText > dailyNotesPlugin: ', dailyNotesPlugin);
+
+					if (perNotesPlugin) {
+						if (dailyNotesInPerNotesPlugin) {
+							return 'Note: Using Daily notes config from Periodic Notes plugin.';
+						} else {
+							if (dailyNotesPlugin) {
+								return 'Note: Daily notes in Periodic Notes plugin are disabled. Using Daily Notes plugin config for now.';
+							} else {
+								return 'Note: Daily notes in Periodic Notes plugin and Daily Notes plugin are disabled. Using default config for now.';
+							}
+						}
+					} else {
+						if (dailyNotesPlugin) {
+							return 'Note: Missing Periodic Notes plugin. Using Daily Notes plugin config for now.';
+						} else {
+							return 'Note: Missing Periodic Notes and Daily Notes plugin. Using default config for now.';
+						}
+					}
+				};
 				createConfirmationDialog<TFile | undefined>({
 					cta: 'Create',
 					onAccept: async () => {
@@ -202,6 +227,7 @@ export class CalendarView extends ItemView {
 						return file;
 					},
 					text: `File ${date.format(format)} does not exist. Would you like to create it?`,
+					note: noteText(),
 					title: 'New Daily Note'
 				});
 			} else {
@@ -244,7 +270,7 @@ export class CalendarView extends ItemView {
 					note: !periodicNotesPlugin
 						? 'Note: Missing Periodic Notes plugin! Install or activate to personalize your notes. Defaults will be used for now.'
 						: !appHasWeeklyNotesPluginLoaded()
-						? 'Note: Weekly notes in Periodic Notes are disabled. Defaults will be used for now. '
+						? 'Note: Weekly notes in Periodic Notes plugin are disabled. Activate to personalize your notes. Defaults will be used for now. '
 						: null,
 					cta: 'Create',
 					onAccept: async () => {

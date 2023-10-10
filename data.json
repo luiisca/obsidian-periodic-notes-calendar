@@ -4,7 +4,7 @@
   "localeData": {
     "loading": false,
     "weekStart": "Sunday",
-    "showWeekNums": false,
+    "showWeekNums": true,
     "sysLocale": "en",
     "localeOverride": "en",
     "localizedWeekdays": [
