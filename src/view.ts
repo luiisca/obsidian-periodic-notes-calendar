@@ -28,6 +28,8 @@ import {
 import { get } from 'svelte/store';
 import { createConfirmationDialog } from './calendar-ui/modal';
 import type { Moment } from 'moment';
+import type { IGranularity } from './calendar-io';
+import { capitalize } from './utils';
 
 export const VIEW_TYPE_EXAMPLE = 'example-view';
 
@@ -43,20 +45,16 @@ type TOnHover = ({
 }) => void;
 type TOnContextMenu = ({ date, event }: { date: Moment; event: MouseEvent }) => void;
 
+type Events = {
+	onClick: TOnClick;
+	onHover: TOnHover;
+	onContextMenu: TOnContextMenu;
+};
+type TEventHandlers = Record<`${IGranularity}`, Events>;
+
 export interface ICalendarViewCtx {
 	app: App;
-	eventHandlers: {
-		day: {
-			onClick: TOnClick;
-			onHover: TOnHover;
-			onContextMenu: TOnContextMenu;
-		};
-		week: {
-			onClick: TOnClick;
-			onHover: TOnHover;
-			onContextMenu: TOnContextMenu;
-		};
-	};
+	eventHandlers: TEventHandlers;
 }
 
 export class CalendarView extends ItemView {
@@ -110,20 +108,38 @@ export class CalendarView extends ItemView {
 		console.log('On open view👐');
 
 		const context = new Map<symbol, ICalendarViewCtx>();
+		const getEventHandlers = () => {
+			const granularitiesNames = ['Day', 'Week', 'Month', 'Quarter', 'Year'] as const;
+			const events = ['onClick', 'onHover', 'onContextMenu'] as const;
+
+			type TGranularitiesEvents = Record<
+				IGranularity,
+				Record<(typeof events)[number], Events[keyof Events]>
+			>;
+			const granularitiesEvents: TGranularitiesEvents = {} as TGranularitiesEvents;
+
+			granularitiesNames.forEach((granularity) => {
+				const eventHandlers: Events = {} as Events;
+
+				events.forEach((ev) => {
+					const eventHandlerName = (ev + granularity) as `${typeof ev}${typeof granularity}`;
+
+					// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+					// @ts-ignore
+					eventHandlers[ev] = this[eventHandlerName].bind(this);
+				});
+
+				granularitiesEvents[granularity.toLowerCase() as IGranularity] = eventHandlers;
+			});
+
+			return granularitiesEvents;
+		};
+
 		context.set(VIEW, {
 			app: this.app,
-			eventHandlers: {
-				day: {
-					onClick: this.onClickDay.bind(this),
-					onHover: this.onHoverDay.bind(this),
-					onContextMenu: this.onContextMenuDay.bind(this)
-				},
-				week: {
-					onClick: this.onClickWeek.bind(this),
-					onHover: this.onHoverWeek.bind(this),
-					onContextMenu: this.onContextMenuWeek.bind(this)
-				}
-			}
+			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+			// @ts-ignore
+			eventHandlers: getEventHandlers()
 		});
 
 		this.view = new View({
@@ -289,6 +305,18 @@ export class CalendarView extends ItemView {
 		}
 	}
 
+	async onClickMonth({ date, isNewSplit }: { date: Moment; isNewSplit: boolean }): Promise<void> {
+		return Promise.resolve();
+	}
+
+	async onClickQuarter({ date, isNewSplit }: { date: Moment; isNewSplit: boolean }): Promise<void> {
+		return Promise.resolve();
+	}
+
+	async onClickYear({ date, isNewSplit }: { date: Moment; isNewSplit: boolean }): Promise<void> {
+		return Promise.resolve();
+	}
+
 	onHoverDay({
 		date,
 		targetEl,
@@ -322,6 +350,9 @@ export class CalendarView extends ItemView {
 		const { format } = getWeeklyNoteSettings();
 		this.app.workspace.trigger('link-hover', this, targetEl, date.format(format), note?.path);
 	}
+	onHoverMonth({ date, targetEl, isMetaPressed }): void {}
+	onHoverQuarter({ date, targetEl, isMetaPressed }): void {}
+	onHoverYear({ date, targetEl, isMetaPressed }): void {}
 
 	private onContextMenuDay({ date, event }: { date: Moment; event: MouseEvent }): void {
 		const note = getDailyNote(date, get(dailyNotes));
@@ -346,6 +377,9 @@ export class CalendarView extends ItemView {
 			y: event.pageY
 		});
 	}
+	private onContextMenuMonth({ date, event }: { date: Moment; event: MouseEvent }): void {}
+	private onContextMenuQuarter({ date, event }: { date: Moment; event: MouseEvent }): void {}
+	private onContextMenuYear({ date, event }: { date: Moment; event: MouseEvent }): void {}
 
 	// Utils
 	private updateActiveFile(): void {
