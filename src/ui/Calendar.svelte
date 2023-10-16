@@ -16,7 +16,7 @@
 		return window.moment();
 	}
 
-	export let displayedMonth: Moment = date;
+	export let displayedDate: Moment = date;
 	export let popup: boolean = false;
 	export let app: App;
 
@@ -41,7 +41,7 @@
 				console.log('CLIKCED DAY! 📅');
 			}
 		]}
-		bind:displayedMonth
+		bind:displayedDate
 		getSourceSettings={() => ({
 			color: 'red',
 			display: 'calendar-and-menu',

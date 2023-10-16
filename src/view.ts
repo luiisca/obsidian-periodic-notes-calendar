@@ -277,7 +277,7 @@ export class CalendarView extends ItemView {
 	// 		// Check to see if the active note is a daily-note
 	// 		let date = getDateFromFile(activeLeaf.view.file, 'day');
 	// 		if (date) {
-	// 			this.calendar.$set({ displayedMonth: date });
+	// 			this.calendar.$set({ displayedDate: date });
 	// 			return;
 	// 		}
 
@@ -285,7 +285,7 @@ export class CalendarView extends ItemView {
 	// 		const { format } = getWeeklyNoteSettings();
 	// 		date = moment(activeLeaf.view.file.basename, format, true);
 	// 		if (date.isValid()) {
-	// 			this.calendar.$set({ displayedMonth: date });
+	// 			this.calendar.$set({ displayedDate: date });
 	// 			return;
 	// 		}
 	// 	}

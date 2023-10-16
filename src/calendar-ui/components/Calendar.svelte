@@ -8,31 +8,39 @@
 	import { getContext, setContext } from 'svelte';
 	import { writable } from 'svelte/store';
 
-
-	import { DISPLAYED_MONTH, IS_MOBILE, VIEW } from '../context';
+	import { DISPLAYED_DATE, IS_MOBILE, VIEW } from '../context';
 	// import PopoverMenu from "./popover/PopoverMenu.svelte";
 	// import Day from './Day.svelte';
 	// import Nav from './Nav.svelte';
 	// import WeekNum from './WeekNum.svelte';
-	import { getMonth, getStartOfWeek, isWeekend } from '../utils';
+	import { getMonth, getStartOfWeek, isMetaPressed, isWeekend } from '../utils';
 	import { notesStores, settingsStore } from '@/stores';
-	import type { CalendarView } from '@/view';
+	import type { CalendarView, ICalendarViewCtx } from '@/view';
 	import Day from './Day.svelte';
 	import Nav from './Nav.svelte';
 	import WeekNum from './WeekNum.svelte';
-	import { granularities } from '@/constants';
+	import {
+		QUARTERS_AMT,
+		QUARTER_DUR,
+		granularities,
+		monthsIndexesInQuarters,
+		togglePeriods
+	} from '@/constants';
 	import type { Moment } from 'moment';
+	import { capitalize, getMonths } from '@/utils';
 
-	const { app } = getContext<CalendarView>(VIEW);
+	const { app, eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 
 	$: ({
 		localeData: { showWeekNums, localizedWeekdaysShort }
 	} = $settingsStore);
 
-	let displayedMonth = writable<Moment>(window.moment());
-	setContext(DISPLAYED_MONTH, displayedMonth);
+	let displayedDate = writable<Moment>(window.moment());
+	setContext(DISPLAYED_DATE, displayedDate);
 
-	$: month = getMonth($displayedMonth);
+	$: month = getMonth($displayedDate);
+
+	let crrView: (typeof togglePeriods)[number] = 'days';
 
 	// let hoverTimeout: number;
 	// let showPopover: boolean = false;
@@ -86,41 +94,92 @@
 <div id="calendar-container" class="container">
 	<!-- on:hoverDay={updatePopover}
 		on:endHoverDay={dismissPopover} -->
-	<Nav today={window.moment()} />
-	<table class="calendar">
-		<colgroup>
-			{#if showWeekNums}
-				<col />
-			{/if}
-			{#each month[1].days as date}
-				<col class:weekend={isWeekend(date)} />
-			{/each}
-		</colgroup>
-		<thead>
-			<tr>
+	<!-- TODO: replace tw colors with theme variables -->
+	<div class="flex rounded-md space-x-1 p-1 w-full">
+		{#each togglePeriods as period}
+			<button
+				class={`w-full cursor-pointer rounded-md px-4 py-2 text-black ${
+					crrView === period ? 'bg-gray-100' : 'text-white'
+				}`}
+				on:click={() => (crrView = period)}>{capitalize(period)}</button
+			>
+		{/each}
+	</div>
+	{#if crrView === 'days'}
+		<Nav today={window.moment()} />
+		<table class="calendar">
+			<colgroup>
 				{#if showWeekNums}
-					<th>W</th>
+					<col />
 				{/if}
-				{#each localizedWeekdaysShort as dayOfWeek}
-					<th>{dayOfWeek}</th>
+				{#each month[1].days as date}
+					<col class:weekend={isWeekend(date)} />
 				{/each}
-			</tr>
-		</thead>
-		<tbody>
-			{#each month as week (week.weekNum)}
+			</colgroup>
+			<thead>
 				<tr>
 					{#if showWeekNums}
-						<!-- on:hoverDay={updatePopover}
-							on:endHoverDay={dismissPopover} -->
-						<WeekNum weekNum={week.weekNum} startOfWeekDate={getStartOfWeek(week.days)} />
+						<th>W</th>
 					{/if}
-					{#each week.days as day (day.format())}
-						<Day date={day} />
+					{#each localizedWeekdaysShort as dayOfWeek}
+						<th>{dayOfWeek}</th>
 					{/each}
 				</tr>
-			{/each}
-		</tbody>
-	</table>
+			</thead>
+			<tbody>
+				{#each month as week (week.weekNum)}
+					<tr>
+						{#if showWeekNums}
+							<!-- on:hoverDay={updatePopover}
+							on:endHoverDay={dismissPopover} -->
+							<WeekNum weekNum={week.weekNum} startOfWeekDate={getStartOfWeek(week.days)} />
+						{/if}
+						{#each week.days as day (day.format())}
+							<Day date={day} />
+						{/each}
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	{/if}
+	{#if crrView === 'months'}
+		<Nav today={window.moment()} />
+		<table class="calendar">
+			<tbody>
+				{#each monthsIndexesInQuarters as quarterMonths, i}
+					<tr>
+						{#if showWeekNums}
+							<td>
+								<button
+									on:click={(event) =>
+										eventHandlers.onClick({
+											date: $displayedDate.quarter(i + 1).startOf('quarter'),
+											isNewSplit: isMetaPressed(event),
+											granularity: 'quarter'
+										})}>Q{i + 1}</button
+								>
+							</td>
+						{/if}
+						{#each quarterMonths as monthIndex}
+							<td>
+								<button
+									on:click={(event) =>
+										eventHandlers.onClick({
+											date: $displayedDate.month(monthIndex).startOf('month'),
+											isNewSplit: isMetaPressed(event),
+											granularity: 'month'
+										})}>{$displayedDate.month(monthIndex).format('MMMM')}</button
+								>
+							</td>
+						{/each}
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	{/if}
+	{#if crrView === 'years'}
+		<h1>Years view</h1>
+	{/if}
 	<!-- <PopoverMenu
     referenceElement="{$hoveredDay}"
     metadata="{popoverMetadata}"
@@ -129,6 +188,9 @@
 </div>
 
 <style>
+	@tailwind components;
+	@tailwind utilities;
+
 	.container {
 		--color-background-heading: transparent;
 		--color-background-day: transparent;

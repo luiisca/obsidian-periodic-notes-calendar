@@ -8,7 +8,7 @@
 
 	import Dots from './Dots.svelte';
 	import MetadataResolver from './MetadataResolver.svelte';
-	import { DISPLAYED_MONTH, IS_MOBILE, VIEW } from '../context';
+	import { DISPLAYED_DATE, IS_MOBILE, VIEW } from '../context';
 	import type { IDayMetadata, IHTMLAttributes, ISourceSettings } from '../types';
 	import { isMetaPressed } from '../utils';
 	import type { CalendarView, ICalendarViewCtx } from '@/view';
@@ -21,7 +21,7 @@
 
 	// Global state
 	const isMobile = getContext<boolean>(IS_MOBILE);
-	const displayedMonth = getContext<Writable<Moment>>(DISPLAYED_MONTH);
+	const displayedDate = getContext<Writable<Moment>>(DISPLAYED_DATE);
 	const dispatch = createEventDispatcher();
 
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
@@ -71,7 +71,7 @@
     <div
       class="day"
       class:active="{selectedId === getDateUID(date, 'day')}"
-      class:adjacent-month="{!date.isSame($displayedMonth, 'month')}"
+      class:adjacent-month="{!date.isSame($displayedDate, 'month')}"
       class:has-note="{!!file}"
       class:today="{date.isSame(today, 'day')}"
       draggable="{true}"

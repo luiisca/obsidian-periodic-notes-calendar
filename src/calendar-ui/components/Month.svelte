@@ -4,17 +4,17 @@
 	import { createEventDispatcher, getContext } from 'svelte';
 	import type { Writable } from 'svelte/store';
 
-	import { DISPLAYED_MONTH, VIEW } from '../context';
+	import { DISPLAYED_DATE, VIEW } from '../context';
 	import Dots from './Dots.svelte';
 	import MetadataResolver from './MetadataResolver.svelte';
 	import { isMetaPressed } from '../utils';
 	import type { IDayMetadata, ISourceSettings } from '../types';
 	import type { ICalendarViewCtx } from '@/view';
 
-	// export let resetDisplayedMonth: () => void;
+	// export let resetdisplayedDate: () => void;
 
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
-	let displayedMonth = getContext<Writable<Moment>>(DISPLAYED_MONTH);
+	let displayedDate = getContext<Writable<Moment>>(DISPLAYED_DATE);
 
 	let file: TFile | null;
 
@@ -23,7 +23,7 @@
 	//     return;
 	//   }
 
-	//   const date = $displayedMonth;
+	//   const date = $displayedDate;
 	//   onHover?.("month", date, file, event.target, isMetaPressed(event));
 	//   dispatch("hoverDay", {
 	//     date,
@@ -40,9 +40,9 @@
 
 	// function handleClick(event: MouseEvent) {
 	//   if (appHasMonthlyNotesPluginLoaded()) {
-	//     onClick?.("month", $displayedMonth, file, isMetaPressed(event));
+	//     onClick?.("month", $displayedDate, file, isMetaPressed(event));
 	//   } else {
-	//     resetDisplayedMonth();
+	//     resetdisplayedDate();
 	//   }
 	// }
 </script>
@@ -53,17 +53,17 @@
     on:click="{handleClick}"
     on:contextmenu="{metadata &&
       onContextMenu &&
-      ((e) => onContextMenu('month', $displayedMonth, file, e))}"
+      ((e) => onContextMenu('month', $displayedDate, file, e))}"
     on:dragstart="{(event) => fileCache.onDragStart(event, file)}"
     on:pointerenter="{(event) => handleHover(event, metadata)}"
     on:pointerleave="{endHover}"
   >
     <span class="title">
       <span class="month">
-        {$displayedMonth.format("MMM")}
+        {$displayedDate.format("MMM")}
       </span>
       <span class="year">
-        {$displayedMonth.format("YYYY")}
+        {$displayedDate.format("YYYY")}
       </span>
     </span>
     {#if metadata}
@@ -76,7 +76,7 @@
 	on:click={(event) => {
 		console.log('Month clicked');
 		eventHandlers.onClick({
-			date: $displayedMonth,
+			date: $displayedDate,
 			isNewSplit: isMetaPressed(event),
 			granularity: 'month'
 		});
@@ -84,10 +84,10 @@
 >
 	<span class="title">
 		<span class="month">
-			{$displayedMonth.format('MMM')}
+			{$displayedDate.format('MMM')}
 		</span>
 		<span class="year">
-			{$displayedMonth.format('YYYY')}
+			{$displayedDate.format('YYYY')}
 		</span>
 	</span>
 </button>

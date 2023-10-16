@@ -1,6 +1,8 @@
 import { Notice } from 'obsidian';
 import type { IGranularity } from './calendar-io';
 import { getPeriodicityFromGranularity } from './calendar-io/parse';
+import type { Moment } from 'moment';
+import moment from 'moment';
 
 export async function fetchWithRetry<T>(url: string, retries = 0): Promise<T | null> {
 	try {
@@ -58,11 +60,13 @@ export function getOnCreateNoteDialogNoteFromGranularity(granularity: IGranulari
 
 	if (periodicNotesPlugin) {
 		if (noteSettingsFromPeriodicNotesPlugin) {
-			return `Note: Using ${capitalize(periodicity)} notes config from Periodic Notes plugin.`
+			return `Note: Using ${capitalize(periodicity)} notes config from Periodic Notes plugin.`;
 		} else {
-			return `Note: ${capitalize(periodicity)} notes from Periodic Notes plugin are disabled. Using default config for now.`
+			return `Note: ${capitalize(
+				periodicity
+			)} notes from Periodic Notes plugin are disabled. Using default config for now.`;
 		}
 	} else {
-		return 'Note: Missing Periodic Notes plugin! Please install or activate. Defaults will be used for now.'
+		return 'Note: Missing Periodic Notes plugin! Please install or activate. Defaults will be used for now.';
 	}
 }

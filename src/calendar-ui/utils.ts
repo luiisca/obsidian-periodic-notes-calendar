@@ -30,12 +30,12 @@ export function getStartOfWeek(days: Moment[]): Moment {
  * Generate a 2D array of daily information to power
  * the calendar view.
  */
-export function getMonth(displayedMonth: Moment): IMonth {
+export function getMonth(displayedDate: Moment): IMonth {
 	const locale = window.moment().locale();
 	const month = [];
 	let week: IWeek = { days: [], weekNum: 0 };
 
-	const startOfMonth = displayedMonth.clone().locale(locale).date(1);
+	const startOfMonth = displayedDate.clone().locale(locale).date(1);
 	const startOffset = startOfMonth.weekday();
 	let date: Moment = startOfMonth.clone().subtract(startOffset, 'days');
 

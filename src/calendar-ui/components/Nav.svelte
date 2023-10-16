@@ -4,35 +4,35 @@
   import type { Moment } from "moment";
 
   import Arrow from "./Arrow.svelte";
-  import { DISPLAYED_MONTH } from "../context";
+  import { DISPLAYED_DATE } from "../context";
 	import Dot from "./Dot.svelte";
 	import Month from "./Month.svelte";
 
   export let today: Moment;
 
-  let displayedMonth = getContext<Writable<Moment>>(DISPLAYED_MONTH);
+  let displayedDate = getContext<Writable<Moment>>(DISPLAYED_DATE);
 
-  function incrementDisplayedMonth() {
-    displayedMonth.update((month) => month.clone().add(1, "month"));
+  function incrementdisplayedDate() {
+    displayedDate.update((month) => month.clone().add(1, "month"));
   }
 
-  function decrementDisplayedMonth() {
-    displayedMonth.update((month) => month.clone().subtract(1, "month"));
+  function decrementdisplayedDate() {
+    displayedDate.update((month) => month.clone().subtract(1, "month"));
   }
 
-  function resetDisplayedMonth() {
-    displayedMonth.set(today.clone());
+  function resetdisplayedDate() {
+    displayedDate.set(today.clone());
   }
 
   let showingCurrentMonth: boolean;
-  $: showingCurrentMonth = $displayedMonth.isSame(today, "month");
+  $: showingCurrentMonth = $displayedDate.isSame(today, "month");
 </script>
 
 <div class="nav">
   <!-- <Month
     fileCache="{fileCache}"
     getSourceSettings="{getSourceSettings}"
-    resetDisplayedMonth="{resetDisplayedMonth}"
+    resetdisplayedDate="{resetdisplayedDate}"
     {...eventHandlers}
     on:hoverDay
     on:endHoverDay
@@ -42,20 +42,20 @@
     <!-- TODO: add tab support -->
     <Arrow
       direction="left"
-      onClick="{decrementDisplayedMonth}"
+      onClick="{decrementdisplayedDate}"
       tooltip="Previous Month"
     />
     <button
       aria-label="{!showingCurrentMonth ? 'Reset to current month' : null}"
       class="reset-button"
       class:active="{showingCurrentMonth}"
-      on:click="{resetDisplayedMonth}"
+      on:click="{resetdisplayedDate}"
     >
       <Dot class='h-3 w-3' isFilled={showingCurrentMonth} />
     </button>
     <Arrow
       direction="right"
-      onClick="{incrementDisplayedMonth}"
+      onClick="{incrementdisplayedDate}"
       tooltip="Next Month"
     />
   </div>
