@@ -4,16 +4,10 @@
   import type { Moment } from "moment";
 
   import Arrow from "./Arrow.svelte";
-  import type PeriodicNotesCache from "../fileStore";
   import { DISPLAYED_MONTH } from "../context";
-  import Dot from "./Dot.svelte";
-  import Month from "./Month.svelte";
-  import type { ISourceSettings } from "../types";
+	import Dot from "./Dot.svelte";
 
-  export let getSourceSettings: (sourceId: string) => ISourceSettings;
-  export let fileCache: PeriodicNotesCache;
   export let today: Moment;
-  export let eventHandlers: CallableFunction[];
 
   let displayedMonth = getContext<Writable<Moment>>(DISPLAYED_MONTH);
 
@@ -34,28 +28,29 @@
 </script>
 
 <div class="nav">
-  <Month
+  <!-- <Month
     fileCache="{fileCache}"
     getSourceSettings="{getSourceSettings}"
     resetDisplayedMonth="{resetDisplayedMonth}"
     {...eventHandlers}
     on:hoverDay
     on:endHoverDay
-  />
+  /> -->
   <div class="right-nav">
+    <!-- TODO: add tab support -->
     <Arrow
       direction="left"
       onClick="{decrementDisplayedMonth}"
       tooltip="Previous Month"
     />
-    <div
+    <button
       aria-label="{!showingCurrentMonth ? 'Reset to current month' : null}"
       class="reset-button"
-      class:active="{!showingCurrentMonth}"
+      class:active="{showingCurrentMonth}"
       on:click="{resetDisplayedMonth}"
     >
-      <Dot isFilled />
-    </div>
+      <Dot class='h-3 w-3' isFilled={showingCurrentMonth} />
+    </button>
     <Arrow
       direction="right"
       onClick="{incrementDisplayedMonth}"
@@ -65,6 +60,9 @@
 </div>
 
 <style>
+	@tailwind components;
+	@tailwind utilities;
+
   .nav {
     align-items: baseline;
     display: flex;
@@ -81,6 +79,8 @@
   }
 
   .reset-button {
+    all: inherit;
+    cursor: pointer;
     align-items: center;
     color: var(--color-arrow);
     display: flex;
