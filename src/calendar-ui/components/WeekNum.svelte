@@ -27,9 +27,7 @@
 
 	// const dispatch = createEventDispatcher();
 
-	const {
-		eventHandlers: { week: eventHandlers }
-	} = getContext<ICalendarViewCtx>(VIEW);
+	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 
 	// TODO: find a way to open link preview using vanilla featuers
 	// function handleHover(event: PointerEvent, meta: IDayMetadata) {
@@ -69,7 +67,11 @@
 	<button
 		class="day"
 		on:click={(event) =>
-			eventHandlers.onClick({ date: startOfWeekDate, isNewSplit: isMetaPressed(event) })}
+			eventHandlers.onClick({
+				date: startOfWeekDate,
+				isNewSplit: isMetaPressed(event),
+				granularity: 'week'
+			})}
 	>
 		{weekNum}
 		<!-- <Dots metadata="{metadata}" /> -->

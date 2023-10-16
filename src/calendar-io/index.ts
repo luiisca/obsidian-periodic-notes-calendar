@@ -91,10 +91,10 @@ export { getDateUID, getDateFromFile, getDateFromPath } from './parse';
 export { getTemplateInfo } from './vault';
 
 export type { IGranularity, IPeriodicNoteSettings };
-export {
-	createDailyNote,
-	createMonthlyNote,
-	createWeeklyNote,
-	createQuarterlyNote,
-	createYearlyNote
+export const noteCreator = {
+	'day': createDailyNote,
+	'week': createWeeklyNote,
+	'month': createMonthlyNote,
+	'quarter': createQuarterlyNote,
+	'year': createYearlyNote
 };

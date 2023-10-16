@@ -4,18 +4,17 @@
 	import { createEventDispatcher, getContext } from 'svelte';
 	import type { Writable } from 'svelte/store';
 
-	import { DISPLAYED_MONTH } from '../context';
+	import { DISPLAYED_MONTH, VIEW } from '../context';
 	import Dots from './Dots.svelte';
 	import MetadataResolver from './MetadataResolver.svelte';
 	import { isMetaPressed } from '../utils';
 	import type { IDayMetadata, ISourceSettings } from '../types';
+	import type { ICalendarViewCtx } from '@/view';
 
-	export let resetDisplayedMonth: () => void;
+	// export let resetDisplayedMonth: () => void;
 
+	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 	let displayedMonth = getContext<Writable<Moment>>(DISPLAYED_MONTH);
-	let metadata: Promise<IDayMetadata[]> | null;
-
-	const dispatch = createEventDispatcher();
 
 	let file: TFile | null;
 
@@ -72,14 +71,16 @@
     {/if}
   </div>
 </MetadataResolver> -->
-<div
-	on:click={(event) => }
-	on:contextmenu={metadata &&
-		onContextMenu &&
-		((e) => onContextMenu('month', $displayedMonth, file, e))}
-	on:dragstart={(event) => fileCache.onDragStart(event, file)}
-	on:pointerenter={(event) => handleHover(event, metadata)}
-	on:pointerleave={endHover}
+<button
+	style="all:inherit"
+	on:click={(event) => {
+		console.log('Month clicked');
+		eventHandlers.onClick({
+			date: $displayedMonth,
+			isNewSplit: isMetaPressed(event),
+			granularity: 'month'
+		});
+	}}
 >
 	<span class="title">
 		<span class="month">
@@ -89,7 +90,7 @@
 			{$displayedMonth.format('YYYY')}
 		</span>
 	</span>
-</div>
+</button>
 
 <style>
 	.title {

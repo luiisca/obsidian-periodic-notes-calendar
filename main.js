@@ -2564,6 +2564,7 @@ function getDateFromFilename(filename, granularity) {
     const format = getNoteSettingsByGranularity(granularity).format.split('/').pop();
     // TODO: Find a way to validate if a filename represents a valid date without using format to avoid:
     // every time periodic notes update and format changes only notes created with the new format are stored, the rest are neglected.
+    // evaluate if current format creates a valid date
     const noteDate = window.moment(filename, format, true);
     if (!noteDate.isValid()) {
         return null;
@@ -3225,6 +3226,135 @@ async function createWeeklyNote(date) {
     }
 }
 
+/**
+ * This function mimics the behavior of the daily-notes plugin
+ * so it will replace {{date}}, {{title}}, and {{time}} with the
+ * formatted timestamp.
+ *
+ * Note: it has an added bonus that it's not 'today' specific.
+ */
+async function createMonthlyNote(date) {
+    const { vault } = window.app;
+    const { template, format, folder } = getNoteSettingsByGranularity('month');
+    const [templateContents, IFoldInfo] = await getTemplateInfo(template);
+    const filename = date.format(format);
+    const normalizedPath = await getNotePath(folder, filename);
+    try {
+        const createdFile = await vault.create(normalizedPath, templateContents
+            .replace(/{{\s*(date|time)\s*(([+-]\d+)([yqmwdhs]))?\s*(:.+?)?}}/gi, (_, _timeOrDate, calc, timeDelta, unit, momentFormat) => {
+            const now = window.moment();
+            const currentDate = date.clone().set({
+                hour: now.get('hour'),
+                minute: now.get('minute'),
+                second: now.get('second')
+            });
+            if (calc) {
+                currentDate.add(parseInt(timeDelta, 10), unit);
+            }
+            if (momentFormat) {
+                return currentDate.format(momentFormat.substring(1).trim());
+            }
+            return currentDate.format(format);
+        })
+            .replace(/{{\s*date\s*}}/gi, filename)
+            .replace(/{{\s*time\s*}}/gi, window.moment().format('HH:mm'))
+            .replace(/{{\s*title\s*}}/gi, filename));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        window.app.foldManager.save(createdFile, IFoldInfo);
+        return createdFile;
+    }
+    catch (err) {
+        console.error(`Failed to create file: '${normalizedPath}'`, err);
+        new obsidian.Notice(`Failed to create file: '${normalizedPath}'`);
+    }
+}
+
+/**
+ * This function mimics the behavior of the daily-notes plugin
+ * so it will replace {{date}}, {{title}}, and {{time}} with the
+ * formatted timestamp.
+ *
+ * Note: it has an added bonus that it's not 'today' specific.
+ */
+async function createQuarterlyNote(date) {
+    const { vault } = window.app;
+    const { template, format, folder } = getNoteSettingsByGranularity('quarter');
+    const [templateContents, IFoldInfo] = await getTemplateInfo(template);
+    const filename = date.format(format);
+    const normalizedPath = await getNotePath(folder, filename);
+    try {
+        const createdFile = await vault.create(normalizedPath, templateContents
+            .replace(/{{\s*(date|time)\s*(([+-]\d+)([yqmwdhs]))?\s*(:.+?)?}}/gi, (_, _timeOrDate, calc, timeDelta, unit, momentFormat) => {
+            const now = window.moment();
+            const currentDate = date.clone().set({
+                hour: now.get('hour'),
+                minute: now.get('minute'),
+                second: now.get('second')
+            });
+            if (calc) {
+                currentDate.add(parseInt(timeDelta, 10), unit);
+            }
+            if (momentFormat) {
+                return currentDate.format(momentFormat.substring(1).trim());
+            }
+            return currentDate.format(format);
+        })
+            .replace(/{{\s*date\s*}}/gi, filename)
+            .replace(/{{\s*time\s*}}/gi, window.moment().format('HH:mm'))
+            .replace(/{{\s*title\s*}}/gi, filename));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        window.app.foldManager.save(createdFile, IFoldInfo);
+        return createdFile;
+    }
+    catch (err) {
+        console.error(`Failed to create file: '${normalizedPath}'`, err);
+        new obsidian.Notice(`Failed to create file: '${normalizedPath}'`);
+    }
+}
+
+/**
+ * This function mimics the behavior of the daily-notes plugin
+ * so it will replace {{date}}, {{title}}, and {{time}} with the
+ * formatted timestamp.
+ *
+ * Note: it has an added bonus that it's not 'today' specific.
+ */
+async function createYearlyNote(date) {
+    const { vault } = window.app;
+    const { template, format, folder } = getNoteSettingsByGranularity('year');
+    const [templateContents, IFoldInfo] = await getTemplateInfo(template);
+    const filename = date.format(format);
+    const normalizedPath = await getNotePath(folder, filename);
+    try {
+        const createdFile = await vault.create(normalizedPath, templateContents
+            .replace(/{{\s*(date|time)\s*(([+-]\d+)([yqmwdhs]))?\s*(:.+?)?}}/gi, (_, _timeOrDate, calc, timeDelta, unit, momentFormat) => {
+            const now = window.moment();
+            const currentDate = date.clone().set({
+                hour: now.get("hour"),
+                minute: now.get("minute"),
+                second: now.get("second"),
+            });
+            if (calc) {
+                currentDate.add(parseInt(timeDelta, 10), unit);
+            }
+            if (momentFormat) {
+                return currentDate.format(momentFormat.substring(1).trim());
+            }
+            return currentDate.format(format);
+        })
+            .replace(/{{\s*date\s*}}/gi, filename)
+            .replace(/{{\s*time\s*}}/gi, window.moment().format("HH:mm"))
+            .replace(/{{\s*title\s*}}/gi, filename));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        window.app.foldManager.save(createdFile, IFoldInfo);
+        return createdFile;
+    }
+    catch (err) {
+        console.error(`Failed to create file: '${normalizedPath}'`, err);
+        new obsidian.Notice(`Failed to create file: '${normalizedPath}'`);
+    }
+}
+
 function getNoteByGranularity({ date, granularity }) {
     const notesStore = get_store_value(notesStores[granularity]);
     return notesStore[getDateUID(date, granularity)];
@@ -3256,9 +3386,15 @@ function getAllNotesByGranularity(granularity) {
         return notes;
     }
 }
+const noteCreator = {
+    'day': createDailyNote,
+    'week': createWeeklyNote,
+    'month': createMonthlyNote,
+    'quarter': createQuarterlyNote,
+    'year': createYearlyNote
+};
 
 const granularities = ['day', 'week', 'month', 'quarter', 'year'];
-const granularitiesCapitalize = ['Day', 'Week', 'Month', 'Quarter', 'Year'];
 // export const periodicities = ['daily', 'weekly', 'monthly', 'quarterly', 'yearly'] as const
 
 function createNotesStore(granularity) {
@@ -3307,11 +3443,11 @@ const activeFile = createSelectedFileStore();
 
 /* src/calendar-ui/components/Dot.svelte generated by Svelte v4.2.0 */
 
-function add_css$7(target) {
-	append_styles(target, "svelte-1nxv951", ".container.svelte-1nxv951{width:100%\n}@media(min-width: 640px){.container.svelte-1nxv951{max-width:640px\n    }}@media(min-width: 768px){.container.svelte-1nxv951{max-width:768px\n    }}@media(min-width: 1024px){.container.svelte-1nxv951{max-width:1024px\n    }}@media(min-width: 1280px){.container.svelte-1nxv951{max-width:1280px\n    }}@media(min-width: 1536px){.container.svelte-1nxv951{max-width:1536px\n    }}.pointer-events-none.svelte-1nxv951{pointer-events:none\n}.visible.svelte-1nxv951{visibility:visible\n}.invisible.svelte-1nxv951{visibility:hidden\n}.collapse.svelte-1nxv951{visibility:collapse\n}.absolute.svelte-1nxv951{position:absolute\n}.relative.svelte-1nxv951{position:relative\n}.left-0.svelte-1nxv951{left:0px\n}.top-0.svelte-1nxv951{top:0px\n}.m-0.svelte-1nxv951{margin:0px\n}.mx-\\[1px\\].svelte-1nxv951{margin-left:1px;margin-right:1px\n}.mt-2.svelte-1nxv951{margin-top:0.5rem\n}.mt-3.svelte-1nxv951{margin-top:0.75rem\n}.mt-7.svelte-1nxv951{margin-top:1.75rem\n}.block.svelte-1nxv951{display:block\n}.inline-block.svelte-1nxv951{display:inline-block\n}.flex.svelte-1nxv951{display:flex\n}.table.svelte-1nxv951{display:table\n}.grid.svelte-1nxv951{display:grid\n}.contents.svelte-1nxv951{display:contents\n}.hidden.svelte-1nxv951{display:none\n}.h-\\[6px\\].svelte-1nxv951{height:6px\n}.h-4.svelte-1nxv951{height:1rem\n}.h-3.svelte-1nxv951{height:0.75rem\n}.w-\\[6px\\].svelte-1nxv951{width:6px\n}.w-max.svelte-1nxv951{width:-moz-max-content;width:max-content\n}.w-4.svelte-1nxv951{width:1rem\n}.w-3.svelte-1nxv951{width:0.75rem\n}.flex-shrink.svelte-1nxv951{flex-shrink:1\n}.border-collapse.svelte-1nxv951{border-collapse:collapse\n}.transform.svelte-1nxv951{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.flex-wrap.svelte-1nxv951{flex-wrap:wrap\n}.items-center.svelte-1nxv951{align-items:center\n}.text-sm.svelte-1nxv951{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-1nxv951{font-size:0.75rem;line-height:1rem\n}.uppercase.svelte-1nxv951{text-transform:uppercase\n}.capitalize.svelte-1nxv951{text-transform:capitalize\n}.text-\\[--text-muted\\].svelte-1nxv951{color:var(--text-muted)\n}.text-\\[--text-on-accent\\].svelte-1nxv951{color:var(--text-on-accent)\n}.opacity-0.svelte-1nxv951{opacity:0\n}.filter.svelte-1nxv951{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)\n}.transition.svelte-1nxv951{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms\n}.duration-300.svelte-1nxv951{transition-duration:300ms\n}.hover\\:cursor-pointer.svelte-1nxv951:hover{cursor:pointer\n}");
+function add_css$8(target) {
+	append_styles(target, "svelte-hy1a6n", ".container.svelte-hy1a6n{width:100%\n}@media(min-width: 640px){.container.svelte-hy1a6n{max-width:640px\n    }}@media(min-width: 768px){.container.svelte-hy1a6n{max-width:768px\n    }}@media(min-width: 1024px){.container.svelte-hy1a6n{max-width:1024px\n    }}@media(min-width: 1280px){.container.svelte-hy1a6n{max-width:1280px\n    }}@media(min-width: 1536px){.container.svelte-hy1a6n{max-width:1536px\n    }}.pointer-events-none.svelte-hy1a6n{pointer-events:none\n}.visible.svelte-hy1a6n{visibility:visible\n}.invisible.svelte-hy1a6n{visibility:hidden\n}.collapse.svelte-hy1a6n{visibility:collapse\n}.absolute.svelte-hy1a6n{position:absolute\n}.relative.svelte-hy1a6n{position:relative\n}.left-0.svelte-hy1a6n{left:0px\n}.top-0.svelte-hy1a6n{top:0px\n}.m-0.svelte-hy1a6n{margin:0px\n}.mx-\\[1px\\].svelte-hy1a6n{margin-left:1px;margin-right:1px\n}.mt-2.svelte-hy1a6n{margin-top:0.5rem\n}.mt-3.svelte-hy1a6n{margin-top:0.75rem\n}.mt-7.svelte-hy1a6n{margin-top:1.75rem\n}.block.svelte-hy1a6n{display:block\n}.inline-block.svelte-hy1a6n{display:inline-block\n}.flex.svelte-hy1a6n{display:flex\n}.table.svelte-hy1a6n{display:table\n}.grid.svelte-hy1a6n{display:grid\n}.contents.svelte-hy1a6n{display:contents\n}.hidden.svelte-hy1a6n{display:none\n}.h-3.svelte-hy1a6n{height:0.75rem\n}.h-\\[6px\\].svelte-hy1a6n{height:6px\n}.w-3.svelte-hy1a6n{width:0.75rem\n}.w-\\[6px\\].svelte-hy1a6n{width:6px\n}.w-max.svelte-hy1a6n{width:-moz-max-content;width:max-content\n}.flex-shrink.svelte-hy1a6n{flex-shrink:1\n}.border-collapse.svelte-hy1a6n{border-collapse:collapse\n}.transform.svelte-hy1a6n{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.flex-wrap.svelte-hy1a6n{flex-wrap:wrap\n}.items-center.svelte-hy1a6n{align-items:center\n}.text-sm.svelte-hy1a6n{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-hy1a6n{font-size:0.75rem;line-height:1rem\n}.uppercase.svelte-hy1a6n{text-transform:uppercase\n}.capitalize.svelte-hy1a6n{text-transform:capitalize\n}.text-\\[--text-muted\\].svelte-hy1a6n{color:var(--text-muted)\n}.text-\\[--text-on-accent\\].svelte-hy1a6n{color:var(--text-on-accent)\n}.opacity-0.svelte-hy1a6n{opacity:0\n}.filter.svelte-hy1a6n{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)\n}.transition.svelte-hy1a6n{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms\n}.duration-300.svelte-hy1a6n{transition-duration:300ms\n}.hover\\:cursor-pointer.svelte-hy1a6n:hover{cursor:pointer\n}");
 }
 
-function create_fragment$7(ctx) {
+function create_fragment$8(ctx) {
 	let svg;
 	let circle;
 	let circle_stroke_value;
@@ -3327,7 +3463,7 @@ function create_fragment$7(ctx) {
 			attr(circle, "cx", "3");
 			attr(circle, "cy", "3");
 			attr(circle, "r", "2");
-			attr(svg, "class", svg_class_value = "" + (null_to_empty(`${/*$$restProps*/ ctx[3].class} inline-block h-[6px] w-[6px] mx-[1px] ${/*isActive*/ ctx[2] ? 'text-[--text-on-accent]' : ''}`) + " svelte-1nxv951"));
+			attr(svg, "class", svg_class_value = "" + (null_to_empty(`${/*$$restProps*/ ctx[3].class} inline-block h-[6px] w-[6px] mx-[1px] ${/*isActive*/ ctx[2] ? 'text-[--text-on-accent]' : ''}`) + " svelte-hy1a6n"));
 			set_style(svg, "color", /*color*/ ctx[0]);
 			attr(svg, "viewBox", "0 0 6 6");
 			attr(svg, "xmlns", "http://www.w3.org/2000/svg");
@@ -3345,7 +3481,7 @@ function create_fragment$7(ctx) {
 				attr(circle, "fill", circle_fill_value);
 			}
 
-			if (dirty & /*$$restProps, isActive*/ 12 && svg_class_value !== (svg_class_value = "" + (null_to_empty(`${/*$$restProps*/ ctx[3].class} inline-block h-[6px] w-[6px] mx-[1px] ${/*isActive*/ ctx[2] ? 'text-[--text-on-accent]' : ''}`) + " svelte-1nxv951"))) {
+			if (dirty & /*$$restProps, isActive*/ 12 && svg_class_value !== (svg_class_value = "" + (null_to_empty(`${/*$$restProps*/ ctx[3].class} inline-block h-[6px] w-[6px] mx-[1px] ${/*isActive*/ ctx[2] ? 'text-[--text-on-accent]' : ''}`) + " svelte-hy1a6n"))) {
 				attr(svg, "class", svg_class_value);
 			}
 
@@ -3363,7 +3499,7 @@ function create_fragment$7(ctx) {
 	};
 }
 
-function instance$7($$self, $$props, $$invalidate) {
+function instance$8($$self, $$props, $$invalidate) {
 	const omit_props_names = ["color","isFilled","isActive"];
 	let $$restProps = compute_rest_props($$props, omit_props_names);
 	let { color = '' } = $$props;
@@ -3384,17 +3520,17 @@ function instance$7($$self, $$props, $$invalidate) {
 class Dot extends SvelteComponent {
 	constructor(options) {
 		super();
-		init(this, options, instance$7, create_fragment$7, safe_not_equal, { color: 0, isFilled: 1, isActive: 2 }, add_css$7);
+		init(this, options, instance$8, create_fragment$8, safe_not_equal, { color: 0, isFilled: 1, isActive: 2 }, add_css$8);
 	}
 }
 
 /* src/calendar-ui/components/Day.svelte generated by Svelte v4.2.0 */
 
-function add_css$6(target) {
+function add_css$7(target) {
 	append_styles(target, "svelte-1fn1hj9", ".day.svelte-1fn1hj9{background-color:var(--color-background-day);border-radius:4px;color:var(--color-text-day);cursor:pointer;font-size:0.8em;height:100%;padding:4px;position:relative;text-align:center;transition:background-color 0.1s ease-in, color 0.1s ease-in;vertical-align:baseline}.day.svelte-1fn1hj9:hover{background-color:var(--interactive-hover)}.day.svelte-1fn1hj9:active{color:var(--text-on-accent);background-color:var(--interactive-accent)}");
 }
 
-function create_fragment$6(ctx) {
+function create_fragment$7(ctx) {
 	let td;
 	let button;
 	let t_value = /*date*/ ctx[0].format('D') + "";
@@ -3435,7 +3571,7 @@ function create_fragment$6(ctx) {
 	};
 }
 
-function instance$6($$self, $$props, $$invalidate) {
+function instance$7($$self, $$props, $$invalidate) {
 	let { date } = $$props;
 
 	// Global state
@@ -3443,8 +3579,13 @@ function instance$6($$self, $$props, $$invalidate) {
 
 	getContext(DISPLAYED_MONTH);
 	createEventDispatcher();
-	const { eventHandlers: { day: eventHandlers } } = getContext(VIEW);
-	const click_handler = event => eventHandlers.onClick({ date, isNewSplit: isMetaPressed(event) });
+	const { eventHandlers } = getContext(VIEW);
+
+	const click_handler = event => eventHandlers.onClick({
+		date,
+		isNewSplit: isMetaPressed(event),
+		granularity: 'day'
+	});
 
 	$$self.$$set = $$props => {
 		if ('date' in $$props) $$invalidate(0, date = $$props.date);
@@ -3456,17 +3597,17 @@ function instance$6($$self, $$props, $$invalidate) {
 class Day extends SvelteComponent {
 	constructor(options) {
 		super();
-		init(this, options, instance$6, create_fragment$6, not_equal, { date: 0 }, add_css$6);
+		init(this, options, instance$7, create_fragment$7, not_equal, { date: 0 }, add_css$7);
 	}
 }
 
 /* src/calendar-ui/components/Arrow.svelte generated by Svelte v4.2.0 */
 
-function add_css$5(target) {
-	append_styles(target, "svelte-jvqowb", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.arrow.svelte-jvqowb.svelte-jvqowb{all:inherit;align-items:center;cursor:pointer;display:flex;justify-content:center;width:24px}.arrow.is-mobile.svelte-jvqowb.svelte-jvqowb{width:32px}.right.svelte-jvqowb.svelte-jvqowb{transform:rotate(180deg)}.arrow.svelte-jvqowb svg.svelte-jvqowb{color:var(--color-arrow);height:16px;width:16px}");
+function add_css$6(target) {
+	append_styles(target, "svelte-ecm1o", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.arrow.svelte-ecm1o.svelte-ecm1o{all:inherit;align-items:center;cursor:pointer;display:flex;justify-content:center;width:24px}.arrow.is-mobile.svelte-ecm1o.svelte-ecm1o{width:32px}.right.svelte-ecm1o.svelte-ecm1o{transform:rotate(180deg)}.arrow.svelte-ecm1o svg.svelte-ecm1o{color:var(--color-arrow);height:16px;width:16px}");
 }
 
-function create_fragment$5(ctx) {
+function create_fragment$6(ctx) {
 	let button;
 	let svg;
 	let path;
@@ -3484,8 +3625,8 @@ function create_fragment$5(ctx) {
 			attr(svg, "role", "img");
 			attr(svg, "xmlns", "http://www.w3.org/2000/svg");
 			attr(svg, "viewBox", "0 0 320 512");
-			attr(svg, "class", "svelte-jvqowb");
-			attr(button, "class", "arrow svelte-jvqowb");
+			attr(svg, "class", "svelte-ecm1o");
+			attr(button, "class", "arrow svelte-ecm1o");
 			attr(button, "aria-label", /*tooltip*/ ctx[1]);
 			toggle_class(button, "is-mobile", /*isMobile*/ ctx[3]);
 			toggle_class(button, "right", /*direction*/ ctx[2] === 'right');
@@ -3527,7 +3668,7 @@ function create_fragment$5(ctx) {
 	};
 }
 
-function instance$5($$self, $$props, $$invalidate) {
+function instance$6($$self, $$props, $$invalidate) {
 	let { onClick } = $$props;
 	let { tooltip } = $$props;
 	let { direction } = $$props;
@@ -3547,7 +3688,97 @@ function instance$5($$self, $$props, $$invalidate) {
 class Arrow extends SvelteComponent {
 	constructor(options) {
 		super();
-		init(this, options, instance$5, create_fragment$5, safe_not_equal, { onClick: 0, tooltip: 1, direction: 2 }, add_css$5);
+		init(this, options, instance$6, create_fragment$6, safe_not_equal, { onClick: 0, tooltip: 1, direction: 2 }, add_css$6);
+	}
+}
+
+/* src/calendar-ui/components/Month.svelte generated by Svelte v4.2.0 */
+
+function add_css$5(target) {
+	append_styles(target, "svelte-lbaehh", ".title.svelte-lbaehh{color:var(--color-text-title);cursor:pointer;display:flex;font-size:1.4em;gap:0.3em;margin:0}.month.svelte-lbaehh{font-weight:500}.year.svelte-lbaehh{color:var(--interactive-accent)}");
+}
+
+function create_fragment$5(ctx) {
+	let button;
+	let span2;
+	let span0;
+	let t0_value = /*$displayedMonth*/ ctx[0].format('MMM') + "";
+	let t0;
+	let t1;
+	let span1;
+	let t2_value = /*$displayedMonth*/ ctx[0].format('YYYY') + "";
+	let t2;
+	let mounted;
+	let dispose;
+
+	return {
+		c() {
+			button = element("button");
+			span2 = element("span");
+			span0 = element("span");
+			t0 = text(t0_value);
+			t1 = space();
+			span1 = element("span");
+			t2 = text(t2_value);
+			attr(span0, "class", "month svelte-lbaehh");
+			attr(span1, "class", "year svelte-lbaehh");
+			attr(span2, "class", "title svelte-lbaehh");
+			set_style(button, "all", "inherit");
+		},
+		m(target, anchor) {
+			insert(target, button, anchor);
+			append(button, span2);
+			append(span2, span0);
+			append(span0, t0);
+			append(span2, t1);
+			append(span2, span1);
+			append(span1, t2);
+
+			if (!mounted) {
+				dispose = listen(button, "click", /*click_handler*/ ctx[3]);
+				mounted = true;
+			}
+		},
+		p(ctx, [dirty]) {
+			if (dirty & /*$displayedMonth*/ 1 && t0_value !== (t0_value = /*$displayedMonth*/ ctx[0].format('MMM') + "")) set_data(t0, t0_value);
+			if (dirty & /*$displayedMonth*/ 1 && t2_value !== (t2_value = /*$displayedMonth*/ ctx[0].format('YYYY') + "")) set_data(t2, t2_value);
+		},
+		i: noop,
+		o: noop,
+		d(detaching) {
+			if (detaching) {
+				detach(button);
+			}
+
+			mounted = false;
+			dispose();
+		}
+	};
+}
+
+function instance$5($$self, $$props, $$invalidate) {
+	let $displayedMonth;
+	const { eventHandlers } = getContext(VIEW);
+	let displayedMonth = getContext(DISPLAYED_MONTH);
+	component_subscribe($$self, displayedMonth, value => $$invalidate(0, $displayedMonth = value));
+
+	const click_handler = event => {
+		console.log('Month clicked');
+
+		eventHandlers.onClick({
+			date: $displayedMonth,
+			isNewSplit: isMetaPressed(event),
+			granularity: 'month'
+		});
+	};
+
+	return [$displayedMonth, eventHandlers, displayedMonth, click_handler];
+}
+
+class Month extends SvelteComponent {
+	constructor(options) {
+		super();
+		init(this, options, instance$5, create_fragment$5, safe_not_equal, {}, add_css$5);
 	}
 }
 
@@ -3559,17 +3790,20 @@ function add_css$4(target) {
 
 function create_fragment$4(ctx) {
 	let div1;
+	let month;
+	let t0;
 	let div0;
 	let arrow0;
-	let t0;
+	let t1;
 	let button;
 	let dot;
 	let button_aria_label_value;
-	let t1;
+	let t2;
 	let arrow1;
 	let current;
 	let mounted;
 	let dispose;
+	month = new Month({});
 
 	arrow0 = new Arrow({
 			props: {
@@ -3597,12 +3831,14 @@ function create_fragment$4(ctx) {
 	return {
 		c() {
 			div1 = element("div");
+			create_component(month.$$.fragment);
+			t0 = space();
 			div0 = element("div");
 			create_component(arrow0.$$.fragment);
-			t0 = space();
+			t1 = space();
 			button = element("button");
 			create_component(dot.$$.fragment);
-			t1 = space();
+			t2 = space();
 			create_component(arrow1.$$.fragment);
 
 			attr(button, "aria-label", button_aria_label_value = !/*showingCurrentMonth*/ ctx[0]
@@ -3616,12 +3852,14 @@ function create_fragment$4(ctx) {
 		},
 		m(target, anchor) {
 			insert(target, div1, anchor);
+			mount_component(month, div1, null);
+			append(div1, t0);
 			append(div1, div0);
 			mount_component(arrow0, div0, null);
-			append(div0, t0);
+			append(div0, t1);
 			append(div0, button);
 			mount_component(dot, button, null);
-			append(div0, t1);
+			append(div0, t2);
 			mount_component(arrow1, div0, null);
 			current = true;
 
@@ -3647,12 +3885,14 @@ function create_fragment$4(ctx) {
 		},
 		i(local) {
 			if (current) return;
+			transition_in(month.$$.fragment, local);
 			transition_in(arrow0.$$.fragment, local);
 			transition_in(dot.$$.fragment, local);
 			transition_in(arrow1.$$.fragment, local);
 			current = true;
 		},
 		o(local) {
+			transition_out(month.$$.fragment, local);
 			transition_out(arrow0.$$.fragment, local);
 			transition_out(dot.$$.fragment, local);
 			transition_out(arrow1.$$.fragment, local);
@@ -3663,6 +3903,7 @@ function create_fragment$4(ctx) {
 				detach(div1);
 			}
 
+			destroy_component(month);
 			destroy_component(arrow0);
 			destroy_component(dot);
 			destroy_component(arrow1);
@@ -3777,11 +4018,12 @@ function instance$3($$self, $$props, $$invalidate) {
 	// let startOfWeek: Moment;
 	// let metadata: Promise<IDayMetadata[]> | null;
 	// const dispatch = createEventDispatcher();
-	const { eventHandlers: { week: eventHandlers } } = getContext(VIEW);
+	const { eventHandlers } = getContext(VIEW);
 
 	const click_handler = event => eventHandlers.onClick({
 		date: startOfWeekDate,
-		isNewSplit: isMetaPressed(event)
+		isNewSplit: isMetaPressed(event),
+		granularity: 'week'
 	});
 
 	$$self.$$set = $$props => {
@@ -4436,7 +4678,7 @@ class Calendar extends SvelteComponent {
 /* src/View.svelte generated by Svelte v4.2.0 */
 
 function add_css$1(target) {
-	append_styles(target, "svelte-l7hg2d", ".container.svelte-l7hg2d{width:100%\n}@media(min-width: 640px){.container.svelte-l7hg2d{max-width:640px\n    }}@media(min-width: 768px){.container.svelte-l7hg2d{max-width:768px\n    }}@media(min-width: 1024px){.container.svelte-l7hg2d{max-width:1024px\n    }}@media(min-width: 1280px){.container.svelte-l7hg2d{max-width:1280px\n    }}@media(min-width: 1536px){.container.svelte-l7hg2d{max-width:1536px\n    }}.pointer-events-none.svelte-l7hg2d{pointer-events:none\n}.visible.svelte-l7hg2d{visibility:visible\n}.invisible.svelte-l7hg2d{visibility:hidden\n}.collapse.svelte-l7hg2d{visibility:collapse\n}.absolute.svelte-l7hg2d{position:absolute\n}.relative.svelte-l7hg2d{position:relative\n}.left-0.svelte-l7hg2d{left:0px\n}.top-0.svelte-l7hg2d{top:0px\n}.m-0.svelte-l7hg2d{margin:0px\n}.mx-\\[1px\\].svelte-l7hg2d{margin-left:1px;margin-right:1px\n}.mt-2.svelte-l7hg2d{margin-top:0.5rem\n}.mt-3.svelte-l7hg2d{margin-top:0.75rem\n}.mt-7.svelte-l7hg2d{margin-top:1.75rem\n}.block.svelte-l7hg2d{display:block\n}.inline-block.svelte-l7hg2d{display:inline-block\n}.flex.svelte-l7hg2d{display:flex\n}.table.svelte-l7hg2d{display:table\n}.grid.svelte-l7hg2d{display:grid\n}.contents.svelte-l7hg2d{display:contents\n}.hidden.svelte-l7hg2d{display:none\n}.h-4.svelte-l7hg2d{height:1rem\n}.h-5.svelte-l7hg2d{height:1.25rem\n}.h-\\[6px\\].svelte-l7hg2d{height:6px\n}.h-\\[10px\\].svelte-l7hg2d{height:10px\n}.h-\\[16px\\].svelte-l7hg2d{height:16px\n}.h-3.svelte-l7hg2d{height:0.75rem\n}.w-4.svelte-l7hg2d{width:1rem\n}.w-max.svelte-l7hg2d{width:-moz-max-content;width:max-content\n}.w-5.svelte-l7hg2d{width:1.25rem\n}.w-\\[6px\\].svelte-l7hg2d{width:6px\n}.w-\\[10px\\].svelte-l7hg2d{width:10px\n}.w-\\[16px\\].svelte-l7hg2d{width:16px\n}.w-3.svelte-l7hg2d{width:0.75rem\n}.flex-shrink.svelte-l7hg2d{flex-shrink:1\n}.border-collapse.svelte-l7hg2d{border-collapse:collapse\n}.transform.svelte-l7hg2d{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.flex-wrap.svelte-l7hg2d{flex-wrap:wrap\n}.items-center.svelte-l7hg2d{align-items:center\n}.bg-red-400.svelte-l7hg2d{--tw-bg-opacity:1;background-color:rgb(248 113 113 / var(--tw-bg-opacity))\n}.text-sm.svelte-l7hg2d{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-l7hg2d{font-size:0.75rem;line-height:1rem\n}.uppercase.svelte-l7hg2d{text-transform:uppercase\n}.capitalize.svelte-l7hg2d{text-transform:capitalize\n}.text-\\[--text-muted\\].svelte-l7hg2d{color:var(--text-muted)\n}.text-\\[--text-on-accent\\].svelte-l7hg2d{color:var(--text-on-accent)\n}.opacity-0.svelte-l7hg2d{opacity:0\n}.filter.svelte-l7hg2d{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)\n}.transition.svelte-l7hg2d{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms\n}.duration-300.svelte-l7hg2d{transition-duration:300ms\n}.hover\\:cursor-pointer.svelte-l7hg2d:hover{cursor:pointer\n}");
+	append_styles(target, "svelte-hy1a6n", ".container.svelte-hy1a6n{width:100%\n}@media(min-width: 640px){.container.svelte-hy1a6n{max-width:640px\n    }}@media(min-width: 768px){.container.svelte-hy1a6n{max-width:768px\n    }}@media(min-width: 1024px){.container.svelte-hy1a6n{max-width:1024px\n    }}@media(min-width: 1280px){.container.svelte-hy1a6n{max-width:1280px\n    }}@media(min-width: 1536px){.container.svelte-hy1a6n{max-width:1536px\n    }}.pointer-events-none.svelte-hy1a6n{pointer-events:none\n}.visible.svelte-hy1a6n{visibility:visible\n}.invisible.svelte-hy1a6n{visibility:hidden\n}.collapse.svelte-hy1a6n{visibility:collapse\n}.absolute.svelte-hy1a6n{position:absolute\n}.relative.svelte-hy1a6n{position:relative\n}.left-0.svelte-hy1a6n{left:0px\n}.top-0.svelte-hy1a6n{top:0px\n}.m-0.svelte-hy1a6n{margin:0px\n}.mx-\\[1px\\].svelte-hy1a6n{margin-left:1px;margin-right:1px\n}.mt-2.svelte-hy1a6n{margin-top:0.5rem\n}.mt-3.svelte-hy1a6n{margin-top:0.75rem\n}.mt-7.svelte-hy1a6n{margin-top:1.75rem\n}.block.svelte-hy1a6n{display:block\n}.inline-block.svelte-hy1a6n{display:inline-block\n}.flex.svelte-hy1a6n{display:flex\n}.table.svelte-hy1a6n{display:table\n}.grid.svelte-hy1a6n{display:grid\n}.contents.svelte-hy1a6n{display:contents\n}.hidden.svelte-hy1a6n{display:none\n}.h-3.svelte-hy1a6n{height:0.75rem\n}.h-\\[6px\\].svelte-hy1a6n{height:6px\n}.w-3.svelte-hy1a6n{width:0.75rem\n}.w-\\[6px\\].svelte-hy1a6n{width:6px\n}.w-max.svelte-hy1a6n{width:-moz-max-content;width:max-content\n}.flex-shrink.svelte-hy1a6n{flex-shrink:1\n}.border-collapse.svelte-hy1a6n{border-collapse:collapse\n}.transform.svelte-hy1a6n{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.flex-wrap.svelte-hy1a6n{flex-wrap:wrap\n}.items-center.svelte-hy1a6n{align-items:center\n}.text-sm.svelte-hy1a6n{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-hy1a6n{font-size:0.75rem;line-height:1rem\n}.uppercase.svelte-hy1a6n{text-transform:uppercase\n}.capitalize.svelte-hy1a6n{text-transform:capitalize\n}.text-\\[--text-muted\\].svelte-hy1a6n{color:var(--text-muted)\n}.text-\\[--text-on-accent\\].svelte-hy1a6n{color:var(--text-on-accent)\n}.opacity-0.svelte-hy1a6n{opacity:0\n}.filter.svelte-hy1a6n{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)\n}.transition.svelte-hy1a6n{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms\n}.duration-300.svelte-hy1a6n{transition-duration:300ms\n}.hover\\:cursor-pointer.svelte-hy1a6n:hover{cursor:pointer\n}");
 }
 
 function create_fragment$1(ctx) {
@@ -4451,7 +4693,7 @@ function create_fragment$1(ctx) {
 		c() {
 			div = element("div");
 			create_component(calendar.$$.fragment);
-			attr(div, "class", div_class_value = "" + (null_to_empty(clsx(/*popup*/ ctx[0] && 'w-max opacity-0 pointer-events-none absolute top-0 left-0 duration-300')) + " svelte-l7hg2d"));
+			attr(div, "class", div_class_value = "" + (null_to_empty(clsx(/*popup*/ ctx[0] && 'w-max opacity-0 pointer-events-none absolute top-0 left-0 duration-300')) + " svelte-hy1a6n"));
 			attr(div, "data-popup", div_data_popup_value = /*popup*/ ctx[0] && 'calendarPopup');
 		},
 		m(target, anchor) {
@@ -4460,7 +4702,7 @@ function create_fragment$1(ctx) {
 			current = true;
 		},
 		p(ctx, [dirty]) {
-			if (!current || dirty & /*popup*/ 1 && div_class_value !== (div_class_value = "" + (null_to_empty(clsx(/*popup*/ ctx[0] && 'w-max opacity-0 pointer-events-none absolute top-0 left-0 duration-300')) + " svelte-l7hg2d"))) {
+			if (!current || dirty & /*popup*/ 1 && div_class_value !== (div_class_value = "" + (null_to_empty(clsx(/*popup*/ ctx[0] && 'w-max opacity-0 pointer-events-none absolute top-0 left-0 duration-300')) + " svelte-hy1a6n"))) {
 				attr(div, "class", div_class_value);
 			}
 
@@ -4507,7 +4749,7 @@ class View extends SvelteComponent {
 /* src/calendar-ui/components/ConfirmationModal.svelte generated by Svelte v4.2.0 */
 
 function add_css(target) {
-	append_styles(target, "svelte-l7hg2d", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.m-0.svelte-l7hg2d{margin:0px\n}.mt-2.svelte-l7hg2d{margin-top:0.5rem\n}.mt-3.svelte-l7hg2d{margin-top:0.75rem\n}.mt-7.svelte-l7hg2d{margin-top:1.75rem\n}.flex.svelte-l7hg2d{display:flex\n}.items-center.svelte-l7hg2d{align-items:center\n}.text-sm.svelte-l7hg2d{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-l7hg2d{font-size:0.75rem;line-height:1rem\n}.text-\\[--text-muted\\].svelte-l7hg2d{color:var(--text-muted)\n}.hover\\:cursor-pointer.svelte-l7hg2d:hover{cursor:pointer\n}");
+	append_styles(target, "svelte-hy1a6n", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.m-0.svelte-hy1a6n{margin:0px\n}.mt-2.svelte-hy1a6n{margin-top:0.5rem\n}.mt-3.svelte-hy1a6n{margin-top:0.75rem\n}.mt-7.svelte-hy1a6n{margin-top:1.75rem\n}.flex.svelte-hy1a6n{display:flex\n}.items-center.svelte-hy1a6n{align-items:center\n}.text-sm.svelte-hy1a6n{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-hy1a6n{font-size:0.75rem;line-height:1rem\n}.text-\\[--text-muted\\].svelte-hy1a6n{color:var(--text-muted)\n}.hover\\:cursor-pointer.svelte-hy1a6n:hover{cursor:pointer\n}");
 }
 
 // (36:1) {#if note}
@@ -4518,7 +4760,7 @@ function create_if_block(ctx) {
 		c() {
 			p = element("p");
 			p.textContent = `${/*note*/ ctx[3]}`;
-			attr(p, "class", "m-0 mt-2 text-xs text-[--text-muted] svelte-l7hg2d");
+			attr(p, "class", "m-0 mt-2 text-xs text-[--text-muted] svelte-hy1a6n");
 		},
 		m(target, anchor) {
 			insert(target, p, anchor);
@@ -4573,10 +4815,10 @@ function create_fragment(ctx) {
 			button1 = element("button");
 			button1.textContent = `${/*cta*/ ctx[4]}`;
 			attr(input, "type", "checkbox");
-			attr(input, "class", "hover:cursor-pointer svelte-l7hg2d");
-			attr(label, "class", "flex items-center hover:cursor-pointer text-sm mt-7 svelte-l7hg2d");
+			attr(input, "class", "hover:cursor-pointer svelte-hy1a6n");
+			attr(label, "class", "flex items-center hover:cursor-pointer text-sm mt-7 svelte-hy1a6n");
 			attr(button1, "class", "mod-cta");
-			attr(div0, "class", "modal-button-container mt-3 svelte-l7hg2d");
+			attr(div0, "class", "modal-button-container mt-3 svelte-hy1a6n");
 		},
 		m(target, anchor) {
 			insert(target, div1, anchor);
@@ -4723,6 +4965,7 @@ class CalendarView extends obsidian.ItemView {
         this.registerEvent(this.app.vault.on('modify', (file) => this.onFileModified(file)));
         this.registerEvent(this.app.workspace.on('file-open', () => this.onFileOpen()));
         this.register(settingsStore.subscribe((settings) => {
+            console.log('SUBSCRIBED TO settingsStore ⚙️: ', get_store_value(settingsStore));
             this.settings = settings;
         }));
     }
@@ -4742,27 +4985,13 @@ class CalendarView extends obsidian.ItemView {
     async onOpen() {
         console.log('On open view👐');
         const context = new Map();
-        const getEventHandlers = () => {
-            const granularitiesNames = granularitiesCapitalize;
-            const events = ['onClick', 'onHover', 'onContextMenu'];
-            const granularitiesEvents = {};
-            granularitiesNames.forEach((granularity) => {
-                const eventHandlers = {};
-                events.forEach((ev) => {
-                    const eventHandlerName = (ev + granularity);
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-ignore
-                    eventHandlers[ev] = this[eventHandlerName].bind(this);
-                });
-                granularitiesEvents[granularity.toLowerCase()] = eventHandlers;
-            });
-            return granularitiesEvents;
-        };
         context.set(VIEW, {
             app: this.app,
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            eventHandlers: getEventHandlers()
+            eventHandlers: {
+                onClick: this.onClick.bind(this),
+                onHover: this.onHover.bind(this),
+                onContextMenu: this.onContextMenu.bind(this)
+            }
         });
         this.view = new View({
             target: this.contentEl,
@@ -4807,64 +5036,33 @@ class CalendarView extends obsidian.ItemView {
         }
     }
     // Component event handlers
-    async onClickDay({ date, isNewSplit }) {
+    async onClick({ date, isNewSplit, granularity }) {
         const { workspace } = window.app;
         const leaf = isNewSplit ? workspace.splitActiveLeaf() : workspace.getUnpinnedLeaf();
         const openFile = async (file) => {
             file && (await leaf.openFile(file));
-            activeFile.setFile(getDateUID(date, 'day'));
+            activeFile.setFile(getDateUID(date, granularity));
         };
-        let file = getNoteByGranularity({ date, granularity: 'day' });
+        let file = getNoteByGranularity({ date, granularity });
         if (!file) {
-            const { format } = getNoteSettingsByGranularity('day');
+            const periodicity = capitalize(getPeriodicityFromGranularity(granularity));
+            const { format } = getNoteSettingsByGranularity(granularity);
+            const formattedDate = date.format(format);
             if (this.settings.shouldConfirmBeforeCreate) {
                 createConfirmationDialog({
+                    title: `New ${periodicity} Note`,
+                    text: `File ${formattedDate} does not exist. Would you like to create it?`,
+                    note: getOnCreateNoteDialogNoteFromGranularity(granularity),
                     cta: 'Create',
                     onAccept: async () => {
-                        file = await createDailyNote(date);
-                        file && (await openFile(file));
-                        return file;
-                    },
-                    text: `File ${date.format(format)} does not exist. Would you like to create it?`,
-                    note: getOnCreateNoteDialogNoteFromGranularity('day'),
-                    title: 'New Daily Note'
-                });
-            }
-            else {
-                file = await createDailyNote(date);
-                file && (await openFile(file));
-            }
-        }
-        else {
-            file && (await openFile(file));
-        }
-    }
-    async onClickWeek({ date: startOfWeekDate, isNewSplit }) {
-        const { workspace } = this.app;
-        const leaf = isNewSplit ? workspace.splitActiveLeaf() : workspace.getUnpinnedLeaf();
-        const openFile = async (file) => {
-            file && (await leaf.openFile(file));
-            activeFile.setFile(getDateUID(startOfWeekDate, 'week'));
-        };
-        let file = getNoteByGranularity({ date: startOfWeekDate, granularity: 'week' });
-        console.log('onClickWeek() > weekStore: ', get_store_value(notesStores['week']), 'file: ', file);
-        if (!file) {
-            const { format } = getNoteSettingsByGranularity('week');
-            if (this.settings.shouldConfirmBeforeCreate) {
-                createConfirmationDialog({
-                    title: 'New Daily Note',
-                    text: `File ${startOfWeekDate.format(format)} does not exist. Would you like to create it?`,
-                    note: getOnCreateNoteDialogNoteFromGranularity('week'),
-                    cta: 'Create',
-                    onAccept: async () => {
-                        file = await createWeeklyNote(startOfWeekDate);
+                        file = await noteCreator[granularity](date);
                         file && (await openFile(file));
                         return file;
                     }
                 });
             }
             else {
-                file = await createWeeklyNote(startOfWeekDate);
+                file = await noteCreator[granularity](date);
                 file && (await openFile(file));
             }
         }
@@ -4872,36 +5070,16 @@ class CalendarView extends obsidian.ItemView {
             file && (await openFile(file));
         }
     }
-    async onClickMonth({ date, isNewSplit }) {
-        return Promise.resolve();
-    }
-    async onClickQuarter({ date, isNewSplit }) {
-        return Promise.resolve();
-    }
-    async onClickYear({ date, isNewSplit }) {
-        return Promise.resolve();
-    }
-    onHoverDay({ date, targetEl, isMetaPressed }) {
+    onHover({ date, targetEl, isMetaPressed, granularity }) {
         if (!isMetaPressed) {
             return;
         }
-        const { format } = getNoteSettingsByGranularity('day');
-        const note = getNoteByGranularity({ date, granularity: 'day' });
+        const { format } = getNoteSettingsByGranularity(granularity);
+        const note = getNoteByGranularity({ date, granularity });
         this.app.workspace.trigger('link-hover', this, targetEl, date.format(format), note?.path);
     }
-    onHoverWeek({ date, targetEl, isMetaPressed }) {
-        if (!isMetaPressed) {
-            return;
-        }
-        const note = getNoteByGranularity({ date, granularity: 'week' });
-        const { format } = getNoteSettingsByGranularity('week');
-        this.app.workspace.trigger('link-hover', this, targetEl, date.format(format), note?.path);
-    }
-    onHoverMonth({ date, targetEl, isMetaPressed }) { }
-    onHoverQuarter({ date, targetEl, isMetaPressed }) { }
-    onHoverYear({ date, targetEl, isMetaPressed }) { }
-    onContextMenuDay({ date, event }) {
-        const note = getNoteByGranularity({ date, granularity: 'day' });
+    onContextMenu({ date, event, granularity }) {
+        const note = getNoteByGranularity({ date, granularity });
         if (!note) {
             // If no file exists for a given day, show nothing.
             return;
@@ -4911,20 +5089,6 @@ class CalendarView extends obsidian.ItemView {
         // 	y: event.pageY
         // });
     }
-    onContextMenuWeek({ date, event }) {
-        const note = getNoteByGranularity({ date, granularity: 'week' });
-        if (!note) {
-            // If no file exists for a given day, show nothing.
-            return;
-        }
-        // showFileMenu(this.app, note, {
-        // 	x: event.pageX,
-        // 	y: event.pageY
-        // });
-    }
-    onContextMenuMonth({ date, event }) { }
-    onContextMenuQuarter({ date, event }) { }
-    onContextMenuYear({ date, event }) { }
     // Utils
     updateActiveFile() {
         console.log('CalendarView > on(periodic-notes:settings-updated) > updateActiveFile()');

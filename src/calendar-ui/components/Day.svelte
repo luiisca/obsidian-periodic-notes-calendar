@@ -24,9 +24,7 @@
 	const displayedMonth = getContext<Writable<Moment>>(DISPLAYED_MONTH);
 	const dispatch = createEventDispatcher();
 
-	const {
-		eventHandlers: { day: eventHandlers }
-	} = getContext<ICalendarViewCtx>(VIEW);
+	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 
 	// fileCache.store.subscribe(() => {
 	// 	file = fileCache.getFile(date, 'day');
@@ -90,7 +88,8 @@
   </MetadataResolver> -->
 	<button
 		class="day"
-		on:click={(event) => eventHandlers.onClick({ date, isNewSplit: isMetaPressed(event) })}
+		on:click={(event) =>
+			eventHandlers.onClick({ date, isNewSplit: isMetaPressed(event), granularity: 'day' })}
 	>
 		{date.format('D')}
 		<!-- <Dots metadata="{metadata}" /> -->

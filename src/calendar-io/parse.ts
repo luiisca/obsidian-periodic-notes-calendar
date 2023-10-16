@@ -46,6 +46,7 @@ function getDateFromFilename(
 
 	// TODO: Find a way to validate if a filename represents a valid date without using format to avoid:
 	// every time periodic notes update and format changes only notes created with the new format are stored, the rest are neglected.
+	// evaluate if current format creates a valid date
 	const noteDate = window.moment(filename, format, true);
 
 	if (!noteDate.isValid()) {

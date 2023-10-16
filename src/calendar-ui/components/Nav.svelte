@@ -6,6 +6,7 @@
   import Arrow from "./Arrow.svelte";
   import { DISPLAYED_MONTH } from "../context";
 	import Dot from "./Dot.svelte";
+	import Month from "./Month.svelte";
 
   export let today: Moment;
 
@@ -36,6 +37,7 @@
     on:hoverDay
     on:endHoverDay
   /> -->
+  <Month />
   <div class="right-nav">
     <!-- TODO: add tab support -->
     <Arrow

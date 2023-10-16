@@ -5,44 +5,59 @@ import { VIEW } from './calendar-ui/context';
 import { activeFile, notesStores, settingsStore } from './stores';
 import type { ISettings } from './settings';
 import {
-	createDailyNote,
-	createWeeklyNote,
 	getDateFromFile,
 	getDateUID,
-	getNoteByGranularity
+	getNoteByGranularity,
+	noteCreator
 } from './calendar-io';
 import { createConfirmationDialog } from './calendar-ui/modal';
 import type { Moment } from 'moment';
 import type { IGranularity } from './calendar-io';
-import { granularities, granularitiesCapitalize } from './constants';
+import { granularities} from './constants';
 import { getNoteSettingsByGranularity } from './calendar-io/settings';
-import { getOnCreateNoteDialogNoteFromGranularity } from './utils';
+import { capitalize, getOnCreateNoteDialogNoteFromGranularity } from './utils';
+import { getPeriodicityFromGranularity } from './calendar-io/parse';
 import { get } from 'svelte/store';
 
 export const VIEW_TYPE_CALENDAR = 'calendar';
 
-type TOnClick = ({ date, isNewSplit }: { date: Moment; isNewSplit: boolean }) => Promise<void>;
+type TOnClick = ({
+	date,
+	isNewSplit,
+	granularity
+}: {
+	date: Moment;
+	isNewSplit: boolean;
+	granularity: IGranularity;
+}) => Promise<void>;
 type TOnHover = ({
 	date,
 	targetEl,
-	isMetaPressed
+	isMetaPressed,
+	granularity
 }: {
 	date: Moment;
 	targetEl: EventTarget;
 	isMetaPressed: boolean;
+	granularity: IGranularity;
 }) => void;
-type TOnContextMenu = ({ date, event }: { date: Moment; event: MouseEvent }) => void;
-
-type Events = {
-	onClick: TOnClick;
-	onHover: TOnHover;
-	onContextMenu: TOnContextMenu;
-};
-type TEventHandlers = Record<`${IGranularity}`, Events>;
+type TOnContextMenu = ({
+	date,
+	event,
+	granularity
+}: {
+	date: Moment;
+	event: MouseEvent;
+	granularity: IGranularity;
+}) => void;
 
 export interface ICalendarViewCtx {
 	app: App;
-	eventHandlers: TEventHandlers;
+	eventHandlers: {
+		onClick: TOnClick;
+		onHover: TOnHover;
+		onContextMenu: TOnContextMenu;
+	};
 }
 
 export class CalendarView extends ItemView {
@@ -70,6 +85,7 @@ export class CalendarView extends ItemView {
 
 		this.register(
 			settingsStore.subscribe((settings) => {
+				console.log('SUBSCRIBED TO settingsStore ⚙️: ', get(settingsStore))
 				this.settings = settings;
 			})
 		);
@@ -96,39 +112,14 @@ export class CalendarView extends ItemView {
 		console.log('On open view👐');
 
 		const context = new Map<symbol, ICalendarViewCtx>();
-		const getEventHandlers = () => {
-			const granularitiesNames = granularitiesCapitalize;
-			const events = ['onClick', 'onHover', 'onContextMenu'] as const;
-
-			type TGranularitiesEvents = Record<
-				IGranularity,
-				Record<(typeof events)[number], Events[keyof Events]>
-			>;
-			const granularitiesEvents: TGranularitiesEvents = {} as TGranularitiesEvents;
-
-			granularitiesNames.forEach((granularity) => {
-				const eventHandlers: Events = {} as Events;
-				granularity;
-
-				events.forEach((ev) => {
-					const eventHandlerName = (ev + granularity) as `${typeof ev}${typeof granularity}`;
-
-					// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-					// @ts-ignore
-					eventHandlers[ev] = this[eventHandlerName].bind(this);
-				});
-
-				granularitiesEvents[granularity.toLowerCase() as IGranularity] = eventHandlers;
-			});
-
-			return granularitiesEvents;
-		};
 
 		context.set(VIEW, {
 			app: this.app,
-			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-			// @ts-ignore
-			eventHandlers: getEventHandlers()
+			eventHandlers: {
+				onClick: this.onClick.bind(this),
+				onHover: this.onHover.bind(this),
+				onContextMenu: this.onContextMenu.bind(this)
+			}
 		});
 
 		this.view = new View({
@@ -184,74 +175,36 @@ export class CalendarView extends ItemView {
 	}
 
 	// Component event handlers
-	async onClickDay({ date, isNewSplit }: Parameters<TOnClick>[0]): Promise<void> {
+	async onClick({ date, isNewSplit, granularity }: Parameters<TOnClick>[0]): Promise<void> {
 		const { workspace } = window.app;
 		const leaf = isNewSplit ? workspace.splitActiveLeaf() : workspace.getUnpinnedLeaf();
 		const openFile = async (file: TFile) => {
 			file && (await leaf.openFile(file));
-			activeFile.setFile(getDateUID(date, 'day'));
+			activeFile.setFile(getDateUID(date, granularity));
 		};
 
-		let file = getNoteByGranularity({ date, granularity: 'day' });
+		let file = getNoteByGranularity({ date, granularity });
 
 		if (!file) {
-			const { format } = getNoteSettingsByGranularity('day');
+			const periodicity = capitalize(getPeriodicityFromGranularity(granularity));
+			const { format } = getNoteSettingsByGranularity(granularity);
+			const formattedDate = date.format(format);
 
 			if (this.settings.shouldConfirmBeforeCreate) {
 				createConfirmationDialog<TFile | undefined>({
+					title: `New ${periodicity} Note`,
+					text: `File ${formattedDate} does not exist. Would you like to create it?`,
+					note: getOnCreateNoteDialogNoteFromGranularity(granularity),
 					cta: 'Create',
 					onAccept: async () => {
-						file = await createDailyNote(date);
-						file && (await openFile(file));
-
-						return file;
-					},
-					text: `File ${date.format(format)} does not exist. Would you like to create it?`,
-					note: getOnCreateNoteDialogNoteFromGranularity('day'),
-					title: 'New Daily Note'
-				});
-			} else {
-				file = await createDailyNote(date);
-				file && (await openFile(file));
-			}
-		} else {
-			file && (await openFile(file));
-		}
-	}
-
-	async onClickWeek({ date: startOfWeekDate, isNewSplit }: Parameters<TOnClick>[0]): Promise<void> {
-		const { workspace } = this.app;
-		const leaf = isNewSplit ? workspace.splitActiveLeaf() : workspace.getUnpinnedLeaf();
-		const openFile = async (file: TFile) => {
-			file && (await leaf.openFile(file));
-
-			activeFile.setFile(getDateUID(startOfWeekDate, 'week'));
-		};
-
-		let file = getNoteByGranularity({ date: startOfWeekDate, granularity: 'week' });
-
-		console.log('onClickWeek() > weekStore: ', get(notesStores['week']), 'file: ', file);
-
-		if (!file) {
-			const { format } = getNoteSettingsByGranularity('week');
-
-			if (this.settings.shouldConfirmBeforeCreate) {
-				createConfirmationDialog<TFile | undefined>({
-					title: 'New Daily Note',
-					text: `File ${startOfWeekDate.format(
-						format
-					)} does not exist. Would you like to create it?`,
-					note: getOnCreateNoteDialogNoteFromGranularity('week'),
-					cta: 'Create',
-					onAccept: async () => {
-						file = await createWeeklyNote(startOfWeekDate);
+						file = await noteCreator[granularity](date);
 						file && (await openFile(file));
 
 						return file;
 					}
 				});
 			} else {
-				file = await createWeeklyNote(startOfWeekDate);
+				file = await noteCreator[granularity](date);
 				file && (await openFile(file));
 			}
 		} else {
@@ -259,41 +212,17 @@ export class CalendarView extends ItemView {
 		}
 	}
 
-	async onClickMonth({ date, isNewSplit }: Parameters<TOnClick>[0]): Promise<void> {
-		return Promise.resolve();
-	}
-
-	async onClickQuarter({ date, isNewSplit }: Parameters<TOnClick>[0]): Promise<void> {
-		return Promise.resolve();
-	}
-
-	async onClickYear({ date, isNewSplit }: Parameters<TOnClick>[0]): Promise<void> {
-		return Promise.resolve();
-	}
-
-	onHoverDay({ date, targetEl, isMetaPressed }: Parameters<TOnHover>[0]): void {
+	onHover({ date, targetEl, isMetaPressed, granularity }: Parameters<TOnHover>[0]): void {
 		if (!isMetaPressed) {
 			return;
 		}
-		const { format } = getNoteSettingsByGranularity('day');
-		const note = getNoteByGranularity({ date, granularity: 'day' });
+		const { format } = getNoteSettingsByGranularity(granularity);
+		const note = getNoteByGranularity({ date, granularity });
 		this.app.workspace.trigger('link-hover', this, targetEl, date.format(format), note?.path);
 	}
 
-	onHoverWeek({ date, targetEl, isMetaPressed }: Parameters<TOnHover>[0]): void {
-		if (!isMetaPressed) {
-			return;
-		}
-		const note = getNoteByGranularity({ date, granularity: 'week' });
-		const { format } = getNoteSettingsByGranularity('week');
-		this.app.workspace.trigger('link-hover', this, targetEl, date.format(format), note?.path);
-	}
-	onHoverMonth({ date, targetEl, isMetaPressed }: Parameters<TOnHover>[0]): void {}
-	onHoverQuarter({ date, targetEl, isMetaPressed }: Parameters<TOnHover>[0]): void {}
-	onHoverYear({ date, targetEl, isMetaPressed }: Parameters<TOnHover>[0]): void {}
-
-	private onContextMenuDay({ date, event }: { date: Moment; event: MouseEvent }): void {
-		const note = getNoteByGranularity({ date, granularity: 'day' });
+	onContextMenu({ date, event, granularity }: Parameters<TOnContextMenu>[0]): void {
+		const note = getNoteByGranularity({ date, granularity});
 		if (!note) {
 			// If no file exists for a given day, show nothing.
 			return;
@@ -303,25 +232,10 @@ export class CalendarView extends ItemView {
 		// 	y: event.pageY
 		// });
 	}
-
-	private onContextMenuWeek({ date, event }: { date: Moment; event: MouseEvent }): void {
-		const note = getNoteByGranularity({ date, granularity: 'week' });
-		if (!note) {
-			// If no file exists for a given day, show nothing.
-			return;
-		}
-		// showFileMenu(this.app, note, {
-		// 	x: event.pageX,
-		// 	y: event.pageY
-		// });
-	}
-	private onContextMenuMonth({ date, event }: Parameters<TOnContextMenu>[0]): void {}
-	private onContextMenuQuarter({ date, event }: Parameters<TOnContextMenu>[0]): void {}
-	private onContextMenuYear({ date, event }: Parameters<TOnContextMenu>[0]): void {}
 
 	// Utils
 	private updateActiveFile(): void {
-		console.log('CalendarView > on(periodic-notes:settings-updated) > updateActiveFile()')
+		console.log('CalendarView > on(periodic-notes:settings-updated) > updateActiveFile()');
 		// get activeLeaf view
 		const activeLeaf = this.app.workspace.activeLeaf;
 
