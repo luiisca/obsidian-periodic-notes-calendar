@@ -5,11 +5,9 @@
 	window.dayjs.extend(weekOfYear);
 	window.dayjs.extend(isoWeek);
 
-	// import { Plugin, debounce } from 'obsidian';
 	import { getContext, setContext } from 'svelte';
 	import { writable } from 'svelte/store';
 
-	// import type { IDayMetadata } from '@/calendar/types';
 
 	import { DISPLAYED_MONTH, IS_MOBILE, VIEW } from '../context';
 	// import PopoverMenu from "./popover/PopoverMenu.svelte";
@@ -17,39 +15,24 @@
 	// import Nav from './Nav.svelte';
 	// import WeekNum from './WeekNum.svelte';
 	import { getMonth, getStartOfWeek, isWeekend } from '../utils';
-	import { dailyNotesExtStore, settingsStore, weeklyNotesExtStore } from '@/stores';
+	import { notesStores, settingsStore } from '@/stores';
 	import type { CalendarView } from '@/view';
 	import Day from './Day.svelte';
-	import type { ISettings } from '@/settings';
 	import Nav from './Nav.svelte';
 	import WeekNum from './WeekNum.svelte';
-
-	// export let localeData: Locale;
-
-	// // External sources (All optional)
-	// export let plugin: Plugin;
-	// export let sources: ICalendarSource[] = [];
-	// export let getSourceSettings: (sourceId: string) => ISourceSettings;
-	// export let selectedId: string;
-
-	// // Override-able local state
-	// export let today: Moment = window.moment();
-	// export let displayedMonth: Moment = today;
+	import { granularities } from '@/constants';
+	import type { Moment } from 'moment';
 
 	const { app } = getContext<CalendarView>(VIEW);
-
-	console.log('CONTEXT 🤯', app);
 
 	$: ({
 		localeData: { showWeekNums, localizedWeekdaysShort }
 	} = $settingsStore);
 
-	// setContext(IS_MOBILE, (this.app as any).isMobile);
-
-	let displayedMonth = window.moment();
+	let displayedMonth = writable<Moment>(window.moment());
 	setContext(DISPLAYED_MONTH, displayedMonth);
 
-	$: month = getMonth(displayedMonth);
+	$: month = getMonth($displayedMonth);
 
 	// let hoverTimeout: number;
 	// let showPopover: boolean = false;
@@ -94,21 +77,16 @@
 	$: $settingsStore, reindexNotes();
 
 	const reindexNotes = () => {
-		console.log('calendar.svelte > reindexNotes() 🫵');
-		dailyNotesExtStore.reindex();
-		weeklyNotesExtStore.reindex();
+		granularities.forEach((granularity) => {
+			notesStores[granularity].reindex();
+		});
 	};
 </script>
 
 <div id="calendar-container" class="container">
-	<!-- <Nav
-		{fileCache}
-		{today}
-		{getSourceSettings}
-		{eventHandlers}
-		on:hoverDay={updatePopover}
-		on:endHoverDay={dismissPopover}
-	/> -->
+	<!-- on:hoverDay={updatePopover}
+		on:endHoverDay={dismissPopover} -->
+	<Nav today={window.moment()} />
 	<table class="calendar">
 		<colgroup>
 			{#if showWeekNums}

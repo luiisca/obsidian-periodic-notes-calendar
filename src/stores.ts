@@ -1,21 +1,26 @@
-import { get, writable } from 'svelte/store';
+import { writable } from 'svelte/store';
 import { DEFAULT_SETTINGS, type ISettings } from './settings';
 import type { TFile } from 'obsidian';
-import { getAllDailyNotes, getAllWeeklyNotes } from './calendar-io';
+import {
+	getAllNotesByGranularity,
+	type IGranularity
+} from './calendar-io';
+import { granularities } from './constants';
 
-function createDailyNotesStore() {
+function createNotesStore(granularity: IGranularity) {
 	let hasError = false;
 	const store = writable<Record<string, TFile>>({});
+
 	return {
 		reindex: () => {
-			console.log('createDailyNotesStore > reindexing')
+			console.log(`create${granularity}NotesStore > reindexing`);
+
 			try {
-				const dailyNotes = getAllDailyNotes();
-				// console.log('stores.ts > reindex() > createDailyNotesStore(): ', dailyNotes);
-				if (Object.keys(dailyNotes).length === 0) {
+				const notes = getAllNotesByGranularity(granularity);
+				if (Object.keys(notes).length === 0) {
 					throw new Error('No notes found');
 				}
-				store.set(dailyNotes);
+				store.set(notes);
 				hasError = false;
 			} catch (err) {
 				if (!hasError) {
@@ -30,44 +35,27 @@ function createDailyNotesStore() {
 	};
 }
 
-function createWeeklyNotesStore() {
-	let hasError = false;
-	const store = writable<Record<string, TFile>>({});
-	return {
-		reindex: () => {
-			console.log('createWeeklyNotesStore > reindexing')
-			try {
-				const weeklyNotes = getAllWeeklyNotes();
-				store.set(weeklyNotes);
-				hasError = false;
-			} catch (err) {
-				if (!hasError) {
-					// Avoid error being shown multiple times
-					console.log('[Calendar] Failed to find weekly notes folder', err);
-				}
-				store.set({});
-				hasError = true;
-			}
-		},
-		...store
-	};
-}
+type TNotesStore = Record<IGranularity, ReturnType<typeof createNotesStore>>
+export const notesStores: TNotesStore = {} as TNotesStore;
 
-export const dailyNotesExtStore = createDailyNotesStore();
-export const weeklyNotesExtStore = createWeeklyNotesStore();
+granularities.forEach((granularity) => {
+	const notesExtStore = createNotesStore(granularity);
+
+	notesStores[granularity] = notesExtStore;
+});
 
 export const settingsStore = writable<ISettings>(DEFAULT_SETTINGS);
 
 function createSelectedFileStore() {
-  const store = writable<string | null>(null);
+	const store = writable<string | null>(null);
 
-  return {
-    setFile: (id: string) => {
-      store.set(id);
-	  console.log('createSelectedFileStore > store: ', get(store))
-    },
-    ...store,
-  };
+	return {
+		setFile: (id: string) => {
+			store.set(id);
+			// console.log('createSelectedFileStore > setFile > activeFileUID: ', get(store));
+		},
+		...store
+	};
 }
 
 export const activeFile = createSelectedFileStore();

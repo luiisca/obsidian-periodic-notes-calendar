@@ -1,6 +1,6 @@
 import { Plugin, WorkspaceLeaf } from 'obsidian';
 import { computePosition, autoUpdate, flip, offset, shift, arrow } from '@floating-ui/dom';
-import { CalendarView, VIEW_TYPE_EXAMPLE } from './view';
+import { CalendarView, VIEW_TYPE_CALENDAR } from './view';
 import Calendar from './View.svelte';
 import { settingsStore } from './stores';
 import { SettingsTab, type ISettings, DEFAULT_SETTINGS } from './settings';
@@ -13,7 +13,7 @@ export default class DailyNoteFlexPlugin extends Plugin {
 	onunload() {
 		console.log('ON Unload ⛰️');
 
-		this.app.workspace.getLeavesOfType(VIEW_TYPE_EXAMPLE).forEach((leaf) => leaf.detach());
+		this.app.workspace.getLeavesOfType(VIEW_TYPE_CALENDAR).forEach((leaf) => leaf.detach());
 
 		this.cleanupPopup && this.cleanupPopup();
 		this.removeLocaleScripts();
@@ -253,30 +253,30 @@ export default class DailyNoteFlexPlugin extends Plugin {
 
 	async handleView() {
 		// register view
-		this.registerView(VIEW_TYPE_EXAMPLE, (leaf) => new CalendarView(leaf));
+		this.registerView(VIEW_TYPE_CALENDAR, (leaf) => new CalendarView(leaf));
 
 		// TODO: Try to not block initial loading by deferring loading with 'onLayoutReady'
 		// activate view
 		await this.initView();
 	}
 	async initView({ active }: { active: boolean } = { active: true }) {
-		this.app.workspace.detachLeavesOfType(VIEW_TYPE_EXAMPLE);
+		this.app.workspace.detachLeavesOfType(VIEW_TYPE_CALENDAR);
 
 		await this.app.workspace.getLeftLeaf(false).setViewState({
-			type: VIEW_TYPE_EXAMPLE,
+			type: VIEW_TYPE_CALENDAR,
 			active
 		});
 	}
 	revealView() {
-		this.app.workspace.revealLeaf(this.app.workspace.getLeavesOfType(VIEW_TYPE_EXAMPLE)[0]);
-		this.app.workspace.getLeavesOfType(VIEW_TYPE_EXAMPLE)[0].setViewState({
-			type: VIEW_TYPE_EXAMPLE,
+		this.app.workspace.revealLeaf(this.app.workspace.getLeavesOfType(VIEW_TYPE_CALENDAR)[0]);
+		this.app.workspace.getLeavesOfType(VIEW_TYPE_CALENDAR)[0].setViewState({
+			type: VIEW_TYPE_CALENDAR,
 			active: true
 		});
 	}
 
 	async toggleView() {
-		const leaf = this.app.workspace.getLeavesOfType(VIEW_TYPE_EXAMPLE)[0] as
+		const leaf = this.app.workspace.getLeavesOfType(VIEW_TYPE_CALENDAR)[0] as
 			| WorkspaceLeaf
 			| undefined;
 

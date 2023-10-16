@@ -1383,6 +1383,19 @@ const computePosition = (reference, floating, options) => {
 /** @returns {void} */
 function noop() {}
 
+/**
+ * @template T
+ * @template S
+ * @param {T} tar
+ * @param {S} src
+ * @returns {T & S}
+ */
+function assign(tar, src) {
+	// @ts-ignore
+	for (const k in src) tar[k] = src[k];
+	return /** @type {T & S} */ (tar);
+}
+
 function run(fn) {
 	return fn();
 }
@@ -1450,6 +1463,21 @@ function get_store_value(store) {
 /** @returns {void} */
 function component_subscribe(component, store, callback) {
 	component.$$.on_destroy.push(subscribe(store, callback));
+}
+
+/** @returns {{}} */
+function exclude_internal_props(props) {
+	const result = {};
+	for (const k in props) if (k[0] !== '$') result[k] = props[k];
+	return result;
+}
+
+/** @returns {{}} */
+function compute_rest_props(props, keys) {
+	const rest = {};
+	keys = new Set(keys);
+	for (const k in props) if (!keys.has(k) && k[0] !== '$') rest[k] = props[k];
+	return rest;
 }
 
 function null_to_empty(value) {
@@ -1542,6 +1570,15 @@ function element(name) {
 }
 
 /**
+ * @template {keyof SVGElementTagNameMap} K
+ * @param {K} name
+ * @returns {SVGElement}
+ */
+function svg_element(name) {
+	return document.createElementNS('http://www.w3.org/2000/svg', name);
+}
+
+/**
  * @param {string} data
  * @returns {Text}
  */
@@ -1601,6 +1638,16 @@ function set_data(text, data) {
 	data = '' + data;
 	if (text.data === data) return;
 	text.data = /** @type {string} */ (data);
+}
+
+/**
+ * @returns {void} */
+function set_style(node, key, value, important) {
+	if (value == null) {
+		node.style.removeProperty(key);
+	} else {
+		node.style.setProperty(key, value, important ? 'important' : '');
+	}
 }
 
 /**
@@ -2372,6 +2419,263 @@ function getMonth(displayedMonth) {
     return month;
 }
 
+// Credit: @creationix/path.js
+function join(...partSegments) {
+    // Split the inputs into a list of path commands.
+    let parts = [];
+    for (let i = 0, l = partSegments.length; i < l; i++) {
+        parts = parts.concat(partSegments[i].split("/"));
+    }
+    // Interpret the path commands to get the new resolved path.
+    const newParts = [];
+    for (let i = 0, l = parts.length; i < l; i++) {
+        const part = parts[i];
+        // Remove leading and trailing slashes
+        // Also remove "." segments
+        if (!part || part === ".")
+            continue;
+        // Push new path segments.
+        else
+            newParts.push(part);
+    }
+    // Preserve the initial slash if there was one.
+    if (parts[0] === "")
+        newParts.unshift("");
+    // Turn back into a single string path.
+    return newParts.join("/");
+}
+async function ensureFolderExists(path) {
+    const dirs = path.replace(/\\/g, "/").split("/");
+    dirs.pop(); // remove basename
+    if (dirs.length) {
+        const dir = join(...dirs);
+        if (!window.app.vault.getAbstractFileByPath(dir)) {
+            await window.app.vault.createFolder(dir);
+        }
+    }
+}
+async function getNotePath(directory, filename) {
+    if (!filename.endsWith(".md")) {
+        filename += ".md";
+    }
+    const path = obsidian.normalizePath(join(directory, filename));
+    await ensureFolderExists(path);
+    return path;
+}
+async function getTemplateInfo(template) {
+    const { metadataCache, vault } = window.app;
+    const templatePath = obsidian.normalizePath(template);
+    if (templatePath === "/") {
+        return Promise.resolve(["", null]);
+    }
+    try {
+        // get First file matching given templatePath
+        const templateFile = metadataCache.getFirstLinkpathDest(templatePath, "");
+        const contents = await vault.cachedRead(templateFile);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const IFoldInfo = window.app.foldManager.load(templateFile);
+        return [contents, IFoldInfo];
+    }
+    catch (err) {
+        console.error(`Failed to read the daily note template '${templatePath}'`, err);
+        new obsidian.Notice("Failed to read the daily note template");
+        return ["", null];
+    }
+}
+
+const NOTE_FORMATS = {
+    DAILY: 'YYYY-MM-DD',
+    WEEKLY: 'gggg-[W]ww',
+    MONTHLY: 'YYYY-MM',
+    QUARTERLY: 'YYYY-[Q]Q',
+    YEARLY: 'YYYY',
+};
+
+function shouldUsePeriodicNotesSettings(periodicity) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const periodicNotes = window.app.plugins.getPlugin('periodic-notes');
+    return periodicNotes && periodicNotes.settings?.[periodicity]?.enabled;
+}
+/**
+ * Read the user settings for the `${granularity}-notes` plugin
+ * to keep behavior of creating a new note in-sync.
+ */
+function getNoteSettingsByGranularity(granularity) {
+    const periodicity = getPeriodicityFromGranularity(granularity);
+    const defaultNoteFormat = NOTE_FORMATS[periodicity.toUpperCase()];
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { internalPlugins, plugins } = window.app;
+        if (shouldUsePeriodicNotesSettings(periodicity)) {
+            const { format, folder, template } = plugins.getPlugin('periodic-notes')?.settings?.[periodicity] || {};
+            return {
+                format: format || defaultNoteFormat,
+                folder: folder?.trim() || '/',
+                template: template?.trim() || ''
+            };
+        }
+        if (periodicity === 'daily') {
+            const { folder, format, template } = internalPlugins.getPluginById('daily-notes')?.instance?.options || {};
+            return {
+                format: format || defaultNoteFormat,
+                folder: folder?.trim() || '/',
+                template: template?.trim() || ''
+            };
+        }
+        return {
+            format: defaultNoteFormat,
+            folder: '/',
+            template: ''
+        };
+    }
+    catch (err) {
+        console.info('No custom daily note settings found! Ensure the plugin is active.', err);
+        return {
+            format: defaultNoteFormat,
+            folder: '/',
+            template: ''
+        };
+    }
+}
+
+/**
+ * dateUID is a way of weekly identifying daily/weekly/monthly notes.
+ * They are prefixed with the granularity to avoid ambiguity.
+ */
+function getDateUID(date, granularity = 'day') {
+    return `${granularity}-${date.startOf(granularity).format()}`;
+}
+function removeEscapedCharacters(format) {
+    return format.replace(/\[[^\]]*\]/g, ''); // remove everything within brackets
+}
+/**
+ * XXX: When parsing dates that contain both week numbers and months,
+ * Moment choses to ignore the week numbers. For the week dateUID, we
+ * want the opposite behavior. Strip the MMM from the format to patch.
+ */
+function isWeekFormatAmbiguous(format) {
+    const cleanFormat = removeEscapedCharacters(format);
+    return /w{1,2}/i.test(cleanFormat) && (/M{1,4}/.test(cleanFormat) || /D{1,4}/.test(cleanFormat));
+}
+function getDateFromFile(file, granularity) {
+    return getDateFromFilename(file.basename, granularity);
+}
+function getDateFromFilename(filename, granularity) {
+    const format = getNoteSettingsByGranularity(granularity).format.split('/').pop();
+    // TODO: Find a way to validate if a filename represents a valid date without using format to avoid:
+    // every time periodic notes update and format changes only notes created with the new format are stored, the rest are neglected.
+    const noteDate = window.moment(filename, format, true);
+    if (!noteDate.isValid()) {
+        return null;
+    }
+    if (granularity === 'week') {
+        if (format && isWeekFormatAmbiguous(format)) {
+            const cleanFormat = removeEscapedCharacters(format);
+            if (/w{1,2}/i.test(cleanFormat)) {
+                return window.moment(filename, 
+                // If format contains week, remove day & month formatting
+                format.replace(/M{1,4}/g, '').replace(/D{1,4}/g, ''), false);
+            }
+        }
+    }
+    return noteDate;
+}
+function getPeriodicityFromGranularity(granularity) {
+    return granularity === 'day' ? 'daily' : `${granularity}ly`;
+}
+
+async function fetchWithRetry(url, retries = 0) {
+    try {
+        const response = await fetch(url);
+        if (!response.ok)
+            throw new Error('Network response was not OK');
+        const localesArr = (await response.json());
+        return localesArr;
+    }
+    catch (error) {
+        if (retries < 3) {
+            new obsidian.Notice(`Something went wrong. Retry ${retries + 1}`);
+            return fetchWithRetry(url, retries + 1);
+        }
+        else {
+            new obsidian.Notice(`Fetch failed after ${retries} attempts. Using local, possibly outdated locales. Check internet and restart plugin.`);
+            return null;
+        }
+    }
+}
+function capitalize(string) {
+    return string[0].toUpperCase() + string.slice(1).toLowerCase();
+}
+function getOnCreateNoteDialogNoteFromGranularity(granularity) {
+    const periodicity = getPeriodicityFromGranularity(granularity);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const periodicNotesPlugin = window.app.plugins.getPlugin('periodic-notes');
+    const noteSettingsFromPeriodicNotesPlugin = periodicNotesPlugin?.settings[periodicity].enabled;
+    if (granularity === 'day') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const dailyNotesPlugin = app.internalPlugins.plugins['daily-notes']?.enabled;
+        if (periodicNotesPlugin) {
+            if (noteSettingsFromPeriodicNotesPlugin) {
+                return 'Note: Using Daily notes config from Periodic Notes plugin.';
+            }
+            else {
+                if (dailyNotesPlugin) {
+                    return 'Note: Daily notes from Periodic Notes plugin are disabled. Using Daily Notes plugin config for now.';
+                }
+                else {
+                    return 'Note: Daily notes from Periodic Notes plugin and Daily Notes plugin are disabled. Using default config for now.';
+                }
+            }
+        }
+        else {
+            if (dailyNotesPlugin) {
+                return 'Note: Missing Periodic Notes plugin! Please install or activate. Using Daily Notes plugin config for now.';
+            }
+            else {
+                return 'Note: Missing Periodic Notes and Daily Notes plugin! Please install or activate. Using default config for now.';
+            }
+        }
+    }
+    if (periodicNotesPlugin) {
+        if (noteSettingsFromPeriodicNotesPlugin) {
+            return `Note: Using ${capitalize(periodicity)} notes config from Periodic Notes plugin.`;
+        }
+        else {
+            return `Note: ${capitalize(periodicity)} notes from Periodic Notes plugin are disabled. Using default config for now.`;
+        }
+    }
+    else {
+        return 'Note: Missing Periodic Notes plugin! Please install or activate. Defaults will be used for now.';
+    }
+}
+
+var dayjs_min = {exports: {}};
+
+(function (module, exports) {
+	!function(t,e){module.exports=e();}(commonjsGlobal,(function(){var t=1e3,e=6e4,n=36e5,r="millisecond",i="second",s="minute",u="hour",a="day",o="week",c="month",f="quarter",h="year",d="date",l="Invalid Date",$=/^(\d{4})[-/]?(\d{1,2})?[-/]?(\d{0,2})[Tt\s]*(\d{1,2})?:?(\d{1,2})?:?(\d{1,2})?[.:]?(\d+)?$/,y=/\[([^\]]+)]|Y{1,4}|M{1,4}|D{1,2}|d{1,4}|H{1,2}|h{1,2}|a|A|m{1,2}|s{1,2}|Z{1,2}|SSS/g,M={name:"en",weekdays:"Sunday_Monday_Tuesday_Wednesday_Thursday_Friday_Saturday".split("_"),months:"January_February_March_April_May_June_July_August_September_October_November_December".split("_"),ordinal:function(t){var e=["th","st","nd","rd"],n=t%100;return "["+t+(e[(n-20)%10]||e[n]||e[0])+"]"}},m=function(t,e,n){var r=String(t);return !r||r.length>=e?t:""+Array(e+1-r.length).join(n)+t},v={s:m,z:function(t){var e=-t.utcOffset(),n=Math.abs(e),r=Math.floor(n/60),i=n%60;return (e<=0?"+":"-")+m(r,2,"0")+":"+m(i,2,"0")},m:function t(e,n){if(e.date()<n.date())return -t(n,e);var r=12*(n.year()-e.year())+(n.month()-e.month()),i=e.clone().add(r,c),s=n-i<0,u=e.clone().add(r+(s?-1:1),c);return +(-(r+(n-i)/(s?i-u:u-i))||0)},a:function(t){return t<0?Math.ceil(t)||0:Math.floor(t)},p:function(t){return {M:c,y:h,w:o,d:a,D:d,h:u,m:s,s:i,ms:r,Q:f}[t]||String(t||"").toLowerCase().replace(/s$/,"")},u:function(t){return void 0===t}},g="en",D={};D[g]=M;var p="$isDayjsObject",S=function(t){return t instanceof _||!(!t||!t[p])},w=function t(e,n,r){var i;if(!e)return g;if("string"==typeof e){var s=e.toLowerCase();D[s]&&(i=s),n&&(D[s]=n,i=s);var u=e.split("-");if(!i&&u.length>1)return t(u[0])}else {var a=e.name;D[a]=e,i=a;}return !r&&i&&(g=i),i||!r&&g},O=function(t,e){if(S(t))return t.clone();var n="object"==typeof e?e:{};return n.date=t,n.args=arguments,new _(n)},b=v;b.l=w,b.i=S,b.w=function(t,e){return O(t,{locale:e.$L,utc:e.$u,x:e.$x,$offset:e.$offset})};var _=function(){function M(t){this.$L=w(t.locale,null,!0),this.parse(t),this.$x=this.$x||t.x||{},this[p]=!0;}var m=M.prototype;return m.parse=function(t){this.$d=function(t){var e=t.date,n=t.utc;if(null===e)return new Date(NaN);if(b.u(e))return new Date;if(e instanceof Date)return new Date(e);if("string"==typeof e&&!/Z$/i.test(e)){var r=e.match($);if(r){var i=r[2]-1||0,s=(r[7]||"0").substring(0,3);return n?new Date(Date.UTC(r[1],i,r[3]||1,r[4]||0,r[5]||0,r[6]||0,s)):new Date(r[1],i,r[3]||1,r[4]||0,r[5]||0,r[6]||0,s)}}return new Date(e)}(t),this.init();},m.init=function(){var t=this.$d;this.$y=t.getFullYear(),this.$M=t.getMonth(),this.$D=t.getDate(),this.$W=t.getDay(),this.$H=t.getHours(),this.$m=t.getMinutes(),this.$s=t.getSeconds(),this.$ms=t.getMilliseconds();},m.$utils=function(){return b},m.isValid=function(){return !(this.$d.toString()===l)},m.isSame=function(t,e){var n=O(t);return this.startOf(e)<=n&&n<=this.endOf(e)},m.isAfter=function(t,e){return O(t)<this.startOf(e)},m.isBefore=function(t,e){return this.endOf(e)<O(t)},m.$g=function(t,e,n){return b.u(t)?this[e]:this.set(n,t)},m.unix=function(){return Math.floor(this.valueOf()/1e3)},m.valueOf=function(){return this.$d.getTime()},m.startOf=function(t,e){var n=this,r=!!b.u(e)||e,f=b.p(t),l=function(t,e){var i=b.w(n.$u?Date.UTC(n.$y,e,t):new Date(n.$y,e,t),n);return r?i:i.endOf(a)},$=function(t,e){return b.w(n.toDate()[t].apply(n.toDate("s"),(r?[0,0,0,0]:[23,59,59,999]).slice(e)),n)},y=this.$W,M=this.$M,m=this.$D,v="set"+(this.$u?"UTC":"");switch(f){case h:return r?l(1,0):l(31,11);case c:return r?l(1,M):l(0,M+1);case o:var g=this.$locale().weekStart||0,D=(y<g?y+7:y)-g;return l(r?m-D:m+(6-D),M);case a:case d:return $(v+"Hours",0);case u:return $(v+"Minutes",1);case s:return $(v+"Seconds",2);case i:return $(v+"Milliseconds",3);default:return this.clone()}},m.endOf=function(t){return this.startOf(t,!1)},m.$set=function(t,e){var n,o=b.p(t),f="set"+(this.$u?"UTC":""),l=(n={},n[a]=f+"Date",n[d]=f+"Date",n[c]=f+"Month",n[h]=f+"FullYear",n[u]=f+"Hours",n[s]=f+"Minutes",n[i]=f+"Seconds",n[r]=f+"Milliseconds",n)[o],$=o===a?this.$D+(e-this.$W):e;if(o===c||o===h){var y=this.clone().set(d,1);y.$d[l]($),y.init(),this.$d=y.set(d,Math.min(this.$D,y.daysInMonth())).$d;}else l&&this.$d[l]($);return this.init(),this},m.set=function(t,e){return this.clone().$set(t,e)},m.get=function(t){return this[b.p(t)]()},m.add=function(r,f){var d,l=this;r=Number(r);var $=b.p(f),y=function(t){var e=O(l);return b.w(e.date(e.date()+Math.round(t*r)),l)};if($===c)return this.set(c,this.$M+r);if($===h)return this.set(h,this.$y+r);if($===a)return y(1);if($===o)return y(7);var M=(d={},d[s]=e,d[u]=n,d[i]=t,d)[$]||1,m=this.$d.getTime()+r*M;return b.w(m,this)},m.subtract=function(t,e){return this.add(-1*t,e)},m.format=function(t){var e=this,n=this.$locale();if(!this.isValid())return n.invalidDate||l;var r=t||"YYYY-MM-DDTHH:mm:ssZ",i=b.z(this),s=this.$H,u=this.$m,a=this.$M,o=n.weekdays,c=n.months,f=n.meridiem,h=function(t,n,i,s){return t&&(t[n]||t(e,r))||i[n].slice(0,s)},d=function(t){return b.s(s%12||12,t,"0")},$=f||function(t,e,n){var r=t<12?"AM":"PM";return n?r.toLowerCase():r};return r.replace(y,(function(t,r){return r||function(t){switch(t){case"YY":return String(e.$y).slice(-2);case"YYYY":return b.s(e.$y,4,"0");case"M":return a+1;case"MM":return b.s(a+1,2,"0");case"MMM":return h(n.monthsShort,a,c,3);case"MMMM":return h(c,a);case"D":return e.$D;case"DD":return b.s(e.$D,2,"0");case"d":return String(e.$W);case"dd":return h(n.weekdaysMin,e.$W,o,2);case"ddd":return h(n.weekdaysShort,e.$W,o,3);case"dddd":return o[e.$W];case"H":return String(s);case"HH":return b.s(s,2,"0");case"h":return d(1);case"hh":return d(2);case"a":return $(s,u,!0);case"A":return $(s,u,!1);case"m":return String(u);case"mm":return b.s(u,2,"0");case"s":return String(e.$s);case"ss":return b.s(e.$s,2,"0");case"SSS":return b.s(e.$ms,3,"0");case"Z":return i}return null}(t)||i.replace(":","")}))},m.utcOffset=function(){return 15*-Math.round(this.$d.getTimezoneOffset()/15)},m.diff=function(r,d,l){var $,y=this,M=b.p(d),m=O(r),v=(m.utcOffset()-this.utcOffset())*e,g=this-m,D=function(){return b.m(y,m)};switch(M){case h:$=D()/12;break;case c:$=D();break;case f:$=D()/3;break;case o:$=(g-v)/6048e5;break;case a:$=(g-v)/864e5;break;case u:$=g/n;break;case s:$=g/e;break;case i:$=g/t;break;default:$=g;}return l?$:b.a($)},m.daysInMonth=function(){return this.endOf(c).$D},m.$locale=function(){return D[this.$L]},m.locale=function(t,e){if(!t)return this.$L;var n=this.clone(),r=w(t,e,!0);return r&&(n.$L=r),n},m.clone=function(){return b.w(this.$d,this)},m.toDate=function(){return new Date(this.valueOf())},m.toJSON=function(){return this.isValid()?this.toISOString():null},m.toISOString=function(){return this.$d.toISOString()},m.toString=function(){return this.$d.toUTCString()},M}(),k=_.prototype;return O.prototype=k,[["$ms",r],["$s",i],["$m",s],["$H",u],["$W",a],["$M",c],["$y",h],["$D",d]].forEach((function(t){k[t[1]]=function(e){return this.$g(e,t[0],t[1])};})),O.extend=function(t,e){return t.$i||(t(e,_,O),t.$i=!0),O},O.locale=w,O.isDayjs=S,O.unix=function(t){return O(1e3*t)},O.en=D[g],O.Ls=D,O.p={},O})); 
+} (dayjs_min));
+
+var dayjs_minExports = dayjs_min.exports;
+var dayjs = /*@__PURE__*/getDefaultExportFromCjs(dayjs_minExports);
+
+var weekday$1 = {exports: {}};
+
+(function (module, exports) {
+	!function(e,t){module.exports=t();}(commonjsGlobal,(function(){return function(e,t){t.prototype.weekday=function(e){var t=this.$locale().weekStart||0,i=this.$W,n=(i<t?i+7:i)-t;return this.$utils().u(e)?n:this.subtract(n,"day").add(e,"day")};}})); 
+} (weekday$1));
+
+var weekdayExports = weekday$1.exports;
+var weekday = /*@__PURE__*/getDefaultExportFromCjs(weekdayExports);
+
+var localeData$1 = {exports: {}};
+
+(function (module, exports) {
+	!function(n,e){module.exports=e();}(commonjsGlobal,(function(){return function(n,e,t){var r=e.prototype,o=function(n){return n&&(n.indexOf?n:n.s)},u=function(n,e,t,r,u){var i=n.name?n:n.$locale(),a=o(i[e]),s=o(i[t]),f=a||s.map((function(n){return n.slice(0,r)}));if(!u)return f;var d=i.weekStart;return f.map((function(n,e){return f[(e+(d||0))%7]}))},i=function(){return t.Ls[t.locale()]},a=function(n,e){return n.formats[e]||function(n){return n.replace(/(\[[^\]]+])|(MMMM|MM|DD|dddd)/g,(function(n,e,t){return e||t.slice(1)}))}(n.formats[e.toUpperCase()])},s=function(){var n=this;return {months:function(e){return e?e.format("MMMM"):u(n,"months")},monthsShort:function(e){return e?e.format("MMM"):u(n,"monthsShort","months",3)},firstDayOfWeek:function(){return n.$locale().weekStart||0},weekdays:function(e){return e?e.format("dddd"):u(n,"weekdays")},weekdaysMin:function(e){return e?e.format("dd"):u(n,"weekdaysMin","weekdays",2)},weekdaysShort:function(e){return e?e.format("ddd"):u(n,"weekdaysShort","weekdays",3)},longDateFormat:function(e){return a(n.$locale(),e)},meridiem:this.$locale().meridiem,ordinal:this.$locale().ordinal}};r.localeData=function(){return s.bind(this)()},t.localeData=function(){var n=i();return {firstDayOfWeek:function(){return n.weekStart||0},weekdays:function(){return t.weekdays()},weekdaysShort:function(){return t.weekdaysShort()},weekdaysMin:function(){return t.weekdaysMin()},months:function(){return t.months()},monthsShort:function(){return t.monthsShort()},longDateFormat:function(e){return a(n,e)},meridiem:n.meridiem,ordinal:n.ordinal}},t.months=function(){return u(i(),"months")},t.monthsShort=function(){return u(i(),"monthsShort","months",3)},t.weekdays=function(n){return u(i(),"weekdays",null,null,n)},t.weekdaysShort=function(n){return u(i(),"weekdaysShort","weekdays",3,n)},t.weekdaysMin=function(n){return u(i(),"weekdaysMin","weekdays",2,n)};}})); 
+} (localeData$1));
+
+var localeDataExports = localeData$1.exports;
+var localeData = /*@__PURE__*/getDefaultExportFromCjs(localeDataExports);
+
 const localesMap = new Map();
 const locales = [
     { key: 'af', name: 'Afrikaans' },
@@ -2521,53 +2825,6 @@ const locales = [
 locales.forEach((obj) => {
     localesMap.set(obj.key, obj.name);
 });
-
-async function fetchWithRetry(url, retries = 0) {
-    try {
-        const response = await fetch(url);
-        if (!response.ok)
-            throw new Error('Network response was not OK');
-        const localesArr = (await response.json());
-        return localesArr;
-    }
-    catch (error) {
-        if (retries < 3) {
-            new obsidian.Notice(`Something went wrong. Retry ${retries + 1}`);
-            return fetchWithRetry(url, retries + 1);
-        }
-        else {
-            new obsidian.Notice(`Fetch failed after ${retries} attempts. Using local, possibly outdated locales. Check internet and restart plugin.`);
-            return null;
-        }
-    }
-}
-
-var dayjs_min = {exports: {}};
-
-(function (module, exports) {
-	!function(t,e){module.exports=e();}(commonjsGlobal,(function(){var t=1e3,e=6e4,n=36e5,r="millisecond",i="second",s="minute",u="hour",a="day",o="week",c="month",f="quarter",h="year",d="date",l="Invalid Date",$=/^(\d{4})[-/]?(\d{1,2})?[-/]?(\d{0,2})[Tt\s]*(\d{1,2})?:?(\d{1,2})?:?(\d{1,2})?[.:]?(\d+)?$/,y=/\[([^\]]+)]|Y{1,4}|M{1,4}|D{1,2}|d{1,4}|H{1,2}|h{1,2}|a|A|m{1,2}|s{1,2}|Z{1,2}|SSS/g,M={name:"en",weekdays:"Sunday_Monday_Tuesday_Wednesday_Thursday_Friday_Saturday".split("_"),months:"January_February_March_April_May_June_July_August_September_October_November_December".split("_"),ordinal:function(t){var e=["th","st","nd","rd"],n=t%100;return "["+t+(e[(n-20)%10]||e[n]||e[0])+"]"}},m=function(t,e,n){var r=String(t);return !r||r.length>=e?t:""+Array(e+1-r.length).join(n)+t},v={s:m,z:function(t){var e=-t.utcOffset(),n=Math.abs(e),r=Math.floor(n/60),i=n%60;return (e<=0?"+":"-")+m(r,2,"0")+":"+m(i,2,"0")},m:function t(e,n){if(e.date()<n.date())return -t(n,e);var r=12*(n.year()-e.year())+(n.month()-e.month()),i=e.clone().add(r,c),s=n-i<0,u=e.clone().add(r+(s?-1:1),c);return +(-(r+(n-i)/(s?i-u:u-i))||0)},a:function(t){return t<0?Math.ceil(t)||0:Math.floor(t)},p:function(t){return {M:c,y:h,w:o,d:a,D:d,h:u,m:s,s:i,ms:r,Q:f}[t]||String(t||"").toLowerCase().replace(/s$/,"")},u:function(t){return void 0===t}},g="en",D={};D[g]=M;var p="$isDayjsObject",S=function(t){return t instanceof _||!(!t||!t[p])},w=function t(e,n,r){var i;if(!e)return g;if("string"==typeof e){var s=e.toLowerCase();D[s]&&(i=s),n&&(D[s]=n,i=s);var u=e.split("-");if(!i&&u.length>1)return t(u[0])}else {var a=e.name;D[a]=e,i=a;}return !r&&i&&(g=i),i||!r&&g},O=function(t,e){if(S(t))return t.clone();var n="object"==typeof e?e:{};return n.date=t,n.args=arguments,new _(n)},b=v;b.l=w,b.i=S,b.w=function(t,e){return O(t,{locale:e.$L,utc:e.$u,x:e.$x,$offset:e.$offset})};var _=function(){function M(t){this.$L=w(t.locale,null,!0),this.parse(t),this.$x=this.$x||t.x||{},this[p]=!0;}var m=M.prototype;return m.parse=function(t){this.$d=function(t){var e=t.date,n=t.utc;if(null===e)return new Date(NaN);if(b.u(e))return new Date;if(e instanceof Date)return new Date(e);if("string"==typeof e&&!/Z$/i.test(e)){var r=e.match($);if(r){var i=r[2]-1||0,s=(r[7]||"0").substring(0,3);return n?new Date(Date.UTC(r[1],i,r[3]||1,r[4]||0,r[5]||0,r[6]||0,s)):new Date(r[1],i,r[3]||1,r[4]||0,r[5]||0,r[6]||0,s)}}return new Date(e)}(t),this.init();},m.init=function(){var t=this.$d;this.$y=t.getFullYear(),this.$M=t.getMonth(),this.$D=t.getDate(),this.$W=t.getDay(),this.$H=t.getHours(),this.$m=t.getMinutes(),this.$s=t.getSeconds(),this.$ms=t.getMilliseconds();},m.$utils=function(){return b},m.isValid=function(){return !(this.$d.toString()===l)},m.isSame=function(t,e){var n=O(t);return this.startOf(e)<=n&&n<=this.endOf(e)},m.isAfter=function(t,e){return O(t)<this.startOf(e)},m.isBefore=function(t,e){return this.endOf(e)<O(t)},m.$g=function(t,e,n){return b.u(t)?this[e]:this.set(n,t)},m.unix=function(){return Math.floor(this.valueOf()/1e3)},m.valueOf=function(){return this.$d.getTime()},m.startOf=function(t,e){var n=this,r=!!b.u(e)||e,f=b.p(t),l=function(t,e){var i=b.w(n.$u?Date.UTC(n.$y,e,t):new Date(n.$y,e,t),n);return r?i:i.endOf(a)},$=function(t,e){return b.w(n.toDate()[t].apply(n.toDate("s"),(r?[0,0,0,0]:[23,59,59,999]).slice(e)),n)},y=this.$W,M=this.$M,m=this.$D,v="set"+(this.$u?"UTC":"");switch(f){case h:return r?l(1,0):l(31,11);case c:return r?l(1,M):l(0,M+1);case o:var g=this.$locale().weekStart||0,D=(y<g?y+7:y)-g;return l(r?m-D:m+(6-D),M);case a:case d:return $(v+"Hours",0);case u:return $(v+"Minutes",1);case s:return $(v+"Seconds",2);case i:return $(v+"Milliseconds",3);default:return this.clone()}},m.endOf=function(t){return this.startOf(t,!1)},m.$set=function(t,e){var n,o=b.p(t),f="set"+(this.$u?"UTC":""),l=(n={},n[a]=f+"Date",n[d]=f+"Date",n[c]=f+"Month",n[h]=f+"FullYear",n[u]=f+"Hours",n[s]=f+"Minutes",n[i]=f+"Seconds",n[r]=f+"Milliseconds",n)[o],$=o===a?this.$D+(e-this.$W):e;if(o===c||o===h){var y=this.clone().set(d,1);y.$d[l]($),y.init(),this.$d=y.set(d,Math.min(this.$D,y.daysInMonth())).$d;}else l&&this.$d[l]($);return this.init(),this},m.set=function(t,e){return this.clone().$set(t,e)},m.get=function(t){return this[b.p(t)]()},m.add=function(r,f){var d,l=this;r=Number(r);var $=b.p(f),y=function(t){var e=O(l);return b.w(e.date(e.date()+Math.round(t*r)),l)};if($===c)return this.set(c,this.$M+r);if($===h)return this.set(h,this.$y+r);if($===a)return y(1);if($===o)return y(7);var M=(d={},d[s]=e,d[u]=n,d[i]=t,d)[$]||1,m=this.$d.getTime()+r*M;return b.w(m,this)},m.subtract=function(t,e){return this.add(-1*t,e)},m.format=function(t){var e=this,n=this.$locale();if(!this.isValid())return n.invalidDate||l;var r=t||"YYYY-MM-DDTHH:mm:ssZ",i=b.z(this),s=this.$H,u=this.$m,a=this.$M,o=n.weekdays,c=n.months,f=n.meridiem,h=function(t,n,i,s){return t&&(t[n]||t(e,r))||i[n].slice(0,s)},d=function(t){return b.s(s%12||12,t,"0")},$=f||function(t,e,n){var r=t<12?"AM":"PM";return n?r.toLowerCase():r};return r.replace(y,(function(t,r){return r||function(t){switch(t){case"YY":return String(e.$y).slice(-2);case"YYYY":return b.s(e.$y,4,"0");case"M":return a+1;case"MM":return b.s(a+1,2,"0");case"MMM":return h(n.monthsShort,a,c,3);case"MMMM":return h(c,a);case"D":return e.$D;case"DD":return b.s(e.$D,2,"0");case"d":return String(e.$W);case"dd":return h(n.weekdaysMin,e.$W,o,2);case"ddd":return h(n.weekdaysShort,e.$W,o,3);case"dddd":return o[e.$W];case"H":return String(s);case"HH":return b.s(s,2,"0");case"h":return d(1);case"hh":return d(2);case"a":return $(s,u,!0);case"A":return $(s,u,!1);case"m":return String(u);case"mm":return b.s(u,2,"0");case"s":return String(e.$s);case"ss":return b.s(e.$s,2,"0");case"SSS":return b.s(e.$ms,3,"0");case"Z":return i}return null}(t)||i.replace(":","")}))},m.utcOffset=function(){return 15*-Math.round(this.$d.getTimezoneOffset()/15)},m.diff=function(r,d,l){var $,y=this,M=b.p(d),m=O(r),v=(m.utcOffset()-this.utcOffset())*e,g=this-m,D=function(){return b.m(y,m)};switch(M){case h:$=D()/12;break;case c:$=D();break;case f:$=D()/3;break;case o:$=(g-v)/6048e5;break;case a:$=(g-v)/864e5;break;case u:$=g/n;break;case s:$=g/e;break;case i:$=g/t;break;default:$=g;}return l?$:b.a($)},m.daysInMonth=function(){return this.endOf(c).$D},m.$locale=function(){return D[this.$L]},m.locale=function(t,e){if(!t)return this.$L;var n=this.clone(),r=w(t,e,!0);return r&&(n.$L=r),n},m.clone=function(){return b.w(this.$d,this)},m.toDate=function(){return new Date(this.valueOf())},m.toJSON=function(){return this.isValid()?this.toISOString():null},m.toISOString=function(){return this.$d.toISOString()},m.toString=function(){return this.$d.toUTCString()},M}(),k=_.prototype;return O.prototype=k,[["$ms",r],["$s",i],["$m",s],["$H",u],["$W",a],["$M",c],["$y",h],["$D",d]].forEach((function(t){k[t[1]]=function(e){return this.$g(e,t[0],t[1])};})),O.extend=function(t,e){return t.$i||(t(e,_,O),t.$i=!0),O},O.locale=w,O.isDayjs=S,O.unix=function(t){return O(1e3*t)},O.en=D[g],O.Ls=D,O.p={},O})); 
-} (dayjs_min));
-
-var dayjs_minExports = dayjs_min.exports;
-var dayjs = /*@__PURE__*/getDefaultExportFromCjs(dayjs_minExports);
-
-var weekday$1 = {exports: {}};
-
-(function (module, exports) {
-	!function(e,t){module.exports=t();}(commonjsGlobal,(function(){return function(e,t){t.prototype.weekday=function(e){var t=this.$locale().weekStart||0,i=this.$W,n=(i<t?i+7:i)-t;return this.$utils().u(e)?n:this.subtract(n,"day").add(e,"day")};}})); 
-} (weekday$1));
-
-var weekdayExports = weekday$1.exports;
-var weekday = /*@__PURE__*/getDefaultExportFromCjs(weekdayExports);
-
-var localeData$1 = {exports: {}};
-
-(function (module, exports) {
-	!function(n,e){module.exports=e();}(commonjsGlobal,(function(){return function(n,e,t){var r=e.prototype,o=function(n){return n&&(n.indexOf?n:n.s)},u=function(n,e,t,r,u){var i=n.name?n:n.$locale(),a=o(i[e]),s=o(i[t]),f=a||s.map((function(n){return n.slice(0,r)}));if(!u)return f;var d=i.weekStart;return f.map((function(n,e){return f[(e+(d||0))%7]}))},i=function(){return t.Ls[t.locale()]},a=function(n,e){return n.formats[e]||function(n){return n.replace(/(\[[^\]]+])|(MMMM|MM|DD|dddd)/g,(function(n,e,t){return e||t.slice(1)}))}(n.formats[e.toUpperCase()])},s=function(){var n=this;return {months:function(e){return e?e.format("MMMM"):u(n,"months")},monthsShort:function(e){return e?e.format("MMM"):u(n,"monthsShort","months",3)},firstDayOfWeek:function(){return n.$locale().weekStart||0},weekdays:function(e){return e?e.format("dddd"):u(n,"weekdays")},weekdaysMin:function(e){return e?e.format("dd"):u(n,"weekdaysMin","weekdays",2)},weekdaysShort:function(e){return e?e.format("ddd"):u(n,"weekdaysShort","weekdays",3)},longDateFormat:function(e){return a(n.$locale(),e)},meridiem:this.$locale().meridiem,ordinal:this.$locale().ordinal}};r.localeData=function(){return s.bind(this)()},t.localeData=function(){var n=i();return {firstDayOfWeek:function(){return n.weekStart||0},weekdays:function(){return t.weekdays()},weekdaysShort:function(){return t.weekdaysShort()},weekdaysMin:function(){return t.weekdaysMin()},months:function(){return t.months()},monthsShort:function(){return t.monthsShort()},longDateFormat:function(e){return a(n,e)},meridiem:n.meridiem,ordinal:n.ordinal}},t.months=function(){return u(i(),"months")},t.monthsShort=function(){return u(i(),"monthsShort","months",3)},t.weekdays=function(n){return u(i(),"weekdays",null,null,n)},t.weekdaysShort=function(n){return u(i(),"weekdaysShort","weekdays",3,n)},t.weekdaysMin=function(n){return u(i(),"weekdaysMin","weekdays",2,n)};}})); 
-} (localeData$1));
-
-var localeDataExports = localeData$1.exports;
-var localeData = /*@__PURE__*/getDefaultExportFromCjs(localeDataExports);
 
 dayjs.extend(weekday);
 dayjs.extend(localeData);
@@ -2869,264 +3126,6 @@ class SettingsTab extends obsidian.PluginSettingTab {
     }
 }
 
-const DEFAULT_DAILY_NOTE_FORMAT = "YYYY-MM-DD";
-const DEFAULT_WEEKLY_NOTE_FORMAT = "gggg-[W]ww";
-const DEFAULT_MONTHLY_NOTE_FORMAT = "YYYY-MM";
-const DEFAULT_QUARTERLY_NOTE_FORMAT = "YYYY-[Q]Q";
-const DEFAULT_YEARLY_NOTE_FORMAT = "YYYY";
-
-class NoDailyNotesMngPluginFoundError extends Error {
-}
-function shouldUsePeriodicNotesSettings(periodicity) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const periodicNotes = window.app.plugins.getPlugin('periodic-notes');
-    return periodicNotes && periodicNotes.settings?.[periodicity]?.enabled;
-}
-/**
- * Read the user settings for the `daily-notes` plugin
- * to keep behavior of creating a new note in-sync.
- */
-function getDailyNoteSettings() {
-    try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { internalPlugins, plugins } = window.app;
-        if (shouldUsePeriodicNotesSettings('daily')) {
-            const { format, folder, template } = plugins.getPlugin('periodic-notes')?.settings?.daily || {};
-            return {
-                format: format || DEFAULT_DAILY_NOTE_FORMAT,
-                folder: folder?.trim() || '/',
-                template: template?.trim() || ''
-            };
-        }
-        const { folder, format, template } = internalPlugins.getPluginById('daily-notes')?.instance?.options || {};
-        return {
-            format: format || DEFAULT_DAILY_NOTE_FORMAT,
-            folder: folder?.trim() || '/',
-            template: template?.trim() || ''
-        };
-    }
-    catch (err) {
-        console.info('No custom daily note settings found! Ensure the plugin is active.', err);
-        return {
-            format: DEFAULT_DAILY_NOTE_FORMAT,
-            folder: '/',
-            template: ''
-        };
-    }
-}
-/**
- * Read the user settings for the `weekly-notes` plugin
- * to keep behavior of creating a new note in-sync.
- */
-function getWeeklyNoteSettings() {
-    try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const pluginManager = window.app.plugins;
-        if (shouldUsePeriodicNotesSettings('weekly')) {
-            const { format, folder, template } = pluginManager.getPlugin('periodic-notes').settings.weekly;
-            return {
-                format: format || DEFAULT_WEEKLY_NOTE_FORMAT,
-                folder: folder?.trim() || '',
-                template: template?.trim() || ''
-            };
-        }
-        return {
-            format: DEFAULT_WEEKLY_NOTE_FORMAT,
-            folder: '/',
-            template: ''
-        };
-    }
-    catch (err) {
-        console.info('No custom weekly note settings found! Ensure the plugin is active.', err);
-        // allow users to create notes no matter if periodic notes plugin is not installed or disabled
-        return {
-            format: DEFAULT_WEEKLY_NOTE_FORMAT,
-            folder: '/',
-            template: ''
-        };
-    }
-}
-/**
- * Read the user settings for the `periodic-notes` plugin
- * to keep behavior of creating a new note in-sync.
- */
-function getMonthlyNoteSettings() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pluginManager = window.app.plugins;
-    try {
-        const settings = (shouldUsePeriodicNotesSettings('monthly') &&
-            pluginManager.getPlugin('periodic-notes')?.settings?.monthly) ||
-            {};
-        return {
-            format: settings.format || DEFAULT_MONTHLY_NOTE_FORMAT,
-            folder: settings.folder?.trim() || '',
-            template: settings.template?.trim() || ''
-        };
-    }
-    catch (err) {
-        console.info('No custom monthly note settings found! Ensure the plugin is active.', err);
-        throw new NoDailyNotesMngPluginFoundError('No custom monthly note settings found! Ensure the plugin is active.');
-    }
-}
-/**
- * Read the user settings for the `periodic-notes` plugin
- * to keep behavior of creating a new note in-sync.
- */
-function getQuarterlyNoteSettings() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pluginManager = window.app.plugins;
-    try {
-        const settings = (shouldUsePeriodicNotesSettings('quarterly') &&
-            pluginManager.getPlugin('periodic-notes')?.settings?.quarterly) ||
-            {};
-        return {
-            format: settings.format || DEFAULT_QUARTERLY_NOTE_FORMAT,
-            folder: settings.folder?.trim() || '',
-            template: settings.template?.trim() || ''
-        };
-    }
-    catch (err) {
-        console.info('No custom quarterly note settings found! Ensure the plugin is active.', err);
-        throw new NoDailyNotesMngPluginFoundError('No custom quarterly note settings found! Ensure the plugin is active.');
-    }
-}
-/**
- * Read the user settings for the `periodic-notes` plugin
- * to keep behavior of creating a new note in-sync.
- */
-function getYearlyNoteSettings() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pluginManager = window.app.plugins;
-    try {
-        const settings = (shouldUsePeriodicNotesSettings('yearly') &&
-            pluginManager.getPlugin('periodic-notes')?.settings?.yearly) ||
-            {};
-        return {
-            format: settings.format || DEFAULT_YEARLY_NOTE_FORMAT,
-            folder: settings.folder?.trim() || '',
-            template: settings.template?.trim() || ''
-        };
-    }
-    catch (err) {
-        console.info('No custom yearly note settings found! Ensure the plugin is active.', err);
-        throw new NoDailyNotesMngPluginFoundError('No custom yearly note settings found! Ensure the plugin is active.');
-    }
-}
-
-// Credit: @creationix/path.js
-function join(...partSegments) {
-    // Split the inputs into a list of path commands.
-    let parts = [];
-    for (let i = 0, l = partSegments.length; i < l; i++) {
-        parts = parts.concat(partSegments[i].split("/"));
-    }
-    // Interpret the path commands to get the new resolved path.
-    const newParts = [];
-    for (let i = 0, l = parts.length; i < l; i++) {
-        const part = parts[i];
-        // Remove leading and trailing slashes
-        // Also remove "." segments
-        if (!part || part === ".")
-            continue;
-        // Push new path segments.
-        else
-            newParts.push(part);
-    }
-    // Preserve the initial slash if there was one.
-    if (parts[0] === "")
-        newParts.unshift("");
-    // Turn back into a single string path.
-    return newParts.join("/");
-}
-async function ensureFolderExists(path) {
-    const dirs = path.replace(/\\/g, "/").split("/");
-    dirs.pop(); // remove basename
-    if (dirs.length) {
-        const dir = join(...dirs);
-        if (!window.app.vault.getAbstractFileByPath(dir)) {
-            await window.app.vault.createFolder(dir);
-        }
-    }
-}
-async function getNotePath(directory, filename) {
-    if (!filename.endsWith(".md")) {
-        filename += ".md";
-    }
-    const path = obsidian.normalizePath(join(directory, filename));
-    await ensureFolderExists(path);
-    return path;
-}
-async function getTemplateInfo(template) {
-    const { metadataCache, vault } = window.app;
-    const templatePath = obsidian.normalizePath(template);
-    if (templatePath === "/") {
-        return Promise.resolve(["", null]);
-    }
-    try {
-        // get First file matching given templatePath
-        const templateFile = metadataCache.getFirstLinkpathDest(templatePath, "");
-        const contents = await vault.cachedRead(templateFile);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const IFoldInfo = window.app.foldManager.load(templateFile);
-        return [contents, IFoldInfo];
-    }
-    catch (err) {
-        console.error(`Failed to read the daily note template '${templatePath}'`, err);
-        new obsidian.Notice("Failed to read the daily note template");
-        return ["", null];
-    }
-}
-
-/**
- * dateUID is a way of weekly identifying daily/weekly/monthly notes.
- * They are prefixed with the granularity to avoid ambiguity.
- */
-function getDateUID(date, granularity = 'day') {
-    return `${granularity}-${date.startOf(granularity).format()}`;
-}
-function removeEscapedCharacters(format) {
-    return format.replace(/\[[^\]]*\]/g, ''); // remove everything within brackets
-}
-/**
- * XXX: When parsing dates that contain both week numbers and months,
- * Moment choses to ignore the week numbers. For the week dateUID, we
- * want the opposite behavior. Strip the MMM from the format to patch.
- */
-function isWeekFormatAmbiguous(format) {
-    const cleanFormat = removeEscapedCharacters(format);
-    return /w{1,2}/i.test(cleanFormat) && (/M{1,4}/.test(cleanFormat) || /D{1,4}/.test(cleanFormat));
-}
-function getDateFromFile(file, granularity) {
-    return getDateFromFilename(file.basename, granularity);
-}
-function getDateFromFilename(filename, granularity) {
-    const getSettings = {
-        day: getDailyNoteSettings,
-        week: getWeeklyNoteSettings,
-        month: getMonthlyNoteSettings,
-        quarter: getQuarterlyNoteSettings,
-        year: getYearlyNoteSettings
-    };
-    const format = getSettings[granularity]().format.split('/').pop();
-    const noteDate = window.moment(filename, format, true);
-    if (!noteDate.isValid()) {
-        return null;
-    }
-    if (granularity === 'week') {
-        if (format && isWeekFormatAmbiguous(format)) {
-            const cleanFormat = removeEscapedCharacters(format);
-            if (/w{1,2}/i.test(cleanFormat)) {
-                return window.moment(filename, 
-                // If format contains week, remove day & month formatting
-                format.replace(/M{1,4}/g, '').replace(/D{1,4}/g, ''), false);
-            }
-        }
-    }
-    return noteDate;
-}
-
-class DailyNotesFolderMissingError extends Error {
-}
 /**
  * This function mimics the behavior of the daily-notes plugin
  * so it will replace {{date}}, {{title}}, and {{time}} with the
@@ -3137,15 +3136,15 @@ class DailyNotesFolderMissingError extends Error {
 async function createDailyNote(date) {
     const app = window.app;
     const { vault } = app;
-    const { template, folder, format } = getDailyNoteSettings();
+    const { template, folder, format } = getNoteSettingsByGranularity('day');
     // TODO: Find out what IFoldInfo is used for (think it is for keeping track of openned folders)
     const [templateContents, IFoldInfo] = await getTemplateInfo(template);
     const filename = date.format(format);
     const normalizedPath = await getNotePath(folder, filename);
-    console.table(getDailyNoteSettings());
-    console.log('getTemplateInfo:', templateContents, IFoldInfo);
-    console.log("onClickDay() > createDailyNote > filename, format: ", filename, format);
-    console.log('NOrmalized path', normalizedPath);
+    // console.table(getNoteSettingsByGranularity('day'));
+    // console.log('getTemplateInfo:', templateContents, IFoldInfo);
+    // console.log("onClickDay() > createDailyNote > filename, format: ", filename, format)
+    // console.log('NOrmalized path', normalizedPath);
     try {
         const createdFile = await vault.create(normalizedPath, templateContents
             .replace(/{{\s*date\s*}}/gi, filename)
@@ -3169,46 +3168,10 @@ async function createDailyNote(date) {
     }
     catch (err) {
         console.error(`Failed to create file: '${normalizedPath}'`, err);
-        new obsidian.Notice('Unable to create new file.');
-    }
-}
-function getDailyNote(date) {
-    const dailyNotes = get_store_value(dailyNotesExtStore);
-    console.log('daily.ts > getDailyNote, dailyNotes: ', dailyNotes);
-    return dailyNotes[getDateUID(date, 'day')];
-}
-function getAllDailyNotes() {
-    const dailyNotes = {};
-    /**
-     * Find all daily notes in the daily note folder
-     */
-    const { vault } = window.app;
-    try {
-        const { folder } = getDailyNoteSettings();
-        const dailyNotesFolder = vault.getAbstractFileByPath(obsidian.normalizePath(folder));
-        if (!dailyNotesFolder) {
-            throw new DailyNotesFolderMissingError("Unable to locate the daily notes folder. Check your plugin's settings or restart this plugin.");
-        }
-        obsidian.Vault.recurseChildren(dailyNotesFolder, (note) => {
-            if (note instanceof obsidian.TFile) {
-                // if file name maps to a valid dayjs date, it is saved in store.
-                const date = getDateFromFile(note, 'day');
-                if (date) {
-                    const dateUID = getDateUID(date, 'day');
-                    dailyNotes[dateUID] = note;
-                }
-            }
-        });
-        return dailyNotes;
-    }
-    catch (error) {
-        typeof error === 'string' && new obsidian.Notice(error);
-        return dailyNotes;
+        new obsidian.Notice(`Failed to create file: '${normalizedPath}'`);
     }
 }
 
-class WeeklyNotesFolderMissingError extends Error {
-}
 function getDaysOfWeek() {
     const { moment } = window;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -3225,7 +3188,7 @@ function getDayOfWeekNumericalValue(dayOfWeekName) {
 }
 async function createWeeklyNote(date) {
     const { vault } = window.app;
-    const { template, format, folder } = getWeeklyNoteSettings();
+    const { template, format, folder } = getNoteSettingsByGranularity('week');
     const [templateContents, IFoldInfo] = await getTemplateInfo(template);
     const filename = date.format(format);
     const normalizedPath = await getNotePath(folder, filename);
@@ -3258,60 +3221,58 @@ async function createWeeklyNote(date) {
     }
     catch (err) {
         console.error(`Failed to create file: '${normalizedPath}'`, err);
-        new obsidian.Notice('Unable to create new file.');
+        new obsidian.Notice(`Failed to create file: '${normalizedPath}'`);
     }
 }
-function getWeeklyNote(startOfWeekDate) {
-    const weeklyNotes = get_store_value(weeklyNotesExtStore);
-    console.log('getWeeklyNote > weeklyNotesExtStore: ', weeklyNotes);
-    console.log('dateUID: ', getDateUID(startOfWeekDate, 'week'));
-    return weeklyNotes[getDateUID(startOfWeekDate, 'week')];
+
+function getNoteByGranularity({ date, granularity }) {
+    const notesStore = get_store_value(notesStores[granularity]);
+    return notesStore[getDateUID(date, granularity)];
 }
-function getAllWeeklyNotes() {
-    const weeklyNotes = {};
+function getAllNotesByGranularity(granularity) {
+    const notes = {};
     const { vault } = window.app;
-    const { folder } = getWeeklyNoteSettings();
-    const weeklyNotesFolder = vault.getAbstractFileByPath(obsidian.normalizePath(folder));
-    if (!weeklyNotesFolder) {
-        throw new WeeklyNotesFolderMissingError('Failed to find weekly notes folder');
-    }
-    obsidian.Vault.recurseChildren(weeklyNotesFolder, (note) => {
-        if (note instanceof obsidian.TFile) {
-            const date = getDateFromFile(note, 'week');
-            if (date) {
-                const dateString = getDateUID(date, 'week');
-                weeklyNotes[dateString] = note;
-            }
+    try {
+        const { folder } = getNoteSettingsByGranularity(granularity);
+        const notesFolder = vault.getAbstractFileByPath(obsidian.normalizePath(folder));
+        if (!notesFolder) {
+            throw new Error(`Unable to locate the ${getPeriodicityFromGranularity(granularity)} notes folder. Check your plugin's settings or restart calendar plugin.`);
         }
-    });
-    return weeklyNotes;
+        obsidian.Vault.recurseChildren(notesFolder, (note) => {
+            // console.log(`getAllNotesByGranularity() > Vault.recurseChildren(${notesFolder}) > note: `, note)
+            if (note instanceof obsidian.TFile) {
+                // if file name maps to a valid dayjs date, it is saved in store.
+                const date = getDateFromFile(note, granularity);
+                if (date) {
+                    const dateUID = getDateUID(date, granularity);
+                    notes[dateUID] = note;
+                }
+            }
+        });
+        return notes;
+    }
+    catch (error) {
+        typeof error === 'string' && new obsidian.Notice(error);
+        return notes;
+    }
 }
 
-/**
- * XXX: "Weekly Notes" live in either the Calendar plugin or the periodic-notes plugin.
- * Check both until the weekly notes feature is removed from the Calendar plugin.
- */
-function appHasWeeklyNotesPluginLoaded() {
-    const { app } = window;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const periodicNotes = app.plugins.getPlugin('periodic-notes');
-    console.log('🤯 appHasWeeklyNotesPluginLoaded()', periodicNotes, periodicNotes.settings?.weekly?.enabled);
-    return periodicNotes && periodicNotes.settings?.weekly?.enabled;
-}
+const granularities = ['day', 'week', 'month', 'quarter', 'year'];
+const granularitiesCapitalize = ['Day', 'Week', 'Month', 'Quarter', 'Year'];
+// export const periodicities = ['daily', 'weekly', 'monthly', 'quarterly', 'yearly'] as const
 
-function createDailyNotesStore() {
+function createNotesStore(granularity) {
     let hasError = false;
     const store = writable({});
     return {
         reindex: () => {
-            console.log('createDailyNotesStore > reindexing');
+            console.log(`create${granularity}NotesStore > reindexing`);
             try {
-                const dailyNotes = getAllDailyNotes();
-                // console.log('stores.ts > reindex() > createDailyNotesStore(): ', dailyNotes);
-                if (Object.keys(dailyNotes).length === 0) {
+                const notes = getAllNotesByGranularity(granularity);
+                if (Object.keys(notes).length === 0) {
                     throw new Error('No notes found');
                 }
-                store.set(dailyNotes);
+                store.set(notes);
                 hasError = false;
             }
             catch (err) {
@@ -3326,51 +3287,114 @@ function createDailyNotesStore() {
         ...store
     };
 }
-function createWeeklyNotesStore() {
-    let hasError = false;
-    const store = writable({});
-    return {
-        reindex: () => {
-            console.log('createWeeklyNotesStore > reindexing');
-            try {
-                const weeklyNotes = getAllWeeklyNotes();
-                store.set(weeklyNotes);
-                hasError = false;
-            }
-            catch (err) {
-                if (!hasError) {
-                    // Avoid error being shown multiple times
-                    console.log('[Calendar] Failed to find weekly notes folder', err);
-                }
-                store.set({});
-                hasError = true;
-            }
-        },
-        ...store
-    };
-}
-const dailyNotesExtStore = createDailyNotesStore();
-const weeklyNotesExtStore = createWeeklyNotesStore();
+const notesStores = {};
+granularities.forEach((granularity) => {
+    const notesExtStore = createNotesStore(granularity);
+    notesStores[granularity] = notesExtStore;
+});
 const settingsStore = writable(DEFAULT_SETTINGS);
 function createSelectedFileStore() {
     const store = writable(null);
     return {
         setFile: (id) => {
             store.set(id);
-            console.log('createSelectedFileStore > store: ', get_store_value(store));
+            // console.log('createSelectedFileStore > setFile > activeFileUID: ', get(store));
         },
-        ...store,
+        ...store
     };
 }
 const activeFile = createSelectedFileStore();
 
+/* src/calendar-ui/components/Dot.svelte generated by Svelte v4.2.0 */
+
+function add_css$7(target) {
+	append_styles(target, "svelte-1nxv951", ".container.svelte-1nxv951{width:100%\n}@media(min-width: 640px){.container.svelte-1nxv951{max-width:640px\n    }}@media(min-width: 768px){.container.svelte-1nxv951{max-width:768px\n    }}@media(min-width: 1024px){.container.svelte-1nxv951{max-width:1024px\n    }}@media(min-width: 1280px){.container.svelte-1nxv951{max-width:1280px\n    }}@media(min-width: 1536px){.container.svelte-1nxv951{max-width:1536px\n    }}.pointer-events-none.svelte-1nxv951{pointer-events:none\n}.visible.svelte-1nxv951{visibility:visible\n}.invisible.svelte-1nxv951{visibility:hidden\n}.collapse.svelte-1nxv951{visibility:collapse\n}.absolute.svelte-1nxv951{position:absolute\n}.relative.svelte-1nxv951{position:relative\n}.left-0.svelte-1nxv951{left:0px\n}.top-0.svelte-1nxv951{top:0px\n}.m-0.svelte-1nxv951{margin:0px\n}.mx-\\[1px\\].svelte-1nxv951{margin-left:1px;margin-right:1px\n}.mt-2.svelte-1nxv951{margin-top:0.5rem\n}.mt-3.svelte-1nxv951{margin-top:0.75rem\n}.mt-7.svelte-1nxv951{margin-top:1.75rem\n}.block.svelte-1nxv951{display:block\n}.inline-block.svelte-1nxv951{display:inline-block\n}.flex.svelte-1nxv951{display:flex\n}.table.svelte-1nxv951{display:table\n}.grid.svelte-1nxv951{display:grid\n}.contents.svelte-1nxv951{display:contents\n}.hidden.svelte-1nxv951{display:none\n}.h-\\[6px\\].svelte-1nxv951{height:6px\n}.h-4.svelte-1nxv951{height:1rem\n}.h-3.svelte-1nxv951{height:0.75rem\n}.w-\\[6px\\].svelte-1nxv951{width:6px\n}.w-max.svelte-1nxv951{width:-moz-max-content;width:max-content\n}.w-4.svelte-1nxv951{width:1rem\n}.w-3.svelte-1nxv951{width:0.75rem\n}.flex-shrink.svelte-1nxv951{flex-shrink:1\n}.border-collapse.svelte-1nxv951{border-collapse:collapse\n}.transform.svelte-1nxv951{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.flex-wrap.svelte-1nxv951{flex-wrap:wrap\n}.items-center.svelte-1nxv951{align-items:center\n}.text-sm.svelte-1nxv951{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-1nxv951{font-size:0.75rem;line-height:1rem\n}.uppercase.svelte-1nxv951{text-transform:uppercase\n}.capitalize.svelte-1nxv951{text-transform:capitalize\n}.text-\\[--text-muted\\].svelte-1nxv951{color:var(--text-muted)\n}.text-\\[--text-on-accent\\].svelte-1nxv951{color:var(--text-on-accent)\n}.opacity-0.svelte-1nxv951{opacity:0\n}.filter.svelte-1nxv951{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)\n}.transition.svelte-1nxv951{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms\n}.duration-300.svelte-1nxv951{transition-duration:300ms\n}.hover\\:cursor-pointer.svelte-1nxv951:hover{cursor:pointer\n}");
+}
+
+function create_fragment$7(ctx) {
+	let svg;
+	let circle;
+	let circle_stroke_value;
+	let circle_fill_value;
+	let svg_class_value;
+
+	return {
+		c() {
+			svg = svg_element("svg");
+			circle = svg_element("circle");
+			attr(circle, "stroke", circle_stroke_value = !/*isFilled*/ ctx[1] ? 'currentColor' : 'none');
+			attr(circle, "fill", circle_fill_value = /*isFilled*/ ctx[1] ? 'currentColor' : 'none');
+			attr(circle, "cx", "3");
+			attr(circle, "cy", "3");
+			attr(circle, "r", "2");
+			attr(svg, "class", svg_class_value = "" + (null_to_empty(`${/*$$restProps*/ ctx[3].class} inline-block h-[6px] w-[6px] mx-[1px] ${/*isActive*/ ctx[2] ? 'text-[--text-on-accent]' : ''}`) + " svelte-1nxv951"));
+			set_style(svg, "color", /*color*/ ctx[0]);
+			attr(svg, "viewBox", "0 0 6 6");
+			attr(svg, "xmlns", "http://www.w3.org/2000/svg");
+		},
+		m(target, anchor) {
+			insert(target, svg, anchor);
+			append(svg, circle);
+		},
+		p(ctx, [dirty]) {
+			if (dirty & /*isFilled*/ 2 && circle_stroke_value !== (circle_stroke_value = !/*isFilled*/ ctx[1] ? 'currentColor' : 'none')) {
+				attr(circle, "stroke", circle_stroke_value);
+			}
+
+			if (dirty & /*isFilled*/ 2 && circle_fill_value !== (circle_fill_value = /*isFilled*/ ctx[1] ? 'currentColor' : 'none')) {
+				attr(circle, "fill", circle_fill_value);
+			}
+
+			if (dirty & /*$$restProps, isActive*/ 12 && svg_class_value !== (svg_class_value = "" + (null_to_empty(`${/*$$restProps*/ ctx[3].class} inline-block h-[6px] w-[6px] mx-[1px] ${/*isActive*/ ctx[2] ? 'text-[--text-on-accent]' : ''}`) + " svelte-1nxv951"))) {
+				attr(svg, "class", svg_class_value);
+			}
+
+			if (dirty & /*color*/ 1) {
+				set_style(svg, "color", /*color*/ ctx[0]);
+			}
+		},
+		i: noop,
+		o: noop,
+		d(detaching) {
+			if (detaching) {
+				detach(svg);
+			}
+		}
+	};
+}
+
+function instance$7($$self, $$props, $$invalidate) {
+	const omit_props_names = ["color","isFilled","isActive"];
+	let $$restProps = compute_rest_props($$props, omit_props_names);
+	let { color = '' } = $$props;
+	let { isFilled = false } = $$props;
+	let { isActive = false } = $$props;
+
+	$$self.$$set = $$new_props => {
+		$$props = assign(assign({}, $$props), exclude_internal_props($$new_props));
+		$$invalidate(3, $$restProps = compute_rest_props($$props, omit_props_names));
+		if ('color' in $$new_props) $$invalidate(0, color = $$new_props.color);
+		if ('isFilled' in $$new_props) $$invalidate(1, isFilled = $$new_props.isFilled);
+		if ('isActive' in $$new_props) $$invalidate(2, isActive = $$new_props.isActive);
+	};
+
+	return [color, isFilled, isActive, $$restProps];
+}
+
+class Dot extends SvelteComponent {
+	constructor(options) {
+		super();
+		init(this, options, instance$7, create_fragment$7, safe_not_equal, { color: 0, isFilled: 1, isActive: 2 }, add_css$7);
+	}
+}
+
 /* src/calendar-ui/components/Day.svelte generated by Svelte v4.2.0 */
 
-function add_css$4(target) {
+function add_css$6(target) {
 	append_styles(target, "svelte-1fn1hj9", ".day.svelte-1fn1hj9{background-color:var(--color-background-day);border-radius:4px;color:var(--color-text-day);cursor:pointer;font-size:0.8em;height:100%;padding:4px;position:relative;text-align:center;transition:background-color 0.1s ease-in, color 0.1s ease-in;vertical-align:baseline}.day.svelte-1fn1hj9:hover{background-color:var(--interactive-hover)}.day.svelte-1fn1hj9:active{color:var(--text-on-accent);background-color:var(--interactive-accent)}");
 }
 
-function create_fragment$4(ctx) {
+function create_fragment$6(ctx) {
 	let td;
 	let button;
 	let t_value = /*date*/ ctx[0].format('D') + "";
@@ -3411,7 +3435,7 @@ function create_fragment$4(ctx) {
 	};
 }
 
-function instance$4($$self, $$props, $$invalidate) {
+function instance$6($$self, $$props, $$invalidate) {
 	let { date } = $$props;
 
 	// Global state
@@ -3432,7 +3456,267 @@ function instance$4($$self, $$props, $$invalidate) {
 class Day extends SvelteComponent {
 	constructor(options) {
 		super();
-		init(this, options, instance$4, create_fragment$4, not_equal, { date: 0 }, add_css$4);
+		init(this, options, instance$6, create_fragment$6, not_equal, { date: 0 }, add_css$6);
+	}
+}
+
+/* src/calendar-ui/components/Arrow.svelte generated by Svelte v4.2.0 */
+
+function add_css$5(target) {
+	append_styles(target, "svelte-jvqowb", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.arrow.svelte-jvqowb.svelte-jvqowb{all:inherit;align-items:center;cursor:pointer;display:flex;justify-content:center;width:24px}.arrow.is-mobile.svelte-jvqowb.svelte-jvqowb{width:32px}.right.svelte-jvqowb.svelte-jvqowb{transform:rotate(180deg)}.arrow.svelte-jvqowb svg.svelte-jvqowb{color:var(--color-arrow);height:16px;width:16px}");
+}
+
+function create_fragment$5(ctx) {
+	let button;
+	let svg;
+	let path;
+	let mounted;
+	let dispose;
+
+	return {
+		c() {
+			button = element("button");
+			svg = svg_element("svg");
+			path = svg_element("path");
+			attr(path, "fill", "currentColor");
+			attr(path, "d", "M34.52 239.03L228.87 44.69c9.37-9.37 24.57-9.37 33.94 0l22.67 22.67c9.36 9.36 9.37 24.52.04 33.9L131.49 256l154.02 154.75c9.34 9.38 9.32 24.54-.04 33.9l-22.67 22.67c-9.37 9.37-24.57 9.37-33.94 0L34.52 272.97c-9.37-9.37-9.37-24.57 0-33.94z");
+			attr(svg, "focusable", "false");
+			attr(svg, "role", "img");
+			attr(svg, "xmlns", "http://www.w3.org/2000/svg");
+			attr(svg, "viewBox", "0 0 320 512");
+			attr(svg, "class", "svelte-jvqowb");
+			attr(button, "class", "arrow svelte-jvqowb");
+			attr(button, "aria-label", /*tooltip*/ ctx[1]);
+			toggle_class(button, "is-mobile", /*isMobile*/ ctx[3]);
+			toggle_class(button, "right", /*direction*/ ctx[2] === 'right');
+		},
+		m(target, anchor) {
+			insert(target, button, anchor);
+			append(button, svg);
+			append(svg, path);
+
+			if (!mounted) {
+				dispose = listen(button, "click", function () {
+					if (is_function(/*onClick*/ ctx[0])) /*onClick*/ ctx[0].apply(this, arguments);
+				});
+
+				mounted = true;
+			}
+		},
+		p(new_ctx, [dirty]) {
+			ctx = new_ctx;
+
+			if (dirty & /*tooltip*/ 2) {
+				attr(button, "aria-label", /*tooltip*/ ctx[1]);
+			}
+
+			if (dirty & /*direction*/ 4) {
+				toggle_class(button, "right", /*direction*/ ctx[2] === 'right');
+			}
+		},
+		i: noop,
+		o: noop,
+		d(detaching) {
+			if (detaching) {
+				detach(button);
+			}
+
+			mounted = false;
+			dispose();
+		}
+	};
+}
+
+function instance$5($$self, $$props, $$invalidate) {
+	let { onClick } = $$props;
+	let { tooltip } = $$props;
+	let { direction } = $$props;
+
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	let isMobile = window.app.isMobile;
+
+	$$self.$$set = $$props => {
+		if ('onClick' in $$props) $$invalidate(0, onClick = $$props.onClick);
+		if ('tooltip' in $$props) $$invalidate(1, tooltip = $$props.tooltip);
+		if ('direction' in $$props) $$invalidate(2, direction = $$props.direction);
+	};
+
+	return [onClick, tooltip, direction, isMobile];
+}
+
+class Arrow extends SvelteComponent {
+	constructor(options) {
+		super();
+		init(this, options, instance$5, create_fragment$5, safe_not_equal, { onClick: 0, tooltip: 1, direction: 2 }, add_css$5);
+	}
+}
+
+/* src/calendar-ui/components/Nav.svelte generated by Svelte v4.2.0 */
+
+function add_css$4(target) {
+	append_styles(target, "svelte-ayk0l2", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.nav.svelte-ayk0l2{align-items:baseline;display:flex;margin:0.6em 0 1em;padding:0 8px;width:100%}.right-nav.svelte-ayk0l2{align-items:center;display:flex;justify-content:center;margin-left:auto}.reset-button.svelte-ayk0l2{all:inherit;cursor:pointer;align-items:center;color:var(--color-arrow);display:flex;opacity:0.4;padding:0.5em}.reset-button.active.svelte-ayk0l2{cursor:pointer;opacity:1}");
+}
+
+function create_fragment$4(ctx) {
+	let div1;
+	let div0;
+	let arrow0;
+	let t0;
+	let button;
+	let dot;
+	let button_aria_label_value;
+	let t1;
+	let arrow1;
+	let current;
+	let mounted;
+	let dispose;
+
+	arrow0 = new Arrow({
+			props: {
+				direction: "left",
+				onClick: /*decrementDisplayedMonth*/ ctx[3],
+				tooltip: "Previous Month"
+			}
+		});
+
+	dot = new Dot({
+			props: {
+				class: "h-3 w-3",
+				isFilled: /*showingCurrentMonth*/ ctx[0]
+			}
+		});
+
+	arrow1 = new Arrow({
+			props: {
+				direction: "right",
+				onClick: /*incrementDisplayedMonth*/ ctx[2],
+				tooltip: "Next Month"
+			}
+		});
+
+	return {
+		c() {
+			div1 = element("div");
+			div0 = element("div");
+			create_component(arrow0.$$.fragment);
+			t0 = space();
+			button = element("button");
+			create_component(dot.$$.fragment);
+			t1 = space();
+			create_component(arrow1.$$.fragment);
+
+			attr(button, "aria-label", button_aria_label_value = !/*showingCurrentMonth*/ ctx[0]
+			? 'Reset to current month'
+			: null);
+
+			attr(button, "class", "reset-button svelte-ayk0l2");
+			toggle_class(button, "active", /*showingCurrentMonth*/ ctx[0]);
+			attr(div0, "class", "right-nav svelte-ayk0l2");
+			attr(div1, "class", "nav svelte-ayk0l2");
+		},
+		m(target, anchor) {
+			insert(target, div1, anchor);
+			append(div1, div0);
+			mount_component(arrow0, div0, null);
+			append(div0, t0);
+			append(div0, button);
+			mount_component(dot, button, null);
+			append(div0, t1);
+			mount_component(arrow1, div0, null);
+			current = true;
+
+			if (!mounted) {
+				dispose = listen(button, "click", /*resetDisplayedMonth*/ ctx[4]);
+				mounted = true;
+			}
+		},
+		p(ctx, [dirty]) {
+			const dot_changes = {};
+			if (dirty & /*showingCurrentMonth*/ 1) dot_changes.isFilled = /*showingCurrentMonth*/ ctx[0];
+			dot.$set(dot_changes);
+
+			if (!current || dirty & /*showingCurrentMonth*/ 1 && button_aria_label_value !== (button_aria_label_value = !/*showingCurrentMonth*/ ctx[0]
+			? 'Reset to current month'
+			: null)) {
+				attr(button, "aria-label", button_aria_label_value);
+			}
+
+			if (!current || dirty & /*showingCurrentMonth*/ 1) {
+				toggle_class(button, "active", /*showingCurrentMonth*/ ctx[0]);
+			}
+		},
+		i(local) {
+			if (current) return;
+			transition_in(arrow0.$$.fragment, local);
+			transition_in(dot.$$.fragment, local);
+			transition_in(arrow1.$$.fragment, local);
+			current = true;
+		},
+		o(local) {
+			transition_out(arrow0.$$.fragment, local);
+			transition_out(dot.$$.fragment, local);
+			transition_out(arrow1.$$.fragment, local);
+			current = false;
+		},
+		d(detaching) {
+			if (detaching) {
+				detach(div1);
+			}
+
+			destroy_component(arrow0);
+			destroy_component(dot);
+			destroy_component(arrow1);
+			mounted = false;
+			dispose();
+		}
+	};
+}
+
+function instance$4($$self, $$props, $$invalidate) {
+	let $displayedMonth;
+	let { today } = $$props;
+	let displayedMonth = getContext(DISPLAYED_MONTH);
+	component_subscribe($$self, displayedMonth, value => $$invalidate(6, $displayedMonth = value));
+
+	function incrementDisplayedMonth() {
+		displayedMonth.update(month => month.clone().add(1, "month"));
+	}
+
+	function decrementDisplayedMonth() {
+		displayedMonth.update(month => month.clone().subtract(1, "month"));
+	}
+
+	function resetDisplayedMonth() {
+		displayedMonth.set(today.clone());
+	}
+
+	let showingCurrentMonth;
+
+	$$self.$$set = $$props => {
+		if ('today' in $$props) $$invalidate(5, today = $$props.today);
+	};
+
+	$$self.$$.update = () => {
+		if ($$self.$$.dirty & /*$displayedMonth, today*/ 96) {
+			$$invalidate(0, showingCurrentMonth = $displayedMonth.isSame(today, "month"));
+		}
+	};
+
+	return [
+		showingCurrentMonth,
+		displayedMonth,
+		incrementDisplayedMonth,
+		decrementDisplayedMonth,
+		resetDisplayedMonth,
+		today,
+		$displayedMonth
+	];
+}
+
+class Nav extends SvelteComponent {
+	constructor(options) {
+		super();
+		init(this, options, instance$4, create_fragment$4, safe_not_equal, { today: 5 }, add_css$4);
 	}
 }
 
@@ -3523,29 +3807,29 @@ function add_css$2(target) {
 
 function get_each_context(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[7] = list[i];
+	child_ctx[8] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_1(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[10] = list[i];
+	child_ctx[11] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_2(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[13] = list[i];
+	child_ctx[14] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_3(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[16] = list[i];
+	child_ctx[17] = list[i];
 	return child_ctx;
 }
 
-// (89:3) {#if showWeekNums}
+// (72:3) {#if showWeekNums}
 function create_if_block_2(ctx) {
 	let col;
 
@@ -3564,7 +3848,7 @@ function create_if_block_2(ctx) {
 	};
 }
 
-// (92:3) {#each month[1].days as date}
+// (75:3) {#each month[1].days as date}
 function create_each_block_3(ctx) {
 	let col;
 
@@ -3572,14 +3856,14 @@ function create_each_block_3(ctx) {
 		c() {
 			col = element("col");
 			attr(col, "class", "svelte-193a61l");
-			toggle_class(col, "weekend", isWeekend(/*date*/ ctx[16]));
+			toggle_class(col, "weekend", isWeekend(/*date*/ ctx[17]));
 		},
 		m(target, anchor) {
 			insert(target, col, anchor);
 		},
 		p(ctx, dirty) {
 			if (dirty & /*month*/ 1) {
-				toggle_class(col, "weekend", isWeekend(/*date*/ ctx[16]));
+				toggle_class(col, "weekend", isWeekend(/*date*/ ctx[17]));
 			}
 		},
 		d(detaching) {
@@ -3590,7 +3874,7 @@ function create_each_block_3(ctx) {
 	};
 }
 
-// (98:4) {#if showWeekNums}
+// (81:4) {#if showWeekNums}
 function create_if_block_1(ctx) {
 	let th;
 
@@ -3611,10 +3895,10 @@ function create_if_block_1(ctx) {
 	};
 }
 
-// (101:4) {#each localizedWeekdaysShort as dayOfWeek}
+// (84:4) {#each localizedWeekdaysShort as dayOfWeek}
 function create_each_block_2(ctx) {
 	let th;
-	let t_value = /*dayOfWeek*/ ctx[13] + "";
+	let t_value = /*dayOfWeek*/ ctx[14] + "";
 	let t;
 
 	return {
@@ -3628,7 +3912,7 @@ function create_each_block_2(ctx) {
 			append(th, t);
 		},
 		p(ctx, dirty) {
-			if (dirty & /*localizedWeekdaysShort*/ 2 && t_value !== (t_value = /*dayOfWeek*/ ctx[13] + "")) set_data(t, t_value);
+			if (dirty & /*localizedWeekdaysShort*/ 2 && t_value !== (t_value = /*dayOfWeek*/ ctx[14] + "")) set_data(t, t_value);
 		},
 		d(detaching) {
 			if (detaching) {
@@ -3638,15 +3922,15 @@ function create_each_block_2(ctx) {
 	};
 }
 
-// (109:5) {#if showWeekNums}
+// (92:5) {#if showWeekNums}
 function create_if_block$1(ctx) {
 	let weeknum;
 	let current;
 
 	weeknum = new WeekNum({
 			props: {
-				weekNum: /*week*/ ctx[7].weekNum,
-				startOfWeekDate: getStartOfWeek(/*week*/ ctx[7].days)
+				weekNum: /*week*/ ctx[8].weekNum,
+				startOfWeekDate: getStartOfWeek(/*week*/ ctx[8].days)
 			}
 		});
 
@@ -3660,8 +3944,8 @@ function create_if_block$1(ctx) {
 		},
 		p(ctx, dirty) {
 			const weeknum_changes = {};
-			if (dirty & /*month*/ 1) weeknum_changes.weekNum = /*week*/ ctx[7].weekNum;
-			if (dirty & /*month*/ 1) weeknum_changes.startOfWeekDate = getStartOfWeek(/*week*/ ctx[7].days);
+			if (dirty & /*month*/ 1) weeknum_changes.weekNum = /*week*/ ctx[8].weekNum;
+			if (dirty & /*month*/ 1) weeknum_changes.startOfWeekDate = getStartOfWeek(/*week*/ ctx[8].days);
 			weeknum.$set(weeknum_changes);
 		},
 		i(local) {
@@ -3679,12 +3963,12 @@ function create_if_block$1(ctx) {
 	};
 }
 
-// (114:5) {#each week.days as day (day.format())}
+// (97:5) {#each week.days as day (day.format())}
 function create_each_block_1(key_1, ctx) {
 	let first;
 	let day_1;
 	let current;
-	day_1 = new Day({ props: { date: /*day*/ ctx[10] } });
+	day_1 = new Day({ props: { date: /*day*/ ctx[11] } });
 
 	return {
 		key: key_1,
@@ -3702,7 +3986,7 @@ function create_each_block_1(key_1, ctx) {
 		p(new_ctx, dirty) {
 			ctx = new_ctx;
 			const day_1_changes = {};
-			if (dirty & /*month*/ 1) day_1_changes.date = /*day*/ ctx[10];
+			if (dirty & /*month*/ 1) day_1_changes.date = /*day*/ ctx[11];
 			day_1.$set(day_1_changes);
 		},
 		i(local) {
@@ -3724,7 +4008,7 @@ function create_each_block_1(key_1, ctx) {
 	};
 }
 
-// (107:3) {#each month as week (week.weekNum)}
+// (90:3) {#each month as week (week.weekNum)}
 function create_each_block(key_1, ctx) {
 	let tr;
 	let t0;
@@ -3733,8 +4017,8 @@ function create_each_block(key_1, ctx) {
 	let t1;
 	let current;
 	let if_block = /*showWeekNums*/ ctx[2] && create_if_block$1(ctx);
-	let each_value_1 = ensure_array_like(/*week*/ ctx[7].days);
-	const get_key = ctx => /*day*/ ctx[10].format();
+	let each_value_1 = ensure_array_like(/*week*/ ctx[8].days);
+	const get_key = ctx => /*day*/ ctx[11].format();
 
 	for (let i = 0; i < each_value_1.length; i += 1) {
 		let child_ctx = get_each_context_1(ctx, each_value_1, i);
@@ -3798,7 +4082,7 @@ function create_each_block(key_1, ctx) {
 			}
 
 			if (dirty & /*month*/ 1) {
-				each_value_1 = ensure_array_like(/*week*/ ctx[7].days);
+				each_value_1 = ensure_array_like(/*week*/ ctx[8].days);
 				group_outros();
 				each_blocks = update_keyed_each(each_blocks, dirty, get_key, 1, ctx, each_value_1, each_1_lookup, tr, outro_and_destroy_block, create_each_block_1, t1, get_each_context_1);
 				check_outros();
@@ -3839,18 +4123,21 @@ function create_each_block(key_1, ctx) {
 
 function create_fragment$2(ctx) {
 	let div;
+	let nav;
+	let t0;
 	let table;
 	let colgroup;
-	let t0;
 	let t1;
+	let t2;
 	let thead;
 	let tr;
-	let t2;
 	let t3;
+	let t4;
 	let tbody;
 	let each_blocks = [];
 	let each2_lookup = new Map();
 	let current;
+	nav = new Nav({ props: { today: window.moment() } });
 	let if_block0 = /*showWeekNums*/ ctx[2] && create_if_block_2();
 	let each_value_3 = ensure_array_like(/*month*/ ctx[0][1].days);
 	let each_blocks_2 = [];
@@ -3868,7 +4155,7 @@ function create_fragment$2(ctx) {
 	}
 
 	let each_value = ensure_array_like(/*month*/ ctx[0]);
-	const get_key = ctx => /*week*/ ctx[7].weekNum;
+	const get_key = ctx => /*week*/ ctx[8].weekNum;
 
 	for (let i = 0; i < each_value.length; i += 1) {
 		let child_ctx = get_each_context(ctx, each_value, i);
@@ -3879,26 +4166,28 @@ function create_fragment$2(ctx) {
 	return {
 		c() {
 			div = element("div");
+			create_component(nav.$$.fragment);
+			t0 = space();
 			table = element("table");
 			colgroup = element("colgroup");
 			if (if_block0) if_block0.c();
-			t0 = space();
+			t1 = space();
 
 			for (let i = 0; i < each_blocks_2.length; i += 1) {
 				each_blocks_2[i].c();
 			}
 
-			t1 = space();
+			t2 = space();
 			thead = element("thead");
 			tr = element("tr");
 			if (if_block1) if_block1.c();
-			t2 = space();
+			t3 = space();
 
 			for (let i = 0; i < each_blocks_1.length; i += 1) {
 				each_blocks_1[i].c();
 			}
 
-			t3 = space();
+			t4 = space();
 			tbody = element("tbody");
 
 			for (let i = 0; i < each_blocks.length; i += 1) {
@@ -3911,10 +4200,12 @@ function create_fragment$2(ctx) {
 		},
 		m(target, anchor) {
 			insert(target, div, anchor);
+			mount_component(nav, div, null);
+			append(div, t0);
 			append(div, table);
 			append(table, colgroup);
 			if (if_block0) if_block0.m(colgroup, null);
-			append(colgroup, t0);
+			append(colgroup, t1);
 
 			for (let i = 0; i < each_blocks_2.length; i += 1) {
 				if (each_blocks_2[i]) {
@@ -3922,11 +4213,11 @@ function create_fragment$2(ctx) {
 				}
 			}
 
-			append(table, t1);
+			append(table, t2);
 			append(table, thead);
 			append(thead, tr);
 			if (if_block1) if_block1.m(tr, null);
-			append(tr, t2);
+			append(tr, t3);
 
 			for (let i = 0; i < each_blocks_1.length; i += 1) {
 				if (each_blocks_1[i]) {
@@ -3934,7 +4225,7 @@ function create_fragment$2(ctx) {
 				}
 			}
 
-			append(table, t3);
+			append(table, t4);
 			append(table, tbody);
 
 			for (let i = 0; i < each_blocks.length; i += 1) {
@@ -3950,7 +4241,7 @@ function create_fragment$2(ctx) {
 				if (if_block0) ; else {
 					if_block0 = create_if_block_2();
 					if_block0.c();
-					if_block0.m(colgroup, t0);
+					if_block0.m(colgroup, t1);
 				}
 			} else if (if_block0) {
 				if_block0.d(1);
@@ -3984,7 +4275,7 @@ function create_fragment$2(ctx) {
 				if (if_block1) ; else {
 					if_block1 = create_if_block_1();
 					if_block1.c();
-					if_block1.m(tr, t2);
+					if_block1.m(tr, t3);
 				}
 			} else if (if_block1) {
 				if_block1.d(1);
@@ -4023,6 +4314,7 @@ function create_fragment$2(ctx) {
 		},
 		i(local) {
 			if (current) return;
+			transition_in(nav.$$.fragment, local);
 
 			for (let i = 0; i < each_value.length; i += 1) {
 				transition_in(each_blocks[i]);
@@ -4031,6 +4323,8 @@ function create_fragment$2(ctx) {
 			current = true;
 		},
 		o(local) {
+			transition_out(nav.$$.fragment, local);
+
 			for (let i = 0; i < each_blocks.length; i += 1) {
 				transition_out(each_blocks[i]);
 			}
@@ -4042,6 +4336,7 @@ function create_fragment$2(ctx) {
 				detach(div);
 			}
 
+			destroy_component(nav);
 			if (if_block0) if_block0.d();
 			destroy_each(each_blocks_2, detaching);
 			if (if_block1) if_block1.d();
@@ -4059,40 +4354,31 @@ function instance$2($$self, $$props, $$invalidate) {
 	let localizedWeekdaysShort;
 	let month;
 	let $settingsStore;
-	component_subscribe($$self, settingsStore, $$value => $$invalidate(3, $settingsStore = $$value));
+	let $displayedMonth;
+	component_subscribe($$self, settingsStore, $$value => $$invalidate(4, $settingsStore = $$value));
 	window.dayjs.extend(weekOfYear);
 	window.dayjs.extend(isoWeek);
-
-	// export let localeData: Locale;
-	// // External sources (All optional)
-	// export let plugin: Plugin;
-	// export let sources: ICalendarSource[] = [];
-	// export let getSourceSettings: (sourceId: string) => ISourceSettings;
-	// export let selectedId: string;
-	// // Override-able local state
-	// export let today: Moment = window.moment();
-	// export let displayedMonth: Moment = today;
-	const { app } = getContext(VIEW);
-
-	console.log('CONTEXT 🤯', app);
-
-	// setContext(IS_MOBILE, (this.app as any).isMobile);
-	let displayedMonth = window.moment();
-
+	getContext(VIEW);
+	let displayedMonth = writable(window.moment());
+	component_subscribe($$self, displayedMonth, value => $$invalidate(5, $displayedMonth = value));
 	setContext(DISPLAYED_MONTH, displayedMonth);
 
 	const reindexNotes = () => {
-		console.log('calendar.svelte > reindexNotes() 🫵');
-		dailyNotesExtStore.reindex();
-		weeklyNotesExtStore.reindex();
+		granularities.forEach(granularity => {
+			notesStores[granularity].reindex();
+		});
 	};
 
 	$$self.$$.update = () => {
-		if ($$self.$$.dirty & /*$settingsStore*/ 8) {
-			$$invalidate(2, { localeData: { showWeekNums, localizedWeekdaysShort } } = $settingsStore, showWeekNums, ($$invalidate(1, localizedWeekdaysShort), $$invalidate(3, $settingsStore)));
+		if ($$self.$$.dirty & /*$settingsStore*/ 16) {
+			$$invalidate(2, { localeData: { showWeekNums, localizedWeekdaysShort } } = $settingsStore, showWeekNums, ($$invalidate(1, localizedWeekdaysShort), $$invalidate(4, $settingsStore)));
 		}
 
-		if ($$self.$$.dirty & /*$settingsStore*/ 8) {
+		if ($$self.$$.dirty & /*$displayedMonth*/ 32) {
+			$$invalidate(0, month = getMonth($displayedMonth));
+		}
+
+		if ($$self.$$.dirty & /*$settingsStore*/ 16) {
 			// let hoverTimeout: number;
 			// let showPopover: boolean = false;
 			// let popoverMetadata: IDayMetadata[];
@@ -4130,8 +4416,14 @@ function instance$2($$self, $$props, $$invalidate) {
 		}
 	};
 
-	$$invalidate(0, month = getMonth(displayedMonth));
-	return [month, localizedWeekdaysShort, showWeekNums, $settingsStore];
+	return [
+		month,
+		localizedWeekdaysShort,
+		showWeekNums,
+		displayedMonth,
+		$settingsStore,
+		$displayedMonth
+	];
 }
 
 class Calendar extends SvelteComponent {
@@ -4144,7 +4436,7 @@ class Calendar extends SvelteComponent {
 /* src/View.svelte generated by Svelte v4.2.0 */
 
 function add_css$1(target) {
-	append_styles(target, "svelte-abgy9o", ".container.svelte-abgy9o{width:100%\n}@media(min-width: 640px){.container.svelte-abgy9o{max-width:640px\n    }}@media(min-width: 768px){.container.svelte-abgy9o{max-width:768px\n    }}@media(min-width: 1024px){.container.svelte-abgy9o{max-width:1024px\n    }}@media(min-width: 1280px){.container.svelte-abgy9o{max-width:1280px\n    }}@media(min-width: 1536px){.container.svelte-abgy9o{max-width:1536px\n    }}.pointer-events-none.svelte-abgy9o{pointer-events:none\n}.visible.svelte-abgy9o{visibility:visible\n}.invisible.svelte-abgy9o{visibility:hidden\n}.collapse.svelte-abgy9o{visibility:collapse\n}.absolute.svelte-abgy9o{position:absolute\n}.relative.svelte-abgy9o{position:relative\n}.left-0.svelte-abgy9o{left:0px\n}.top-0.svelte-abgy9o{top:0px\n}.m-0.svelte-abgy9o{margin:0px\n}.mt-7.svelte-abgy9o{margin-top:1.75rem\n}.mt-6.svelte-abgy9o{margin-top:1.5rem\n}.mt-2.svelte-abgy9o{margin-top:0.5rem\n}.mt-3.svelte-abgy9o{margin-top:0.75rem\n}.block.svelte-abgy9o{display:block\n}.flex.svelte-abgy9o{display:flex\n}.table.svelte-abgy9o{display:table\n}.grid.svelte-abgy9o{display:grid\n}.contents.svelte-abgy9o{display:contents\n}.hidden.svelte-abgy9o{display:none\n}.w-max.svelte-abgy9o{width:-moz-max-content;width:max-content\n}.flex-shrink.svelte-abgy9o{flex-shrink:1\n}.border-collapse.svelte-abgy9o{border-collapse:collapse\n}.transform.svelte-abgy9o{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.flex-wrap.svelte-abgy9o{flex-wrap:wrap\n}.items-center.svelte-abgy9o{align-items:center\n}.text-sm.svelte-abgy9o{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-abgy9o{font-size:0.75rem;line-height:1rem\n}.uppercase.svelte-abgy9o{text-transform:uppercase\n}.capitalize.svelte-abgy9o{text-transform:capitalize\n}.text-\\[--text-muted\\].svelte-abgy9o{color:var(--text-muted)\n}.opacity-0.svelte-abgy9o{opacity:0\n}.filter.svelte-abgy9o{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)\n}.transition.svelte-abgy9o{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms\n}.duration-300.svelte-abgy9o{transition-duration:300ms\n}.hover\\:cursor-pointer.svelte-abgy9o:hover{cursor:pointer\n}");
+	append_styles(target, "svelte-l7hg2d", ".container.svelte-l7hg2d{width:100%\n}@media(min-width: 640px){.container.svelte-l7hg2d{max-width:640px\n    }}@media(min-width: 768px){.container.svelte-l7hg2d{max-width:768px\n    }}@media(min-width: 1024px){.container.svelte-l7hg2d{max-width:1024px\n    }}@media(min-width: 1280px){.container.svelte-l7hg2d{max-width:1280px\n    }}@media(min-width: 1536px){.container.svelte-l7hg2d{max-width:1536px\n    }}.pointer-events-none.svelte-l7hg2d{pointer-events:none\n}.visible.svelte-l7hg2d{visibility:visible\n}.invisible.svelte-l7hg2d{visibility:hidden\n}.collapse.svelte-l7hg2d{visibility:collapse\n}.absolute.svelte-l7hg2d{position:absolute\n}.relative.svelte-l7hg2d{position:relative\n}.left-0.svelte-l7hg2d{left:0px\n}.top-0.svelte-l7hg2d{top:0px\n}.m-0.svelte-l7hg2d{margin:0px\n}.mx-\\[1px\\].svelte-l7hg2d{margin-left:1px;margin-right:1px\n}.mt-2.svelte-l7hg2d{margin-top:0.5rem\n}.mt-3.svelte-l7hg2d{margin-top:0.75rem\n}.mt-7.svelte-l7hg2d{margin-top:1.75rem\n}.block.svelte-l7hg2d{display:block\n}.inline-block.svelte-l7hg2d{display:inline-block\n}.flex.svelte-l7hg2d{display:flex\n}.table.svelte-l7hg2d{display:table\n}.grid.svelte-l7hg2d{display:grid\n}.contents.svelte-l7hg2d{display:contents\n}.hidden.svelte-l7hg2d{display:none\n}.h-4.svelte-l7hg2d{height:1rem\n}.h-5.svelte-l7hg2d{height:1.25rem\n}.h-\\[6px\\].svelte-l7hg2d{height:6px\n}.h-\\[10px\\].svelte-l7hg2d{height:10px\n}.h-\\[16px\\].svelte-l7hg2d{height:16px\n}.h-3.svelte-l7hg2d{height:0.75rem\n}.w-4.svelte-l7hg2d{width:1rem\n}.w-max.svelte-l7hg2d{width:-moz-max-content;width:max-content\n}.w-5.svelte-l7hg2d{width:1.25rem\n}.w-\\[6px\\].svelte-l7hg2d{width:6px\n}.w-\\[10px\\].svelte-l7hg2d{width:10px\n}.w-\\[16px\\].svelte-l7hg2d{width:16px\n}.w-3.svelte-l7hg2d{width:0.75rem\n}.flex-shrink.svelte-l7hg2d{flex-shrink:1\n}.border-collapse.svelte-l7hg2d{border-collapse:collapse\n}.transform.svelte-l7hg2d{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.flex-wrap.svelte-l7hg2d{flex-wrap:wrap\n}.items-center.svelte-l7hg2d{align-items:center\n}.bg-red-400.svelte-l7hg2d{--tw-bg-opacity:1;background-color:rgb(248 113 113 / var(--tw-bg-opacity))\n}.text-sm.svelte-l7hg2d{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-l7hg2d{font-size:0.75rem;line-height:1rem\n}.uppercase.svelte-l7hg2d{text-transform:uppercase\n}.capitalize.svelte-l7hg2d{text-transform:capitalize\n}.text-\\[--text-muted\\].svelte-l7hg2d{color:var(--text-muted)\n}.text-\\[--text-on-accent\\].svelte-l7hg2d{color:var(--text-on-accent)\n}.opacity-0.svelte-l7hg2d{opacity:0\n}.filter.svelte-l7hg2d{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)\n}.transition.svelte-l7hg2d{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms\n}.duration-300.svelte-l7hg2d{transition-duration:300ms\n}.hover\\:cursor-pointer.svelte-l7hg2d:hover{cursor:pointer\n}");
 }
 
 function create_fragment$1(ctx) {
@@ -4159,7 +4451,7 @@ function create_fragment$1(ctx) {
 		c() {
 			div = element("div");
 			create_component(calendar.$$.fragment);
-			attr(div, "class", div_class_value = "" + (null_to_empty(clsx(/*popup*/ ctx[0] && 'w-max opacity-0 pointer-events-none absolute top-0 left-0 duration-300')) + " svelte-abgy9o"));
+			attr(div, "class", div_class_value = "" + (null_to_empty(clsx(/*popup*/ ctx[0] && 'w-max opacity-0 pointer-events-none absolute top-0 left-0 duration-300')) + " svelte-l7hg2d"));
 			attr(div, "data-popup", div_data_popup_value = /*popup*/ ctx[0] && 'calendarPopup');
 		},
 		m(target, anchor) {
@@ -4168,7 +4460,7 @@ function create_fragment$1(ctx) {
 			current = true;
 		},
 		p(ctx, [dirty]) {
-			if (!current || dirty & /*popup*/ 1 && div_class_value !== (div_class_value = "" + (null_to_empty(clsx(/*popup*/ ctx[0] && 'w-max opacity-0 pointer-events-none absolute top-0 left-0 duration-300')) + " svelte-abgy9o"))) {
+			if (!current || dirty & /*popup*/ 1 && div_class_value !== (div_class_value = "" + (null_to_empty(clsx(/*popup*/ ctx[0] && 'w-max opacity-0 pointer-events-none absolute top-0 left-0 duration-300')) + " svelte-l7hg2d"))) {
 				attr(div, "class", div_class_value);
 			}
 
@@ -4215,7 +4507,7 @@ class View extends SvelteComponent {
 /* src/calendar-ui/components/ConfirmationModal.svelte generated by Svelte v4.2.0 */
 
 function add_css(target) {
-	append_styles(target, "svelte-1o5fgv5", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.m-0.svelte-1o5fgv5{margin:0px\n}.mt-2.svelte-1o5fgv5{margin-top:0.5rem\n}.mt-3.svelte-1o5fgv5{margin-top:0.75rem\n}.mt-7.svelte-1o5fgv5{margin-top:1.75rem\n}.flex.svelte-1o5fgv5{display:flex\n}.items-center.svelte-1o5fgv5{align-items:center\n}.text-sm.svelte-1o5fgv5{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-1o5fgv5{font-size:0.75rem;line-height:1rem\n}.text-\\[--text-muted\\].svelte-1o5fgv5{color:var(--text-muted)\n}.hover\\:cursor-pointer.svelte-1o5fgv5:hover{cursor:pointer\n}");
+	append_styles(target, "svelte-l7hg2d", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.m-0.svelte-l7hg2d{margin:0px\n}.mt-2.svelte-l7hg2d{margin-top:0.5rem\n}.mt-3.svelte-l7hg2d{margin-top:0.75rem\n}.mt-7.svelte-l7hg2d{margin-top:1.75rem\n}.flex.svelte-l7hg2d{display:flex\n}.items-center.svelte-l7hg2d{align-items:center\n}.text-sm.svelte-l7hg2d{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-l7hg2d{font-size:0.75rem;line-height:1rem\n}.text-\\[--text-muted\\].svelte-l7hg2d{color:var(--text-muted)\n}.hover\\:cursor-pointer.svelte-l7hg2d:hover{cursor:pointer\n}");
 }
 
 // (36:1) {#if note}
@@ -4226,7 +4518,7 @@ function create_if_block(ctx) {
 		c() {
 			p = element("p");
 			p.textContent = `${/*note*/ ctx[3]}`;
-			attr(p, "class", "m-0 mt-2 text-xs text-[--text-muted] svelte-1o5fgv5");
+			attr(p, "class", "m-0 mt-2 text-xs text-[--text-muted] svelte-l7hg2d");
 		},
 		m(target, anchor) {
 			insert(target, p, anchor);
@@ -4281,10 +4573,10 @@ function create_fragment(ctx) {
 			button1 = element("button");
 			button1.textContent = `${/*cta*/ ctx[4]}`;
 			attr(input, "type", "checkbox");
-			attr(input, "class", "hover:cursor-pointer svelte-1o5fgv5");
-			attr(label, "class", "flex items-center hover:cursor-pointer text-sm mt-7 svelte-1o5fgv5");
+			attr(input, "class", "hover:cursor-pointer svelte-l7hg2d");
+			attr(label, "class", "flex items-center hover:cursor-pointer text-sm mt-7 svelte-l7hg2d");
 			attr(button1, "class", "mod-cta");
-			attr(div0, "class", "modal-button-container mt-3 svelte-1o5fgv5");
+			attr(div0, "class", "modal-button-container mt-3 svelte-l7hg2d");
 		},
 		m(target, anchor) {
 			insert(target, div1, anchor);
@@ -4417,7 +4709,7 @@ function createConfirmationDialog(params) {
     new ConfirmationModal(params).open();
 }
 
-const VIEW_TYPE_EXAMPLE = 'example-view';
+const VIEW_TYPE_CALENDAR = 'calendar';
 class CalendarView extends obsidian.ItemView {
     view;
     settings;
@@ -4442,7 +4734,7 @@ class CalendarView extends obsidian.ItemView {
         return Promise.resolve();
     }
     getViewType() {
-        return VIEW_TYPE_EXAMPLE;
+        return VIEW_TYPE_CALENDAR;
     }
     getDisplayText() {
         return 'Example view';
@@ -4450,58 +4742,63 @@ class CalendarView extends obsidian.ItemView {
     async onOpen() {
         console.log('On open view👐');
         const context = new Map();
+        const getEventHandlers = () => {
+            const granularitiesNames = granularitiesCapitalize;
+            const events = ['onClick', 'onHover', 'onContextMenu'];
+            const granularitiesEvents = {};
+            granularitiesNames.forEach((granularity) => {
+                const eventHandlers = {};
+                events.forEach((ev) => {
+                    const eventHandlerName = (ev + granularity);
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore
+                    eventHandlers[ev] = this[eventHandlerName].bind(this);
+                });
+                granularitiesEvents[granularity.toLowerCase()] = eventHandlers;
+            });
+            return granularitiesEvents;
+        };
         context.set(VIEW, {
             app: this.app,
-            eventHandlers: {
-                day: {
-                    onClick: this.onClickDay.bind(this),
-                    onHover: this.onHoverDay.bind(this),
-                    onContextMenu: this.onContextMenuDay.bind(this)
-                },
-                week: {
-                    onClick: this.onClickWeek.bind(this),
-                    onHover: this.onHoverWeek.bind(this),
-                    onContextMenu: this.onContextMenuWeek.bind(this)
-                }
-            }
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            eventHandlers: getEventHandlers()
         });
         this.view = new View({
             target: this.contentEl,
             context
         });
     }
-    // // app.workspace and app.vault event handlers
+    // app.workspace and app.vault event handlers
     onNoteSettingsUpdate() {
-        dailyNotesExtStore.reindex();
-        weeklyNotesExtStore.reindex();
+        granularities.forEach((granularity) => {
+            notesStores[granularity].reindex();
+        });
         this.updateActiveFile();
     }
     async onFileDeleted(file) {
-        if (getDateFromFile(file, 'day')) {
-            dailyNotesExtStore.reindex();
-            this.updateActiveFile();
-        }
-        if (getDateFromFile(file, 'week')) {
-            weeklyNotesExtStore.reindex();
-            this.updateActiveFile();
-        }
+        granularities.forEach((granularity) => {
+            if (getDateFromFile(file, granularity)) {
+                notesStores[granularity].reindex();
+            }
+        });
+        this.updateActiveFile();
     }
     async onFileModified(file) {
         const date = getDateFromFile(file, 'day') || getDateFromFile(file, 'week');
-        if (date && this.view) {
-            this.view.tick();
-        }
+        if (date && this.view) ;
     }
     onFileCreated(file) {
+        console.log('onFileCreated() > file: ', file);
         if (this.app.workspace.layoutReady && this.view) {
-            if (getDateFromFile(file, 'day')) {
-                dailyNotesExtStore.reindex();
-                // this.view.tick();
-            }
-            if (getDateFromFile(file, 'week')) {
-                weeklyNotesExtStore.reindex();
-                // this.view.tick();
-            }
+            // do this ifs for every single granularity
+            granularities.forEach((granularity) => {
+                // only add new note from notes folder to store if a date can be obtained from filename
+                if (getDateFromFile(file, granularity)) {
+                    notesStores[granularity].reindex();
+                    // this.view.tick();
+                }
+            });
         }
     }
     onFileOpen() {
@@ -4517,39 +4814,10 @@ class CalendarView extends obsidian.ItemView {
             file && (await leaf.openFile(file));
             activeFile.setFile(getDateUID(date, 'day'));
         };
-        let file = getDailyNote(date);
+        let file = getNoteByGranularity({ date, granularity: 'day' });
         if (!file) {
-            const { format } = getDailyNoteSettings();
+            const { format } = getNoteSettingsByGranularity('day');
             if (this.settings.shouldConfirmBeforeCreate) {
-                const noteText = () => {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const perNotesPlugin = window.app.plugins.getPlugin('periodic-notes');
-                    const dailyNotesInPerNotesPlugin = perNotesPlugin?.settings.daily.enabled;
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const dailyNotesPlugin = app.internalPlugins.plugins['daily-notes']?.enabled;
-                    console.log('noteText > dailyNotesPlugin: ', dailyNotesPlugin);
-                    if (perNotesPlugin) {
-                        if (dailyNotesInPerNotesPlugin) {
-                            return 'Note: Using Daily notes config from Periodic Notes plugin.';
-                        }
-                        else {
-                            if (dailyNotesPlugin) {
-                                return 'Note: Daily notes in Periodic Notes plugin are disabled. Using Daily Notes plugin config for now.';
-                            }
-                            else {
-                                return 'Note: Daily notes in Periodic Notes plugin and Daily Notes plugin are disabled. Using default config for now.';
-                            }
-                        }
-                    }
-                    else {
-                        if (dailyNotesPlugin) {
-                            return 'Note: Missing Periodic Notes plugin. Using Daily Notes plugin config for now.';
-                        }
-                        else {
-                            return 'Note: Missing Periodic Notes and Daily Notes plugin. Using default config for now.';
-                        }
-                    }
-                };
                 createConfirmationDialog({
                     cta: 'Create',
                     onAccept: async () => {
@@ -4558,7 +4826,7 @@ class CalendarView extends obsidian.ItemView {
                         return file;
                     },
                     text: `File ${date.format(format)} does not exist. Would you like to create it?`,
-                    note: noteText(),
+                    note: getOnCreateNoteDialogNoteFromGranularity('day'),
                     title: 'New Daily Note'
                 });
             }
@@ -4578,20 +4846,15 @@ class CalendarView extends obsidian.ItemView {
             file && (await leaf.openFile(file));
             activeFile.setFile(getDateUID(startOfWeekDate, 'week'));
         };
-        let file = getWeeklyNote(startOfWeekDate);
+        let file = getNoteByGranularity({ date: startOfWeekDate, granularity: 'week' });
+        console.log('onClickWeek() > weekStore: ', get_store_value(notesStores['week']), 'file: ', file);
         if (!file) {
-            const { format } = getWeeklyNoteSettings();
+            const { format } = getNoteSettingsByGranularity('week');
             if (this.settings.shouldConfirmBeforeCreate) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const periodicNotesPlugin = window.app.plugins.getPlugin('periodic-notes');
                 createConfirmationDialog({
                     title: 'New Daily Note',
                     text: `File ${startOfWeekDate.format(format)} does not exist. Would you like to create it?`,
-                    note: !periodicNotesPlugin
-                        ? 'Note: Missing Periodic Notes plugin! Install or activate to personalize your notes. Defaults will be used for now.'
-                        : !appHasWeeklyNotesPluginLoaded()
-                            ? 'Note: Weekly notes in Periodic Notes plugin are disabled. Activate to personalize your notes. Defaults will be used for now. '
-                            : null,
+                    note: getOnCreateNoteDialogNoteFromGranularity('week'),
                     cta: 'Create',
                     onAccept: async () => {
                         file = await createWeeklyNote(startOfWeekDate);
@@ -4609,10 +4872,10 @@ class CalendarView extends obsidian.ItemView {
             file && (await openFile(file));
         }
     }
-    async onClickQuarter({ date, isNewSplit }) {
+    async onClickMonth({ date, isNewSplit }) {
         return Promise.resolve();
     }
-    async onClickMonth({ date, isNewSplit }) {
+    async onClickQuarter({ date, isNewSplit }) {
         return Promise.resolve();
     }
     async onClickYear({ date, isNewSplit }) {
@@ -4622,72 +4885,71 @@ class CalendarView extends obsidian.ItemView {
         if (!isMetaPressed) {
             return;
         }
-        const { format } = getDailyNoteSettings();
-        const note = getDailyNote(date, get_store_value(dailyNotes));
+        const { format } = getNoteSettingsByGranularity('day');
+        const note = getNoteByGranularity({ date, granularity: 'day' });
         this.app.workspace.trigger('link-hover', this, targetEl, date.format(format), note?.path);
     }
     onHoverWeek({ date, targetEl, isMetaPressed }) {
         if (!isMetaPressed) {
             return;
         }
-        const note = getWeeklyNote(date, get_store_value(weeklyNotes));
-        const { format } = getWeeklyNoteSettings();
+        const note = getNoteByGranularity({ date, granularity: 'week' });
+        const { format } = getNoteSettingsByGranularity('week');
         this.app.workspace.trigger('link-hover', this, targetEl, date.format(format), note?.path);
     }
+    onHoverMonth({ date, targetEl, isMetaPressed }) { }
+    onHoverQuarter({ date, targetEl, isMetaPressed }) { }
+    onHoverYear({ date, targetEl, isMetaPressed }) { }
     onContextMenuDay({ date, event }) {
-        const note = getDailyNote(date, get_store_value(dailyNotes));
+        const note = getNoteByGranularity({ date, granularity: 'day' });
         if (!note) {
             // If no file exists for a given day, show nothing.
             return;
         }
-        showFileMenu(this.app, note, {
-            x: event.pageX,
-            y: event.pageY
-        });
+        // showFileMenu(this.app, note, {
+        // 	x: event.pageX,
+        // 	y: event.pageY
+        // });
     }
     onContextMenuWeek({ date, event }) {
-        const note = getWeeklyNote(date, get_store_value(weeklyNotes));
+        const note = getNoteByGranularity({ date, granularity: 'week' });
         if (!note) {
             // If no file exists for a given day, show nothing.
             return;
         }
-        showFileMenu(this.app, note, {
-            x: event.pageX,
-            y: event.pageY
-        });
+        // showFileMenu(this.app, note, {
+        // 	x: event.pageX,
+        // 	y: event.pageY
+        // });
     }
+    onContextMenuMonth({ date, event }) { }
+    onContextMenuQuarter({ date, event }) { }
+    onContextMenuYear({ date, event }) { }
     // Utils
     updateActiveFile() {
+        console.log('CalendarView > on(periodic-notes:settings-updated) > updateActiveFile()');
         // get activeLeaf view
-        const { view } = this.app.workspace.activeLeaf;
+        const activeLeaf = this.app.workspace.activeLeaf;
         let file = null;
-        if (view instanceof obsidian.FileView) {
+        if (activeLeaf?.view && activeLeaf?.view instanceof obsidian.FileView) {
             // extract file from view
-            file = view.file;
-        }
-        // save file in store activeFile
-        activeFile.setFile(file);
-        // rerender calendar to display possible different active file
-        if (this.view) {
-            this.view.tick();
-        }
-    }
-    revealActiveNote() {
-        const { moment } = window;
-        const { activeLeaf } = this.app.workspace;
-        if (activeLeaf.view instanceof obsidian.FileView) {
-            // Check to see if the active note is a daily-note
-            let date = getDateFromFile(activeLeaf.view.file, 'day');
-            if (date) {
-                this.calendar.$set({ displayedMonth: date });
-                return;
-            }
-            // Check to see if the active note is a weekly-note
-            const { format } = getWeeklyNoteSettings();
-            date = moment(activeLeaf.view.file.basename, format, true);
-            if (date.isValid()) {
-                this.calendar.$set({ displayedMonth: date });
-                return;
+            file = activeLeaf.view.file;
+            if (file) {
+                let noteDate = null;
+                let noteGranularity = null;
+                for (const granularity of granularities) {
+                    const date = getDateFromFile(file, granularity);
+                    if (date) {
+                        noteDate = date;
+                        noteGranularity = granularity;
+                        break;
+                    }
+                }
+                // save file in store activeFile
+                if (noteDate && noteGranularity) {
+                    activeFile.setFile(getDateUID(noteDate, noteGranularity));
+                    this.view && this.view.tick();
+                }
             }
         }
     }
@@ -4699,7 +4961,7 @@ class DailyNoteFlexPlugin extends obsidian.Plugin {
     cleanupPopup;
     onunload() {
         console.log('ON Unload ⛰️');
-        this.app.workspace.getLeavesOfType(VIEW_TYPE_EXAMPLE).forEach((leaf) => leaf.detach());
+        this.app.workspace.getLeavesOfType(VIEW_TYPE_CALENDAR).forEach((leaf) => leaf.detach());
         this.cleanupPopup && this.cleanupPopup();
         this.removeLocaleScripts();
         window.plugin = null;
@@ -4906,27 +5168,27 @@ class DailyNoteFlexPlugin extends obsidian.Plugin {
     }
     async handleView() {
         // register view
-        this.registerView(VIEW_TYPE_EXAMPLE, (leaf) => new CalendarView(leaf));
+        this.registerView(VIEW_TYPE_CALENDAR, (leaf) => new CalendarView(leaf));
         // TODO: Try to not block initial loading by deferring loading with 'onLayoutReady'
         // activate view
         await this.initView();
     }
     async initView({ active } = { active: true }) {
-        this.app.workspace.detachLeavesOfType(VIEW_TYPE_EXAMPLE);
+        this.app.workspace.detachLeavesOfType(VIEW_TYPE_CALENDAR);
         await this.app.workspace.getLeftLeaf(false).setViewState({
-            type: VIEW_TYPE_EXAMPLE,
+            type: VIEW_TYPE_CALENDAR,
             active
         });
     }
     revealView() {
-        this.app.workspace.revealLeaf(this.app.workspace.getLeavesOfType(VIEW_TYPE_EXAMPLE)[0]);
-        this.app.workspace.getLeavesOfType(VIEW_TYPE_EXAMPLE)[0].setViewState({
-            type: VIEW_TYPE_EXAMPLE,
+        this.app.workspace.revealLeaf(this.app.workspace.getLeavesOfType(VIEW_TYPE_CALENDAR)[0]);
+        this.app.workspace.getLeavesOfType(VIEW_TYPE_CALENDAR)[0].setViewState({
+            type: VIEW_TYPE_CALENDAR,
             active: true
         });
     }
     async toggleView() {
-        const leaf = this.app.workspace.getLeavesOfType(VIEW_TYPE_EXAMPLE)[0];
+        const leaf = this.app.workspace.getLeavesOfType(VIEW_TYPE_CALENDAR)[0];
         if (!leaf) {
             await this.initView();
             this.revealView();

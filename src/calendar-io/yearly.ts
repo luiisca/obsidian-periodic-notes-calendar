@@ -1,10 +1,8 @@
 import type { Moment } from "moment";
-import { normalizePath, Notice, TFile, TFolder, Vault } from "obsidian";
+import { Notice, TFile } from "obsidian";
 
-import { appHasYearlyNotesPluginLoaded } from "./index";
-import { getDateFromFile, getDateUID } from "./parse";
-import { getYearlyNoteSettings } from "./settings";
 import { getNotePath, getTemplateInfo } from "./vault";
+import { getNoteSettingsByGranularity } from "./settings";
 
 export class YearlyNotesFolderMissingError extends Error {}
 
@@ -15,9 +13,9 @@ export class YearlyNotesFolderMissingError extends Error {}
  *
  * Note: it has an added bonus that it's not 'today' specific.
  */
-export async function createYearlyNote(date: Moment): Promise<TFile> {
+export async function createYearlyNote(date: Moment): Promise<TFile | undefined> {
   const { vault } = window.app;
-  const { template, format, folder } = getYearlyNoteSettings();
+  const { template, format, folder } = getNoteSettingsByGranularity('year');
   const [templateContents, IFoldInfo] = await getTemplateInfo(template);
   const filename = date.format(format);
   const normalizedPath = await getNotePath(folder, filename);
@@ -56,45 +54,6 @@ export async function createYearlyNote(date: Moment): Promise<TFile> {
     return createdFile;
   } catch (err) {
     console.error(`Failed to create file: '${normalizedPath}'`, err);
-    new Notice("Unable to create new file.");
+    new Notice(`Failed to create file: '${normalizedPath}'`);
   }
-}
-
-export function getYearlyNote(
-  date: Moment,
-  yearlyNotes: Record<string, TFile>
-): TFile {
-  return yearlyNotes[getDateUID(date, "year")] ?? null;
-}
-
-export function getAllYearlyNotes(): Record<string, TFile> {
-  const yearlyNotes: Record<string, TFile> = {};
-
-  if (!appHasYearlyNotesPluginLoaded()) {
-    return yearlyNotes;
-  }
-  const { vault } = window.app;
-  const { folder } = getYearlyNoteSettings();
-
-  const yearlyNotesFolder = vault.getAbstractFileByPath(
-    normalizePath(folder)
-  ) as TFolder;
-
-  if (!yearlyNotesFolder) {
-    throw new YearlyNotesFolderMissingError(
-      "Failed to find yearly notes folder"
-    );
-  }
-
-  Vault.recurseChildren(yearlyNotesFolder, (note) => {
-    if (note instanceof TFile) {
-      const date = getDateFromFile(note, "year");
-      if (date) {
-        const dateString = getDateUID(date, "year");
-        yearlyNotes[dateString] = note;
-      }
-    }
-  });
-
-  return yearlyNotes;
 }

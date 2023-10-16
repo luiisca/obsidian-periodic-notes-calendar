@@ -1,15 +1,8 @@
-import { App, normalizePath, Notice, TFile, TFolder, Vault } from 'obsidian';
+import { App, Notice, TFile } from 'obsidian';
 
-import { getDateFromFile, getDateUID } from './parse';
-import { getDailyNoteSettings } from './settings';
 import { getTemplateInfo, getNotePath } from './vault';
-import type { Dayjs } from 'dayjs';
-// import type { IPeriodicNoteSettings } from './types';
-import { get } from 'svelte/store';
-import { dailyNotesExtStore } from '@/stores';
 import type { Moment } from 'moment';
-
-export class DailyNotesFolderMissingError extends Error {}
+import { getNoteSettingsByGranularity } from './settings';
 
 /**
  * This function mimics the behavior of the daily-notes plugin
@@ -22,17 +15,17 @@ export async function createDailyNote(date: Moment): Promise<TFile | undefined> 
 	const app = window.app as App;
 	const { vault } = app;
 
-	const { template, folder, format } = getDailyNoteSettings();
+	const { template, folder, format } = getNoteSettingsByGranularity('day');
 
 	// TODO: Find out what IFoldInfo is used for (think it is for keeping track of openned folders)
 	const [templateContents, IFoldInfo] = await getTemplateInfo(template);
 	const filename = date.format(format);
 	const normalizedPath = await getNotePath(folder, filename);
 
-	console.table(getDailyNoteSettings());
-	console.log('getTemplateInfo:', templateContents, IFoldInfo);
-	console.log("onClickDay() > createDailyNote > filename, format: ", filename, format)
-	console.log('NOrmalized path', normalizedPath);
+	// console.table(getNoteSettingsByGranularity('day'));
+	// console.log('getTemplateInfo:', templateContents, IFoldInfo);
+	// console.log("onClickDay() > createDailyNote > filename, format: ", filename, format)
+	// console.log('NOrmalized path', normalizedPath);
 
 	try {
 		const createdFile = await vault.create(
@@ -66,49 +59,6 @@ export async function createDailyNote(date: Moment): Promise<TFile | undefined> 
 		return createdFile;
 	} catch (err) {
 		console.error(`Failed to create file: '${normalizedPath}'`, err);
-		new Notice('Unable to create new file.');
-	}
-}
-
-export function getDailyNote(date: Moment): TFile | undefined {
-	const dailyNotes = get(dailyNotesExtStore);
-	console.log('daily.ts > getDailyNote, dailyNotes: ', dailyNotes)
-
-	return dailyNotes[getDateUID(date, 'day')];
-}
-
-export function getAllDailyNotes(): Record<string, TFile> {
-	const dailyNotes: Record<string, TFile> = {};
-	/**
-	 * Find all daily notes in the daily note folder
-	 */
-	const { vault } = window.app;
-	try {
-		const { folder } = getDailyNoteSettings();
-
-		const dailyNotesFolder = vault.getAbstractFileByPath(normalizePath(folder)) as TFolder;
-
-		if (!dailyNotesFolder) {
-			throw new DailyNotesFolderMissingError(
-				"Unable to locate the daily notes folder. Check your plugin's settings or restart this plugin."
-			);
-		}
-
-		Vault.recurseChildren(dailyNotesFolder, (note) => {
-			if (note instanceof TFile) {
-				// if file name maps to a valid dayjs date, it is saved in store.
-				const date = getDateFromFile(note, 'day');
-				if (date) {
-					const dateUID = getDateUID(date, 'day');
-					dailyNotes[dateUID] = note;
-				}
-			}
-		});
-
-		return dailyNotes;
-	} catch (error) {
-		typeof error === 'string' && new Notice(error);
-
-		return dailyNotes;
+		new Notice(`Failed to create file: '${normalizedPath}'`);
 	}
 }

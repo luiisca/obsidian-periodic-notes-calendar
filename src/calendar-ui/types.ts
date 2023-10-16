@@ -1,3 +1,4 @@
+import type { IGranularity } from "@/calendar-io";
 import type { Moment } from "moment";
 import type { TFile } from "obsidian";
 

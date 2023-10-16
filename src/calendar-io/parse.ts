@@ -1,16 +1,9 @@
 import type { Moment } from 'moment';
 import type { TFile } from 'obsidian';
 
-import {
-	getDailyNoteSettings,
-	getWeeklyNoteSettings,
-	getMonthlyNoteSettings,
-	getQuarterlyNoteSettings,
-	getYearlyNoteSettings
-} from './settings';
-
 import { basename } from './vault';
-import type { IGranularity } from './types';
+import type { IGranularity, IPeriodicites } from './types';
+import { getNoteSettingsByGranularity } from './settings';
 
 /**
  * dateUID is a way of weekly identifying daily/weekly/monthly notes.
@@ -49,15 +42,10 @@ function getDateFromFilename(
 	filename: string,
 	granularity: 'day' | 'week' | 'month' | 'quarter' | 'year'
 ): Moment | null {
-	const getSettings = {
-		day: getDailyNoteSettings,
-		week: getWeeklyNoteSettings,
-		month: getMonthlyNoteSettings,
-		quarter: getQuarterlyNoteSettings,
-		year: getYearlyNoteSettings
-	};
+	const format = getNoteSettingsByGranularity(granularity).format.split('/').pop();
 
-	const format = getSettings[granularity]().format.split('/').pop();
+	// TODO: Find a way to validate if a filename represents a valid date without using format to avoid:
+	// every time periodic notes update and format changes only notes created with the new format are stored, the rest are neglected.
 	const noteDate = window.moment(filename, format, true);
 
 	if (!noteDate.isValid()) {
@@ -79,4 +67,8 @@ function getDateFromFilename(
 	}
 
 	return noteDate;
+}
+
+export function getPeriodicityFromGranularity(granularity: IGranularity): IPeriodicites {
+	return granularity === 'day' ? 'daily' : `${granularity}ly`;
 }

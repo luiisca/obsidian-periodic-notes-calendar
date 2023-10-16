@@ -1,11 +1,6 @@
-import {
-	DEFAULT_DAILY_NOTE_FORMAT,
-	DEFAULT_MONTHLY_NOTE_FORMAT,
-	DEFAULT_WEEKLY_NOTE_FORMAT,
-	DEFAULT_QUARTERLY_NOTE_FORMAT,
-	DEFAULT_YEARLY_NOTE_FORMAT
-} from './constants';
-import type { IPeriodicNoteSettings } from './types';
+import { NOTE_FORMATS } from './constants';
+import { getPeriodicityFromGranularity } from './parse';
+import type { IGranularity, IPeriodicNoteSettings, IPeriodicites } from './types';
 
 export class NoDailyNotesMngPluginFoundError extends Error {}
 
@@ -18,160 +13,50 @@ export function shouldUsePeriodicNotesSettings(
 }
 
 /**
- * Read the user settings for the `daily-notes` plugin
+ * Read the user settings for the `${granularity}-notes` plugin
  * to keep behavior of creating a new note in-sync.
  */
-export function getDailyNoteSettings(): IPeriodicNoteSettings {
+export function getNoteSettingsByGranularity(granularity: IGranularity): IPeriodicNoteSettings {
+	const periodicity = getPeriodicityFromGranularity(granularity);
+	const defaultNoteFormat = NOTE_FORMATS[periodicity.toUpperCase() as Uppercase<IPeriodicites>];
+
 	try {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const { internalPlugins, plugins } = <any>window.app;
 
-		if (shouldUsePeriodicNotesSettings('daily')) {
+		if (shouldUsePeriodicNotesSettings(periodicity)) {
 			const { format, folder, template } =
-				plugins.getPlugin('periodic-notes')?.settings?.daily || {};
+				plugins.getPlugin('periodic-notes')?.settings?.[periodicity] || {};
 
 			return {
-				format: format || DEFAULT_DAILY_NOTE_FORMAT,
+				format: format || defaultNoteFormat,
 				folder: folder?.trim() || '/',
 				template: template?.trim() || ''
 			};
 		}
 
-		const { folder, format, template } =
-			internalPlugins.getPluginById('daily-notes')?.instance?.options || {};
-		return {
-			format: format || DEFAULT_DAILY_NOTE_FORMAT,
-			folder: folder?.trim() || '/',
-			template: template?.trim() || ''
-		};
-	} catch (err) {
-		console.info('No custom daily note settings found! Ensure the plugin is active.', err);
-
-		return {
-			format: DEFAULT_DAILY_NOTE_FORMAT,
-			folder: '/',
-			template: ''
-		};
-	}
-}
-
-/**
- * Read the user settings for the `weekly-notes` plugin
- * to keep behavior of creating a new note in-sync.
- */
-export function getWeeklyNoteSettings(): IPeriodicNoteSettings {
-	try {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const pluginManager = (<any>window.app).plugins;
-
-		if (shouldUsePeriodicNotesSettings('weekly')) {
-			const { format, folder, template } =
-				pluginManager.getPlugin('periodic-notes').settings.weekly;
-
+		if (periodicity === 'daily') {
+			const { folder, format, template } =
+				internalPlugins.getPluginById('daily-notes')?.instance?.options || {};
 			return {
-				format: format || DEFAULT_WEEKLY_NOTE_FORMAT,
-				folder: folder?.trim() || '',
+				format: format || defaultNoteFormat,
+				folder: folder?.trim() || '/',
 				template: template?.trim() || ''
 			};
 		}
 
 		return {
-			format: DEFAULT_WEEKLY_NOTE_FORMAT,
+			format: defaultNoteFormat,
 			folder: '/',
 			template: ''
 		};
 	} catch (err) {
-		console.info('No custom weekly note settings found! Ensure the plugin is active.', err);
+		console.info('No custom daily note settings found! Ensure the plugin is active.', err);
 
-		// allow users to create notes no matter if periodic notes plugin is not installed or disabled
 		return {
-			format: DEFAULT_WEEKLY_NOTE_FORMAT,
+			format: defaultNoteFormat,
 			folder: '/',
 			template: ''
 		};
-	}
-}
-
-/**
- * Read the user settings for the `periodic-notes` plugin
- * to keep behavior of creating a new note in-sync.
- */
-export function getMonthlyNoteSettings(): IPeriodicNoteSettings {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const pluginManager = (<any>window.app).plugins;
-
-	try {
-		const settings =
-			(shouldUsePeriodicNotesSettings('monthly') &&
-				pluginManager.getPlugin('periodic-notes')?.settings?.monthly) ||
-			{};
-
-		return {
-			format: settings.format || DEFAULT_MONTHLY_NOTE_FORMAT,
-			folder: settings.folder?.trim() || '',
-			template: settings.template?.trim() || ''
-		};
-	} catch (err) {
-		console.info('No custom monthly note settings found! Ensure the plugin is active.', err);
-
-		throw new NoDailyNotesMngPluginFoundError(
-			'No custom monthly note settings found! Ensure the plugin is active.'
-		);
-	}
-}
-
-/**
- * Read the user settings for the `periodic-notes` plugin
- * to keep behavior of creating a new note in-sync.
- */
-export function getQuarterlyNoteSettings(): IPeriodicNoteSettings {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const pluginManager = (<any>window.app).plugins;
-
-	try {
-		const settings =
-			(shouldUsePeriodicNotesSettings('quarterly') &&
-				pluginManager.getPlugin('periodic-notes')?.settings?.quarterly) ||
-			{};
-
-		return {
-			format: settings.format || DEFAULT_QUARTERLY_NOTE_FORMAT,
-			folder: settings.folder?.trim() || '',
-			template: settings.template?.trim() || ''
-		};
-	} catch (err) {
-		console.info('No custom quarterly note settings found! Ensure the plugin is active.', err);
-
-		throw new NoDailyNotesMngPluginFoundError(
-			'No custom quarterly note settings found! Ensure the plugin is active.'
-		);
-	}
-}
-
-/**
- * Read the user settings for the `periodic-notes` plugin
- * to keep behavior of creating a new note in-sync.
- */
-export function getYearlyNoteSettings(): IPeriodicNoteSettings {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const pluginManager = (<any>window.app).plugins;
-
-	try {
-		const settings =
-			(shouldUsePeriodicNotesSettings('yearly') &&
-				pluginManager.getPlugin('periodic-notes')?.settings?.yearly) ||
-			{};
-
-		return {
-			format: settings.format || DEFAULT_YEARLY_NOTE_FORMAT,
-			folder: settings.folder?.trim() || '',
-			template: settings.template?.trim() || ''
-		};
-	} catch (err) {
-		console.info('No custom yearly note settings found! Ensure the plugin is active.', err);
-
-		throw new NoDailyNotesMngPluginFoundError(
-			'No custom yearly note settings found! Ensure the plugin is active.'
-		);
 	}
 }

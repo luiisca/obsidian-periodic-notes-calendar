@@ -3,11 +3,11 @@ import { App, DropdownComponent, Notice, PluginSettingTab, Setting } from 'obsid
 import type DailyNoteFlexPlugin from '@/main';
 import { settingsStore } from '@/stores';
 import type { Unsubscriber } from 'svelte/store';
-import locales from './locales';
 import { fetchWithRetry } from './utils';
 import dayjs from 'dayjs';
 import weekday from 'dayjs/plugin/weekday';
 import localeData from 'dayjs/plugin/localeData';
+import locales from './locales';
 
 dayjs.extend(weekday);
 dayjs.extend(localeData);

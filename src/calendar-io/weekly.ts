@@ -1,12 +1,8 @@
 import type { Moment } from 'moment';
-import { normalizePath, Notice, TFile, TFolder, Vault } from 'obsidian';
+import { Notice, TFile } from 'obsidian';
 
-import { appHasWeeklyNotesPluginLoaded } from './index';
-import { getDateFromFile, getDateUID } from './parse';
-import { getWeeklyNoteSettings } from './settings';
 import { getNotePath, getTemplateInfo } from './vault';
-import { weeklyNotesExtStore } from '@/stores';
-import { get } from 'svelte/store';
+import { getNoteSettingsByGranularity } from './settings';
 
 export class WeeklyNotesFolderMissingError extends Error {}
 
@@ -30,7 +26,7 @@ export function getDayOfWeekNumericalValue(dayOfWeekName: string): number {
 
 export async function createWeeklyNote(date: Moment): Promise<TFile | undefined> {
 	const { vault } = window.app;
-	const { template, format, folder } = getWeeklyNoteSettings();
+	const { template, format, folder } = getNoteSettingsByGranularity('week');
 	const [templateContents, IFoldInfo] = await getTemplateInfo(template);
 	const filename = date.format(format);
 	const normalizedPath = await getNotePath(folder, filename);
@@ -75,38 +71,6 @@ export async function createWeeklyNote(date: Moment): Promise<TFile | undefined>
 		return createdFile;
 	} catch (err) {
 		console.error(`Failed to create file: '${normalizedPath}'`, err);
-		new Notice('Unable to create new file.');
+		new Notice(`Failed to create file: '${normalizedPath}'`);
 	}
-}
-
-export function getWeeklyNote(startOfWeekDate: Moment): TFile | undefined {
-	const weeklyNotes = get(weeklyNotesExtStore);
-	console.log('getWeeklyNote > weeklyNotesExtStore: ', weeklyNotes)
-	console.log('dateUID: ', getDateUID(startOfWeekDate, 'week'))
-
-	return weeklyNotes[getDateUID(startOfWeekDate, 'week')];
-}
-
-export function getAllWeeklyNotes(): Record<string, TFile> {
-	const weeklyNotes: Record<string, TFile> = {};
-
-	const { vault } = window.app;
-	const { folder } = getWeeklyNoteSettings();
-	const weeklyNotesFolder = vault.getAbstractFileByPath(normalizePath(folder)) as TFolder;
-
-	if (!weeklyNotesFolder) {
-		throw new WeeklyNotesFolderMissingError('Failed to find weekly notes folder');
-	}
-
-	Vault.recurseChildren(weeklyNotesFolder, (note) => {
-		if (note instanceof TFile) {
-			const date = getDateFromFile(note, 'week');
-			if (date) {
-				const dateString = getDateUID(date, 'week');
-				weeklyNotes[dateString] = note;
-			}
-		}
-	});
-
-	return weeklyNotes;
 }

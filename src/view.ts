@@ -1,37 +1,25 @@
-import {
-	App,
-	FileView,
-	ItemView,
-	TAbstractFile,
-	TFile,
-	WorkspaceLeaf,
-	normalizePath
-} from 'obsidian';
+import { App, FileView, ItemView, TAbstractFile, TFile, WorkspaceLeaf } from 'obsidian';
 
 import View from './View.svelte';
-import type { Dayjs } from 'dayjs';
 import { VIEW } from './calendar-ui/context';
-import { activeFile, dailyNotesExtStore, settingsStore, weeklyNotesExtStore } from './stores';
+import { activeFile, notesStores, settingsStore } from './stores';
 import type { ISettings } from './settings';
 import {
-	appHasDailyNotesPluginLoaded,
-	appHasWeeklyNotesPluginLoaded,
 	createDailyNote,
 	createWeeklyNote,
-	getDailyNote,
-	getDailyNoteSettings,
 	getDateFromFile,
 	getDateUID,
-	getWeeklyNote,
-	getWeeklyNoteSettings
+	getNoteByGranularity
 } from './calendar-io';
-import { get } from 'svelte/store';
 import { createConfirmationDialog } from './calendar-ui/modal';
 import type { Moment } from 'moment';
 import type { IGranularity } from './calendar-io';
-import { capitalize } from './utils';
+import { granularities, granularitiesCapitalize } from './constants';
+import { getNoteSettingsByGranularity } from './calendar-io/settings';
+import { getOnCreateNoteDialogNoteFromGranularity } from './utils';
+import { get } from 'svelte/store';
 
-export const VIEW_TYPE_EXAMPLE = 'example-view';
+export const VIEW_TYPE_CALENDAR = 'calendar';
 
 type TOnClick = ({ date, isNewSplit }: { date: Moment; isNewSplit: boolean }) => Promise<void>;
 type TOnHover = ({
@@ -97,7 +85,7 @@ export class CalendarView extends ItemView {
 	}
 
 	getViewType() {
-		return VIEW_TYPE_EXAMPLE;
+		return VIEW_TYPE_CALENDAR;
 	}
 
 	getDisplayText() {
@@ -109,7 +97,7 @@ export class CalendarView extends ItemView {
 
 		const context = new Map<symbol, ICalendarViewCtx>();
 		const getEventHandlers = () => {
-			const granularitiesNames = ['Day', 'Week', 'Month', 'Quarter', 'Year'] as const;
+			const granularitiesNames = granularitiesCapitalize;
 			const events = ['onClick', 'onHover', 'onContextMenu'] as const;
 
 			type TGranularitiesEvents = Record<
@@ -120,6 +108,7 @@ export class CalendarView extends ItemView {
 
 			granularitiesNames.forEach((granularity) => {
 				const eventHandlers: Events = {} as Events;
+				granularity;
 
 				events.forEach((ev) => {
 					const eventHandlerName = (ev + granularity) as `${typeof ev}${typeof granularity}`;
@@ -148,41 +137,43 @@ export class CalendarView extends ItemView {
 		});
 	}
 
-	// // app.workspace and app.vault event handlers
+	// app.workspace and app.vault event handlers
 	private onNoteSettingsUpdate(): void {
-		dailyNotesExtStore.reindex();
-		weeklyNotesExtStore.reindex();
+		granularities.forEach((granularity) => {
+			notesStores[granularity].reindex();
+		});
 		this.updateActiveFile();
 	}
 
 	private async onFileDeleted(file: TFile): Promise<void> {
-		if (getDateFromFile(file, 'day')) {
-			dailyNotesExtStore.reindex();
-			this.updateActiveFile();
-		}
-		if (getDateFromFile(file, 'week')) {
-			weeklyNotesExtStore.reindex();
-			this.updateActiveFile();
-		}
+		granularities.forEach((granularity) => {
+			if (getDateFromFile(file, granularity)) {
+				notesStores[granularity].reindex();
+			}
+		});
+		this.updateActiveFile();
 	}
 
 	private async onFileModified(file: TFile): Promise<void> {
 		const date = getDateFromFile(file, 'day') || getDateFromFile(file, 'week');
 		if (date && this.view) {
-			this.view.tick();
+			// this.view.tick();
 		}
 	}
 
 	private onFileCreated(file: TFile) {
+		console.log('onFileCreated() > file: ', file);
+
 		if (this.app.workspace.layoutReady && this.view) {
-			if (getDateFromFile(file, 'day')) {
-				dailyNotesExtStore.reindex();
-				// this.view.tick();
-			}
-			if (getDateFromFile(file, 'week')) {
-				weeklyNotesExtStore.reindex();
-				// this.view.tick();
-			}
+			// do this ifs for every single granularity
+
+			granularities.forEach((granularity) => {
+				// only add new note from notes folder to store if a date can be obtained from filename
+				if (getDateFromFile(file, granularity)) {
+					notesStores[granularity].reindex();
+					// this.view.tick();
+				}
+			});
 		}
 	}
 
@@ -193,7 +184,7 @@ export class CalendarView extends ItemView {
 	}
 
 	// Component event handlers
-	async onClickDay({ date, isNewSplit }: { date: Moment; isNewSplit: boolean }): Promise<void> {
+	async onClickDay({ date, isNewSplit }: Parameters<TOnClick>[0]): Promise<void> {
 		const { workspace } = window.app;
 		const leaf = isNewSplit ? workspace.splitActiveLeaf() : workspace.getUnpinnedLeaf();
 		const openFile = async (file: TFile) => {
@@ -201,39 +192,12 @@ export class CalendarView extends ItemView {
 			activeFile.setFile(getDateUID(date, 'day'));
 		};
 
-		let file = getDailyNote(date);
+		let file = getNoteByGranularity({ date, granularity: 'day' });
 
 		if (!file) {
-			const { format } = getDailyNoteSettings();
+			const { format } = getNoteSettingsByGranularity('day');
 
 			if (this.settings.shouldConfirmBeforeCreate) {
-				const noteText = () => {
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					const perNotesPlugin = (<any>window.app).plugins.getPlugin('periodic-notes');
-					const dailyNotesInPerNotesPlugin = perNotesPlugin?.settings.daily.enabled;
-
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					const dailyNotesPlugin = (<any>app).internalPlugins.plugins['daily-notes']?.enabled;
-					console.log('noteText > dailyNotesPlugin: ', dailyNotesPlugin);
-
-					if (perNotesPlugin) {
-						if (dailyNotesInPerNotesPlugin) {
-							return 'Note: Using Daily notes config from Periodic Notes plugin.';
-						} else {
-							if (dailyNotesPlugin) {
-								return 'Note: Daily notes in Periodic Notes plugin are disabled. Using Daily Notes plugin config for now.';
-							} else {
-								return 'Note: Daily notes in Periodic Notes plugin and Daily Notes plugin are disabled. Using default config for now.';
-							}
-						}
-					} else {
-						if (dailyNotesPlugin) {
-							return 'Note: Missing Periodic Notes plugin. Using Daily Notes plugin config for now.';
-						} else {
-							return 'Note: Missing Periodic Notes and Daily Notes plugin. Using default config for now.';
-						}
-					}
-				};
 				createConfirmationDialog<TFile | undefined>({
 					cta: 'Create',
 					onAccept: async () => {
@@ -243,7 +207,7 @@ export class CalendarView extends ItemView {
 						return file;
 					},
 					text: `File ${date.format(format)} does not exist. Would you like to create it?`,
-					note: noteText(),
+					note: getOnCreateNoteDialogNoteFromGranularity('day'),
 					title: 'New Daily Note'
 				});
 			} else {
@@ -255,13 +219,7 @@ export class CalendarView extends ItemView {
 		}
 	}
 
-	async onClickWeek({
-		date: startOfWeekDate,
-		isNewSplit
-	}: {
-		date: Moment;
-		isNewSplit: boolean;
-	}): Promise<void> {
+	async onClickWeek({ date: startOfWeekDate, isNewSplit }: Parameters<TOnClick>[0]): Promise<void> {
 		const { workspace } = this.app;
 		const leaf = isNewSplit ? workspace.splitActiveLeaf() : workspace.getUnpinnedLeaf();
 		const openFile = async (file: TFile) => {
@@ -270,24 +228,20 @@ export class CalendarView extends ItemView {
 			activeFile.setFile(getDateUID(startOfWeekDate, 'week'));
 		};
 
-		let file = getWeeklyNote(startOfWeekDate);
+		let file = getNoteByGranularity({ date: startOfWeekDate, granularity: 'week' });
+
+		console.log('onClickWeek() > weekStore: ', get(notesStores['week']), 'file: ', file);
 
 		if (!file) {
-			const { format } = getWeeklyNoteSettings();
+			const { format } = getNoteSettingsByGranularity('week');
 
 			if (this.settings.shouldConfirmBeforeCreate) {
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				const periodicNotesPlugin = (<any>window.app).plugins.getPlugin('periodic-notes');
 				createConfirmationDialog<TFile | undefined>({
 					title: 'New Daily Note',
 					text: `File ${startOfWeekDate.format(
 						format
 					)} does not exist. Would you like to create it?`,
-					note: !periodicNotesPlugin
-						? 'Note: Missing Periodic Notes plugin! Install or activate to personalize your notes. Defaults will be used for now.'
-						: !appHasWeeklyNotesPluginLoaded()
-						? 'Note: Weekly notes in Periodic Notes plugin are disabled. Activate to personalize your notes. Defaults will be used for now. '
-						: null,
+					note: getOnCreateNoteDialogNoteFromGranularity('week'),
 					cta: 'Create',
 					onAccept: async () => {
 						file = await createWeeklyNote(startOfWeekDate);
@@ -305,120 +259,121 @@ export class CalendarView extends ItemView {
 		}
 	}
 
-	async onClickMonth({ date, isNewSplit }: { date: Moment; isNewSplit: boolean }): Promise<void> {
+	async onClickMonth({ date, isNewSplit }: Parameters<TOnClick>[0]): Promise<void> {
 		return Promise.resolve();
 	}
 
-	async onClickQuarter({ date, isNewSplit }: { date: Moment; isNewSplit: boolean }): Promise<void> {
+	async onClickQuarter({ date, isNewSplit }: Parameters<TOnClick>[0]): Promise<void> {
 		return Promise.resolve();
 	}
 
-	async onClickYear({ date, isNewSplit }: { date: Moment; isNewSplit: boolean }): Promise<void> {
+	async onClickYear({ date, isNewSplit }: Parameters<TOnClick>[0]): Promise<void> {
 		return Promise.resolve();
 	}
 
-	onHoverDay({
-		date,
-		targetEl,
-		isMetaPressed
-	}: {
-		date: Moment;
-		targetEl: EventTarget;
-		isMetaPressed: boolean;
-	}): void {
+	onHoverDay({ date, targetEl, isMetaPressed }: Parameters<TOnHover>[0]): void {
 		if (!isMetaPressed) {
 			return;
 		}
-		const { format } = getDailyNoteSettings();
-		const note = getDailyNote(date, get(dailyNotes));
+		const { format } = getNoteSettingsByGranularity('day');
+		const note = getNoteByGranularity({ date, granularity: 'day' });
 		this.app.workspace.trigger('link-hover', this, targetEl, date.format(format), note?.path);
 	}
 
-	onHoverWeek({
-		date,
-		targetEl,
-		isMetaPressed
-	}: {
-		date: Moment;
-		targetEl: EventTarget;
-		isMetaPressed: boolean;
-	}): void {
+	onHoverWeek({ date, targetEl, isMetaPressed }: Parameters<TOnHover>[0]): void {
 		if (!isMetaPressed) {
 			return;
 		}
-		const note = getWeeklyNote(date, get(weeklyNotes));
-		const { format } = getWeeklyNoteSettings();
+		const note = getNoteByGranularity({ date, granularity: 'week' });
+		const { format } = getNoteSettingsByGranularity('week');
 		this.app.workspace.trigger('link-hover', this, targetEl, date.format(format), note?.path);
 	}
-	onHoverMonth({ date, targetEl, isMetaPressed }): void {}
-	onHoverQuarter({ date, targetEl, isMetaPressed }): void {}
-	onHoverYear({ date, targetEl, isMetaPressed }): void {}
+	onHoverMonth({ date, targetEl, isMetaPressed }: Parameters<TOnHover>[0]): void {}
+	onHoverQuarter({ date, targetEl, isMetaPressed }: Parameters<TOnHover>[0]): void {}
+	onHoverYear({ date, targetEl, isMetaPressed }: Parameters<TOnHover>[0]): void {}
 
 	private onContextMenuDay({ date, event }: { date: Moment; event: MouseEvent }): void {
-		const note = getDailyNote(date, get(dailyNotes));
+		const note = getNoteByGranularity({ date, granularity: 'day' });
 		if (!note) {
 			// If no file exists for a given day, show nothing.
 			return;
 		}
-		showFileMenu(this.app, note, {
-			x: event.pageX,
-			y: event.pageY
-		});
+		// showFileMenu(this.app, note, {
+		// 	x: event.pageX,
+		// 	y: event.pageY
+		// });
 	}
 
 	private onContextMenuWeek({ date, event }: { date: Moment; event: MouseEvent }): void {
-		const note = getWeeklyNote(date, get(weeklyNotes));
+		const note = getNoteByGranularity({ date, granularity: 'week' });
 		if (!note) {
 			// If no file exists for a given day, show nothing.
 			return;
 		}
-		showFileMenu(this.app, note, {
-			x: event.pageX,
-			y: event.pageY
-		});
+		// showFileMenu(this.app, note, {
+		// 	x: event.pageX,
+		// 	y: event.pageY
+		// });
 	}
-	private onContextMenuMonth({ date, event }: { date: Moment; event: MouseEvent }): void {}
-	private onContextMenuQuarter({ date, event }: { date: Moment; event: MouseEvent }): void {}
-	private onContextMenuYear({ date, event }: { date: Moment; event: MouseEvent }): void {}
+	private onContextMenuMonth({ date, event }: Parameters<TOnContextMenu>[0]): void {}
+	private onContextMenuQuarter({ date, event }: Parameters<TOnContextMenu>[0]): void {}
+	private onContextMenuYear({ date, event }: Parameters<TOnContextMenu>[0]): void {}
 
 	// Utils
 	private updateActiveFile(): void {
+		console.log('CalendarView > on(periodic-notes:settings-updated) > updateActiveFile()')
 		// get activeLeaf view
-		const { view } = this.app.workspace.activeLeaf;
+		const activeLeaf = this.app.workspace.activeLeaf;
 
-		let file = null;
-		if (view instanceof FileView) {
+		let file: TFile | null = null;
+		if (activeLeaf?.view && activeLeaf?.view instanceof FileView) {
 			// extract file from view
-			file = view.file;
-		}
-		// save file in store activeFile
-		activeFile.setFile(file);
+			file = activeLeaf.view.file;
 
-		// rerender calendar to display possible different active file
-		if (this.view) {
-			this.view.tick();
-		}
-	}
+			if (file) {
+				let noteDate: Moment | null = null;
+				let noteGranularity: IGranularity | null = null;
 
-	public revealActiveNote(): void {
-		const { moment } = window;
-		const { activeLeaf } = this.app.workspace;
+				for (const granularity of granularities) {
+					const date = getDateFromFile(file as TFile, granularity);
 
-		if (activeLeaf.view instanceof FileView) {
-			// Check to see if the active note is a daily-note
-			let date = getDateFromFile(activeLeaf.view.file, 'day');
-			if (date) {
-				this.calendar.$set({ displayedMonth: date });
-				return;
-			}
+					if (date) {
+						noteDate = date;
+						noteGranularity = granularity;
 
-			// Check to see if the active note is a weekly-note
-			const { format } = getWeeklyNoteSettings();
-			date = moment(activeLeaf.view.file.basename, format, true);
-			if (date.isValid()) {
-				this.calendar.$set({ displayedMonth: date });
-				return;
+						break;
+					}
+				}
+
+				// save file in store activeFile
+				if (noteDate && noteGranularity) {
+					activeFile.setFile(getDateUID(noteDate, noteGranularity));
+
+					this.view && this.view.tick();
+				}
 			}
 		}
 	}
+
+	// public revealActiveNote(): void {
+	// 	const { moment } = window;
+	// 	const { activeLeaf } = this.app.workspace;
+
+	// 	if (activeLeaf.view instanceof FileView) {
+	// 		// Check to see if the active note is a daily-note
+	// 		let date = getDateFromFile(activeLeaf.view.file, 'day');
+	// 		if (date) {
+	// 			this.calendar.$set({ displayedMonth: date });
+	// 			return;
+	// 		}
+
+	// 		// Check to see if the active note is a weekly-note
+	// 		const { format } = getWeeklyNoteSettings();
+	// 		date = moment(activeLeaf.view.file.basename, format, true);
+	// 		if (date.isValid()) {
+	// 			this.calendar.$set({ displayedMonth: date });
+	// 			return;
+	// 		}
+	// 	}
+	// }
 }
