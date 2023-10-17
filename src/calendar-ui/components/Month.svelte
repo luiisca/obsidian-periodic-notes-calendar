@@ -13,9 +13,7 @@
 
 	// export let resetdisplayedDate: () => void;
 
-	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
-	let displayedDate = getContext<Writable<Moment>>(DISPLAYED_DATE);
-
+	
 	let file: TFile | null;
 
 	// function handleHover(event: PointerEvent, meta: IDayMetadata) {
@@ -71,42 +69,8 @@
     {/if}
   </div>
 </MetadataResolver> -->
-<button
-	style="all:inherit"
-	on:click={(event) => {
-		console.log('Month clicked');
-		eventHandlers.onClick({
-			date: $displayedDate,
-			isNewSplit: isMetaPressed(event),
-			granularity: 'month'
-		});
-	}}
->
-	<span class="title">
-		<span class="month">
-			{$displayedDate.format('MMM')}
-		</span>
-		<span class="year">
-			{$displayedDate.format('YYYY')}
-		</span>
-	</span>
-</button>
+
 
 <style>
-	.title {
-		color: var(--color-text-title);
-		cursor: pointer;
-		display: flex;
-		font-size: 1.4em;
-		gap: 0.3em;
-		margin: 0;
-	}
 
-	.month {
-		font-weight: 500;
-	}
-
-	.year {
-		color: var(--interactive-accent);
-	}
 </style>

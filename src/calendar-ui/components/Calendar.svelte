@@ -14,20 +14,15 @@
 	// import Nav from './Nav.svelte';
 	// import WeekNum from './WeekNum.svelte';
 	import { getMonth, getStartOfWeek, isMetaPressed, isWeekend } from '../utils';
-	import { notesStores, settingsStore } from '@/stores';
+	import { notesStores, settingsStore, yearsRanges } from '@/stores';
 	import type { CalendarView, ICalendarViewCtx } from '@/view';
 	import Day from './Day.svelte';
-	import Nav from './Nav.svelte';
 	import WeekNum from './WeekNum.svelte';
-	import {
-		QUARTERS_AMT,
-		QUARTER_DUR,
-		granularities,
-		monthsIndexesInQuarters,
-		togglePeriods
-	} from '@/constants';
+	import { granularities, monthsIndexesInQuarters, togglePeriods } from '@/constants';
 	import type { Moment } from 'moment';
-	import { capitalize, getMonths } from '@/utils';
+	import { capitalize } from '@/utils';
+	import MonthNav from './MonthNav.svelte';
+	import YearNav from './YearNav.svelte';
 
 	const { app, eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 
@@ -106,7 +101,7 @@
 		{/each}
 	</div>
 	{#if crrView === 'days'}
-		<Nav today={window.moment()} />
+		<MonthNav today={window.moment()} />
 		<table class="calendar">
 			<colgroup>
 				{#if showWeekNums}
@@ -143,7 +138,7 @@
 		</table>
 	{/if}
 	{#if crrView === 'months'}
-		<Nav today={window.moment()} />
+		<YearNav today={window.moment()} />
 		<table class="calendar">
 			<tbody>
 				{#each monthsIndexesInQuarters as quarterMonths, i}

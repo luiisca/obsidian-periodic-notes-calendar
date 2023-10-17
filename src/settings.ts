@@ -15,6 +15,7 @@ dayjs.extend(localeData);
 export interface ISettings {
 	viewOpen: boolean;
 	shouldConfirmBeforeCreate: boolean;
+	yearsRangesStart: 2020;
 
 	localeData: {
 		loading: boolean;
@@ -30,6 +31,7 @@ export interface ISettings {
 export const DEFAULT_SETTINGS: ISettings = Object.freeze({
 	viewOpen: false,
 	shouldConfirmBeforeCreate: true,
+	yearsRangesStart: 2020,
 
 	localeData: {
 		loading: false,

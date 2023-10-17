@@ -1,0 +1,126 @@
+<script lang="ts">
+	import { getContext } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { Moment } from 'moment';
+
+	import Arrow from './Arrow.svelte';
+	import { DISPLAYED_DATE, VIEW } from '../context';
+	import Dot from './Dot.svelte';
+	import type { ICalendarViewCtx } from '@/view';
+	import { isMetaPressed } from '../utils';
+
+	export let today: Moment;
+
+	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
+	let displayedDate = getContext<Writable<Moment>>(DISPLAYED_DATE);
+
+	function incrementdisplayedDate() {
+		displayedDate.update((date) => date.clone().add(1, 'month'));
+	}
+
+	function decrementdisplayedDate() {
+		displayedDate.update((date) => date.clone().subtract(1, 'month'));
+	}
+
+	function resetdisplayedDate() {
+		displayedDate.set(today.clone());
+	}
+
+	let showingCurrentMonth: boolean;
+	$: showingCurrentMonth = $displayedDate.isSame(today, 'month');
+</script>
+
+<div class="nav">
+	<!-- <Month
+    fileCache="{fileCache}"
+    getSourceSettings="{getSourceSettings}"
+    resetdisplayedDate="{resetdisplayedDate}"
+    {...eventHandlers}
+    on:hoverDay
+    on:endHoverDay
+  /> -->
+	<button
+		style="all:inherit"
+		on:click={(event) =>
+			eventHandlers.onClick({
+				date: $displayedDate,
+				isNewSplit: isMetaPressed(event),
+				granularity: 'month'
+			})}
+	>
+		<span class="flex justify-between title">
+			<span class="month">
+				{$displayedDate.format('MMMM')}
+			</span>
+			<span class="year">
+				{$displayedDate.format('YYYY')}
+			</span>
+		</span>
+	</button>
+
+	<div class="right-nav">
+		<!-- TODO: add tab support -->
+		<Arrow direction="left" onClick={decrementdisplayedDate} tooltip="Previous Month" />
+		<button
+			aria-label={!showingCurrentMonth ? 'Reset to current month' : null}
+			class="reset-button"
+			class:active={showingCurrentMonth}
+			on:click={resetdisplayedDate}
+		>
+			<Dot class="h-3 w-3" isFilled={showingCurrentMonth} />
+		</button>
+		<Arrow direction="right" onClick={incrementdisplayedDate} tooltip="Next Month" />
+	</div>
+</div>
+
+<style>
+	@tailwind components;
+	@tailwind utilities;
+
+	.nav {
+		align-items: baseline;
+		display: flex;
+		margin: 0.6em 0 1em;
+		padding: 0 8px;
+		width: 100%;
+	}
+
+	.title {
+		color: var(--color-text-title);
+		cursor: pointer;
+		display: flex;
+		font-size: 1.4em;
+		gap: 0.3em;
+		margin: 0;
+	}
+
+	.month {
+		font-weight: 500;
+	}
+
+	.year {
+		color: var(--interactive-accent);
+	}
+
+	.right-nav {
+		align-items: center;
+		display: flex;
+		justify-content: center;
+		margin-left: auto;
+	}
+
+	.reset-button {
+		all: inherit;
+		cursor: pointer;
+		align-items: center;
+		color: var(--color-arrow);
+		display: flex;
+		opacity: 0.4;
+		padding: 0.5em;
+	}
+
+	.reset-button.active {
+		cursor: pointer;
+		opacity: 1;
+	}
+</style>
