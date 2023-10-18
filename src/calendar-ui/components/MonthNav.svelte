@@ -8,21 +8,43 @@
 	import Dot from './Dot.svelte';
 	import type { ICalendarViewCtx } from '@/view';
 	import { isMetaPressed } from '../utils';
+	import { yearsRanges } from '@/stores';
 
 	export let today: Moment;
 
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 	let displayedDate = getContext<Writable<Moment>>(DISPLAYED_DATE);
 
-	function incrementdisplayedDate() {
-		displayedDate.update((date) => date.clone().add(1, 'month'));
+	function decrementdisplayedDate() {
+		let newYear = 0;
+		displayedDate.update((date) => {
+			const newDate = date.clone().subtract(1, 'month');
+			newYear = newDate.year();
+
+			return newDate;
+		});
+
+		yearsRanges.updateRanges({ year: newYear, action: 'decrement'});
 	}
 
-	function decrementdisplayedDate() {
-		displayedDate.update((date) => date.clone().subtract(1, 'month'));
+	function incrementdisplayedDate() {
+		let newYear = 0;
+		displayedDate.update((date) => {
+			const newDate = date.clone().add(1, 'month');
+			newYear = newDate.year();
+
+			return newDate;
+		});
+
+		yearsRanges.updateRanges({ year: newYear, action: 'increment'});
 	}
 
 	function resetdisplayedDate() {
+		yearsRanges.update((values) => ({
+			...values,
+			crrRangeIndex: values.ranges.findIndex((range) => range === values.todayRange)
+		}));
+
 		displayedDate.set(today.clone());
 	}
 

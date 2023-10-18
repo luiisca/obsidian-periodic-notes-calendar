@@ -54,3 +54,23 @@ export function getMonth(displayedDate: Moment): IMonth {
 
 	return month;
 }
+
+type IYears = [number, number, number];
+type IYearsGroup = [IYears, IYears, IYears, IYears];
+export function getYears({ startRangeYear }: { startRangeYear: number }): IYearsGroup {
+	let crrRangeYear = startRangeYear;
+	const COLUMNS = 3;
+	const ROWS = 4;
+	const years: IYearsGroup = Array.from({ length: ROWS }, () =>
+		Array(COLUMNS).fill(0)
+	) as IYearsGroup;
+
+	for (let rowIndex = 0; rowIndex < ROWS; rowIndex++) {
+		for (let colIndex = 0; colIndex < COLUMNS; colIndex++) {
+			years[rowIndex][colIndex] = crrRangeYear;
+			crrRangeYear++;
+		}
+	}
+
+	return years;
+}

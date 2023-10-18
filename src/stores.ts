@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { get, writable } from 'svelte/store';
 import { DEFAULT_SETTINGS, type ISettings } from './settings';
 import type { TFile } from 'obsidian';
 import { getAllNotesByGranularity, type IGranularity } from './calendar-io';
@@ -78,8 +78,8 @@ function createYearsRangesStore() {
 	}));
 
 	return {
-		addNewRange: ({ year, where }: { year: number; where: 'before' | 'after' }) => {
-			if (where === 'before') {
+		addNewRange: ({ year, action }: { year: number; action: 'decrement' | 'increment' }) => {
+			if (action === 'decrement') {
 				store.update((values) => {
 					const newRanges = values.ranges;
 					newRanges.unshift(`${year - YEARS_RANGE_SIZE + 1}-${year}`);
@@ -89,11 +89,9 @@ function createYearsRangesStore() {
 						ranges: newRanges
 					};
 				});
-
-				return;
 			}
 
-			if (where === 'after') {
+			if (action === 'increment') {
 				store.update((values) => {
 					const newRanges = values.ranges;
 					newRanges.push(`${year}-${year + YEARS_RANGE_SIZE - 1}`);
@@ -103,8 +101,46 @@ function createYearsRangesStore() {
 						ranges: newRanges
 					};
 				});
+			}
+		},
+		updateRanges: ({ year, action }: { year: number; action: 'decrement' | 'increment' }) => {
+			const { ranges, crrRangeIndex } = get(store);
+			const crrRange = ranges[crrRangeIndex];
+			const [start, end] = crrRange.split('-');
 
-				return;
+			if (action === 'decrement') {
+				if (year < +start) {
+					const prevRange = ranges[crrRangeIndex - 1];
+
+					if (prevRange) {
+						if (crrRangeIndex > 0) {
+							yearsRanges.updateCrrRangeIndex({ modifier: -1 });
+						}
+
+						return;
+					}
+
+					yearsRanges.addNewRange({ year, action });
+
+					if (crrRangeIndex > 0) {
+						yearsRanges.updateCrrRangeIndex({ modifier: -1 });
+					}
+				}
+			}
+
+			if (action === 'increment') {
+				if (year > +end) {
+					const nextRange = ranges[crrRangeIndex + 1];
+
+					if (nextRange) {
+						yearsRanges.updateCrrRangeIndex({ modifier: +1 });
+
+						return;
+					}
+
+					yearsRanges.addNewRange({ year, action });
+					yearsRanges.updateCrrRangeIndex({ modifier: +1 });
+				}
 			}
 		},
 		updateCrrRangeIndex: ({ modifier }: { modifier: number }) => {

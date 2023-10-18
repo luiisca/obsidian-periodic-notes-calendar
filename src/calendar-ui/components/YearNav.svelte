@@ -15,31 +15,6 @@
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 	let displayedDate = getContext<Writable<Moment>>(DISPLAYED_DATE);
 
-	function incrementdisplayedDate() {
-		let newYear = 0;
-		displayedDate.update((date) => {
-			const newDate = date.clone().add(1, 'year');
-			newYear = newDate.year();
-
-			return newDate;
-		});
-		const crrRange = $yearsRanges.ranges[$yearsRanges.crrRangeIndex];
-		const [_, end] = crrRange.split('-');
-
-		if (newYear > +end) {
-			const nextRange = $yearsRanges.ranges[$yearsRanges.crrRangeIndex + 1];
-
-			if (nextRange) {
-				yearsRanges.updateCrrRangeIndex({ modifier: +1 });
-
-				return;
-			}
-
-			yearsRanges.addNewRange({ year: +newYear, where: 'after' });
-			yearsRanges.updateCrrRangeIndex({ modifier: +1 });
-		}
-	}
-
 	function decrementdisplayedDate() {
 		let newYear = 0;
 		displayedDate.update((date) => {
@@ -48,25 +23,20 @@
 
 			return newDate;
 		});
-		const crrRange = $yearsRanges.ranges[$yearsRanges.crrRangeIndex];
-		const [start, _] = crrRange.split('-');
 
-		if (newYear < +start) {
-			const prevRange = $yearsRanges.ranges[$yearsRanges.crrRangeIndex - 1];
+		yearsRanges.updateRanges({ year: newYear, action: 'decrement' });
+	}
 
-			if (prevRange) {
-				if ($yearsRanges.crrRangeIndex > 0) {
-					yearsRanges.updateCrrRangeIndex({ modifier: -1 });
-				}
+	function incrementdisplayedDate() {
+		let newYear = 0;
+		displayedDate.update((date) => {
+			const newDate = date.clone().add(1, 'year');
+			newYear = newDate.year();
 
-				return;
-			}
+			return newDate;
+		});
 
-			yearsRanges.addNewRange({ year: +newYear, where: 'before' });
-			if ($yearsRanges.crrRangeIndex > 0) {
-				yearsRanges.updateCrrRangeIndex({ modifier: -1 });
-			}
-		}
+		yearsRanges.updateRanges({ year: newYear, action: 'increment' });
 	}
 
 	function resetdisplayedDate() {

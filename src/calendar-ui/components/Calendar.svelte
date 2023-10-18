@@ -13,7 +13,7 @@
 	// import Day from './Day.svelte';
 	// import Nav from './Nav.svelte';
 	// import WeekNum from './WeekNum.svelte';
-	import { getMonth, getStartOfWeek, isMetaPressed, isWeekend } from '../utils';
+	import { getMonth, getStartOfWeek, getYears, isMetaPressed, isWeekend } from '../utils';
 	import { notesStores, settingsStore, yearsRanges } from '@/stores';
 	import type { CalendarView, ICalendarViewCtx } from '@/view';
 	import Day from './Day.svelte';
@@ -23,6 +23,7 @@
 	import { capitalize } from '@/utils';
 	import MonthNav from './MonthNav.svelte';
 	import YearNav from './YearNav.svelte';
+	import YearsNav from './YearsNav.svelte';
 
 	const { app, eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 
@@ -173,7 +174,27 @@
 		</table>
 	{/if}
 	{#if crrView === 'years'}
-		<h1>Years view</h1>
+		<YearsNav today={window.moment()} />
+		<table class="calendar">
+			<tbody>
+				{#each getYears( { startRangeYear: +$yearsRanges.ranges[$yearsRanges.crrRangeIndex].split('-')[0] } ) as yearsRange}
+					<tr>
+						{#each yearsRange as year}
+							<td>
+								<button
+									on:click={(event) =>
+										eventHandlers.onClick({
+											date: $displayedDate.year(year).startOf('year'),
+											isNewSplit: isMetaPressed(event),
+											granularity: 'year'
+										})}>{year}</button
+								>
+							</td>
+						{/each}
+					</tr>
+				{/each}
+			</tbody>
+		</table>
 	{/if}
 	<!-- <PopoverMenu
     referenceElement="{$hoveredDay}"
