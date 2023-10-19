@@ -4,7 +4,7 @@ import View from './View.svelte';
 import { VIEW } from './calendar-ui/context';
 import { activeFile, notesStores, settingsStore } from './stores';
 import type { ISettings } from './settings';
-import { getDateFromFile, getDateUID, getNoteByGranularity, noteCreator } from './calendar-io';
+import { getDateFromFile, getDateUID, getNoteByGranularity, noteCreator, tryToCreateNote } from './calendar-io';
 import { createConfirmationDialog } from './calendar-ui/modal';
 import type { Moment } from 'moment';
 import type { IGranularity } from './calendar-io';
@@ -84,7 +84,6 @@ export class CalendarView extends ItemView {
 
 		this.register(
 			settingsStore.subscribe((settings) => {
-				console.log('SUBSCRIBED TO settingsStore ⚙️: ', get(settingsStore));
 				this.settings = settings;
 			})
 		);
@@ -178,38 +177,8 @@ export class CalendarView extends ItemView {
 	async onClick({ date, isNewSplit, granularity }: Parameters<TOnClick>[0]): Promise<void> {
 		const { workspace } = window.app;
 		const leaf = isNewSplit ? workspace.splitActiveLeaf() : workspace.getUnpinnedLeaf();
-		const openFile = async (file: TFile) => {
-			file && (await leaf.openFile(file));
-			activeFile.setFile(getDateUID(date, granularity));
-		};
-
-		let file = getNoteByGranularity({ date, granularity });
-
-		if (!file) {
-			const periodicity = capitalize(getPeriodicityFromGranularity(granularity));
-			const { format } = getNoteSettingsByGranularity(granularity);
-			const formattedDate = date.format(format);
-
-			if (this.settings.shouldConfirmBeforeCreate) {
-				createConfirmationDialog<TFile | undefined>({
-					title: `New ${periodicity} Note`,
-					text: `File ${formattedDate} does not exist. Would you like to create it?`,
-					note: getOnCreateNoteDialogNoteFromGranularity(granularity),
-					cta: 'Create',
-					onAccept: async () => {
-						file = await noteCreator[granularity](date);
-						file && (await openFile(file));
-
-						return file;
-					}
-				});
-			} else {
-				file = await noteCreator[granularity](date);
-				file && (await openFile(file));
-			}
-		} else {
-			file && (await openFile(file));
-		}
+		
+		tryToCreateNote({leaf, date, granularity})
 	}
 
 	onHover({ date, targetEl, isMetaPressed, granularity }: Parameters<TOnHover>[0]): void {

@@ -138,7 +138,7 @@
 			</tbody>
 		</table>
 	{/if}
-	{#if crrView === 'months'}
+	<!-- {#if crrView === 'months'}
 		<YearNav today={window.moment()} />
 		<table class="calendar">
 			<tbody>
@@ -235,7 +235,7 @@
 				{/each}
 			</tbody>
 		</table>
-	{/if}
+	{/if} -->
 	<!-- <PopoverMenu
     referenceElement="{$hoveredDay}"
     metadata="{popoverMetadata}"

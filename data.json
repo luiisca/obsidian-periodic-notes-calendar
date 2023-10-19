@@ -1,6 +1,6 @@
 {
   "viewOpen": false,
-  "shouldConfirmBeforeCreate": false,
+  "shouldConfirmBeforeCreate": true,
   "yearsRangesStart": 2020,
   "autoHoverPreview": true,
   "localeData": {

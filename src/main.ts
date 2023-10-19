@@ -4,6 +4,12 @@ import { CalendarView, VIEW_TYPE_CALENDAR } from './view';
 import Calendar from './View.svelte';
 import { settingsStore } from './stores';
 import { SettingsTab, type ISettings, DEFAULT_SETTINGS } from './settings';
+import { granularities } from './constants';
+import { isMetaPressed } from './calendar-ui/utils';
+import { tryToCreateNote } from './calendar-io';
+import type { Moment } from 'moment';
+import { getPeriodicityFromGranularity } from './calendar-io/parse';
+import type { IPeriodicites } from './calendar-io/types';
 
 export default class DailyNoteFlexPlugin extends Plugin {
 	public settings: ISettings;
@@ -45,6 +51,46 @@ export default class DailyNoteFlexPlugin extends Plugin {
 			callback: () => {
 				this.toggleView();
 			}
+		});
+
+		granularities.forEach((granularity) => {
+			(['previous', 'next'] as const).forEach((pos) => {
+				const periodicity = getPeriodicityFromGranularity(granularity) as Exclude<
+					IPeriodicites,
+					'daily'
+				>;
+
+				let posText:
+					| `${typeof pos}-${Exclude<typeof periodicity, 'daily'>}`
+					| 'tomorrow'
+					| 'yesterday';
+
+				if (granularity === 'day') {
+					posText = pos === 'next' ? 'tomorrow' : 'yesterday';
+				} else {
+					posText = `${pos}-${periodicity}`;
+				}
+
+				this.addCommand({
+					id: `create-${posText}-note`,
+					name: `Open ${
+						granularity === 'day'
+							? `${posText}'s`
+							: `${pos} ${getPeriodicityFromGranularity(granularity)}`
+					} note`,
+					callback: () => {
+						const { workspace } = window.app;
+						const leaf = workspace.getUnpinnedLeaf();
+						const date = window
+							.moment()
+							.clone()
+							[pos === 'next' ? 'add' : 'subtract'](1, granularity)
+							.startOf(granularity);
+
+						tryToCreateNote({ leaf, date, granularity, confirmBeforeCreateOverride: false });
+					}
+				});
+			});
 		});
 
 		this.app.workspace.onLayoutReady(() => {
