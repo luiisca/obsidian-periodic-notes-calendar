@@ -9354,7 +9354,11 @@ function create_fragment$8(ctx) {
 			append(button, t);
 
 			if (!mounted) {
-				dispose = listen(button, "click", /*click_handler*/ ctx[2]);
+				dispose = [
+					listen(button, "click", /*click_handler*/ ctx[2]),
+					listen(button, "contextmenu", /*contextmenu_handler*/ ctx[3])
+				];
+
 				mounted = true;
 			}
 		},
@@ -9369,7 +9373,7 @@ function create_fragment$8(ctx) {
 			}
 
 			mounted = false;
-			dispose();
+			run_all(dispose);
 		}
 	};
 }
@@ -9390,11 +9394,13 @@ function instance$8($$self, $$props, $$invalidate) {
 		granularity: 'day'
 	});
 
+	const contextmenu_handler = event => eventHandlers.onContextMenu({ date, event, granularity: 'day' });
+
 	$$self.$$set = $$props => {
 		if ('date' in $$props) $$invalidate(0, date = $$props.date);
 	};
 
-	return [date, eventHandlers, click_handler];
+	return [date, eventHandlers, click_handler, contextmenu_handler];
 }
 
 class Day extends SvelteComponent {
@@ -9431,7 +9437,11 @@ function create_fragment$7(ctx) {
 			append(button, t);
 
 			if (!mounted) {
-				dispose = listen(button, "click", /*click_handler*/ ctx[3]);
+				dispose = [
+					listen(button, "click", /*click_handler*/ ctx[3]),
+					listen(button, "contextmenu", /*contextmenu_handler*/ ctx[4])
+				];
+
 				mounted = true;
 			}
 		},
@@ -9446,7 +9456,7 @@ function create_fragment$7(ctx) {
 			}
 
 			mounted = false;
-			dispose();
+			run_all(dispose);
 		}
 	};
 }
@@ -9469,12 +9479,18 @@ function instance$7($$self, $$props, $$invalidate) {
 		granularity: 'week'
 	});
 
+	const contextmenu_handler = event => eventHandlers.onContextMenu({
+		date: startOfWeekDate,
+		event,
+		granularity: 'week'
+	});
+
 	$$self.$$set = $$props => {
 		if ('weekNum' in $$props) $$invalidate(0, weekNum = $$props.weekNum);
 		if ('startOfWeekDate' in $$props) $$invalidate(1, startOfWeekDate = $$props.startOfWeekDate);
 	};
 
-	return [weekNum, startOfWeekDate, eventHandlers, click_handler];
+	return [weekNum, startOfWeekDate, eventHandlers, click_handler, contextmenu_handler];
 }
 
 class WeekNum extends SvelteComponent {
@@ -10309,70 +10325,70 @@ function add_css$2(target) {
 
 function get_each_context(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[15] = list[i];
+	child_ctx[18] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_1(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[18] = list[i];
+	child_ctx[21] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_2(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[21] = list[i];
-	child_ctx[23] = i;
+	child_ctx[24] = list[i];
+	child_ctx[26] = i;
 	return child_ctx;
 }
 
 function get_each_context_3(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[24] = list[i];
+	child_ctx[27] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_4(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[27] = list[i];
+	child_ctx[30] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_5(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[30] = list[i];
+	child_ctx[33] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_6(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[33] = list[i];
+	child_ctx[36] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_7(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[36] = list[i];
+	child_ctx[39] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_8(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[39] = list[i];
+	child_ctx[42] = list[i];
 	return child_ctx;
 }
 
 // (75:2) {#each togglePeriods as period}
 function create_each_block_8(ctx) {
 	let button;
-	let t_value = capitalize(/*period*/ ctx[39]) + "";
+	let t_value = capitalize(/*period*/ ctx[42]) + "";
 	let t;
 	let button_class_value;
 	let mounted;
 	let dispose;
 
 	function click_handler() {
-		return /*click_handler*/ ctx[9](/*period*/ ctx[39]);
+		return /*click_handler*/ ctx[9](/*period*/ ctx[42]);
 	}
 
 	return {
@@ -10380,7 +10396,7 @@ function create_each_block_8(ctx) {
 			button = element("button");
 			t = text(t_value);
 
-			attr(button, "class", button_class_value = "" + (null_to_empty(`w-full cursor-pointer rounded-md px-4 py-2 text-black ${/*crrView*/ ctx[1] === /*period*/ ctx[39]
+			attr(button, "class", button_class_value = "" + (null_to_empty(`w-full cursor-pointer rounded-md px-4 py-2 text-black ${/*crrView*/ ctx[1] === /*period*/ ctx[42]
 			? 'bg-gray-100'
 			: 'text-white'}`) + " svelte-11uyi9r"));
 		},
@@ -10396,7 +10412,7 @@ function create_each_block_8(ctx) {
 		p(new_ctx, dirty) {
 			ctx = new_ctx;
 
-			if (dirty[0] & /*crrView*/ 2 && button_class_value !== (button_class_value = "" + (null_to_empty(`w-full cursor-pointer rounded-md px-4 py-2 text-black ${/*crrView*/ ctx[1] === /*period*/ ctx[39]
+			if (dirty[0] & /*crrView*/ 2 && button_class_value !== (button_class_value = "" + (null_to_empty(`w-full cursor-pointer rounded-md px-4 py-2 text-black ${/*crrView*/ ctx[1] === /*period*/ ctx[42]
 			? 'bg-gray-100'
 			: 'text-white'}`) + " svelte-11uyi9r"))) {
 				attr(button, "class", button_class_value);
@@ -10447,7 +10463,7 @@ function create_if_block_3(ctx) {
 	}
 
 	let each_value_4 = ensure_array_like(/*month*/ ctx[2]);
-	const get_key = ctx => /*week*/ ctx[27].weekNum;
+	const get_key = ctx => /*week*/ ctx[30].weekNum;
 
 	for (let i = 0; i < each_value_4.length; i += 1) {
 		let child_ctx = get_each_context_4(ctx, each_value_4, i);
@@ -10665,14 +10681,14 @@ function create_each_block_7(ctx) {
 		c() {
 			col = element("col");
 			attr(col, "class", "svelte-11uyi9r");
-			toggle_class(col, "weekend", isWeekend(/*date*/ ctx[36]));
+			toggle_class(col, "weekend", isWeekend(/*date*/ ctx[39]));
 		},
 		m(target, anchor) {
 			insert(target, col, anchor);
 		},
 		p(ctx, dirty) {
 			if (dirty[0] & /*month*/ 4) {
-				toggle_class(col, "weekend", isWeekend(/*date*/ ctx[36]));
+				toggle_class(col, "weekend", isWeekend(/*date*/ ctx[39]));
 			}
 		},
 		d(detaching) {
@@ -10707,7 +10723,7 @@ function create_if_block_5(ctx) {
 // (100:5) {#each localizedWeekdaysShort as dayOfWeek}
 function create_each_block_6(ctx) {
 	let th;
-	let t_value = /*dayOfWeek*/ ctx[33] + "";
+	let t_value = /*dayOfWeek*/ ctx[36] + "";
 	let t;
 
 	return {
@@ -10721,7 +10737,7 @@ function create_each_block_6(ctx) {
 			append(th, t);
 		},
 		p(ctx, dirty) {
-			if (dirty[0] & /*localizedWeekdaysShort*/ 8 && t_value !== (t_value = /*dayOfWeek*/ ctx[33] + "")) set_data(t, t_value);
+			if (dirty[0] & /*localizedWeekdaysShort*/ 8 && t_value !== (t_value = /*dayOfWeek*/ ctx[36] + "")) set_data(t, t_value);
 		},
 		d(detaching) {
 			if (detaching) {
@@ -10738,8 +10754,8 @@ function create_if_block_4(ctx) {
 
 	weeknum = new WeekNum({
 			props: {
-				weekNum: /*week*/ ctx[27].weekNum,
-				startOfWeekDate: getStartOfWeek(/*week*/ ctx[27].days)
+				weekNum: /*week*/ ctx[30].weekNum,
+				startOfWeekDate: getStartOfWeek(/*week*/ ctx[30].days)
 			}
 		});
 
@@ -10753,8 +10769,8 @@ function create_if_block_4(ctx) {
 		},
 		p(ctx, dirty) {
 			const weeknum_changes = {};
-			if (dirty[0] & /*month*/ 4) weeknum_changes.weekNum = /*week*/ ctx[27].weekNum;
-			if (dirty[0] & /*month*/ 4) weeknum_changes.startOfWeekDate = getStartOfWeek(/*week*/ ctx[27].days);
+			if (dirty[0] & /*month*/ 4) weeknum_changes.weekNum = /*week*/ ctx[30].weekNum;
+			if (dirty[0] & /*month*/ 4) weeknum_changes.startOfWeekDate = getStartOfWeek(/*week*/ ctx[30].days);
 			weeknum.$set(weeknum_changes);
 		},
 		i(local) {
@@ -10777,7 +10793,7 @@ function create_each_block_5(key_1, ctx) {
 	let first;
 	let day_1;
 	let current;
-	day_1 = new Day({ props: { date: /*day*/ ctx[30] } });
+	day_1 = new Day({ props: { date: /*day*/ ctx[33] } });
 
 	return {
 		key: key_1,
@@ -10795,7 +10811,7 @@ function create_each_block_5(key_1, ctx) {
 		p(new_ctx, dirty) {
 			ctx = new_ctx;
 			const day_1_changes = {};
-			if (dirty[0] & /*month*/ 4) day_1_changes.date = /*day*/ ctx[30];
+			if (dirty[0] & /*month*/ 4) day_1_changes.date = /*day*/ ctx[33];
 			day_1.$set(day_1_changes);
 		},
 		i(local) {
@@ -10826,8 +10842,8 @@ function create_each_block_4(key_1, ctx) {
 	let t1;
 	let current;
 	let if_block = /*showWeekNums*/ ctx[4] && create_if_block_4(ctx);
-	let each_value_5 = ensure_array_like(/*week*/ ctx[27].days);
-	const get_key = ctx => /*day*/ ctx[30].format();
+	let each_value_5 = ensure_array_like(/*week*/ ctx[30].days);
+	const get_key = ctx => /*day*/ ctx[33].format();
 
 	for (let i = 0; i < each_value_5.length; i += 1) {
 		let child_ctx = get_each_context_5(ctx, each_value_5, i);
@@ -10891,7 +10907,7 @@ function create_each_block_4(key_1, ctx) {
 			}
 
 			if (dirty[0] & /*month*/ 4) {
-				each_value_5 = ensure_array_like(/*week*/ ctx[27].days);
+				each_value_5 = ensure_array_like(/*week*/ ctx[30].days);
 				group_outros();
 				each_blocks = update_keyed_each(each_blocks, dirty, get_key, 1, ctx, each_value_5, each_1_lookup, tr, outro_and_destroy_block, create_each_block_5, t1, get_each_context_5);
 				check_outros();
@@ -11025,21 +11041,29 @@ function create_if_block_2(ctx) {
 	let dispose;
 
 	function click_handler_1(...args) {
-		return /*click_handler_1*/ ctx[10](/*i*/ ctx[23], ...args);
+		return /*click_handler_1*/ ctx[10](/*i*/ ctx[26], ...args);
+	}
+
+	function contextmenu_handler(...args) {
+		return /*contextmenu_handler*/ ctx[11](/*i*/ ctx[26], ...args);
 	}
 
 	return {
 		c() {
 			td = element("td");
 			button = element("button");
-			button.textContent = `Q${/*i*/ ctx[23] + 1}`;
+			button.textContent = `Q${/*i*/ ctx[26] + 1}`;
 		},
 		m(target, anchor) {
 			insert(target, td, anchor);
 			append(td, button);
 
 			if (!mounted) {
-				dispose = listen(button, "click", click_handler_1);
+				dispose = [
+					listen(button, "click", click_handler_1),
+					listen(button, "contextmenu", contextmenu_handler)
+				];
+
 				mounted = true;
 			}
 		},
@@ -11052,22 +11076,26 @@ function create_if_block_2(ctx) {
 			}
 
 			mounted = false;
-			dispose();
+			run_all(dispose);
 		}
 	};
 }
 
-// (139:6) {#each quarterMonths as monthIndex}
+// (145:6) {#each quarterMonths as monthIndex}
 function create_each_block_3(ctx) {
 	let td;
 	let button;
-	let t_value = /*$displayedDate*/ ctx[0].month(/*monthIndex*/ ctx[24]).format('MMMM') + "";
+	let t_value = /*$displayedDate*/ ctx[0].month(/*monthIndex*/ ctx[27]).format('MMMM') + "";
 	let t;
 	let mounted;
 	let dispose;
 
 	function click_handler_2(...args) {
-		return /*click_handler_2*/ ctx[11](/*monthIndex*/ ctx[24], ...args);
+		return /*click_handler_2*/ ctx[12](/*monthIndex*/ ctx[27], ...args);
+	}
+
+	function contextmenu_handler_1(...args) {
+		return /*contextmenu_handler_1*/ ctx[13](/*monthIndex*/ ctx[27], ...args);
 	}
 
 	return {
@@ -11082,13 +11110,17 @@ function create_each_block_3(ctx) {
 			append(button, t);
 
 			if (!mounted) {
-				dispose = listen(button, "click", click_handler_2);
+				dispose = [
+					listen(button, "click", click_handler_2),
+					listen(button, "contextmenu", contextmenu_handler_1)
+				];
+
 				mounted = true;
 			}
 		},
 		p(new_ctx, dirty) {
 			ctx = new_ctx;
-			if (dirty[0] & /*$displayedDate*/ 1 && t_value !== (t_value = /*$displayedDate*/ ctx[0].month(/*monthIndex*/ ctx[24]).format('MMMM') + "")) set_data(t, t_value);
+			if (dirty[0] & /*$displayedDate*/ 1 && t_value !== (t_value = /*$displayedDate*/ ctx[0].month(/*monthIndex*/ ctx[27]).format('MMMM') + "")) set_data(t, t_value);
 		},
 		d(detaching) {
 			if (detaching) {
@@ -11096,7 +11128,7 @@ function create_each_block_3(ctx) {
 			}
 
 			mounted = false;
-			dispose();
+			run_all(dispose);
 		}
 	};
 }
@@ -11107,7 +11139,7 @@ function create_each_block_2(ctx) {
 	let t0;
 	let t1;
 	let if_block = /*showWeekNums*/ ctx[4] && create_if_block_2(ctx);
-	let each_value_3 = ensure_array_like(/*quarterMonths*/ ctx[21]);
+	let each_value_3 = ensure_array_like(/*quarterMonths*/ ctx[24]);
 	let each_blocks = [];
 
 	for (let i = 0; i < each_value_3.length; i += 1) {
@@ -11154,7 +11186,7 @@ function create_each_block_2(ctx) {
 			}
 
 			if (dirty[0] & /*eventHandlers, $displayedDate*/ 65) {
-				each_value_3 = ensure_array_like(/*quarterMonths*/ ctx[21]);
+				each_value_3 = ensure_array_like(/*quarterMonths*/ ctx[24]);
 				let i;
 
 				for (i = 0; i < each_value_3.length; i += 1) {
@@ -11187,7 +11219,7 @@ function create_each_block_2(ctx) {
 	};
 }
 
-// (156:1) {#if crrView === 'years'}
+// (168:1) {#if crrView === 'years'}
 function create_if_block$1(ctx) {
 	let yearsnav;
 	let t;
@@ -11281,17 +11313,21 @@ function create_if_block$1(ctx) {
 	};
 }
 
-// (162:6) {#each yearsRange as year}
+// (174:6) {#each yearsRange as year}
 function create_each_block_1(ctx) {
 	let td;
 	let button;
-	let t_value = /*year*/ ctx[18] + "";
+	let t_value = /*year*/ ctx[21] + "";
 	let t;
 	let mounted;
 	let dispose;
 
 	function click_handler_3(...args) {
-		return /*click_handler_3*/ ctx[12](/*year*/ ctx[18], ...args);
+		return /*click_handler_3*/ ctx[14](/*year*/ ctx[21], ...args);
+	}
+
+	function contextmenu_handler_2(...args) {
+		return /*contextmenu_handler_2*/ ctx[15](/*year*/ ctx[21], ...args);
 	}
 
 	return {
@@ -11306,13 +11342,17 @@ function create_each_block_1(ctx) {
 			append(button, t);
 
 			if (!mounted) {
-				dispose = listen(button, "click", click_handler_3);
+				dispose = [
+					listen(button, "click", click_handler_3),
+					listen(button, "contextmenu", contextmenu_handler_2)
+				];
+
 				mounted = true;
 			}
 		},
 		p(new_ctx, dirty) {
 			ctx = new_ctx;
-			if (dirty[0] & /*$yearsRanges*/ 32 && t_value !== (t_value = /*year*/ ctx[18] + "")) set_data(t, t_value);
+			if (dirty[0] & /*$yearsRanges*/ 32 && t_value !== (t_value = /*year*/ ctx[21] + "")) set_data(t, t_value);
 		},
 		d(detaching) {
 			if (detaching) {
@@ -11320,16 +11360,16 @@ function create_each_block_1(ctx) {
 			}
 
 			mounted = false;
-			dispose();
+			run_all(dispose);
 		}
 	};
 }
 
-// (160:4) {#each getYears( { startRangeYear: +$yearsRanges.ranges[$yearsRanges.crrRangeIndex].split('-')[0] } ) as yearsRange}
+// (172:4) {#each getYears( { startRangeYear: +$yearsRanges.ranges[$yearsRanges.crrRangeIndex].split('-')[0] } ) as yearsRange}
 function create_each_block(ctx) {
 	let tr;
 	let t;
-	let each_value_1 = ensure_array_like(/*yearsRange*/ ctx[15]);
+	let each_value_1 = ensure_array_like(/*yearsRange*/ ctx[18]);
 	let each_blocks = [];
 
 	for (let i = 0; i < each_value_1.length; i += 1) {
@@ -11359,7 +11399,7 @@ function create_each_block(ctx) {
 		},
 		p(ctx, dirty) {
 			if (dirty[0] & /*eventHandlers, $displayedDate, $yearsRanges*/ 97) {
-				each_value_1 = ensure_array_like(/*yearsRange*/ ctx[15]);
+				each_value_1 = ensure_array_like(/*yearsRange*/ ctx[18]);
 				let i;
 
 				for (i = 0; i < each_value_1.length; i += 1) {
@@ -11596,15 +11636,33 @@ function instance$2($$self, $$props, $$invalidate) {
 		granularity: 'quarter'
 	});
 
+	const contextmenu_handler = (i, event) => eventHandlers.onContextMenu({
+		date: $displayedDate.quarter(i + 1).startOf('quarter'),
+		event,
+		granularity: 'quarter'
+	});
+
 	const click_handler_2 = (monthIndex, event) => eventHandlers.onClick({
 		date: $displayedDate.month(monthIndex).startOf('month'),
 		isNewSplit: isMetaPressed(event),
 		granularity: 'month'
 	});
 
+	const contextmenu_handler_1 = (monthIndex, event) => eventHandlers.onContextMenu({
+		date: $displayedDate.month(monthIndex).startOf('month'),
+		event,
+		granularity: 'month'
+	});
+
 	const click_handler_3 = (year, event) => eventHandlers.onClick({
 		date: $displayedDate.year(year).startOf('year'),
 		isNewSplit: isMetaPressed(event),
+		granularity: 'year'
+	});
+
+	const contextmenu_handler_2 = (year, event) => eventHandlers.onContextMenu({
+		date: $displayedDate.year(year).startOf('year'),
+		event,
 		granularity: 'year'
 	});
 
@@ -11667,8 +11725,11 @@ function instance$2($$self, $$props, $$invalidate) {
 		$settingsStore,
 		click_handler,
 		click_handler_1,
+		contextmenu_handler,
 		click_handler_2,
-		click_handler_3
+		contextmenu_handler_1,
+		click_handler_3,
+		contextmenu_handler_2
 	];
 }
 
@@ -12088,10 +12149,19 @@ class CalendarView extends obsidian.ItemView {
             // If no file exists for a given day, show nothing.
             return;
         }
-        // showFileMenu(this.app, note, {
-        // 	x: event.pageX,
-        // 	y: event.pageY
-        // });
+        const fileMenu = new obsidian.Menu();
+        fileMenu.addItem((item) => item
+            .setTitle('Delete')
+            .setIcon('trash')
+            .onClick(() => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            app.fileManager.promptForFileDeletion(note);
+        }));
+        app.workspace.trigger('file-menu', fileMenu, note, 'calendar-context-menu', null);
+        fileMenu.showAtPosition({
+            x: event.pageX,
+            y: event.pageY
+        });
     }
     // Utils
     updateActiveFile() {

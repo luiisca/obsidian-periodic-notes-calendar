@@ -90,6 +90,7 @@
 		class="day"
 		on:click={(event) =>
 			eventHandlers.onClick({ date, isNewSplit: isMetaPressed(event), granularity: 'day' })}
+		on:contextmenu={(event) => eventHandlers.onContextMenu({ date, event, granularity: 'day' })}
 	>
 		{date.format('D')}
 		<!-- <Dots metadata="{metadata}" /> -->

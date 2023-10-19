@@ -1,19 +1,14 @@
-import { App, FileView, ItemView, TAbstractFile, TFile, WorkspaceLeaf } from 'obsidian';
+import { App, FileView, ItemView, Menu, TAbstractFile, TFile, WorkspaceLeaf } from 'obsidian';
 
 import View from './View.svelte';
 import { VIEW } from './calendar-ui/context';
 import { activeFile, notesStores, settingsStore } from './stores';
 import type { ISettings } from './settings';
-import {
-	getDateFromFile,
-	getDateUID,
-	getNoteByGranularity,
-	noteCreator
-} from './calendar-io';
+import { getDateFromFile, getDateUID, getNoteByGranularity, noteCreator } from './calendar-io';
 import { createConfirmationDialog } from './calendar-ui/modal';
 import type { Moment } from 'moment';
 import type { IGranularity } from './calendar-io';
-import { granularities} from './constants';
+import { granularities } from './constants';
 import { getNoteSettingsByGranularity } from './calendar-io/settings';
 import { capitalize, getOnCreateNoteDialogNoteFromGranularity } from './utils';
 import { getPeriodicityFromGranularity } from './calendar-io/parse';
@@ -85,7 +80,7 @@ export class CalendarView extends ItemView {
 
 		this.register(
 			settingsStore.subscribe((settings) => {
-				console.log('SUBSCRIBED TO settingsStore ⚙️: ', get(settingsStore))
+				console.log('SUBSCRIBED TO settingsStore ⚙️: ', get(settingsStore));
 				this.settings = settings;
 			})
 		);
@@ -222,15 +217,29 @@ export class CalendarView extends ItemView {
 	}
 
 	onContextMenu({ date, event, granularity }: Parameters<TOnContextMenu>[0]): void {
-		const note = getNoteByGranularity({ date, granularity});
+		const note = getNoteByGranularity({ date, granularity });
+
 		if (!note) {
 			// If no file exists for a given day, show nothing.
 			return;
 		}
-		// showFileMenu(this.app, note, {
-		// 	x: event.pageX,
-		// 	y: event.pageY
-		// });
+
+		const fileMenu = new Menu();
+		fileMenu.addItem((item) =>
+			item
+				.setTitle('Delete')
+				.setIcon('trash')
+				.onClick(() => {
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					(<any>app).fileManager.promptForFileDeletion(note);
+				})
+		);
+
+		app.workspace.trigger('file-menu', fileMenu, note, 'calendar-context-menu', null);
+		fileMenu.showAtPosition({
+			x: event.pageX,
+			y: event.pageY
+		});
 	}
 
 	// Utils

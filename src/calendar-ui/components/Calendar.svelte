@@ -152,6 +152,12 @@
 											date: $displayedDate.quarter(i + 1).startOf('quarter'),
 											isNewSplit: isMetaPressed(event),
 											granularity: 'quarter'
+										})}
+									on:contextmenu={(event) =>
+										eventHandlers.onContextMenu({
+											date: $displayedDate.quarter(i + 1).startOf('quarter'),
+											event,
+											granularity: 'quarter'
 										})}>Q{i + 1}</button
 								>
 							</td>
@@ -163,6 +169,12 @@
 										eventHandlers.onClick({
 											date: $displayedDate.month(monthIndex).startOf('month'),
 											isNewSplit: isMetaPressed(event),
+											granularity: 'month'
+										})}
+									on:contextmenu={(event) =>
+										eventHandlers.onContextMenu({
+											date: $displayedDate.month(monthIndex).startOf('month'),
+											event,
 											granularity: 'month'
 										})}>{$displayedDate.month(monthIndex).format('MMMM')}</button
 								>
@@ -186,6 +198,12 @@
 										eventHandlers.onClick({
 											date: $displayedDate.year(year).startOf('year'),
 											isNewSplit: isMetaPressed(event),
+											granularity: 'year'
+										})}
+									on:contextmenu={(event) =>
+										eventHandlers.onContextMenu({
+											date: $displayedDate.year(year).startOf('year'),
+											event,
 											granularity: 'year'
 										})}>{year}</button
 								>

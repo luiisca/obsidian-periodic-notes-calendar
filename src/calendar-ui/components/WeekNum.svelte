@@ -72,6 +72,7 @@
 				isNewSplit: isMetaPressed(event),
 				granularity: 'week'
 			})}
+		on:contextmenu={(event) => eventHandlers.onContextMenu({ date: startOfWeekDate, event, granularity: 'week' })}
 	>
 		{weekNum}
 		<!-- <Dots metadata="{metadata}" /> -->
