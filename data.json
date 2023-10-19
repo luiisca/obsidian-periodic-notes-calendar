@@ -2,6 +2,7 @@
   "viewOpen": false,
   "shouldConfirmBeforeCreate": false,
   "yearsRangesStart": 2020,
+  "autoHoverPreview": true,
   "localeData": {
     "loading": false,
     "weekStart": "Sunday",

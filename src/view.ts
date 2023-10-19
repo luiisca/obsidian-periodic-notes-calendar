@@ -13,6 +13,7 @@ import { getNoteSettingsByGranularity } from './calendar-io/settings';
 import { capitalize, getOnCreateNoteDialogNoteFromGranularity } from './utils';
 import { getPeriodicityFromGranularity } from './calendar-io/parse';
 import { get } from 'svelte/store';
+import { isMetaPressed } from './calendar-ui/utils';
 
 export const VIEW_TYPE_CALENDAR = 'calendar';
 
@@ -32,7 +33,7 @@ type TOnHover = ({
 	granularity
 }: {
 	date: Moment;
-	targetEl: EventTarget;
+	targetEl: EventTarget | null;
 	isMetaPressed: boolean;
 	granularity: IGranularity;
 }) => void;
@@ -51,6 +52,7 @@ export interface ICalendarViewCtx {
 	eventHandlers: {
 		onClick: TOnClick;
 		onHover: TOnHover;
+		onHoverEnd: () => void;
 		onContextMenu: TOnContextMenu;
 	};
 }
@@ -58,6 +60,8 @@ export interface ICalendarViewCtx {
 export class CalendarView extends ItemView {
 	private view: View;
 	private settings: ISettings;
+	private triggerLinkHover: () => void;
+	private keydownFn: (ev: KeyboardEvent) => void = this.keydownCallback.bind(this);
 
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
@@ -113,6 +117,7 @@ export class CalendarView extends ItemView {
 			eventHandlers: {
 				onClick: this.onClick.bind(this),
 				onHover: this.onHover.bind(this),
+				onHoverEnd: this.onHoverEnd.bind(this),
 				onContextMenu: this.onContextMenu.bind(this)
 			}
 		});
@@ -208,12 +213,28 @@ export class CalendarView extends ItemView {
 	}
 
 	onHover({ date, targetEl, isMetaPressed, granularity }: Parameters<TOnHover>[0]): void {
-		if (!isMetaPressed) {
-			return;
-		}
+		// console.log('view.ts > onHover(): 📈')
+		// this.keydownFn && window.removeEventListener('keydown', this.keydownFn);
+
 		const { format } = getNoteSettingsByGranularity(granularity);
 		const note = getNoteByGranularity({ date, granularity });
-		this.app.workspace.trigger('link-hover', this, targetEl, date.format(format), note?.path);
+
+		this.triggerLinkHover = () =>
+			this.app.workspace.trigger('link-hover', this, targetEl, date.format(format), note?.path);
+
+		if (!isMetaPressed && !this.settings.autoHoverPreview) {
+			// TODO: add markdown view popover when ctrlKey pressed after hover
+			// window.addEventListener('keydown', this.keydownFn);
+
+			return;
+		}
+
+		this.triggerLinkHover();
+	}
+	onHoverEnd() {
+		// remove global event listener
+		// console.log('view.ts > onHoverEnd(): 📉')
+		// this.keydownFn && window.removeEventListener('keydown', this.keydownFn);
 	}
 
 	onContextMenu({ date, event, granularity }: Parameters<TOnContextMenu>[0]): void {
@@ -275,6 +296,13 @@ export class CalendarView extends ItemView {
 					this.view && this.view.tick();
 				}
 			}
+		}
+	}
+
+	private keydownCallback(ev: KeyboardEvent) {
+		console.log('view.ts > keydownCallback > isMetaPressed() > this: ', this, isMetaPressed(ev));
+		if (isMetaPressed(ev)) {
+			this.triggerLinkHover();
 		}
 	}
 

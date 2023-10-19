@@ -158,6 +158,13 @@
 											date: $displayedDate.quarter(i + 1).startOf('quarter'),
 											event,
 											granularity: 'quarter'
+										})}
+									on:pointerenter={(event) =>
+										eventHandlers.onHover({
+											date: $displayedDate.quarter(i + 1).startOf('quarter'),
+											targetEl: event.target,
+											isMetaPressed: isMetaPressed(event),
+											granularity: 'quarter'
 										})}>Q{i + 1}</button
 								>
 							</td>
@@ -175,6 +182,13 @@
 										eventHandlers.onContextMenu({
 											date: $displayedDate.month(monthIndex).startOf('month'),
 											event,
+											granularity: 'month'
+										})}
+									on:pointerenter={(event) =>
+										eventHandlers.onHover({
+											date: $displayedDate.month(monthIndex).startOf('month'),
+											targetEl: event.target,
+											isMetaPressed: isMetaPressed(event),
 											granularity: 'month'
 										})}>{$displayedDate.month(monthIndex).format('MMMM')}</button
 								>
@@ -205,7 +219,15 @@
 											date: $displayedDate.year(year).startOf('year'),
 											event,
 											granularity: 'year'
-										})}>{year}</button
+										})}
+									on:pointerenter={(event) => {
+										eventHandlers.onHover({
+											date: $displayedDate.year(year).startOf('year'),
+											targetEl: event.target,
+											isMetaPressed: isMetaPressed(event),
+											granularity: 'year'
+										});
+									}}>{year}</button
 								>
 							</td>
 						{/each}

@@ -53,24 +53,38 @@
 </script>
 
 <div class="nav">
-	<button
-		style="all:inherit"
-		on:click={(event) =>
-			eventHandlers.onClick({
-				date: $displayedDate,
-				isNewSplit: isMetaPressed(event),
-				granularity: 'year'
-			})}
-	>
+	<div>
 		<span class="flex justify-between title">
-			<span class="month">
+			<button
+				class="month [all:inherit]"
+				on:click={(event) =>
+					eventHandlers.onClick({
+						date: $displayedDate,
+						isNewSplit: isMetaPressed(event),
+						granularity: 'year'
+					})}
+				on:contextmenu={(event) =>
+					eventHandlers.onContextMenu({
+						date: $displayedDate,
+						event,
+						granularity: 'year'
+					})}
+				on:pointerenter={(event) => {
+					eventHandlers.onHover({
+						date: $displayedDate,
+						targetEl: event.target,
+						isMetaPressed: isMetaPressed(event),
+						granularity: 'year'
+					});
+				}}
+			>
 				{$displayedDate.format('YYYY')}
-			</span>
-			<span class="year">
+			</button>
+			<span class="year cursor-default">
 				{$yearsRanges.ranges?.[$yearsRanges.crrRangeIndex] || ''}
 			</span>
 		</span>
-	</button>
+	</div>
 
 	<div class="right-nav">
 		<!-- TODO: add tab support -->

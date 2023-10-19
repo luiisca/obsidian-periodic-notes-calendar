@@ -17,7 +17,7 @@
 	let displayedDate = getContext<Writable<Moment>>(DISPLAYED_DATE);
 
 	function decrementdisplayedDate() {
-		console.log('decrementdisplayedDate() > yearsRanges store: ', $yearsRanges)
+		console.log('decrementdisplayedDate() > yearsRanges store: ', $yearsRanges);
 		let newYear = 0;
 		displayedDate.update((date) => {
 			const newDate = date.clone().subtract(YEARS_RANGE_SIZE, 'year');
@@ -42,7 +42,7 @@
 	}
 
 	function incrementdisplayedDate() {
-		console.log('incrementedisplayedDate() > yearsRanges store: ', $yearsRanges)
+		console.log('incrementedisplayedDate() > yearsRanges store: ', $yearsRanges);
 		let newYear = 0;
 		displayedDate.update((date) => {
 			const newDate = date.clone().add(YEARS_RANGE_SIZE, 'year');
@@ -58,7 +58,7 @@
 			return;
 		}
 
-		yearsRanges.addNewRange({ year: +newYear, action: 'increment'});
+		yearsRanges.addNewRange({ year: +newYear, action: 'increment' });
 		yearsRanges.updateCrrRangeIndex({ modifier: +1 });
 	}
 
@@ -76,21 +76,13 @@
 </script>
 
 <div class="nav">
-	<button
-		style="all:inherit"
-		on:click={(event) =>
-			eventHandlers.onClick({
-				date: $displayedDate,
-				isNewSplit: isMetaPressed(event),
-				granularity: 'year'
-			})}
-	>
+	<div>
 		<span class="flex justify-between title">
 			<span class="month">
 				{$yearsRanges.ranges[$yearsRanges.crrRangeIndex]}
 			</span>
 		</span>
-	</button>
+	</div>
 
 	<div class="right-nav">
 		<!-- TODO: add tab support -->
@@ -121,7 +113,6 @@
 
 	.title {
 		color: var(--color-text-title);
-		cursor: pointer;
 		display: flex;
 		font-size: 1.4em;
 		gap: 0.3em;

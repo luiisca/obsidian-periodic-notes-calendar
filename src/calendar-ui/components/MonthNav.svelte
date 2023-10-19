@@ -24,7 +24,7 @@
 			return newDate;
 		});
 
-		yearsRanges.updateRanges({ year: newYear, action: 'decrement'});
+		yearsRanges.updateRanges({ year: newYear, action: 'decrement' });
 	}
 
 	function incrementdisplayedDate() {
@@ -36,7 +36,7 @@
 			return newDate;
 		});
 
-		yearsRanges.updateRanges({ year: newYear, action: 'increment'});
+		yearsRanges.updateRanges({ year: newYear, action: 'increment' });
 	}
 
 	function resetdisplayedDate() {
@@ -61,24 +61,57 @@
     on:hoverDay
     on:endHoverDay
   /> -->
-	<button
-		style="all:inherit"
+	<div
+	
+	>
+		<span class="flex justify-between title">
+			<button class="month [all:inherit]"
 		on:click={(event) =>
 			eventHandlers.onClick({
 				date: $displayedDate,
 				isNewSplit: isMetaPressed(event),
 				granularity: 'month'
 			})}
-	>
-		<span class="flex justify-between title">
-			<span class="month">
+		on:contextmenu={(event) =>
+			eventHandlers.onContextMenu({ date: $displayedDate, event, granularity: 'month' })}
+		on:pointerenter={(event) => {
+			eventHandlers.onHover({
+				date: $displayedDate,
+				targetEl: event.target,
+				isMetaPressed: isMetaPressed(event),
+				granularity: 'month'
+			});
+		}}
+			>
 				{$displayedDate.format('MMMM')}
-			</span>
-			<span class="year">
+			</button>
+			<button
+				class="year [all:inherit]"
+				on:click={(event) =>
+					eventHandlers.onClick({
+						date: $displayedDate.startOf('year'),
+						isNewSplit: isMetaPressed(event),
+						granularity: 'year'
+					})}
+				on:contextmenu={(event) =>
+					eventHandlers.onContextMenu({
+						date: $displayedDate.startOf('year'),
+						event,
+						granularity: 'year'
+					})}
+				on:pointerenter={(event) => {
+					eventHandlers.onHover({
+						date: $displayedDate.startOf('year'),
+						targetEl: event.target,
+						isMetaPressed: isMetaPressed(event),
+						granularity: 'year'
+					});
+				}}
+			>
 				{$displayedDate.format('YYYY')}
-			</span>
+			</button>
 		</span>
-	</button>
+	</div>
 
 	<div class="right-nav">
 		<!-- TODO: add tab support -->

@@ -3,6 +3,7 @@ import type { IGranularity } from './calendar-io';
 import { getPeriodicityFromGranularity } from './calendar-io/parse';
 import type { Moment } from 'moment';
 import moment from 'moment';
+import { isMetaPressed } from './calendar-ui/utils';
 
 export async function fetchWithRetry<T>(url: string, retries = 0): Promise<T | null> {
 	try {

@@ -16,6 +16,7 @@ export interface ISettings {
 	viewOpen: boolean;
 	shouldConfirmBeforeCreate: boolean;
 	yearsRangesStart: 2020;
+	autoHoverPreview: boolean;
 
 	localeData: {
 		loading: boolean;
@@ -32,6 +33,7 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
 	viewOpen: false,
 	shouldConfirmBeforeCreate: true,
 	yearsRangesStart: 2020,
+	autoHoverPreview: false,
 
 	localeData: {
 		loading: false,
@@ -87,6 +89,7 @@ export class SettingsTab extends PluginSettingTab {
 
 		this.addPopoverSetting();
 		this.addConfirmCreateSetting();
+		this.addConfirmAutoHoverPreviewSetting();
 		this.addShowWeeklyNoteSetting();
 
 		this.containerEl.createEl('h3', {
@@ -132,6 +135,20 @@ export class SettingsTab extends PluginSettingTab {
 				toggle.onChange(async (value) => {
 					this.plugin.saveSettings(() => ({
 						shouldConfirmBeforeCreate: value
+					}));
+				});
+			});
+	}
+	addConfirmAutoHoverPreviewSetting() {
+		// TODO: improve wording
+		new Setting(this.containerEl)
+			.setName('Automatically preview note on hover')
+			.setDesc('Require special key combination (Shift + mouse hover) to preview note')
+			.addToggle((toggle) => {
+				toggle.setValue(this.plugin.settings.autoHoverPreview);
+				toggle.onChange(async (value) => {
+					this.plugin.saveSettings(() => ({
+						autoHoverPreview: value
 					}));
 				});
 			});

@@ -73,6 +73,14 @@
 				granularity: 'week'
 			})}
 		on:contextmenu={(event) => eventHandlers.onContextMenu({ date: startOfWeekDate, event, granularity: 'week' })}
+		on:pointerenter={(event) => {
+			eventHandlers.onHover({
+				date: startOfWeekDate,
+				targetEl: event.target,
+				isMetaPressed: isMetaPressed(event),
+				granularity: 'week'
+			});
+		}}
 	>
 		{weekNum}
 		<!-- <Dots metadata="{metadata}" /> -->

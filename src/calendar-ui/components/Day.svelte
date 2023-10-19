@@ -31,20 +31,6 @@
 	// });
 
 	// TODO: look at onHover structure and remove unncesary stuff
-	// function handleHover(event: PointerEvent, meta: IDayMetadata) {
-	//   onHover?.("day", date, file, event.target, isMetaPressed(event));
-	//   dispatch("hoverDay", {
-	//     date,
-	//     metadata: meta,
-	//     target: event.target,
-	//   });
-	// }
-
-	// function endHover(event: MouseEvent) {
-	//   dispatch("endHoverDay", {
-	//     target: event.target,
-	//   });
-	// }
 
 	// function handleContextmenu(event: MouseEvent) {
 	//   onContextMenu?.("day", date, file, event);
@@ -91,6 +77,14 @@
 		on:click={(event) =>
 			eventHandlers.onClick({ date, isNewSplit: isMetaPressed(event), granularity: 'day' })}
 		on:contextmenu={(event) => eventHandlers.onContextMenu({ date, event, granularity: 'day' })}
+		on:pointerenter={(event) => {
+			eventHandlers.onHover({
+				date,
+				targetEl: event.target,
+				isMetaPressed: isMetaPressed(event),
+				granularity: 'day'
+			});
+		}}
 	>
 		{date.format('D')}
 		<!-- <Dots metadata="{metadata}" /> -->
