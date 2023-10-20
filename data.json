@@ -3,6 +3,7 @@
   "shouldConfirmBeforeCreate": true,
   "yearsRangesStart": 2020,
   "autoHoverPreview": true,
+  "crrNldModalGranularity": "day",
   "localeData": {
     "loading": false,
     "weekStart": "Sunday",

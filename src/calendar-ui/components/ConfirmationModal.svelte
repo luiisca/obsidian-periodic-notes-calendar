@@ -4,7 +4,7 @@
 	import { get } from 'svelte/store';
 
 	import { settingsStore } from '@/stores';
-	import type { ConfirmationModal, IConfirmationDialogParams } from '../modal';
+	import type { ConfirmationModal, IConfirmationDialogParams } from '../modals/confirmation';
 
 	export let config: IConfirmationDialogParams<T>;
 	export let modalClass: ConfirmationModal<T>;

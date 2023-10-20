@@ -8,6 +8,7 @@ import dayjs from 'dayjs';
 import weekday from 'dayjs/plugin/weekday';
 import localeData from 'dayjs/plugin/localeData';
 import locales from './locales';
+import type { IGranularity } from './calendar-io';
 
 dayjs.extend(weekday);
 dayjs.extend(localeData);
@@ -17,6 +18,7 @@ export interface ISettings {
 	shouldConfirmBeforeCreate: boolean;
 	yearsRangesStart: 2020;
 	autoHoverPreview: boolean;
+	crrNldModalGranularity: IGranularity;
 
 	localeData: {
 		loading: boolean;
@@ -34,6 +36,7 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
 	shouldConfirmBeforeCreate: true,
 	yearsRangesStart: 2020,
 	autoHoverPreview: false,
+	crrNldModalGranularity: 'day',
 
 	localeData: {
 		loading: false,

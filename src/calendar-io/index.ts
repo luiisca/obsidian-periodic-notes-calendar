@@ -138,7 +138,7 @@ import { getNoteSettingsByGranularity } from './settings';
 import { get } from 'svelte/store';
 import { activeFile, notesStores, settingsStore } from '@/stores';
 import { capitalize, getOnCreateNoteDialogNoteFromGranularity } from '@/utils';
-import { createConfirmationDialog } from '@/calendar-ui/modal';
+import { createConfirmationDialog } from '@/calendar-ui/modals/confirmation';
 
 export { getDateUID, getDateFromFile, getDateFromPath } from './parse';
 export { getTemplateInfo } from './vault';

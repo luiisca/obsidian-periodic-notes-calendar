@@ -10,6 +10,7 @@ import { tryToCreateNote } from './calendar-io';
 import type { Moment } from 'moment';
 import { getPeriodicityFromGranularity } from './calendar-io/parse';
 import type { IPeriodicites } from './calendar-io/types';
+import { createNldatePickerDialog } from './calendar-ui/modals/nldate-picker';
 
 export default class DailyNoteFlexPlugin extends Plugin {
 	public settings: ISettings;
@@ -92,6 +93,20 @@ export default class DailyNoteFlexPlugin extends Plugin {
 				});
 			});
 		});
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const nldatesPlugin = (<any>window.app).plugins.getPlugin('nldates-obsidian');
+		if (nldatesPlugin) {
+			this.addCommand({
+				id: 'open-nldate-note',
+				name: 'Open a Periodic Note based on Natural Language Date selection',
+				callback: () => {
+					createNldatePickerDialog(this);
+				}
+			});
+		}
+		// const parsedResult = nldatesPlugin.parseDate('next year');
+		// console.log(parsedResult.moment.format('YYYY')); // This should return 2021
 
 		this.app.workspace.onLayoutReady(() => {
 			console.log('ON Layout REady 🙌');

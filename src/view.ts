@@ -5,7 +5,7 @@ import { VIEW } from './calendar-ui/context';
 import { activeFile, notesStores, settingsStore } from './stores';
 import type { ISettings } from './settings';
 import { getDateFromFile, getDateUID, getNoteByGranularity, noteCreator, tryToCreateNote } from './calendar-io';
-import { createConfirmationDialog } from './calendar-ui/modal';
+import { createConfirmationDialog } from './calendar-ui/modals/confirmation';
 import type { Moment } from 'moment';
 import type { IGranularity } from './calendar-io';
 import { granularities } from './constants';
