@@ -5,80 +5,40 @@
 	window.dayjs.extend(weekOfYear);
 	window.dayjs.extend(isoWeek);
 
-	import { getContext, setContext } from 'svelte';
-	import { writable } from 'svelte/store';
+	import { getContext } from 'svelte';
 
-	import { DISPLAYED_DATE, IS_MOBILE, VIEW } from '../context';
-	// import PopoverMenu from "./popover/PopoverMenu.svelte";
-	// import Day from './Day.svelte';
-	// import Nav from './Nav.svelte';
-	// import WeekNum from './WeekNum.svelte';
+	import { VIEW } from '../context';
 	import { getMonth, getStartOfWeek, getYears, isMetaPressed, isWeekend } from '../utils';
-	import { notesStores, settingsStore, yearsRanges } from '@/stores';
-	import type { CalendarView, ICalendarViewCtx } from '@/view';
+	import {
+		displayedDateStore,
+		notesStores,
+		rerenderStore,
+		settingsStore,
+		yearsRanges
+	} from '@/stores';
+	import type { ICalendarViewCtx } from '@/view';
 	import Day from './Day.svelte';
 	import WeekNum from './WeekNum.svelte';
 	import { granularities, monthsIndexesInQuarters, togglePeriods } from '@/constants';
-	import type { Moment } from 'moment';
 	import { capitalize } from '@/utils';
 	import MonthNav from './MonthNav.svelte';
 	import YearNav from './YearNav.svelte';
 	import YearsNav from './YearsNav.svelte';
+	import Dot from './Dot.svelte';
+	import { getNoteByGranularity } from '@/calendar-io';
+	import QuarterNum from './QuarterNum.svelte';
+	import Month from './Month.svelte';
+	import Year from './Year.svelte';
 
-	const { app, eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
+	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 
 	$: ({
 		localeData: { showWeekNums, localizedWeekdaysShort }
 	} = $settingsStore);
-
-	let displayedDate = writable<Moment>(window.moment());
-	setContext(DISPLAYED_DATE, displayedDate);
-
-	$: month = getMonth($displayedDate);
+	$: month = getMonth($displayedDateStore);
+	$: $settingsStore, reindexNotes();
 
 	let crrView: (typeof togglePeriods)[number] = 'days';
-
-	// let hoverTimeout: number;
-	// let showPopover: boolean = false;
-	// let popoverMetadata: IDayMetadata[];
-	// let hoveredDay = writable<HTMLElement>(null);
-
-	// const fileCache = new PeriodicNotesCache(plugin);
-
-	// function openPopover() {
-	//   showPopover = true;
-	// }
-
-	// function updatePopover(event: CustomEvent) {
-	//   const { metadata, target } = event.detail;
-
-	//   if (!showPopover) {
-	//     window.clearTimeout(hoverTimeout);
-	//     hoverTimeout = window.setTimeout(() => {
-	//       if ($hoveredDay === target) {
-	//         openPopover(); }
-	//     }, 750);
-	//   }
-
-	//   if ($hoveredDay !== target) {
-	//     hoveredDay.set(target);
-	//     popoverMetadata = metadata;
-	//   }
-	// }
-
-	// const dismissPopover = debounce(
-	//   (event: CustomEvent) => {
-	//     // if the user didn't hover onto another day
-	//     if ($hoveredDay === event.detail.target) {
-	//       hoveredDay.set(null);
-	//       showPopover = false;
-	//     }
-	//   },
-	//   250,
-	//   true
-	// );
-
-	$: $settingsStore, reindexNotes();
 
 	const reindexNotes = () => {
 		granularities.forEach((granularity) => {
@@ -88,8 +48,6 @@
 </script>
 
 <div id="calendar-container" class="container">
-	<!-- on:hoverDay={updatePopover}
-		on:endHoverDay={dismissPopover} -->
 	<!-- TODO: replace tw colors with theme variables -->
 	<div class="flex rounded-md space-x-1 p-1 w-full">
 		{#each togglePeriods as period}
@@ -102,7 +60,7 @@
 		{/each}
 	</div>
 	{#if crrView === 'days'}
-		<MonthNav today={window.moment()} />
+		<MonthNav />
 		<table class="calendar">
 			<colgroup>
 				{#if showWeekNums}
@@ -138,61 +96,17 @@
 			</tbody>
 		</table>
 	{/if}
-	<!-- {#if crrView === 'months'}
-		<YearNav today={window.moment()} />
+	{#if crrView === 'months'}
+		<YearNav />
 		<table class="calendar">
 			<tbody>
-				{#each monthsIndexesInQuarters as quarterMonths, i}
+				{#each monthsIndexesInQuarters as quarterMonthsIndexes, i}
 					<tr>
 						{#if showWeekNums}
-							<td>
-								<button
-									on:click={(event) =>
-										eventHandlers.onClick({
-											date: $displayedDate.quarter(i + 1).startOf('quarter'),
-											isNewSplit: isMetaPressed(event),
-											granularity: 'quarter'
-										})}
-									on:contextmenu={(event) =>
-										eventHandlers.onContextMenu({
-											date: $displayedDate.quarter(i + 1).startOf('quarter'),
-											event,
-											granularity: 'quarter'
-										})}
-									on:pointerenter={(event) =>
-										eventHandlers.onHover({
-											date: $displayedDate.quarter(i + 1).startOf('quarter'),
-											targetEl: event.target,
-											isMetaPressed: isMetaPressed(event),
-											granularity: 'quarter'
-										})}>Q{i + 1}</button
-								>
-							</td>
+							<QuarterNum quarterNum={i + 1} />
 						{/if}
-						{#each quarterMonths as monthIndex}
-							<td>
-								<button
-									on:click={(event) =>
-										eventHandlers.onClick({
-											date: $displayedDate.month(monthIndex).startOf('month'),
-											isNewSplit: isMetaPressed(event),
-											granularity: 'month'
-										})}
-									on:contextmenu={(event) =>
-										eventHandlers.onContextMenu({
-											date: $displayedDate.month(monthIndex).startOf('month'),
-											event,
-											granularity: 'month'
-										})}
-									on:pointerenter={(event) =>
-										eventHandlers.onHover({
-											date: $displayedDate.month(monthIndex).startOf('month'),
-											targetEl: event.target,
-											isMetaPressed: isMetaPressed(event),
-											granularity: 'month'
-										})}>{$displayedDate.month(monthIndex).format('MMMM')}</button
-								>
-							</td>
+						{#each quarterMonthsIndexes as monthIndex}
+							<Month monthIndex={monthIndex} />
 						{/each}
 					</tr>
 				{/each}
@@ -200,47 +114,19 @@
 		</table>
 	{/if}
 	{#if crrView === 'years'}
-		<YearsNav today={window.moment()} />
+		<YearsNav />
 		<table class="calendar">
 			<tbody>
-				{#each getYears( { startRangeYear: +$yearsRanges.ranges[$yearsRanges.crrRangeIndex].split('-')[0] } ) as yearsRange}
+				{#each getYears( { startRangeYear: +$yearsRanges.ranges[$yearsRanges.crrRangeIndex].split('-')[0] } ) as rowYearsRange}
 					<tr>
-						{#each yearsRange as year}
-							<td>
-								<button
-									on:click={(event) =>
-										eventHandlers.onClick({
-											date: $displayedDate.year(year).startOf('year'),
-											isNewSplit: isMetaPressed(event),
-											granularity: 'year'
-										})}
-									on:contextmenu={(event) =>
-										eventHandlers.onContextMenu({
-											date: $displayedDate.year(year).startOf('year'),
-											event,
-											granularity: 'year'
-										})}
-									on:pointerenter={(event) => {
-										eventHandlers.onHover({
-											date: $displayedDate.year(year).startOf('year'),
-											targetEl: event.target,
-											isMetaPressed: isMetaPressed(event),
-											granularity: 'year'
-										});
-									}}>{year}</button
-								>
-							</td>
+						{#each rowYearsRange as year}
+							<Year {year} />
 						{/each}
 					</tr>
 				{/each}
 			</tbody>
 		</table>
-	{/if} -->
-	<!-- <PopoverMenu
-    referenceElement="{$hoveredDay}"
-    metadata="{popoverMetadata}"
-    isVisible="{showPopover}"
-  /> -->
+	{/if}
 </div>
 
 <style>

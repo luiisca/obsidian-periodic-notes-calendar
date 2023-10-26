@@ -9,11 +9,13 @@
 	import type { ICalendarViewCtx } from '@/view';
 	import { getNoteByGranularity } from '@/calendar-io';
 	import { displayedDateStore, rerenderStore } from '@/stores';
+	import type { Moment } from 'moment';
 
-	export let monthIndex: number;
+	export let year: number;
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 
-	const date = $displayedDateStore.clone().month(monthIndex).startOf('month');
+	let date: Moment;
+	$: $displayedDateStore, (date = window.moment().clone().year(year).startOf('year'));
 </script>
 
 <td>
@@ -22,24 +24,25 @@
 			eventHandlers.onClick({
 				date,
 				isNewSplit: isMetaPressed(event),
-				granularity: 'month'
+				granularity: 'year'
 			})}
 		on:contextmenu={(event) =>
 			eventHandlers.onContextMenu({
 				date,
 				event,
-				granularity: 'month'
+				granularity: 'year'
 			})}
-		on:pointerenter={(event) =>
+		on:pointerenter={(event) => {
 			eventHandlers.onHover({
 				date,
 				targetEl: event.target,
 				isMetaPressed: isMetaPressed(event),
-				granularity: 'month'
-			})}>{$displayedDateStore.clone().month(monthIndex).format('MMMM')}</button
+				granularity: 'year'
+			});
+		}}>{year}</button
 	>
 
-	{#if $rerenderStore && getNoteByGranularity({ date, granularity: 'month' })}
+	{#if $rerenderStore && getNoteByGranularity({ date, granularity: 'year' })}
 		<Dot />
 	{/if}
 </td>

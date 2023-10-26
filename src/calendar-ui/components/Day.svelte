@@ -2,54 +2,19 @@
 
 <script lang="ts">
 	import type { Moment } from 'moment';
-	import type { TFile } from 'obsidian';
-	import { createEventDispatcher, getContext } from 'svelte';
-	import type { Writable } from 'svelte/store';
+	import { getContext } from 'svelte';
 
-	import Dots from './Dots.svelte';
-	import MetadataResolver from './MetadataResolver.svelte';
-	import { DISPLAYED_DATE, IS_MOBILE, VIEW } from '../context';
-	import type { IDayMetadata, IHTMLAttributes, ISourceSettings } from '../types';
+	import Dot from './Dot.svelte';
+	import { VIEW } from '../context';
 	import { isMetaPressed } from '../utils';
-	import type { CalendarView, ICalendarViewCtx } from '@/view';
+	import type { ICalendarViewCtx } from '@/view';
+	import { getNoteByGranularity } from '@/calendar-io';
+	import { rerenderStore } from '@/stores';
 
 	// Properties
 	export let date: Moment;
-	// export let fileCache: PeriodicNotesCache;
-
-	let file: TFile | null;
-
-	// Global state
-	const isMobile = getContext<boolean>(IS_MOBILE);
-	const displayedDate = getContext<Writable<Moment>>(DISPLAYED_DATE);
-	const dispatch = createEventDispatcher();
 
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
-
-	// fileCache.store.subscribe(() => {
-	// 	file = fileCache.getFile(date, 'day');
-	// });
-
-	// TODO: look at onHover structure and remove unncesary stuff
-
-	// function handleContextmenu(event: MouseEvent) {
-	//   onContextMenu?.("day", date, file, event);
-	//   endHover(event);
-	// }
-
-	// function getAttributes(metadata: IDayMetadata[]): IHTMLAttributes {
-	//   if (!metadata) {
-	//     return {};
-	//   }
-	//   return metadata
-	//     .filter((meta) => meta.display === "calendar-and-menu")
-	//     .reduce((acc, meta) => {
-	//       return {
-	//         ...acc,
-	//         ...meta.attrs,
-	//       };
-	//     }, {});
-	// }
 </script>
 
 <td>
@@ -57,7 +22,7 @@
     <div
       class="day"
       class:active="{selectedId === getDateUID(date, 'day')}"
-      class:adjacent-month="{!date.isSame($displayedDate, 'month')}"
+      class:adjacent-month="{!date.isSame($displayedDateStore, 'month')}"
       class:has-note="{!!file}"
       class:today="{date.isSame(today, 'day')}"
       draggable="{true}"
@@ -87,7 +52,10 @@
 		}}
 	>
 		{date.format('D')}
-		<!-- <Dots metadata="{metadata}" /> -->
+		{#if $rerenderStore && getNoteByGranularity({ date, granularity: 'day' })}
+			<Dot />
+		{/if}
+		<!-- <div>{$test}</div> -->
 	</button>
 </td>
 

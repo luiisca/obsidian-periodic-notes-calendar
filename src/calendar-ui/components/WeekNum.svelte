@@ -2,48 +2,20 @@
 
 <script lang="ts">
 	import type { Moment } from 'moment';
-	import type { TFile } from 'obsidian';
-	import { createEventDispatcher, getContext } from 'svelte';
+	import { getContext } from 'svelte';
 
-	import Dots from './Dots.svelte';
-	import type PeriodicNotesCache from '../fileStore';
-	import MetadataResolver from './MetadataResolver.svelte';
-	import type { IDayMetadata, ISourceSettings } from '../types';
-	import { getStartOfWeek, isMetaPressed } from '../utils';
-	import type { IGranularity } from '@/calendar-io';
+	import Dot from './Dot.svelte';
+	import { isMetaPressed } from '../utils';
+	import { getNoteByGranularity } from '@/calendar-io';
 	import type { ICalendarViewCtx } from '@/view';
 	import { VIEW } from '../context';
+	import { rerenderStore } from '@/stores';
 
 	// Properties
 	export let weekNum: number;
 	export let startOfWeekDate: Moment;
 
-	// Global state;
-	// export let selectedId: string = null;
-
-	// let file: TFile | null;
-	// let startOfWeek: Moment;
-	// let metadata: Promise<IDayMetadata[]> | null;
-
-	// const dispatch = createEventDispatcher();
-
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
-
-	// TODO: find a way to open link preview using vanilla featuers
-	// function handleHover(event: PointerEvent, meta: IDayMetadata) {
-	//   onHover?.("week", days[0], file, event.target, isMetaPressed(event));
-	//   dispatch("hoverDay", {
-	//     date: days[0],
-	//     metadata: meta,
-	//     target: event.target,
-	//   });
-	// }
-
-	// function endHover(event: PointerEvent) {
-	//   dispatch("endHoverDay", {
-	//     target: event.target,
-	//   });
-	// }
 </script>
 
 <td>
@@ -72,7 +44,8 @@
 				isNewSplit: isMetaPressed(event),
 				granularity: 'week'
 			})}
-		on:contextmenu={(event) => eventHandlers.onContextMenu({ date: startOfWeekDate, event, granularity: 'week' })}
+		on:contextmenu={(event) =>
+			eventHandlers.onContextMenu({ date: startOfWeekDate, event, granularity: 'week' })}
 		on:pointerenter={(event) => {
 			eventHandlers.onHover({
 				date: startOfWeekDate,
@@ -83,7 +56,9 @@
 		}}
 	>
 		{weekNum}
-		<!-- <Dots metadata="{metadata}" /> -->
+		{#if $rerenderStore && getNoteByGranularity( { date: startOfWeekDate, granularity: 'week' } )}
+			<Dot />
+		{/if}
 	</button>
 </td>
 

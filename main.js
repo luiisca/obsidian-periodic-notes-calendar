@@ -1684,17 +1684,6 @@ function toggle_class(element, name, toggle) {
 }
 
 /**
- * @template T
- * @param {string} type
- * @param {T} [detail]
- * @param {{ bubbles?: boolean, cancelable?: boolean }} [options]
- * @returns {CustomEvent<T>}
- */
-function custom_event(type, detail, { bubbles = false, cancelable = false } = {}) {
-	return new CustomEvent(type, { detail, bubbles, cancelable });
-}
-
-/**
  * @typedef {Node & {
  * 	claim_order?: number;
  * 	hydrate_init?: true;
@@ -1747,61 +1736,17 @@ function onMount(fn) {
 }
 
 /**
- * Creates an event dispatcher that can be used to dispatch [component events](/docs#template-syntax-component-directives-on-eventname).
- * Event dispatchers are functions that can take two arguments: `name` and `detail`.
+ * Schedules a callback to run immediately before the component is unmounted.
  *
- * Component events created with `createEventDispatcher` create a
- * [CustomEvent](https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent).
- * These events do not [bubble](https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Building_blocks/Events#Event_bubbling_and_capture).
- * The `detail` argument corresponds to the [CustomEvent.detail](https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent/detail)
- * property and can contain any type of data.
+ * Out of `onMount`, `beforeUpdate`, `afterUpdate` and `onDestroy`, this is the
+ * only one that runs inside a server-side component.
  *
- * The event dispatcher can be typed to narrow the allowed event names and the type of the `detail` argument:
- * ```ts
- * const dispatch = createEventDispatcher<{
- *  loaded: never; // does not take a detail argument
- *  change: string; // takes a detail argument of type string, which is required
- *  optional: number | null; // takes an optional detail argument of type number
- * }>();
- * ```
- *
- * https://svelte.dev/docs/svelte#createeventdispatcher
- * @template {Record<string, any>} [EventMap=any]
- * @returns {import('./public.js').EventDispatcher<EventMap>}
+ * https://svelte.dev/docs/svelte#ondestroy
+ * @param {() => any} fn
+ * @returns {void}
  */
-function createEventDispatcher() {
-	const component = get_current_component();
-	return (type, detail, { cancelable = false } = {}) => {
-		const callbacks = component.$$.callbacks[type];
-		if (callbacks) {
-			// TODO are there situations where events could be dispatched
-			// in a server (non-DOM) environment?
-			const event = custom_event(/** @type {string} */ (type), detail, { cancelable });
-			callbacks.slice().forEach((fn) => {
-				fn.call(component, event);
-			});
-			return !event.defaultPrevented;
-		}
-		return true;
-	};
-}
-
-/**
- * Associates an arbitrary `context` object with the current component and the specified `key`
- * and returns that object. The context is then available to children of the component
- * (including slotted content) with `getContext`.
- *
- * Like lifecycle functions, this must be called during component initialisation.
- *
- * https://svelte.dev/docs/svelte#setcontext
- * @template T
- * @param {any} key
- * @param {T} context
- * @returns {T}
- */
-function setContext(key, context) {
-	get_current_component().$$.context.set(key, context);
-	return context;
+function onDestroy(fn) {
+	get_current_component().$$.on_destroy.push(fn);
 }
 
 /**
@@ -2351,6 +2296,58 @@ var isoWeek$1 = {exports: {}};
 var isoWeekExports = isoWeek$1.exports;
 var isoWeek = /*@__PURE__*/getDefaultExportFromCjs(isoWeekExports);
 
+const VIEW = Symbol('view');
+
+function isMacOS() {
+    return navigator.appVersion.indexOf('Mac') !== -1;
+}
+function isMetaPressed(e) {
+    return isMacOS() ? e.metaKey : e.ctrlKey;
+}
+function isWeekend(date) {
+    return date.isoWeekday() === 6 || date.isoWeekday() === 7;
+}
+function getStartOfWeek(days) {
+    return days[0].weekday(0);
+}
+/**
+ * Generate a 2D array of daily information to power
+ * the calendar view.
+ */
+function getMonth(displayedDate) {
+    const locale = window.moment().locale();
+    const month = [];
+    let week = { days: [], weekNum: 0 };
+    const startOfMonth = displayedDate.clone().locale(locale).date(1);
+    const startOffset = startOfMonth.weekday();
+    let date = startOfMonth.clone().subtract(startOffset, 'days');
+    for (let _day = 0; _day < 42; _day++) {
+        if (_day % 7 === 0) {
+            week = {
+                days: [],
+                weekNum: date.week()
+            };
+            month.push(week);
+        }
+        week.days.push(date);
+        date = date.clone().add(1, 'days');
+    }
+    return month;
+}
+function getYears({ startRangeYear }) {
+    let crrRangeYear = startRangeYear;
+    const COLUMNS = 3;
+    const ROWS = 4;
+    const years = Array.from({ length: ROWS }, () => Array(COLUMNS).fill(0));
+    for (let rowIndex = 0; rowIndex < ROWS; rowIndex++) {
+        for (let colIndex = 0; colIndex < COLUMNS; colIndex++) {
+            years[rowIndex][colIndex] = crrRangeYear;
+            crrRangeYear++;
+        }
+    }
+    return years;
+}
+
 const subscriber_queue = [];
 
 /**
@@ -2420,47 +2417,6 @@ function writable(value, start = noop) {
 		};
 	}
 	return { set, update, subscribe };
-}
-
-const IS_MOBILE = Symbol("isMobile");
-const DISPLAYED_DATE = Symbol("displayedDate");
-const VIEW = Symbol('view');
-
-function isMacOS() {
-    return navigator.appVersion.indexOf('Mac') !== -1;
-}
-function isMetaPressed(e) {
-    return isMacOS() ? e.metaKey : e.ctrlKey;
-}
-function isWeekend(date) {
-    return date.isoWeekday() === 6 || date.isoWeekday() === 7;
-}
-function getStartOfWeek(days) {
-    return days[0].weekday(0);
-}
-/**
- * Generate a 2D array of daily information to power
- * the calendar view.
- */
-function getMonth(displayedDate) {
-    const locale = window.moment().locale();
-    const month = [];
-    let week = { days: [], weekNum: 0 };
-    const startOfMonth = displayedDate.clone().locale(locale).date(1);
-    const startOffset = startOfMonth.weekday();
-    let date = startOfMonth.clone().subtract(startOffset, 'days');
-    for (let _day = 0; _day < 42; _day++) {
-        if (_day % 7 === 0) {
-            week = {
-                days: [],
-                weekNum: date.week()
-            };
-            month.push(week);
-        }
-        week.days.push(date);
-        date = date.clone().add(1, 'days');
-    }
-    return month;
 }
 
 // Credit: @creationix/path.js
@@ -9104,19 +9060,19 @@ async function createYearlyNote(date) {
 
 /* src/calendar-ui/components/ConfirmationModal.svelte generated by Svelte v4.2.0 */
 
-function add_css$8(target) {
-	append_styles(target, "svelte-1teib1k", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.m-0.svelte-1teib1k{margin:0px\n}.mt-2.svelte-1teib1k{margin-top:0.5rem\n}.mt-3.svelte-1teib1k{margin-top:0.75rem\n}.mt-7.svelte-1teib1k{margin-top:1.75rem\n}.flex.svelte-1teib1k{display:flex\n}.items-center.svelte-1teib1k{align-items:center\n}.text-sm.svelte-1teib1k{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-1teib1k{font-size:0.75rem;line-height:1rem\n}.text-\\[--text-muted\\].svelte-1teib1k{color:var(--text-muted)\n}.hover\\:cursor-pointer.svelte-1teib1k:hover{cursor:pointer\n}");
+function add_css$a(target) {
+	append_styles(target, "svelte-1w1xdpc", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.m-0.svelte-1w1xdpc{margin:0px\n}.mt-2.svelte-1w1xdpc{margin-top:0.5rem\n}.mt-3.svelte-1w1xdpc{margin-top:0.75rem\n}.mt-7.svelte-1w1xdpc{margin-top:1.75rem\n}.flex.svelte-1w1xdpc{display:flex\n}.items-center.svelte-1w1xdpc{align-items:center\n}.text-sm.svelte-1w1xdpc{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-1w1xdpc{font-size:0.75rem;line-height:1rem\n}.text-\\[--text-muted\\].svelte-1w1xdpc{color:var(--text-muted)\n}.hover\\:cursor-pointer.svelte-1w1xdpc:hover{cursor:pointer\n}");
 }
 
 // (36:1) {#if note}
-function create_if_block$1(ctx) {
+function create_if_block$6(ctx) {
 	let p;
 
 	return {
 		c() {
 			p = element("p");
 			p.textContent = `${/*note*/ ctx[3]}`;
-			attr(p, "class", "m-0 mt-2 text-xs text-[--text-muted] svelte-1teib1k");
+			attr(p, "class", "m-0 mt-2 text-xs text-[--text-muted] svelte-1w1xdpc");
 		},
 		m(target, anchor) {
 			insert(target, p, anchor);
@@ -9130,7 +9086,7 @@ function create_if_block$1(ctx) {
 	};
 }
 
-function create_fragment$8(ctx) {
+function create_fragment$d(ctx) {
 	let div1;
 	let h2;
 	let t1;
@@ -9147,7 +9103,7 @@ function create_fragment$8(ctx) {
 	let button1;
 	let mounted;
 	let dispose;
-	let if_block = /*note*/ ctx[3] && create_if_block$1(ctx);
+	let if_block = /*note*/ ctx[3] && create_if_block$6(ctx);
 
 	return {
 		c() {
@@ -9171,10 +9127,10 @@ function create_fragment$8(ctx) {
 			button1 = element("button");
 			button1.textContent = `${/*cta*/ ctx[4]}`;
 			attr(input, "type", "checkbox");
-			attr(input, "class", "hover:cursor-pointer svelte-1teib1k");
-			attr(label, "class", "flex items-center hover:cursor-pointer text-sm mt-7 svelte-1teib1k");
+			attr(input, "class", "hover:cursor-pointer svelte-1w1xdpc");
+			attr(label, "class", "flex items-center hover:cursor-pointer text-sm mt-7 svelte-1w1xdpc");
 			attr(button1, "class", "mod-cta");
-			attr(div0, "class", "modal-button-container mt-3 svelte-1teib1k");
+			attr(div0, "class", "modal-button-container mt-3 svelte-1w1xdpc");
 		},
 		m(target, anchor) {
 			insert(target, div1, anchor);
@@ -9225,7 +9181,7 @@ function create_fragment$8(ctx) {
 	};
 }
 
-function instance$8($$self, $$props, $$invalidate) {
+function instance$d($$self, $$props, $$invalidate) {
 	let { config } = $$props;
 	let { modalClass } = $$props;
 	const { title, text, note, cta, onAccept } = config;
@@ -9283,7 +9239,7 @@ function instance$8($$self, $$props, $$invalidate) {
 let ConfirmationModal$1 = class ConfirmationModal extends SvelteComponent {
 	constructor(options) {
 		super();
-		init(this, options, instance$8, create_fragment$8, safe_not_equal, { config: 7, modalClass: 8 }, add_css$8);
+		init(this, options, instance$d, create_fragment$d, safe_not_equal, { config: 7, modalClass: 8 }, add_css$a);
 	}
 };
 
@@ -9384,6 +9340,12 @@ const noteCreator = {
 
 const granularities = ['day', 'week', 'month', 'quarter', 'year'];
 const togglePeriods = ['days', 'months', 'years'];
+const monthsIndexesInQuarters = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [9, 10, 11]
+];
 const YEARS_RANGE_SIZE = 12;
 
 function createNotesStore(granularity) {
@@ -9413,98 +9375,116 @@ function createNotesStore(granularity) {
     };
 }
 function createYearsRangesStore() {
-    console.log('stores.ts > createYearsRangesStore() 🏪');
-    const store = writable();
-    const defaultStart = DEFAULT_SETTINGS.yearsRangesStart;
-    const crrYear = window.moment().year();
-    const ranges = [];
-    let lastRangeYear = 0;
-    while (crrYear > lastRangeYear) {
-        if (ranges.length === 0) {
-            ranges.push(`${defaultStart}-${defaultStart + YEARS_RANGE_SIZE - 1}`);
-            lastRangeYear = defaultStart + YEARS_RANGE_SIZE - 1;
-        }
-        else {
-            const lastYear = ranges[ranges.length - 1].split('-')[1];
-            ranges.push(`${lastYear}-${+lastYear + YEARS_RANGE_SIZE - 1}`);
-            lastRangeYear = +lastYear + YEARS_RANGE_SIZE - 1;
-        }
-    }
-    for (const [i, range] of ranges.entries()) {
-        const [start, end] = range.split('-');
-        if (crrYear >= +start && crrYear <= +end) {
-            store.update((values) => ({
+    const defaultRange = `${DEFAULT_SETTINGS.yearsRangesStart}-${DEFAULT_SETTINGS.yearsRangesStart + YEARS_RANGE_SIZE - 1}`;
+    const store = writable({
+        ranges: [defaultRange],
+        todayRange: defaultRange,
+        crrRangeIndex: 0
+    });
+    const addNewRange = ({ startYear, action }) => {
+        store.update((values) => {
+            const newRanges = values.ranges;
+            newRanges[action === 'increment' ? 'push' : 'unshift'](`${startYear}-${startYear + YEARS_RANGE_SIZE - 1}`);
+            return {
                 ...values,
-                todayRange: range,
-                crrRangeIndex: i
-            }));
-            break;
+                ranges: newRanges
+            };
+        });
+    };
+    const updateRanges = ({ action, displayedDateModifier }) => {
+        const { ranges, crrRangeIndex } = get_store_value(store);
+        const crrRange = ranges[crrRangeIndex];
+        const [crrRangeStartYear, crrRangeEndYear] = crrRange.split('-');
+        const todayMoment = window.moment().clone();
+        if (action === 'decrement') {
+            const prevRange = ranges[crrRangeIndex - 1];
+            displayedDateStore.set(todayMoment.year(+crrRangeStartYear + (displayedDateModifier || -1)).startOf('year'));
+            !prevRange &&
+                addNewRange({
+                    startYear: +crrRangeStartYear - YEARS_RANGE_SIZE,
+                    action: 'decrement'
+                });
+            if (crrRangeIndex > 0) {
+                updateCrrRangeIndex({ modifier: -1 });
+            }
         }
-    }
-    store.update((values) => ({
-        ...values,
-        ranges
-    }));
+        if (action === 'increment') {
+            const nextRange = ranges[crrRangeIndex + 1];
+            displayedDateStore.set(todayMoment.year(+crrRangeEndYear + 1).startOf('year'));
+            !nextRange && addNewRange({ startYear: +crrRangeEndYear + 1, action: 'increment' });
+            updateCrrRangeIndex({ modifier: +1 });
+        }
+    };
+    const updateCrrRangeIndex = ({ modifier }) => {
+        store.update((values) => ({
+            ...values,
+            crrRangeIndex: values.crrRangeIndex + modifier
+        }));
+    };
+    const selectOrCreateRanges = () => {
+        const { ranges, crrRangeIndex, todayRange } = get_store_value(store);
+        const crrDisplayedYear = get_store_value(displayedDateStore).year();
+        const todayYear = window.moment().clone().year();
+        console.log('selectOrCreateRnages(), todayRange: ', todayRange);
+        const firstRange = ranges[0];
+        const lastRange = ranges[ranges.length - 1];
+        const firstRangeStartYear = firstRange.split('-')[0];
+        const lastRangeEndYear = lastRange.split('-')[1];
+        const newRanges = [...ranges];
+        let newCrrRangeIndex = crrRangeIndex;
+        let newTodayRange = todayRange;
+        if (+firstRangeStartYear > crrDisplayedYear) {
+            // push new ranges at the start of ranges
+            let newFirstRangeStartYear = +firstRangeStartYear;
+            while (+newFirstRangeStartYear > crrDisplayedYear) {
+                newRanges.unshift(`${newFirstRangeStartYear - YEARS_RANGE_SIZE}-${newFirstRangeStartYear - 1}`);
+                newFirstRangeStartYear -= YEARS_RANGE_SIZE;
+            }
+            newCrrRangeIndex = 0;
+        }
+        // push new ranges at the end of ranges
+        if (+lastRangeEndYear < crrDisplayedYear) {
+            let newLastRangeEndYear = +lastRangeEndYear;
+            while (+newLastRangeEndYear < crrDisplayedYear) {
+                newRanges.push(`${+newLastRangeEndYear + 1}-${newLastRangeEndYear + YEARS_RANGE_SIZE}`);
+                newLastRangeEndYear += YEARS_RANGE_SIZE;
+            }
+            newCrrRangeIndex = newRanges.length - 1;
+        }
+        // search for range containing crrDisplayedYear and set it as current range
+        if (crrDisplayedYear >= +firstRangeStartYear && crrDisplayedYear <= +lastRangeEndYear) {
+            for (const [i, range] of newRanges.entries()) {
+                const [start, end] = range.split('-');
+                if (crrDisplayedYear >= +start && crrDisplayedYear <= +end) {
+                    newCrrRangeIndex = i;
+                    break;
+                }
+            }
+        }
+        // update todayRange if it doesnt include todayYear anymore
+        const [todayRangeStartYear, todayRangeEndYear] = todayRange.split('-');
+        if (!(todayYear >= +todayRangeStartYear && todayYear <= +todayRangeEndYear)) {
+            for (const [_, range] of newRanges.entries()) {
+                const [start, end] = range.split('-');
+                if (todayYear >= +start && todayYear <= +end) {
+                    newTodayRange = range;
+                    break;
+                }
+            }
+        }
+        // update store
+        store.update((values) => ({
+            ...values,
+            ranges: newRanges,
+            crrRangeIndex: newCrrRangeIndex,
+            todayRange: newTodayRange
+        }));
+    };
     return {
-        addNewRange: ({ year, action }) => {
-            if (action === 'decrement') {
-                store.update((values) => {
-                    const newRanges = values.ranges;
-                    newRanges.unshift(`${year - YEARS_RANGE_SIZE + 1}-${year}`);
-                    return {
-                        ...values,
-                        ranges: newRanges
-                    };
-                });
-            }
-            if (action === 'increment') {
-                store.update((values) => {
-                    const newRanges = values.ranges;
-                    newRanges.push(`${year}-${year + YEARS_RANGE_SIZE - 1}`);
-                    return {
-                        ...values,
-                        ranges: newRanges
-                    };
-                });
-            }
-        },
-        updateRanges: ({ year, action }) => {
-            const { ranges, crrRangeIndex } = get_store_value(store);
-            const crrRange = ranges[crrRangeIndex];
-            const [start, end] = crrRange.split('-');
-            if (action === 'decrement') {
-                if (year < +start) {
-                    const prevRange = ranges[crrRangeIndex - 1];
-                    if (prevRange) {
-                        if (crrRangeIndex > 0) {
-                            yearsRanges.updateCrrRangeIndex({ modifier: -1 });
-                        }
-                        return;
-                    }
-                    yearsRanges.addNewRange({ year, action });
-                    if (crrRangeIndex > 0) {
-                        yearsRanges.updateCrrRangeIndex({ modifier: -1 });
-                    }
-                }
-            }
-            if (action === 'increment') {
-                if (year > +end) {
-                    const nextRange = ranges[crrRangeIndex + 1];
-                    if (nextRange) {
-                        yearsRanges.updateCrrRangeIndex({ modifier: +1 });
-                        return;
-                    }
-                    yearsRanges.addNewRange({ year, action });
-                    yearsRanges.updateCrrRangeIndex({ modifier: +1 });
-                }
-            }
-        },
-        updateCrrRangeIndex: ({ modifier }) => {
-            yearsRanges.update((values) => ({
-                ...values,
-                crrRangeIndex: values.crrRangeIndex + modifier
-            }));
-        },
+        addNewRange,
+        updateRanges,
+        updateCrrRangeIndex,
+        selectOrCreateRanges,
         ...store
     };
 }
@@ -9524,16 +9504,18 @@ function createSelectedFileStore() {
         ...store
     };
 }
+const displayedDateStore = writable(window.moment());
 const activeFile = createSelectedFileStore();
 const yearsRanges = createYearsRangesStore();
+const rerenderStore = writable({ rerender: true });
 
 /* src/calendar-ui/components/Dot.svelte generated by Svelte v4.2.0 */
 
-function add_css$7(target) {
-	append_styles(target, "svelte-1teib1k", ".container.svelte-1teib1k{width:100%\n}@media(min-width: 640px){.container.svelte-1teib1k{max-width:640px\n    }}@media(min-width: 768px){.container.svelte-1teib1k{max-width:768px\n    }}@media(min-width: 1024px){.container.svelte-1teib1k{max-width:1024px\n    }}@media(min-width: 1280px){.container.svelte-1teib1k{max-width:1280px\n    }}@media(min-width: 1536px){.container.svelte-1teib1k{max-width:1536px\n    }}.pointer-events-none.svelte-1teib1k{pointer-events:none\n}.invisible.svelte-1teib1k{visibility:hidden\n}.collapse.svelte-1teib1k{visibility:collapse\n}.absolute.svelte-1teib1k{position:absolute\n}.relative.svelte-1teib1k{position:relative\n}.left-0.svelte-1teib1k{left:0px\n}.top-0.svelte-1teib1k{top:0px\n}.m-0.svelte-1teib1k{margin:0px\n}.mx-\\[1px\\].svelte-1teib1k{margin-left:1px;margin-right:1px\n}.mt-2.svelte-1teib1k{margin-top:0.5rem\n}.mt-3.svelte-1teib1k{margin-top:0.75rem\n}.mt-7.svelte-1teib1k{margin-top:1.75rem\n}.block.svelte-1teib1k{display:block\n}.inline-block.svelte-1teib1k{display:inline-block\n}.flex.svelte-1teib1k{display:flex\n}.table.svelte-1teib1k{display:table\n}.contents.svelte-1teib1k{display:contents\n}.h-3.svelte-1teib1k{height:0.75rem\n}.h-\\[6px\\].svelte-1teib1k{height:6px\n}.w-3.svelte-1teib1k{width:0.75rem\n}.w-\\[6px\\].svelte-1teib1k{width:6px\n}.w-full.svelte-1teib1k{width:100%\n}.w-max.svelte-1teib1k{width:-moz-max-content;width:max-content\n}.border-collapse.svelte-1teib1k{border-collapse:collapse\n}.transform.svelte-1teib1k{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.cursor-default.svelte-1teib1k{cursor:default\n}.cursor-not-allowed.svelte-1teib1k{cursor:not-allowed\n}.cursor-pointer.svelte-1teib1k{cursor:pointer\n}.flex-wrap.svelte-1teib1k{flex-wrap:wrap\n}.items-center.svelte-1teib1k{align-items:center\n}.justify-between.svelte-1teib1k{justify-content:space-between\n}.rounded-md.svelte-1teib1k{border-radius:0.375rem\n}.border-0.svelte-1teib1k{border-width:0px\n}.bg-gray-100.svelte-1teib1k{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))\n}.p-1.svelte-1teib1k{padding:0.25rem\n}.px-4.svelte-1teib1k{padding-left:1rem;padding-right:1rem\n}.py-2.svelte-1teib1k{padding-top:0.5rem;padding-bottom:0.5rem\n}.pt-4.svelte-1teib1k{padding-top:1rem\n}.text-sm.svelte-1teib1k{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-1teib1k{font-size:0.75rem;line-height:1rem\n}.uppercase.svelte-1teib1k{text-transform:uppercase\n}.capitalize.svelte-1teib1k{text-transform:capitalize\n}.text-\\[--text-muted\\].svelte-1teib1k{color:var(--text-muted)\n}.text-\\[--text-on-accent\\].svelte-1teib1k{color:var(--text-on-accent)\n}.text-black.svelte-1teib1k{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))\n}.text-white.svelte-1teib1k{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))\n}.opacity-0.svelte-1teib1k{opacity:0\n}.opacity-50.svelte-1teib1k{opacity:0.5\n}.filter.svelte-1teib1k{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)\n}.transition.svelte-1teib1k{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms\n}.duration-300.svelte-1teib1k{transition-duration:300ms\n}.\\[all\\:inherit\\].svelte-1teib1k{all:inherit\n}.hover\\:cursor-pointer.svelte-1teib1k:hover{cursor:pointer\n}");
+function add_css$9(target) {
+	append_styles(target, "svelte-1w1xdpc", ".container.svelte-1w1xdpc{width:100%\n}@media(min-width: 640px){.container.svelte-1w1xdpc{max-width:640px\n    }}@media(min-width: 768px){.container.svelte-1w1xdpc{max-width:768px\n    }}@media(min-width: 1024px){.container.svelte-1w1xdpc{max-width:1024px\n    }}@media(min-width: 1280px){.container.svelte-1w1xdpc{max-width:1280px\n    }}@media(min-width: 1536px){.container.svelte-1w1xdpc{max-width:1536px\n    }}.pointer-events-none.svelte-1w1xdpc{pointer-events:none\n}.invisible.svelte-1w1xdpc{visibility:hidden\n}.collapse.svelte-1w1xdpc{visibility:collapse\n}.absolute.svelte-1w1xdpc{position:absolute\n}.relative.svelte-1w1xdpc{position:relative\n}.left-0.svelte-1w1xdpc{left:0px\n}.top-0.svelte-1w1xdpc{top:0px\n}.m-0.svelte-1w1xdpc{margin:0px\n}.mx-\\[1px\\].svelte-1w1xdpc{margin-left:1px;margin-right:1px\n}.mt-2.svelte-1w1xdpc{margin-top:0.5rem\n}.mt-3.svelte-1w1xdpc{margin-top:0.75rem\n}.mt-7.svelte-1w1xdpc{margin-top:1.75rem\n}.block.svelte-1w1xdpc{display:block\n}.inline-block.svelte-1w1xdpc{display:inline-block\n}.flex.svelte-1w1xdpc{display:flex\n}.table.svelte-1w1xdpc{display:table\n}.contents.svelte-1w1xdpc{display:contents\n}.h-3.svelte-1w1xdpc{height:0.75rem\n}.h-\\[6px\\].svelte-1w1xdpc{height:6px\n}.w-3.svelte-1w1xdpc{width:0.75rem\n}.w-\\[6px\\].svelte-1w1xdpc{width:6px\n}.w-full.svelte-1w1xdpc{width:100%\n}.w-max.svelte-1w1xdpc{width:-moz-max-content;width:max-content\n}.border-collapse.svelte-1w1xdpc{border-collapse:collapse\n}.transform.svelte-1w1xdpc{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.cursor-default.svelte-1w1xdpc{cursor:default\n}.cursor-not-allowed.svelte-1w1xdpc{cursor:not-allowed\n}.cursor-pointer.svelte-1w1xdpc{cursor:pointer\n}.items-center.svelte-1w1xdpc{align-items:center\n}.justify-between.svelte-1w1xdpc{justify-content:space-between\n}.rounded-md.svelte-1w1xdpc{border-radius:0.375rem\n}.border-0.svelte-1w1xdpc{border-width:0px\n}.bg-gray-100.svelte-1w1xdpc{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))\n}.p-1.svelte-1w1xdpc{padding:0.25rem\n}.px-4.svelte-1w1xdpc{padding-left:1rem;padding-right:1rem\n}.py-2.svelte-1w1xdpc{padding-top:0.5rem;padding-bottom:0.5rem\n}.pt-4.svelte-1w1xdpc{padding-top:1rem\n}.text-sm.svelte-1w1xdpc{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-1w1xdpc{font-size:0.75rem;line-height:1rem\n}.uppercase.svelte-1w1xdpc{text-transform:uppercase\n}.capitalize.svelte-1w1xdpc{text-transform:capitalize\n}.text-\\[--text-muted\\].svelte-1w1xdpc{color:var(--text-muted)\n}.text-\\[--text-on-accent\\].svelte-1w1xdpc{color:var(--text-on-accent)\n}.text-black.svelte-1w1xdpc{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))\n}.text-white.svelte-1w1xdpc{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))\n}.opacity-0.svelte-1w1xdpc{opacity:0\n}.opacity-50.svelte-1w1xdpc{opacity:0.5\n}.transition.svelte-1w1xdpc{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms\n}.duration-300.svelte-1w1xdpc{transition-duration:300ms\n}.\\[all\\:inherit\\].svelte-1w1xdpc{all:inherit\n}.hover\\:cursor-pointer.svelte-1w1xdpc:hover{cursor:pointer\n}");
 }
 
-function create_fragment$7(ctx) {
+function create_fragment$c(ctx) {
 	let svg;
 	let circle;
 	let circle_stroke_value;
@@ -9549,7 +9531,7 @@ function create_fragment$7(ctx) {
 			attr(circle, "cx", "3");
 			attr(circle, "cy", "3");
 			attr(circle, "r", "2");
-			attr(svg, "class", svg_class_value = "" + (null_to_empty(`${/*$$restProps*/ ctx[3].class} inline-block h-[6px] w-[6px] mx-[1px] ${/*isActive*/ ctx[2] ? 'text-[--text-on-accent]' : ''}`) + " svelte-1teib1k"));
+			attr(svg, "class", svg_class_value = "" + (null_to_empty(`${/*$$restProps*/ ctx[3].class} inline-block h-[6px] w-[6px] mx-[1px] ${/*isActive*/ ctx[2] ? 'text-[--text-on-accent]' : ''}`) + " svelte-1w1xdpc"));
 			set_style(svg, "color", /*color*/ ctx[0]);
 			attr(svg, "viewBox", "0 0 6 6");
 			attr(svg, "xmlns", "http://www.w3.org/2000/svg");
@@ -9567,7 +9549,7 @@ function create_fragment$7(ctx) {
 				attr(circle, "fill", circle_fill_value);
 			}
 
-			if (dirty & /*$$restProps, isActive*/ 12 && svg_class_value !== (svg_class_value = "" + (null_to_empty(`${/*$$restProps*/ ctx[3].class} inline-block h-[6px] w-[6px] mx-[1px] ${/*isActive*/ ctx[2] ? 'text-[--text-on-accent]' : ''}`) + " svelte-1teib1k"))) {
+			if (dirty & /*$$restProps, isActive*/ 12 && svg_class_value !== (svg_class_value = "" + (null_to_empty(`${/*$$restProps*/ ctx[3].class} inline-block h-[6px] w-[6px] mx-[1px] ${/*isActive*/ ctx[2] ? 'text-[--text-on-accent]' : ''}`) + " svelte-1w1xdpc"))) {
 				attr(svg, "class", svg_class_value);
 			}
 
@@ -9585,7 +9567,7 @@ function create_fragment$7(ctx) {
 	};
 }
 
-function instance$7($$self, $$props, $$invalidate) {
+function instance$c($$self, $$props, $$invalidate) {
 	const omit_props_names = ["color","isFilled","isActive"];
 	let $$restProps = compute_rest_props($$props, omit_props_names);
 	let { color = '' } = $$props;
@@ -9606,70 +9588,143 @@ function instance$7($$self, $$props, $$invalidate) {
 class Dot extends SvelteComponent {
 	constructor(options) {
 		super();
-		init(this, options, instance$7, create_fragment$7, safe_not_equal, { color: 0, isFilled: 1, isActive: 2 }, add_css$7);
+		init(this, options, instance$c, create_fragment$c, safe_not_equal, { color: 0, isFilled: 1, isActive: 2 }, add_css$9);
 	}
 }
 
 /* src/calendar-ui/components/Day.svelte generated by Svelte v4.2.0 */
 
-function add_css$6(target) {
+function add_css$8(target) {
 	append_styles(target, "svelte-1fn1hj9", ".day.svelte-1fn1hj9{background-color:var(--color-background-day);border-radius:4px;color:var(--color-text-day);cursor:pointer;font-size:0.8em;height:100%;padding:4px;position:relative;text-align:center;transition:background-color 0.1s ease-in, color 0.1s ease-in;vertical-align:baseline}.day.svelte-1fn1hj9:hover{background-color:var(--interactive-hover)}.day.svelte-1fn1hj9:active{color:var(--text-on-accent);background-color:var(--interactive-accent)}");
 }
 
-function create_fragment$6(ctx) {
+// (49:2) {#if $rerenderStore && getNoteByGranularity({ date, granularity: 'day' })}
+function create_if_block$5(ctx) {
+	let dot;
+	let current;
+	dot = new Dot({});
+
+	return {
+		c() {
+			create_component(dot.$$.fragment);
+		},
+		m(target, anchor) {
+			mount_component(dot, target, anchor);
+			current = true;
+		},
+		i(local) {
+			if (current) return;
+			transition_in(dot.$$.fragment, local);
+			current = true;
+		},
+		o(local) {
+			transition_out(dot.$$.fragment, local);
+			current = false;
+		},
+		d(detaching) {
+			destroy_component(dot, detaching);
+		}
+	};
+}
+
+function create_fragment$b(ctx) {
 	let td;
 	let button;
-	let t_value = /*date*/ ctx[0].format('D') + "";
-	let t;
+	let t0_value = /*date*/ ctx[0].format('D') + "";
+	let t0;
+	let t1;
+
+	let show_if = /*$rerenderStore*/ ctx[1] && getNoteByGranularity({
+		date: /*date*/ ctx[0],
+		granularity: 'day'
+	});
+
+	let current;
 	let mounted;
 	let dispose;
+	let if_block = show_if && create_if_block$5();
 
 	return {
 		c() {
 			td = element("td");
 			button = element("button");
-			t = text(t_value);
+			t0 = text(t0_value);
+			t1 = space();
+			if (if_block) if_block.c();
 			attr(button, "class", "day svelte-1fn1hj9");
 		},
 		m(target, anchor) {
 			insert(target, td, anchor);
 			append(td, button);
-			append(button, t);
+			append(button, t0);
+			append(button, t1);
+			if (if_block) if_block.m(button, null);
+			current = true;
 
 			if (!mounted) {
 				dispose = [
-					listen(button, "click", /*click_handler*/ ctx[2]),
-					listen(button, "contextmenu", /*contextmenu_handler*/ ctx[3]),
-					listen(button, "pointerenter", /*pointerenter_handler*/ ctx[4])
+					listen(button, "click", /*click_handler*/ ctx[3]),
+					listen(button, "contextmenu", /*contextmenu_handler*/ ctx[4]),
+					listen(button, "pointerenter", /*pointerenter_handler*/ ctx[5])
 				];
 
 				mounted = true;
 			}
 		},
 		p(ctx, [dirty]) {
-			if (dirty & /*date*/ 1 && t_value !== (t_value = /*date*/ ctx[0].format('D') + "")) set_data(t, t_value);
+			if ((!current || dirty & /*date*/ 1) && t0_value !== (t0_value = /*date*/ ctx[0].format('D') + "")) set_data(t0, t0_value);
+
+			if (dirty & /*$rerenderStore, date*/ 3) show_if = /*$rerenderStore*/ ctx[1] && getNoteByGranularity({
+				date: /*date*/ ctx[0],
+				granularity: 'day'
+			});
+
+			if (show_if) {
+				if (if_block) {
+					if (dirty & /*$rerenderStore, date*/ 3) {
+						transition_in(if_block, 1);
+					}
+				} else {
+					if_block = create_if_block$5();
+					if_block.c();
+					transition_in(if_block, 1);
+					if_block.m(button, null);
+				}
+			} else if (if_block) {
+				group_outros();
+
+				transition_out(if_block, 1, 1, () => {
+					if_block = null;
+				});
+
+				check_outros();
+			}
 		},
-		i: noop,
-		o: noop,
+		i(local) {
+			if (current) return;
+			transition_in(if_block);
+			current = true;
+		},
+		o(local) {
+			transition_out(if_block);
+			current = false;
+		},
 		d(detaching) {
 			if (detaching) {
 				detach(td);
 			}
 
+			if (if_block) if_block.d();
 			mounted = false;
 			run_all(dispose);
 		}
 	};
 }
 
-function instance$6($$self, $$props, $$invalidate) {
+function instance$b($$self, $$props, $$invalidate) {
+	let $rerenderStore;
+	component_subscribe($$self, rerenderStore, $$value => $$invalidate(1, $rerenderStore = $$value));
 	let { date } = $$props;
-
-	// Global state
-	getContext(IS_MOBILE);
-
-	getContext(DISPLAYED_DATE);
-	createEventDispatcher();
 	const { eventHandlers } = getContext(VIEW);
 
 	const click_handler = event => eventHandlers.onClick({
@@ -9693,78 +9748,157 @@ function instance$6($$self, $$props, $$invalidate) {
 		if ('date' in $$props) $$invalidate(0, date = $$props.date);
 	};
 
-	return [date, eventHandlers, click_handler, contextmenu_handler, pointerenter_handler];
+	return [
+		date,
+		$rerenderStore,
+		eventHandlers,
+		click_handler,
+		contextmenu_handler,
+		pointerenter_handler
+	];
 }
 
 class Day extends SvelteComponent {
 	constructor(options) {
 		super();
-		init(this, options, instance$6, create_fragment$6, not_equal, { date: 0 }, add_css$6);
+		init(this, options, instance$b, create_fragment$b, not_equal, { date: 0 }, add_css$8);
 	}
 }
 
 /* src/calendar-ui/components/WeekNum.svelte generated by Svelte v4.2.0 */
 
-function add_css$5(target) {
+function add_css$7(target) {
 	append_styles(target, "svelte-xfgncl", "td.svelte-xfgncl{border-right:1px solid var(--background-modifier-border)}");
 }
 
-function create_fragment$5(ctx) {
+// (53:2) {#if $rerenderStore && getNoteByGranularity( { date: startOfWeekDate, granularity: 'week' } )}
+function create_if_block$4(ctx) {
+	let dot;
+	let current;
+	dot = new Dot({});
+
+	return {
+		c() {
+			create_component(dot.$$.fragment);
+		},
+		m(target, anchor) {
+			mount_component(dot, target, anchor);
+			current = true;
+		},
+		i(local) {
+			if (current) return;
+			transition_in(dot.$$.fragment, local);
+			current = true;
+		},
+		o(local) {
+			transition_out(dot.$$.fragment, local);
+			current = false;
+		},
+		d(detaching) {
+			destroy_component(dot, detaching);
+		}
+	};
+}
+
+function create_fragment$a(ctx) {
 	let td;
 	let button;
-	let t;
+	let t0;
+	let t1;
+
+	let show_if = /*$rerenderStore*/ ctx[2] && getNoteByGranularity({
+		date: /*startOfWeekDate*/ ctx[1],
+		granularity: 'week'
+	});
+
+	let current;
 	let mounted;
 	let dispose;
+	let if_block = show_if && create_if_block$4();
 
 	return {
 		c() {
 			td = element("td");
 			button = element("button");
-			t = text(/*weekNum*/ ctx[0]);
+			t0 = text(/*weekNum*/ ctx[0]);
+			t1 = space();
+			if (if_block) if_block.c();
 			attr(button, "class", "day");
 			attr(td, "class", "svelte-xfgncl");
 		},
 		m(target, anchor) {
 			insert(target, td, anchor);
 			append(td, button);
-			append(button, t);
+			append(button, t0);
+			append(button, t1);
+			if (if_block) if_block.m(button, null);
+			current = true;
 
 			if (!mounted) {
 				dispose = [
-					listen(button, "click", /*click_handler*/ ctx[3]),
-					listen(button, "contextmenu", /*contextmenu_handler*/ ctx[4]),
-					listen(button, "pointerenter", /*pointerenter_handler*/ ctx[5])
+					listen(button, "click", /*click_handler*/ ctx[4]),
+					listen(button, "contextmenu", /*contextmenu_handler*/ ctx[5]),
+					listen(button, "pointerenter", /*pointerenter_handler*/ ctx[6])
 				];
 
 				mounted = true;
 			}
 		},
 		p(ctx, [dirty]) {
-			if (dirty & /*weekNum*/ 1) set_data(t, /*weekNum*/ ctx[0]);
+			if (!current || dirty & /*weekNum*/ 1) set_data(t0, /*weekNum*/ ctx[0]);
+
+			if (dirty & /*$rerenderStore, startOfWeekDate*/ 6) show_if = /*$rerenderStore*/ ctx[2] && getNoteByGranularity({
+				date: /*startOfWeekDate*/ ctx[1],
+				granularity: 'week'
+			});
+
+			if (show_if) {
+				if (if_block) {
+					if (dirty & /*$rerenderStore, startOfWeekDate*/ 6) {
+						transition_in(if_block, 1);
+					}
+				} else {
+					if_block = create_if_block$4();
+					if_block.c();
+					transition_in(if_block, 1);
+					if_block.m(button, null);
+				}
+			} else if (if_block) {
+				group_outros();
+
+				transition_out(if_block, 1, 1, () => {
+					if_block = null;
+				});
+
+				check_outros();
+			}
 		},
-		i: noop,
-		o: noop,
+		i(local) {
+			if (current) return;
+			transition_in(if_block);
+			current = true;
+		},
+		o(local) {
+			transition_out(if_block);
+			current = false;
+		},
 		d(detaching) {
 			if (detaching) {
 				detach(td);
 			}
 
+			if (if_block) if_block.d();
 			mounted = false;
 			run_all(dispose);
 		}
 	};
 }
 
-function instance$5($$self, $$props, $$invalidate) {
+function instance$a($$self, $$props, $$invalidate) {
+	let $rerenderStore;
+	component_subscribe($$self, rerenderStore, $$value => $$invalidate(2, $rerenderStore = $$value));
 	let { weekNum } = $$props;
 	let { startOfWeekDate } = $$props;
-
-	// Global state;
-	// export let selectedId: string = null;
-	// let file: TFile | null;
-	// let startOfWeek: Moment;
-	// let metadata: Promise<IDayMetadata[]> | null;
-	// const dispatch = createEventDispatcher();
 	const { eventHandlers } = getContext(VIEW);
 
 	const click_handler = event => eventHandlers.onClick({
@@ -9796,6 +9930,7 @@ function instance$5($$self, $$props, $$invalidate) {
 	return [
 		weekNum,
 		startOfWeekDate,
+		$rerenderStore,
 		eventHandlers,
 		click_handler,
 		contextmenu_handler,
@@ -9806,17 +9941,17 @@ function instance$5($$self, $$props, $$invalidate) {
 class WeekNum extends SvelteComponent {
 	constructor(options) {
 		super();
-		init(this, options, instance$5, create_fragment$5, not_equal, { weekNum: 0, startOfWeekDate: 1 }, add_css$5);
+		init(this, options, instance$a, create_fragment$a, not_equal, { weekNum: 0, startOfWeekDate: 1 }, add_css$7);
 	}
 }
 
 /* src/calendar-ui/components/Arrow.svelte generated by Svelte v4.2.0 */
 
-function add_css$4(target) {
-	append_styles(target, "svelte-1tzws8h", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.arrow.svelte-1tzws8h.svelte-1tzws8h{all:inherit;align-items:center;cursor:pointer;display:flex;justify-content:center;width:24px}.arrow.is-mobile.svelte-1tzws8h.svelte-1tzws8h{width:32px}.right.svelte-1tzws8h.svelte-1tzws8h{transform:rotate(180deg)}.arrow.svelte-1tzws8h svg.svelte-1tzws8h{color:var(--color-arrow);height:16px;width:16px}");
+function add_css$6(target) {
+	append_styles(target, "svelte-uxuq8d", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.arrow.svelte-uxuq8d.svelte-uxuq8d{all:inherit;align-items:center;cursor:pointer;display:flex;justify-content:center;width:24px}.arrow.is-mobile.svelte-uxuq8d.svelte-uxuq8d{width:32px}.right.svelte-uxuq8d.svelte-uxuq8d{transform:rotate(180deg)}.arrow.svelte-uxuq8d svg.svelte-uxuq8d{color:var(--color-arrow);height:16px;width:16px}");
 }
 
-function create_fragment$4(ctx) {
+function create_fragment$9(ctx) {
 	let button;
 	let svg;
 	let path;
@@ -9834,8 +9969,8 @@ function create_fragment$4(ctx) {
 			attr(svg, "role", "img");
 			attr(svg, "xmlns", "http://www.w3.org/2000/svg");
 			attr(svg, "viewBox", "0 0 320 512");
-			attr(svg, "class", "svelte-1tzws8h");
-			attr(button, "class", "arrow svelte-1tzws8h");
+			attr(svg, "class", "svelte-uxuq8d");
+			attr(button, "class", "arrow svelte-uxuq8d");
 			attr(button, "aria-label", /*tooltip*/ ctx[1]);
 			toggle_class(button, "is-mobile", /*isMobile*/ ctx[3]);
 			toggle_class(button, "right", /*direction*/ ctx[2] === 'right');
@@ -9877,7 +10012,7 @@ function create_fragment$4(ctx) {
 	};
 }
 
-function instance$4($$self, $$props, $$invalidate) {
+function instance$9($$self, $$props, $$invalidate) {
 	let { onClick } = $$props;
 	let { tooltip } = $$props;
 	let { direction } = $$props;
@@ -9897,26 +10032,26 @@ function instance$4($$self, $$props, $$invalidate) {
 class Arrow extends SvelteComponent {
 	constructor(options) {
 		super();
-		init(this, options, instance$4, create_fragment$4, safe_not_equal, { onClick: 0, tooltip: 1, direction: 2 }, add_css$4);
+		init(this, options, instance$9, create_fragment$9, safe_not_equal, { onClick: 0, tooltip: 1, direction: 2 }, add_css$6);
 	}
 }
 
 /* src/calendar-ui/components/MonthNav.svelte generated by Svelte v4.2.0 */
 
-function add_css$3(target) {
-	append_styles(target, "svelte-1c0pgt2", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.flex.svelte-1c0pgt2{display:flex}.justify-between.svelte-1c0pgt2{justify-content:space-between}.\\[all\\:inherit\\].svelte-1c0pgt2{all:inherit}.nav.svelte-1c0pgt2{align-items:baseline;display:flex;margin:0.6em 0 1em;padding:0 8px;width:100%}.title.svelte-1c0pgt2{color:var(--color-text-title);cursor:pointer;display:flex;font-size:1.4em;gap:0.3em;margin:0}.month.svelte-1c0pgt2{font-weight:500}.year.svelte-1c0pgt2{color:var(--interactive-accent)}.right-nav.svelte-1c0pgt2{align-items:center;display:flex;justify-content:center;margin-left:auto}.reset-button.svelte-1c0pgt2{all:inherit;cursor:pointer;align-items:center;color:var(--color-arrow);display:flex;opacity:0.4;padding:0.5em}.reset-button.active.svelte-1c0pgt2{cursor:pointer;opacity:1}");
+function add_css$5(target) {
+	append_styles(target, "svelte-106g014", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.flex.svelte-106g014{display:flex}.justify-between.svelte-106g014{justify-content:space-between}.\\[all\\:inherit\\].svelte-106g014{all:inherit}.nav.svelte-106g014{align-items:baseline;display:flex;margin:0.6em 0 1em;padding:0 8px;width:100%}.title.svelte-106g014{color:var(--color-text-title);cursor:pointer;display:flex;font-size:1.4em;gap:0.3em;margin:0}.month.svelte-106g014{font-weight:500}.year.svelte-106g014{color:var(--interactive-accent)}.right-nav.svelte-106g014{align-items:center;display:flex;justify-content:center;margin-left:auto}.reset-button.svelte-106g014{all:inherit;cursor:pointer;align-items:center;color:var(--color-arrow);display:flex;opacity:0.4;padding:0.5em}.reset-button.active.svelte-106g014{cursor:pointer;opacity:1}");
 }
 
-function create_fragment$3(ctx) {
+function create_fragment$8(ctx) {
 	let div2;
 	let div0;
 	let span;
 	let button0;
-	let t0_value = /*$displayedDate*/ ctx[0].format('MMMM') + "";
+	let t0_value = /*$displayedDateStore*/ ctx[0].format('MMMM') + "";
 	let t0;
 	let t1;
 	let button1;
-	let t2_value = /*$displayedDate*/ ctx[0].format('YYYY') + "";
+	let t2_value = /*$displayedDateStore*/ ctx[0].format('YYYY') + "";
 	let t2;
 	let t3;
 	let div1;
@@ -9934,7 +10069,7 @@ function create_fragment$3(ctx) {
 	arrow0 = new Arrow({
 			props: {
 				direction: "left",
-				onClick: /*decrementdisplayedDate*/ ctx[4],
+				onClick: /*decrementdisplayedDate*/ ctx[3],
 				tooltip: "Previous Month"
 			}
 		});
@@ -9949,7 +10084,7 @@ function create_fragment$3(ctx) {
 	arrow1 = new Arrow({
 			props: {
 				direction: "right",
-				onClick: /*incrementdisplayedDate*/ ctx[5],
+				onClick: /*incrementdisplayedDate*/ ctx[4],
 				tooltip: "Next Month"
 			}
 		});
@@ -9972,18 +10107,18 @@ function create_fragment$3(ctx) {
 			create_component(dot.$$.fragment);
 			t5 = space();
 			create_component(arrow1.$$.fragment);
-			attr(button0, "class", "month [all:inherit] svelte-1c0pgt2");
-			attr(button1, "class", "year [all:inherit] svelte-1c0pgt2");
-			attr(span, "class", "flex justify-between title svelte-1c0pgt2");
+			attr(button0, "class", "month [all:inherit] svelte-106g014");
+			attr(button1, "class", "year [all:inherit] svelte-106g014");
+			attr(span, "class", "flex justify-between title svelte-106g014");
 
 			attr(button2, "aria-label", button2_aria_label_value = !/*showingCurrentMonth*/ ctx[1]
 			? 'Reset to current month'
 			: null);
 
-			attr(button2, "class", "reset-button svelte-1c0pgt2");
+			attr(button2, "class", "reset-button svelte-106g014");
 			toggle_class(button2, "active", /*showingCurrentMonth*/ ctx[1]);
-			attr(div1, "class", "right-nav svelte-1c0pgt2");
-			attr(div2, "class", "nav svelte-1c0pgt2");
+			attr(div1, "class", "right-nav svelte-106g014");
+			attr(div2, "class", "nav svelte-106g014");
 		},
 		m(target, anchor) {
 			insert(target, div2, anchor);
@@ -10006,21 +10141,21 @@ function create_fragment$3(ctx) {
 
 			if (!mounted) {
 				dispose = [
-					listen(button0, "click", /*click_handler*/ ctx[8]),
-					listen(button0, "contextmenu", /*contextmenu_handler*/ ctx[9]),
-					listen(button0, "pointerenter", /*pointerenter_handler*/ ctx[10]),
-					listen(button1, "click", /*click_handler_1*/ ctx[11]),
-					listen(button1, "contextmenu", /*contextmenu_handler_1*/ ctx[12]),
-					listen(button1, "pointerenter", /*pointerenter_handler_1*/ ctx[13]),
-					listen(button2, "click", /*resetdisplayedDate*/ ctx[6])
+					listen(button0, "click", /*click_handler*/ ctx[7]),
+					listen(button0, "contextmenu", /*contextmenu_handler*/ ctx[8]),
+					listen(button0, "pointerenter", /*pointerenter_handler*/ ctx[9]),
+					listen(button1, "click", /*click_handler_1*/ ctx[10]),
+					listen(button1, "contextmenu", /*contextmenu_handler_1*/ ctx[11]),
+					listen(button1, "pointerenter", /*pointerenter_handler_1*/ ctx[12]),
+					listen(button2, "click", /*resetdisplayedDate*/ ctx[5])
 				];
 
 				mounted = true;
 			}
 		},
 		p(ctx, [dirty]) {
-			if ((!current || dirty & /*$displayedDate*/ 1) && t0_value !== (t0_value = /*$displayedDate*/ ctx[0].format('MMMM') + "")) set_data(t0, t0_value);
-			if ((!current || dirty & /*$displayedDate*/ 1) && t2_value !== (t2_value = /*$displayedDate*/ ctx[0].format('YYYY') + "")) set_data(t2, t2_value);
+			if ((!current || dirty & /*$displayedDateStore*/ 1) && t0_value !== (t0_value = /*$displayedDateStore*/ ctx[0].format('MMMM') + "")) set_data(t0, t0_value);
+			if ((!current || dirty & /*$displayedDateStore*/ 1) && t2_value !== (t2_value = /*$displayedDateStore*/ ctx[0].format('YYYY') + "")) set_data(t2, t2_value);
 			const dot_changes = {};
 			if (dirty & /*showingCurrentMonth*/ 2) dot_changes.isFilled = /*showingCurrentMonth*/ ctx[1];
 			dot.$set(dot_changes);
@@ -10062,35 +10197,46 @@ function create_fragment$3(ctx) {
 	};
 }
 
-function instance$3($$self, $$props, $$invalidate) {
-	let $displayedDate;
-	let { today } = $$props;
+function instance$8($$self, $$props, $$invalidate) {
+	let $displayedDateStore;
+	let $yearsRanges;
+	component_subscribe($$self, displayedDateStore, $$value => $$invalidate(0, $displayedDateStore = $$value));
+	component_subscribe($$self, yearsRanges, $$value => $$invalidate(13, $yearsRanges = $$value));
+	let today;
 	const { eventHandlers } = getContext(VIEW);
-	let displayedDate = getContext(DISPLAYED_DATE);
-	component_subscribe($$self, displayedDate, value => $$invalidate(0, $displayedDate = value));
 
 	function decrementdisplayedDate() {
 		let newYear = 0;
 
-		displayedDate.update(date => {
+		displayedDateStore.update(date => {
 			const newDate = date.clone().subtract(1, 'month');
 			newYear = newDate.year();
 			return newDate;
 		});
 
-		yearsRanges.updateRanges({ year: newYear, action: 'decrement' });
+		const crrRange = $yearsRanges.ranges[$yearsRanges.crrRangeIndex];
+		const crrRangeStartYear = crrRange.split('-')[0];
+
+		if (newYear < +crrRangeStartYear) {
+			yearsRanges.updateRanges({ action: 'decrement' });
+		}
 	}
 
 	function incrementdisplayedDate() {
 		let newYear = 0;
 
-		displayedDate.update(date => {
+		displayedDateStore.update(date => {
 			const newDate = date.clone().add(1, 'month');
 			newYear = newDate.year();
 			return newDate;
 		});
 
-		yearsRanges.updateRanges({ year: newYear, action: 'increment' });
+		const crrRange = $yearsRanges.ranges[$yearsRanges.crrRangeIndex];
+		const crrRangeEndYear = crrRange.split('-')[1];
+
+		if (newYear > +crrRangeEndYear) {
+			yearsRanges.updateRanges({ action: 'increment' });
+		}
 	}
 
 	function resetdisplayedDate() {
@@ -10099,26 +10245,26 @@ function instance$3($$self, $$props, $$invalidate) {
 			crrRangeIndex: values.ranges.findIndex(range => range === values.todayRange)
 		}));
 
-		displayedDate.set(today.clone());
+		displayedDateStore.set(today.clone());
 	}
 
 	let showingCurrentMonth;
 
 	const click_handler = event => eventHandlers.onClick({
-		date: $displayedDate,
+		date: $displayedDateStore,
 		isNewSplit: isMetaPressed(event),
 		granularity: 'month'
 	});
 
 	const contextmenu_handler = event => eventHandlers.onContextMenu({
-		date: $displayedDate,
+		date: $displayedDateStore,
 		event,
 		granularity: 'month'
 	});
 
 	const pointerenter_handler = event => {
 		eventHandlers.onHover({
-			date: $displayedDate,
+			date: $displayedDateStore,
 			targetEl: event.target,
 			isMetaPressed: isMetaPressed(event),
 			granularity: 'month'
@@ -10126,41 +10272,40 @@ function instance$3($$self, $$props, $$invalidate) {
 	};
 
 	const click_handler_1 = event => eventHandlers.onClick({
-		date: $displayedDate.startOf('year'),
+		date: $displayedDateStore.startOf('year'),
 		isNewSplit: isMetaPressed(event),
 		granularity: 'year'
 	});
 
 	const contextmenu_handler_1 = event => eventHandlers.onContextMenu({
-		date: $displayedDate.startOf('year'),
+		date: $displayedDateStore.startOf('year'),
 		event,
 		granularity: 'year'
 	});
 
 	const pointerenter_handler_1 = event => {
 		eventHandlers.onHover({
-			date: $displayedDate.startOf('year'),
+			date: $displayedDateStore.startOf('year'),
 			targetEl: event.target,
 			isMetaPressed: isMetaPressed(event),
 			granularity: 'year'
 		});
 	};
 
-	$$self.$$set = $$props => {
-		if ('today' in $$props) $$invalidate(7, today = $$props.today);
-	};
-
 	$$self.$$.update = () => {
-		if ($$self.$$.dirty & /*$displayedDate, today*/ 129) {
-			$$invalidate(1, showingCurrentMonth = $displayedDate.isSame(today, 'month'));
+		if ($$self.$$.dirty & /*$displayedDateStore*/ 1) {
+			($$invalidate(6, today = window.moment()));
+		}
+
+		if ($$self.$$.dirty & /*$displayedDateStore, today*/ 65) {
+			$$invalidate(1, showingCurrentMonth = $displayedDateStore.isSame(today, 'month'));
 		}
 	};
 
 	return [
-		$displayedDate,
+		$displayedDateStore,
 		showingCurrentMonth,
 		eventHandlers,
-		displayedDate,
 		decrementdisplayedDate,
 		incrementdisplayedDate,
 		resetdisplayedDate,
@@ -10177,57 +10322,1071 @@ function instance$3($$self, $$props, $$invalidate) {
 class MonthNav extends SvelteComponent {
 	constructor(options) {
 		super();
-		init(this, options, instance$3, create_fragment$3, safe_not_equal, { today: 7 }, add_css$3);
+		init(this, options, instance$8, create_fragment$8, safe_not_equal, {}, add_css$5);
+	}
+}
+
+/* src/calendar-ui/components/YearNav.svelte generated by Svelte v4.2.0 */
+
+function add_css$4(target) {
+	append_styles(target, "svelte-106g014", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.flex.svelte-106g014{display:flex}.cursor-default.svelte-106g014{cursor:default}.justify-between.svelte-106g014{justify-content:space-between}.\\[all\\:inherit\\].svelte-106g014{all:inherit}.nav.svelte-106g014{align-items:baseline;display:flex;margin:0.6em 0 1em;padding:0 8px;width:100%}.title.svelte-106g014{color:var(--color-text-title);cursor:pointer;display:flex;font-size:1.4em;gap:0.3em;margin:0}.month.svelte-106g014{font-weight:500}.year.svelte-106g014{color:var(--interactive-accent)}.right-nav.svelte-106g014{align-items:center;display:flex;justify-content:center;margin-left:auto}.reset-button.svelte-106g014{all:inherit;cursor:pointer;align-items:center;color:var(--color-arrow);display:flex;opacity:0.4;padding:0.5em}.reset-button.active.svelte-106g014{cursor:pointer;opacity:1}");
+}
+
+function create_fragment$7(ctx) {
+	let div2;
+	let div0;
+	let span1;
+	let button0;
+	let t0_value = /*$displayedDateStore*/ ctx[0].format('YYYY') + "";
+	let t0;
+	let t1;
+	let span0;
+	let t2_value = (/*$yearsRanges*/ ctx[2].ranges?.[/*$yearsRanges*/ ctx[2].crrRangeIndex] || '') + "";
+	let t2;
+	let t3;
+	let div1;
+	let arrow0;
+	let t4;
+	let button1;
+	let dot;
+	let button1_aria_label_value;
+	let t5;
+	let arrow1;
+	let current;
+	let mounted;
+	let dispose;
+
+	arrow0 = new Arrow({
+			props: {
+				direction: "left",
+				onClick: /*decrementdisplayedYear*/ ctx[4],
+				tooltip: "Previous Year"
+			}
+		});
+
+	dot = new Dot({
+			props: {
+				class: "h-3 w-3",
+				isFilled: /*showingCurrentYear*/ ctx[1]
+			}
+		});
+
+	arrow1 = new Arrow({
+			props: {
+				direction: "right",
+				onClick: /*incrementdisplayedDate*/ ctx[5],
+				tooltip: "Next Year"
+			}
+		});
+
+	return {
+		c() {
+			div2 = element("div");
+			div0 = element("div");
+			span1 = element("span");
+			button0 = element("button");
+			t0 = text(t0_value);
+			t1 = space();
+			span0 = element("span");
+			t2 = text(t2_value);
+			t3 = space();
+			div1 = element("div");
+			create_component(arrow0.$$.fragment);
+			t4 = space();
+			button1 = element("button");
+			create_component(dot.$$.fragment);
+			t5 = space();
+			create_component(arrow1.$$.fragment);
+			attr(button0, "class", "month [all:inherit] svelte-106g014");
+			attr(span0, "class", "year cursor-default svelte-106g014");
+			attr(span1, "class", "flex justify-between title svelte-106g014");
+
+			attr(button1, "aria-label", button1_aria_label_value = !/*showingCurrentYear*/ ctx[1]
+			? 'Reset to current year'
+			: null);
+
+			attr(button1, "class", "reset-button svelte-106g014");
+			toggle_class(button1, "active", /*showingCurrentYear*/ ctx[1]);
+			attr(div1, "class", "right-nav svelte-106g014");
+			attr(div2, "class", "nav svelte-106g014");
+		},
+		m(target, anchor) {
+			insert(target, div2, anchor);
+			append(div2, div0);
+			append(div0, span1);
+			append(span1, button0);
+			append(button0, t0);
+			append(span1, t1);
+			append(span1, span0);
+			append(span0, t2);
+			append(div2, t3);
+			append(div2, div1);
+			mount_component(arrow0, div1, null);
+			append(div1, t4);
+			append(div1, button1);
+			mount_component(dot, button1, null);
+			append(div1, t5);
+			mount_component(arrow1, div1, null);
+			current = true;
+
+			if (!mounted) {
+				dispose = [
+					listen(button0, "click", /*click_handler*/ ctx[8]),
+					listen(button0, "contextmenu", /*contextmenu_handler*/ ctx[9]),
+					listen(button0, "pointerenter", /*pointerenter_handler*/ ctx[10]),
+					listen(button1, "click", /*resetdisplayedDate*/ ctx[6])
+				];
+
+				mounted = true;
+			}
+		},
+		p(ctx, [dirty]) {
+			if ((!current || dirty & /*$displayedDateStore*/ 1) && t0_value !== (t0_value = /*$displayedDateStore*/ ctx[0].format('YYYY') + "")) set_data(t0, t0_value);
+			if ((!current || dirty & /*$yearsRanges*/ 4) && t2_value !== (t2_value = (/*$yearsRanges*/ ctx[2].ranges?.[/*$yearsRanges*/ ctx[2].crrRangeIndex] || '') + "")) set_data(t2, t2_value);
+			const dot_changes = {};
+			if (dirty & /*showingCurrentYear*/ 2) dot_changes.isFilled = /*showingCurrentYear*/ ctx[1];
+			dot.$set(dot_changes);
+
+			if (!current || dirty & /*showingCurrentYear*/ 2 && button1_aria_label_value !== (button1_aria_label_value = !/*showingCurrentYear*/ ctx[1]
+			? 'Reset to current year'
+			: null)) {
+				attr(button1, "aria-label", button1_aria_label_value);
+			}
+
+			if (!current || dirty & /*showingCurrentYear*/ 2) {
+				toggle_class(button1, "active", /*showingCurrentYear*/ ctx[1]);
+			}
+		},
+		i(local) {
+			if (current) return;
+			transition_in(arrow0.$$.fragment, local);
+			transition_in(dot.$$.fragment, local);
+			transition_in(arrow1.$$.fragment, local);
+			current = true;
+		},
+		o(local) {
+			transition_out(arrow0.$$.fragment, local);
+			transition_out(dot.$$.fragment, local);
+			transition_out(arrow1.$$.fragment, local);
+			current = false;
+		},
+		d(detaching) {
+			if (detaching) {
+				detach(div2);
+			}
+
+			destroy_component(arrow0);
+			destroy_component(dot);
+			destroy_component(arrow1);
+			mounted = false;
+			run_all(dispose);
+		}
+	};
+}
+
+function instance$7($$self, $$props, $$invalidate) {
+	let $displayedDateStore;
+	let $yearsRanges;
+	component_subscribe($$self, displayedDateStore, $$value => $$invalidate(0, $displayedDateStore = $$value));
+	component_subscribe($$self, yearsRanges, $$value => $$invalidate(2, $yearsRanges = $$value));
+	let today;
+	const { eventHandlers } = getContext(VIEW);
+
+	function decrementdisplayedYear() {
+		let newYear = 0;
+
+		displayedDateStore.update(date => {
+			const newDate = date.clone().subtract(1, 'year');
+			newYear = newDate.year();
+			return newDate;
+		});
+
+		const { ranges, crrRangeIndex } = $yearsRanges;
+		const crrRange = ranges[crrRangeIndex];
+		const [crrRangeStartYear] = crrRange.split('-');
+
+		if (newYear < +crrRangeStartYear) {
+			yearsRanges.updateRanges({ action: 'decrement' });
+		}
+	}
+
+	function incrementdisplayedDate() {
+		let newYear = 0;
+
+		displayedDateStore.update(date => {
+			const newDate = date.clone().add(1, 'year');
+			newYear = newDate.year();
+			return newDate;
+		});
+
+		const { ranges, crrRangeIndex } = $yearsRanges;
+		const crrRange = ranges[crrRangeIndex];
+		const [_, crrRangeEndYear] = crrRange.split('-');
+
+		if (newYear > +crrRangeEndYear) {
+			yearsRanges.updateRanges({ action: 'increment' });
+		}
+	}
+
+	function resetdisplayedDate() {
+		yearsRanges.update(values => ({
+			...values,
+			crrRangeIndex: values.ranges.findIndex(range => range === values.todayRange)
+		}));
+
+		displayedDateStore.set(today.clone());
+	}
+
+	let showingCurrentYear;
+
+	const click_handler = event => eventHandlers.onClick({
+		date: $displayedDateStore,
+		isNewSplit: isMetaPressed(event),
+		granularity: 'year'
+	});
+
+	const contextmenu_handler = event => eventHandlers.onContextMenu({
+		date: $displayedDateStore,
+		event,
+		granularity: 'year'
+	});
+
+	const pointerenter_handler = event => {
+		eventHandlers.onHover({
+			date: $displayedDateStore,
+			targetEl: event.target,
+			isMetaPressed: isMetaPressed(event),
+			granularity: 'year'
+		});
+	};
+
+	$$self.$$.update = () => {
+		if ($$self.$$.dirty & /*$displayedDateStore*/ 1) {
+			($$invalidate(7, today = window.moment()));
+		}
+
+		if ($$self.$$.dirty & /*$displayedDateStore, today*/ 129) {
+			((() => {
+				$$invalidate(1, showingCurrentYear = $displayedDateStore.isSame(today, 'year'));
+
+				// select or create new range every time displayed date updates
+				yearsRanges.selectOrCreateRanges();
+			})());
+		}
+	};
+
+	return [
+		$displayedDateStore,
+		showingCurrentYear,
+		$yearsRanges,
+		eventHandlers,
+		decrementdisplayedYear,
+		incrementdisplayedDate,
+		resetdisplayedDate,
+		today,
+		click_handler,
+		contextmenu_handler,
+		pointerenter_handler
+	];
+}
+
+class YearNav extends SvelteComponent {
+	constructor(options) {
+		super();
+		init(this, options, instance$7, create_fragment$7, safe_not_equal, {}, add_css$4);
+	}
+}
+
+/* src/calendar-ui/components/YearsNav.svelte generated by Svelte v4.2.0 */
+
+function add_css$3(target) {
+	append_styles(target, "svelte-1gyzuai", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.flex.svelte-1gyzuai{display:flex}.justify-between.svelte-1gyzuai{justify-content:space-between}.nav.svelte-1gyzuai{align-items:baseline;display:flex;margin:0.6em 0 1em;padding:0 8px;width:100%}.title.svelte-1gyzuai{color:var(--color-text-title);display:flex;font-size:1.4em;gap:0.3em;margin:0}.month.svelte-1gyzuai{font-weight:500}.right-nav.svelte-1gyzuai{align-items:center;display:flex;justify-content:center;margin-left:auto}.reset-button.svelte-1gyzuai{all:inherit;cursor:pointer;align-items:center;color:var(--color-arrow);display:flex;opacity:0.4;padding:0.5em}.reset-button.active.svelte-1gyzuai{cursor:pointer;opacity:1}");
+}
+
+function create_fragment$6(ctx) {
+	let div2;
+	let div0;
+	let span1;
+	let span0;
+	let t0_value = /*$yearsRanges*/ ctx[0].ranges[/*$yearsRanges*/ ctx[0].crrRangeIndex] + "";
+	let t0;
+	let t1;
+	let div1;
+	let arrow0;
+	let t2;
+	let button;
+	let dot;
+	let button_aria_label_value;
+	let t3;
+	let arrow1;
+	let current;
+	let mounted;
+	let dispose;
+
+	arrow0 = new Arrow({
+			props: {
+				direction: "left",
+				onClick: /*decrementdisplayedYearRange*/ ctx[2],
+				tooltip: "Previous Year"
+			}
+		});
+
+	dot = new Dot({
+			props: {
+				class: "h-3 w-3",
+				isFilled: /*showingCurrentRange*/ ctx[1]
+			}
+		});
+
+	arrow1 = new Arrow({
+			props: {
+				direction: "right",
+				onClick: /*incrementdisplayedDate*/ ctx[3],
+				tooltip: "Next Year"
+			}
+		});
+
+	return {
+		c() {
+			div2 = element("div");
+			div0 = element("div");
+			span1 = element("span");
+			span0 = element("span");
+			t0 = text(t0_value);
+			t1 = space();
+			div1 = element("div");
+			create_component(arrow0.$$.fragment);
+			t2 = space();
+			button = element("button");
+			create_component(dot.$$.fragment);
+			t3 = space();
+			create_component(arrow1.$$.fragment);
+			attr(span0, "class", "month svelte-1gyzuai");
+			attr(span1, "class", "flex justify-between title svelte-1gyzuai");
+
+			attr(button, "aria-label", button_aria_label_value = !/*showingCurrentRange*/ ctx[1]
+			? 'Reset to current year'
+			: null);
+
+			attr(button, "class", "reset-button svelte-1gyzuai");
+			toggle_class(button, "active", /*showingCurrentRange*/ ctx[1]);
+			attr(div1, "class", "right-nav svelte-1gyzuai");
+			attr(div2, "class", "nav svelte-1gyzuai");
+		},
+		m(target, anchor) {
+			insert(target, div2, anchor);
+			append(div2, div0);
+			append(div0, span1);
+			append(span1, span0);
+			append(span0, t0);
+			append(div2, t1);
+			append(div2, div1);
+			mount_component(arrow0, div1, null);
+			append(div1, t2);
+			append(div1, button);
+			mount_component(dot, button, null);
+			append(div1, t3);
+			mount_component(arrow1, div1, null);
+			current = true;
+
+			if (!mounted) {
+				dispose = listen(button, "click", /*resetdisplayedDate*/ ctx[4]);
+				mounted = true;
+			}
+		},
+		p(ctx, [dirty]) {
+			if ((!current || dirty & /*$yearsRanges*/ 1) && t0_value !== (t0_value = /*$yearsRanges*/ ctx[0].ranges[/*$yearsRanges*/ ctx[0].crrRangeIndex] + "")) set_data(t0, t0_value);
+			const dot_changes = {};
+			if (dirty & /*showingCurrentRange*/ 2) dot_changes.isFilled = /*showingCurrentRange*/ ctx[1];
+			dot.$set(dot_changes);
+
+			if (!current || dirty & /*showingCurrentRange*/ 2 && button_aria_label_value !== (button_aria_label_value = !/*showingCurrentRange*/ ctx[1]
+			? 'Reset to current year'
+			: null)) {
+				attr(button, "aria-label", button_aria_label_value);
+			}
+
+			if (!current || dirty & /*showingCurrentRange*/ 2) {
+				toggle_class(button, "active", /*showingCurrentRange*/ ctx[1]);
+			}
+		},
+		i(local) {
+			if (current) return;
+			transition_in(arrow0.$$.fragment, local);
+			transition_in(dot.$$.fragment, local);
+			transition_in(arrow1.$$.fragment, local);
+			current = true;
+		},
+		o(local) {
+			transition_out(arrow0.$$.fragment, local);
+			transition_out(dot.$$.fragment, local);
+			transition_out(arrow1.$$.fragment, local);
+			current = false;
+		},
+		d(detaching) {
+			if (detaching) {
+				detach(div2);
+			}
+
+			destroy_component(arrow0);
+			destroy_component(dot);
+			destroy_component(arrow1);
+			mounted = false;
+			dispose();
+		}
+	};
+}
+
+function instance$6($$self, $$props, $$invalidate) {
+	let $yearsRanges;
+	let $displayedDateStore;
+	component_subscribe($$self, yearsRanges, $$value => $$invalidate(0, $yearsRanges = $$value));
+	component_subscribe($$self, displayedDateStore, $$value => $$invalidate(5, $displayedDateStore = $$value));
+	const todayMoment = window.moment();
+
+	function decrementdisplayedYearRange() {
+		console.log('decrementdisplayedYearRange() > yearsRanges store: ', $yearsRanges);
+
+		yearsRanges.updateRanges({
+			action: 'decrement',
+			displayedDateModifier: -YEARS_RANGE_SIZE
+		});
+	}
+
+	function incrementdisplayedDate() {
+		console.log('incrementedisplayedDate() > yearsRanges store: ', $yearsRanges);
+		yearsRanges.updateRanges({ action: 'increment' });
+	}
+
+	function resetdisplayedDate() {
+		yearsRanges.update(values => ({
+			...values,
+			crrRangeIndex: values.ranges.findIndex(range => range === values.todayRange)
+		}));
+
+		displayedDateStore.set(todayMoment.clone());
+	}
+
+	let showingCurrentRange;
+
+	$$self.$$.update = () => {
+		if ($$self.$$.dirty & /*$displayedDateStore, $yearsRanges*/ 33) {
+			((() => {
+				$$invalidate(1, showingCurrentRange = $yearsRanges.todayRange === $yearsRanges.ranges[$yearsRanges.crrRangeIndex]);
+
+				// select or create new range every time displayed date updates
+				yearsRanges.selectOrCreateRanges();
+			})());
+		}
+	};
+
+	return [
+		$yearsRanges,
+		showingCurrentRange,
+		decrementdisplayedYearRange,
+		incrementdisplayedDate,
+		resetdisplayedDate,
+		$displayedDateStore
+	];
+}
+
+class YearsNav extends SvelteComponent {
+	constructor(options) {
+		super();
+		init(this, options, instance$6, create_fragment$6, safe_not_equal, {}, add_css$3);
+	}
+}
+
+/* src/calendar-ui/components/QuarterNum.svelte generated by Svelte v4.2.0 */
+
+function create_if_block$3(ctx) {
+	let dot;
+	let current;
+	dot = new Dot({});
+
+	return {
+		c() {
+			create_component(dot.$$.fragment);
+		},
+		m(target, anchor) {
+			mount_component(dot, target, anchor);
+			current = true;
+		},
+		i(local) {
+			if (current) return;
+			transition_in(dot.$$.fragment, local);
+			current = true;
+		},
+		o(local) {
+			transition_out(dot.$$.fragment, local);
+			current = false;
+		},
+		d(detaching) {
+			destroy_component(dot, detaching);
+		}
+	};
+}
+
+function create_fragment$5(ctx) {
+	let td;
+	let button;
+	let t0;
+	let t1;
+	let t2;
+
+	let show_if = /*$rerenderStore*/ ctx[1] && getNoteByGranularity({
+		date: /*date*/ ctx[3],
+		granularity: 'quarter'
+	});
+
+	let current;
+	let mounted;
+	let dispose;
+	let if_block = show_if && create_if_block$3();
+
+	return {
+		c() {
+			td = element("td");
+			button = element("button");
+			t0 = text("Q");
+			t1 = text(/*quarterNum*/ ctx[0]);
+			t2 = space();
+			if (if_block) if_block.c();
+		},
+		m(target, anchor) {
+			insert(target, td, anchor);
+			append(td, button);
+			append(button, t0);
+			append(button, t1);
+			append(td, t2);
+			if (if_block) if_block.m(td, null);
+			current = true;
+
+			if (!mounted) {
+				dispose = [
+					listen(button, "click", /*click_handler*/ ctx[4]),
+					listen(button, "contextmenu", /*contextmenu_handler*/ ctx[5]),
+					listen(button, "pointerenter", /*pointerenter_handler*/ ctx[6])
+				];
+
+				mounted = true;
+			}
+		},
+		p(ctx, [dirty]) {
+			if (!current || dirty & /*quarterNum*/ 1) set_data(t1, /*quarterNum*/ ctx[0]);
+
+			if (dirty & /*$rerenderStore*/ 2) show_if = /*$rerenderStore*/ ctx[1] && getNoteByGranularity({
+				date: /*date*/ ctx[3],
+				granularity: 'quarter'
+			});
+
+			if (show_if) {
+				if (if_block) {
+					if (dirty & /*$rerenderStore*/ 2) {
+						transition_in(if_block, 1);
+					}
+				} else {
+					if_block = create_if_block$3();
+					if_block.c();
+					transition_in(if_block, 1);
+					if_block.m(td, null);
+				}
+			} else if (if_block) {
+				group_outros();
+
+				transition_out(if_block, 1, 1, () => {
+					if_block = null;
+				});
+
+				check_outros();
+			}
+		},
+		i(local) {
+			if (current) return;
+			transition_in(if_block);
+			current = true;
+		},
+		o(local) {
+			transition_out(if_block);
+			current = false;
+		},
+		d(detaching) {
+			if (detaching) {
+				detach(td);
+			}
+
+			if (if_block) if_block.d();
+			mounted = false;
+			run_all(dispose);
+		}
+	};
+}
+
+function instance$5($$self, $$props, $$invalidate) {
+	let $displayedDateStore;
+	let $rerenderStore;
+	component_subscribe($$self, displayedDateStore, $$value => $$invalidate(7, $displayedDateStore = $$value));
+	component_subscribe($$self, rerenderStore, $$value => $$invalidate(1, $rerenderStore = $$value));
+	let { quarterNum } = $$props;
+	const { eventHandlers } = getContext(VIEW);
+	const date = $displayedDateStore.clone().quarter(quarterNum).startOf('quarter');
+
+	const click_handler = event => eventHandlers.onClick({
+		date,
+		isNewSplit: isMetaPressed(event),
+		granularity: 'quarter'
+	});
+
+	const contextmenu_handler = event => eventHandlers.onContextMenu({ date, event, granularity: 'quarter' });
+
+	const pointerenter_handler = event => eventHandlers.onHover({
+		date,
+		targetEl: event.target,
+		isMetaPressed: isMetaPressed(event),
+		granularity: 'quarter'
+	});
+
+	$$self.$$set = $$props => {
+		if ('quarterNum' in $$props) $$invalidate(0, quarterNum = $$props.quarterNum);
+	};
+
+	return [
+		quarterNum,
+		$rerenderStore,
+		eventHandlers,
+		date,
+		click_handler,
+		contextmenu_handler,
+		pointerenter_handler
+	];
+}
+
+class QuarterNum extends SvelteComponent {
+	constructor(options) {
+		super();
+		init(this, options, instance$5, create_fragment$5, not_equal, { quarterNum: 0 });
+	}
+}
+
+/* src/calendar-ui/components/Month.svelte generated by Svelte v4.2.0 */
+
+function create_if_block$2(ctx) {
+	let dot;
+	let current;
+	dot = new Dot({});
+
+	return {
+		c() {
+			create_component(dot.$$.fragment);
+		},
+		m(target, anchor) {
+			mount_component(dot, target, anchor);
+			current = true;
+		},
+		i(local) {
+			if (current) return;
+			transition_in(dot.$$.fragment, local);
+			current = true;
+		},
+		o(local) {
+			transition_out(dot.$$.fragment, local);
+			current = false;
+		},
+		d(detaching) {
+			destroy_component(dot, detaching);
+		}
+	};
+}
+
+function create_fragment$4(ctx) {
+	let td;
+	let button;
+	let t0_value = /*$displayedDateStore*/ ctx[1].clone().month(/*monthIndex*/ ctx[0]).format('MMMM') + "";
+	let t0;
+	let t1;
+
+	let show_if = /*$rerenderStore*/ ctx[2] && getNoteByGranularity({
+		date: /*date*/ ctx[4],
+		granularity: 'month'
+	});
+
+	let current;
+	let mounted;
+	let dispose;
+	let if_block = show_if && create_if_block$2();
+
+	return {
+		c() {
+			td = element("td");
+			button = element("button");
+			t0 = text(t0_value);
+			t1 = space();
+			if (if_block) if_block.c();
+		},
+		m(target, anchor) {
+			insert(target, td, anchor);
+			append(td, button);
+			append(button, t0);
+			append(td, t1);
+			if (if_block) if_block.m(td, null);
+			current = true;
+
+			if (!mounted) {
+				dispose = [
+					listen(button, "click", /*click_handler*/ ctx[5]),
+					listen(button, "contextmenu", /*contextmenu_handler*/ ctx[6]),
+					listen(button, "pointerenter", /*pointerenter_handler*/ ctx[7])
+				];
+
+				mounted = true;
+			}
+		},
+		p(ctx, [dirty]) {
+			if ((!current || dirty & /*$displayedDateStore, monthIndex*/ 3) && t0_value !== (t0_value = /*$displayedDateStore*/ ctx[1].clone().month(/*monthIndex*/ ctx[0]).format('MMMM') + "")) set_data(t0, t0_value);
+
+			if (dirty & /*$rerenderStore*/ 4) show_if = /*$rerenderStore*/ ctx[2] && getNoteByGranularity({
+				date: /*date*/ ctx[4],
+				granularity: 'month'
+			});
+
+			if (show_if) {
+				if (if_block) {
+					if (dirty & /*$rerenderStore*/ 4) {
+						transition_in(if_block, 1);
+					}
+				} else {
+					if_block = create_if_block$2();
+					if_block.c();
+					transition_in(if_block, 1);
+					if_block.m(td, null);
+				}
+			} else if (if_block) {
+				group_outros();
+
+				transition_out(if_block, 1, 1, () => {
+					if_block = null;
+				});
+
+				check_outros();
+			}
+		},
+		i(local) {
+			if (current) return;
+			transition_in(if_block);
+			current = true;
+		},
+		o(local) {
+			transition_out(if_block);
+			current = false;
+		},
+		d(detaching) {
+			if (detaching) {
+				detach(td);
+			}
+
+			if (if_block) if_block.d();
+			mounted = false;
+			run_all(dispose);
+		}
+	};
+}
+
+function instance$4($$self, $$props, $$invalidate) {
+	let $displayedDateStore;
+	let $rerenderStore;
+	component_subscribe($$self, displayedDateStore, $$value => $$invalidate(1, $displayedDateStore = $$value));
+	component_subscribe($$self, rerenderStore, $$value => $$invalidate(2, $rerenderStore = $$value));
+	let { monthIndex } = $$props;
+	const { eventHandlers } = getContext(VIEW);
+	const date = $displayedDateStore.clone().month(monthIndex).startOf('month');
+
+	const click_handler = event => eventHandlers.onClick({
+		date,
+		isNewSplit: isMetaPressed(event),
+		granularity: 'month'
+	});
+
+	const contextmenu_handler = event => eventHandlers.onContextMenu({ date, event, granularity: 'month' });
+
+	const pointerenter_handler = event => eventHandlers.onHover({
+		date,
+		targetEl: event.target,
+		isMetaPressed: isMetaPressed(event),
+		granularity: 'month'
+	});
+
+	$$self.$$set = $$props => {
+		if ('monthIndex' in $$props) $$invalidate(0, monthIndex = $$props.monthIndex);
+	};
+
+	return [
+		monthIndex,
+		$displayedDateStore,
+		$rerenderStore,
+		eventHandlers,
+		date,
+		click_handler,
+		contextmenu_handler,
+		pointerenter_handler
+	];
+}
+
+class Month extends SvelteComponent {
+	constructor(options) {
+		super();
+		init(this, options, instance$4, create_fragment$4, not_equal, { monthIndex: 0 });
+	}
+}
+
+/* src/calendar-ui/components/Year.svelte generated by Svelte v4.2.0 */
+
+function create_if_block$1(ctx) {
+	let dot;
+	let current;
+	dot = new Dot({});
+
+	return {
+		c() {
+			create_component(dot.$$.fragment);
+		},
+		m(target, anchor) {
+			mount_component(dot, target, anchor);
+			current = true;
+		},
+		i(local) {
+			if (current) return;
+			transition_in(dot.$$.fragment, local);
+			current = true;
+		},
+		o(local) {
+			transition_out(dot.$$.fragment, local);
+			current = false;
+		},
+		d(detaching) {
+			destroy_component(dot, detaching);
+		}
+	};
+}
+
+function create_fragment$3(ctx) {
+	let td;
+	let button;
+	let t0;
+	let t1;
+
+	let show_if = /*$rerenderStore*/ ctx[2] && getNoteByGranularity({
+		date: /*date*/ ctx[1],
+		granularity: 'year'
+	});
+
+	let current;
+	let mounted;
+	let dispose;
+	let if_block = show_if && create_if_block$1();
+
+	return {
+		c() {
+			td = element("td");
+			button = element("button");
+			t0 = text(/*year*/ ctx[0]);
+			t1 = space();
+			if (if_block) if_block.c();
+		},
+		m(target, anchor) {
+			insert(target, td, anchor);
+			append(td, button);
+			append(button, t0);
+			append(td, t1);
+			if (if_block) if_block.m(td, null);
+			current = true;
+
+			if (!mounted) {
+				dispose = [
+					listen(button, "click", /*click_handler*/ ctx[5]),
+					listen(button, "contextmenu", /*contextmenu_handler*/ ctx[6]),
+					listen(button, "pointerenter", /*pointerenter_handler*/ ctx[7])
+				];
+
+				mounted = true;
+			}
+		},
+		p(ctx, [dirty]) {
+			if (!current || dirty & /*year*/ 1) set_data(t0, /*year*/ ctx[0]);
+
+			if (dirty & /*$rerenderStore, date*/ 6) show_if = /*$rerenderStore*/ ctx[2] && getNoteByGranularity({
+				date: /*date*/ ctx[1],
+				granularity: 'year'
+			});
+
+			if (show_if) {
+				if (if_block) {
+					if (dirty & /*$rerenderStore, date*/ 6) {
+						transition_in(if_block, 1);
+					}
+				} else {
+					if_block = create_if_block$1();
+					if_block.c();
+					transition_in(if_block, 1);
+					if_block.m(td, null);
+				}
+			} else if (if_block) {
+				group_outros();
+
+				transition_out(if_block, 1, 1, () => {
+					if_block = null;
+				});
+
+				check_outros();
+			}
+		},
+		i(local) {
+			if (current) return;
+			transition_in(if_block);
+			current = true;
+		},
+		o(local) {
+			transition_out(if_block);
+			current = false;
+		},
+		d(detaching) {
+			if (detaching) {
+				detach(td);
+			}
+
+			if (if_block) if_block.d();
+			mounted = false;
+			run_all(dispose);
+		}
+	};
+}
+
+function instance$3($$self, $$props, $$invalidate) {
+	let $displayedDateStore;
+	let $rerenderStore;
+	component_subscribe($$self, displayedDateStore, $$value => $$invalidate(4, $displayedDateStore = $$value));
+	component_subscribe($$self, rerenderStore, $$value => $$invalidate(2, $rerenderStore = $$value));
+	let { year } = $$props;
+	const { eventHandlers } = getContext(VIEW);
+	let date;
+
+	const click_handler = event => eventHandlers.onClick({
+		date,
+		isNewSplit: isMetaPressed(event),
+		granularity: 'year'
+	});
+
+	const contextmenu_handler = event => eventHandlers.onContextMenu({ date, event, granularity: 'year' });
+
+	const pointerenter_handler = event => {
+		eventHandlers.onHover({
+			date,
+			targetEl: event.target,
+			isMetaPressed: isMetaPressed(event),
+			granularity: 'year'
+		});
+	};
+
+	$$self.$$set = $$props => {
+		if ('year' in $$props) $$invalidate(0, year = $$props.year);
+	};
+
+	$$self.$$.update = () => {
+		if ($$self.$$.dirty & /*$displayedDateStore, year*/ 17) {
+			($$invalidate(1, date = window.moment().clone().year(year).startOf('year')));
+		}
+	};
+
+	return [
+		year,
+		date,
+		$rerenderStore,
+		eventHandlers,
+		$displayedDateStore,
+		click_handler,
+		contextmenu_handler,
+		pointerenter_handler
+	];
+}
+
+class Year extends SvelteComponent {
+	constructor(options) {
+		super();
+		init(this, options, instance$3, create_fragment$3, not_equal, { year: 0 });
 	}
 }
 
 /* src/calendar-ui/components/Calendar.svelte generated by Svelte v4.2.0 */
 
 function add_css$2(target) {
-	append_styles(target, "svelte-1e4cssg", ".container.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{width:100%}@media(min-width: 640px){.container.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{max-width:640px}}@media(min-width: 768px){.container.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{max-width:768px}}@media(min-width: 1024px){.container.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{max-width:1024px}}@media(min-width: 1280px){.container.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{max-width:1280px}}@media(min-width: 1536px){.container.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{max-width:1536px}}.pointer-events-none.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{pointer-events:none}.invisible.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{visibility:hidden}.collapse.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{visibility:collapse}.absolute.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{position:absolute}.relative.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{position:relative}.left-0.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{left:0px}.top-0.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{top:0px}.m-0.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{margin:0px}.mx-\\[1px\\].svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{margin-left:1px;margin-right:1px}.mt-2.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{margin-top:0.5rem}.mt-3.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{margin-top:0.75rem}.mt-7.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{margin-top:1.75rem}.block.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{display:block}.inline-block.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{display:inline-block}.flex.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{display:flex}.table.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{display:table}.contents.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{display:contents}.h-3.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{height:0.75rem}.h-\\[6px\\].svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{height:6px}.w-3.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{width:0.75rem}.w-\\[6px\\].svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{width:6px}.w-full.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{width:100%}.w-max.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{width:-moz-max-content;width:max-content}.border-collapse.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{border-collapse:collapse}.transform.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-default.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{cursor:default}.cursor-not-allowed.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{cursor:not-allowed}.cursor-pointer.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{cursor:pointer}.flex-wrap.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{flex-wrap:wrap}.items-center.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{align-items:center}.justify-between.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{justify-content:space-between}.space-x-1.svelte-1e4cssg>.svelte-1e4cssg:not([hidden])~.svelte-1e4cssg:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(0.25rem * var(--tw-space-x-reverse));margin-left:calc(0.25rem * calc(1 - var(--tw-space-x-reverse)))}.rounded-md.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{border-radius:0.375rem}.border-0.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{border-width:0px}.bg-gray-100.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))}.p-1.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{padding:0.25rem}.px-4.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{padding-left:1rem;padding-right:1rem}.py-2.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{padding-top:0.5rem;padding-bottom:0.5rem}.pt-4.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{padding-top:1rem}.text-sm.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{font-size:0.875rem;line-height:1.25rem}.text-xs.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{font-size:0.75rem;line-height:1rem}.uppercase.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{text-transform:uppercase}.capitalize.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{text-transform:capitalize}.text-\\[--text-muted\\].svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{color:var(--text-muted)}.text-\\[--text-on-accent\\].svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{color:var(--text-on-accent)}.text-black.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))}.text-white.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))}.opacity-0.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{opacity:0}.opacity-50.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{opacity:0.5}.filter.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.transition.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.duration-300.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{transition-duration:300ms}.\\[all\\:inherit\\].svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{all:inherit}.container.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{--color-background-heading:transparent;--color-background-day:transparent;--color-background-weeknum:transparent;--color-background-weekend:transparent;--color-dot:var(--text-muted);--color-arrow:var(--text-muted);--color-button:var(--text-muted);--color-text-title:var(--text-normal);--color-text-heading:var(--text-muted);--color-text-day:var(--text-normal);--color-text-today:var(--interactive-accent);--color-text-weeknum:var(--text-muted);padding:0 8px}.weekend.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{background-color:var(--color-background-weekend)}.calendar.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{border-collapse:collapse;width:100%}th.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg{background-color:var(--color-background-heading);color:var(--color-text-heading);font-size:0.6em;letter-spacing:1px;padding:4px;text-align:center;text-transform:uppercase}.hover\\:cursor-pointer.svelte-1e4cssg.svelte-1e4cssg.svelte-1e4cssg:hover{cursor:pointer}");
+	append_styles(target, "svelte-1wybodm", ".container.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{width:100%}@media(min-width: 640px){.container.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{max-width:640px}}@media(min-width: 768px){.container.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{max-width:768px}}@media(min-width: 1024px){.container.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{max-width:1024px}}@media(min-width: 1280px){.container.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{max-width:1280px}}@media(min-width: 1536px){.container.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{max-width:1536px}}.pointer-events-none.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{pointer-events:none}.invisible.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{visibility:hidden}.collapse.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{visibility:collapse}.absolute.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{position:absolute}.relative.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{position:relative}.left-0.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{left:0px}.top-0.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{top:0px}.m-0.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{margin:0px}.mx-\\[1px\\].svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{margin-left:1px;margin-right:1px}.mt-2.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{margin-top:0.5rem}.mt-3.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{margin-top:0.75rem}.mt-7.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{margin-top:1.75rem}.block.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{display:block}.inline-block.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{display:inline-block}.flex.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{display:flex}.table.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{display:table}.contents.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{display:contents}.h-3.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{height:0.75rem}.h-\\[6px\\].svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{height:6px}.w-3.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{width:0.75rem}.w-\\[6px\\].svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{width:6px}.w-full.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{width:100%}.w-max.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{width:-moz-max-content;width:max-content}.border-collapse.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{border-collapse:collapse}.transform.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-default.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{cursor:default}.cursor-not-allowed.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{cursor:not-allowed}.cursor-pointer.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{cursor:pointer}.items-center.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{align-items:center}.justify-between.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{justify-content:space-between}.space-x-1.svelte-1wybodm>.svelte-1wybodm:not([hidden])~.svelte-1wybodm:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(0.25rem * var(--tw-space-x-reverse));margin-left:calc(0.25rem * calc(1 - var(--tw-space-x-reverse)))}.rounded-md.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{border-radius:0.375rem}.border-0.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{border-width:0px}.bg-gray-100.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))}.p-1.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{padding:0.25rem}.px-4.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{padding-left:1rem;padding-right:1rem}.py-2.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{padding-top:0.5rem;padding-bottom:0.5rem}.pt-4.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{padding-top:1rem}.text-sm.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{font-size:0.875rem;line-height:1.25rem}.text-xs.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{font-size:0.75rem;line-height:1rem}.uppercase.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{text-transform:uppercase}.capitalize.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{text-transform:capitalize}.text-\\[--text-muted\\].svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{color:var(--text-muted)}.text-\\[--text-on-accent\\].svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{color:var(--text-on-accent)}.text-black.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))}.text-white.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))}.opacity-0.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{opacity:0}.opacity-50.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{opacity:0.5}.transition.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.duration-300.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{transition-duration:300ms}.\\[all\\:inherit\\].svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{all:inherit}.container.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{--color-background-heading:transparent;--color-background-day:transparent;--color-background-weeknum:transparent;--color-background-weekend:transparent;--color-dot:var(--text-muted);--color-arrow:var(--text-muted);--color-button:var(--text-muted);--color-text-title:var(--text-normal);--color-text-heading:var(--text-muted);--color-text-day:var(--text-normal);--color-text-today:var(--interactive-accent);--color-text-weeknum:var(--text-muted);padding:0 8px}.weekend.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{background-color:var(--color-background-weekend)}.calendar.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{border-collapse:collapse;width:100%}th.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm{background-color:var(--color-background-heading);color:var(--color-text-heading);font-size:0.6em;letter-spacing:1px;padding:4px;text-align:center;text-transform:uppercase}.hover\\:cursor-pointer.svelte-1wybodm.svelte-1wybodm.svelte-1wybodm:hover{cursor:pointer}");
 }
 
 function get_each_context$1(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[11] = list[i];
+	child_ctx[10] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_1(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[14] = list[i];
+	child_ctx[13] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_2(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[17] = list[i];
+	child_ctx[16] = list[i];
+	child_ctx[18] = i;
 	return child_ctx;
 }
 
 function get_each_context_3(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[20] = list[i];
+	child_ctx[19] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_4(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[23] = list[i];
+	child_ctx[22] = list[i];
 	return child_ctx;
 }
 
-// (75:2) {#each togglePeriods as period}
-function create_each_block_4(ctx) {
+function get_each_context_5(ctx, list, i) {
+	const child_ctx = ctx.slice();
+	child_ctx[25] = list[i];
+	return child_ctx;
+}
+
+function get_each_context_6(ctx, list, i) {
+	const child_ctx = ctx.slice();
+	child_ctx[28] = list[i];
+	return child_ctx;
+}
+
+function get_each_context_7(ctx, list, i) {
+	const child_ctx = ctx.slice();
+	child_ctx[31] = list[i];
+	return child_ctx;
+}
+
+function get_each_context_8(ctx, list, i) {
+	const child_ctx = ctx.slice();
+	child_ctx[34] = list[i];
+	return child_ctx;
+}
+
+// (38:2) {#each togglePeriods as period}
+function create_each_block_8(ctx) {
 	let button;
-	let t_value = capitalize(/*period*/ ctx[23]) + "";
+	let t_value = capitalize(/*period*/ ctx[34]) + "";
 	let t;
 	let button_class_value;
 	let mounted;
 	let dispose;
 
 	function click_handler() {
-		return /*click_handler*/ ctx[7](/*period*/ ctx[23]);
+		return /*click_handler*/ ctx[7](/*period*/ ctx[34]);
 	}
 
 	return {
@@ -10235,9 +11394,9 @@ function create_each_block_4(ctx) {
 			button = element("button");
 			t = text(t_value);
 
-			attr(button, "class", button_class_value = "" + (null_to_empty(`w-full cursor-pointer rounded-md px-4 py-2 text-black ${/*crrView*/ ctx[0] === /*period*/ ctx[23]
+			attr(button, "class", button_class_value = "" + (null_to_empty(`w-full cursor-pointer rounded-md px-4 py-2 text-black ${/*crrView*/ ctx[0] === /*period*/ ctx[34]
 			? 'bg-gray-100'
-			: 'text-white'}`) + " svelte-1e4cssg"));
+			: 'text-white'}`) + " svelte-1wybodm"));
 		},
 		m(target, anchor) {
 			insert(target, button, anchor);
@@ -10251,9 +11410,9 @@ function create_each_block_4(ctx) {
 		p(new_ctx, dirty) {
 			ctx = new_ctx;
 
-			if (dirty & /*crrView*/ 1 && button_class_value !== (button_class_value = "" + (null_to_empty(`w-full cursor-pointer rounded-md px-4 py-2 text-black ${/*crrView*/ ctx[0] === /*period*/ ctx[23]
+			if (dirty[0] & /*crrView*/ 1 && button_class_value !== (button_class_value = "" + (null_to_empty(`w-full cursor-pointer rounded-md px-4 py-2 text-black ${/*crrView*/ ctx[0] === /*period*/ ctx[34]
 			? 'bg-gray-100'
-			: 'text-white'}`) + " svelte-1e4cssg"))) {
+			: 'text-white'}`) + " svelte-1wybodm"))) {
 				attr(button, "class", button_class_value);
 			}
 		},
@@ -10268,8 +11427,8 @@ function create_each_block_4(ctx) {
 	};
 }
 
-// (84:1) {#if crrView === 'days'}
-function create_if_block(ctx) {
+// (47:1) {#if crrView === 'days'}
+function create_if_block_3(ctx) {
 	let monthnav;
 	let t0;
 	let table;
@@ -10284,30 +11443,30 @@ function create_if_block(ctx) {
 	let each_blocks = [];
 	let each2_lookup = new Map();
 	let current;
-	monthnav = new MonthNav({ props: { today: window.moment() } });
-	let if_block0 = /*showWeekNums*/ ctx[3] && create_if_block_3();
-	let each_value_3 = ensure_array_like(/*month*/ ctx[1][1].days);
+	monthnav = new MonthNav({});
+	let if_block0 = /*showWeekNums*/ ctx[3] && create_if_block_6();
+	let each_value_7 = ensure_array_like(/*month*/ ctx[1][1].days);
 	let each_blocks_2 = [];
 
-	for (let i = 0; i < each_value_3.length; i += 1) {
-		each_blocks_2[i] = create_each_block_3(get_each_context_3(ctx, each_value_3, i));
+	for (let i = 0; i < each_value_7.length; i += 1) {
+		each_blocks_2[i] = create_each_block_7(get_each_context_7(ctx, each_value_7, i));
 	}
 
-	let if_block1 = /*showWeekNums*/ ctx[3] && create_if_block_2();
-	let each_value_2 = ensure_array_like(/*localizedWeekdaysShort*/ ctx[2]);
+	let if_block1 = /*showWeekNums*/ ctx[3] && create_if_block_5();
+	let each_value_6 = ensure_array_like(/*localizedWeekdaysShort*/ ctx[2]);
 	let each_blocks_1 = [];
 
-	for (let i = 0; i < each_value_2.length; i += 1) {
-		each_blocks_1[i] = create_each_block_2(get_each_context_2(ctx, each_value_2, i));
+	for (let i = 0; i < each_value_6.length; i += 1) {
+		each_blocks_1[i] = create_each_block_6(get_each_context_6(ctx, each_value_6, i));
 	}
 
-	let each_value = ensure_array_like(/*month*/ ctx[1]);
-	const get_key = ctx => /*week*/ ctx[11].weekNum;
+	let each_value_4 = ensure_array_like(/*month*/ ctx[1]);
+	const get_key = ctx => /*week*/ ctx[22].weekNum;
 
-	for (let i = 0; i < each_value.length; i += 1) {
-		let child_ctx = get_each_context$1(ctx, each_value, i);
+	for (let i = 0; i < each_value_4.length; i += 1) {
+		let child_ctx = get_each_context_4(ctx, each_value_4, i);
 		let key = get_key(child_ctx);
-		each2_lookup.set(key, each_blocks[i] = create_each_block$1(key, child_ctx));
+		each2_lookup.set(key, each_blocks[i] = create_each_block_4(key, child_ctx));
 	}
 
 	return {
@@ -10340,7 +11499,7 @@ function create_if_block(ctx) {
 				each_blocks[i].c();
 			}
 
-			attr(table, "class", "calendar svelte-1e4cssg");
+			attr(table, "class", "calendar svelte-1wybodm");
 		},
 		m(target, anchor) {
 			mount_component(monthnav, target, anchor);
@@ -10382,7 +11541,7 @@ function create_if_block(ctx) {
 		p(ctx, dirty) {
 			if (/*showWeekNums*/ ctx[3]) {
 				if (if_block0) ; else {
-					if_block0 = create_if_block_3();
+					if_block0 = create_if_block_6();
 					if_block0.c();
 					if_block0.m(colgroup, t1);
 				}
@@ -10391,17 +11550,17 @@ function create_if_block(ctx) {
 				if_block0 = null;
 			}
 
-			if (dirty & /*month*/ 2) {
-				each_value_3 = ensure_array_like(/*month*/ ctx[1][1].days);
+			if (dirty[0] & /*month*/ 2) {
+				each_value_7 = ensure_array_like(/*month*/ ctx[1][1].days);
 				let i;
 
-				for (i = 0; i < each_value_3.length; i += 1) {
-					const child_ctx = get_each_context_3(ctx, each_value_3, i);
+				for (i = 0; i < each_value_7.length; i += 1) {
+					const child_ctx = get_each_context_7(ctx, each_value_7, i);
 
 					if (each_blocks_2[i]) {
 						each_blocks_2[i].p(child_ctx, dirty);
 					} else {
-						each_blocks_2[i] = create_each_block_3(child_ctx);
+						each_blocks_2[i] = create_each_block_7(child_ctx);
 						each_blocks_2[i].c();
 						each_blocks_2[i].m(colgroup, null);
 					}
@@ -10411,12 +11570,12 @@ function create_if_block(ctx) {
 					each_blocks_2[i].d(1);
 				}
 
-				each_blocks_2.length = each_value_3.length;
+				each_blocks_2.length = each_value_7.length;
 			}
 
 			if (/*showWeekNums*/ ctx[3]) {
 				if (if_block1) ; else {
-					if_block1 = create_if_block_2();
+					if_block1 = create_if_block_5();
 					if_block1.c();
 					if_block1.m(tr, t3);
 				}
@@ -10425,17 +11584,17 @@ function create_if_block(ctx) {
 				if_block1 = null;
 			}
 
-			if (dirty & /*localizedWeekdaysShort*/ 4) {
-				each_value_2 = ensure_array_like(/*localizedWeekdaysShort*/ ctx[2]);
+			if (dirty[0] & /*localizedWeekdaysShort*/ 4) {
+				each_value_6 = ensure_array_like(/*localizedWeekdaysShort*/ ctx[2]);
 				let i;
 
-				for (i = 0; i < each_value_2.length; i += 1) {
-					const child_ctx = get_each_context_2(ctx, each_value_2, i);
+				for (i = 0; i < each_value_6.length; i += 1) {
+					const child_ctx = get_each_context_6(ctx, each_value_6, i);
 
 					if (each_blocks_1[i]) {
 						each_blocks_1[i].p(child_ctx, dirty);
 					} else {
-						each_blocks_1[i] = create_each_block_2(child_ctx);
+						each_blocks_1[i] = create_each_block_6(child_ctx);
 						each_blocks_1[i].c();
 						each_blocks_1[i].m(tr, null);
 					}
@@ -10445,13 +11604,13 @@ function create_if_block(ctx) {
 					each_blocks_1[i].d(1);
 				}
 
-				each_blocks_1.length = each_value_2.length;
+				each_blocks_1.length = each_value_6.length;
 			}
 
-			if (dirty & /*month, showWeekNums*/ 10) {
-				each_value = ensure_array_like(/*month*/ ctx[1]);
+			if (dirty[0] & /*month, showWeekNums*/ 10) {
+				each_value_4 = ensure_array_like(/*month*/ ctx[1]);
 				group_outros();
-				each_blocks = update_keyed_each(each_blocks, dirty, get_key, 1, ctx, each_value, each2_lookup, tbody, outro_and_destroy_block, create_each_block$1, null, get_each_context$1);
+				each_blocks = update_keyed_each(each_blocks, dirty, get_key, 1, ctx, each_value_4, each2_lookup, tbody, outro_and_destroy_block, create_each_block_4, null, get_each_context_4);
 				check_outros();
 			}
 		},
@@ -10459,7 +11618,7 @@ function create_if_block(ctx) {
 			if (current) return;
 			transition_in(monthnav.$$.fragment, local);
 
-			for (let i = 0; i < each_value.length; i += 1) {
+			for (let i = 0; i < each_value_4.length; i += 1) {
 				transition_in(each_blocks[i]);
 			}
 
@@ -10493,8 +11652,8 @@ function create_if_block(ctx) {
 	};
 }
 
-// (88:4) {#if showWeekNums}
-function create_if_block_3(ctx) {
+// (51:4) {#if showWeekNums}
+function create_if_block_6(ctx) {
 	let col;
 
 	return {
@@ -10512,22 +11671,22 @@ function create_if_block_3(ctx) {
 	};
 }
 
-// (91:4) {#each month[1].days as date}
-function create_each_block_3(ctx) {
+// (54:4) {#each month[1].days as date}
+function create_each_block_7(ctx) {
 	let col;
 
 	return {
 		c() {
 			col = element("col");
-			attr(col, "class", "svelte-1e4cssg");
-			toggle_class(col, "weekend", isWeekend(/*date*/ ctx[20]));
+			attr(col, "class", "svelte-1wybodm");
+			toggle_class(col, "weekend", isWeekend(/*date*/ ctx[31]));
 		},
 		m(target, anchor) {
 			insert(target, col, anchor);
 		},
 		p(ctx, dirty) {
-			if (dirty & /*month*/ 2) {
-				toggle_class(col, "weekend", isWeekend(/*date*/ ctx[20]));
+			if (dirty[0] & /*month*/ 2) {
+				toggle_class(col, "weekend", isWeekend(/*date*/ ctx[31]));
 			}
 		},
 		d(detaching) {
@@ -10538,15 +11697,15 @@ function create_each_block_3(ctx) {
 	};
 }
 
-// (97:5) {#if showWeekNums}
-function create_if_block_2(ctx) {
+// (60:5) {#if showWeekNums}
+function create_if_block_5(ctx) {
 	let th;
 
 	return {
 		c() {
 			th = element("th");
 			th.textContent = "W";
-			attr(th, "class", "svelte-1e4cssg");
+			attr(th, "class", "svelte-1wybodm");
 		},
 		m(target, anchor) {
 			insert(target, th, anchor);
@@ -10559,24 +11718,24 @@ function create_if_block_2(ctx) {
 	};
 }
 
-// (100:5) {#each localizedWeekdaysShort as dayOfWeek}
-function create_each_block_2(ctx) {
+// (63:5) {#each localizedWeekdaysShort as dayOfWeek}
+function create_each_block_6(ctx) {
 	let th;
-	let t_value = /*dayOfWeek*/ ctx[17] + "";
+	let t_value = /*dayOfWeek*/ ctx[28] + "";
 	let t;
 
 	return {
 		c() {
 			th = element("th");
 			t = text(t_value);
-			attr(th, "class", "svelte-1e4cssg");
+			attr(th, "class", "svelte-1wybodm");
 		},
 		m(target, anchor) {
 			insert(target, th, anchor);
 			append(th, t);
 		},
 		p(ctx, dirty) {
-			if (dirty & /*localizedWeekdaysShort*/ 4 && t_value !== (t_value = /*dayOfWeek*/ ctx[17] + "")) set_data(t, t_value);
+			if (dirty[0] & /*localizedWeekdaysShort*/ 4 && t_value !== (t_value = /*dayOfWeek*/ ctx[28] + "")) set_data(t, t_value);
 		},
 		d(detaching) {
 			if (detaching) {
@@ -10586,15 +11745,15 @@ function create_each_block_2(ctx) {
 	};
 }
 
-// (108:6) {#if showWeekNums}
-function create_if_block_1(ctx) {
+// (71:6) {#if showWeekNums}
+function create_if_block_4(ctx) {
 	let weeknum;
 	let current;
 
 	weeknum = new WeekNum({
 			props: {
-				weekNum: /*week*/ ctx[11].weekNum,
-				startOfWeekDate: getStartOfWeek(/*week*/ ctx[11].days)
+				weekNum: /*week*/ ctx[22].weekNum,
+				startOfWeekDate: getStartOfWeek(/*week*/ ctx[22].days)
 			}
 		});
 
@@ -10608,8 +11767,8 @@ function create_if_block_1(ctx) {
 		},
 		p(ctx, dirty) {
 			const weeknum_changes = {};
-			if (dirty & /*month*/ 2) weeknum_changes.weekNum = /*week*/ ctx[11].weekNum;
-			if (dirty & /*month*/ 2) weeknum_changes.startOfWeekDate = getStartOfWeek(/*week*/ ctx[11].days);
+			if (dirty[0] & /*month*/ 2) weeknum_changes.weekNum = /*week*/ ctx[22].weekNum;
+			if (dirty[0] & /*month*/ 2) weeknum_changes.startOfWeekDate = getStartOfWeek(/*week*/ ctx[22].days);
 			weeknum.$set(weeknum_changes);
 		},
 		i(local) {
@@ -10627,12 +11786,12 @@ function create_if_block_1(ctx) {
 	};
 }
 
-// (113:6) {#each week.days as day (day.format())}
-function create_each_block_1(key_1, ctx) {
+// (76:6) {#each week.days as day (day.format())}
+function create_each_block_5(key_1, ctx) {
 	let first;
 	let day_1;
 	let current;
-	day_1 = new Day({ props: { date: /*day*/ ctx[14] } });
+	day_1 = new Day({ props: { date: /*day*/ ctx[25] } });
 
 	return {
 		key: key_1,
@@ -10650,7 +11809,7 @@ function create_each_block_1(key_1, ctx) {
 		p(new_ctx, dirty) {
 			ctx = new_ctx;
 			const day_1_changes = {};
-			if (dirty & /*month*/ 2) day_1_changes.date = /*day*/ ctx[14];
+			if (dirty[0] & /*month*/ 2) day_1_changes.date = /*day*/ ctx[25];
 			day_1.$set(day_1_changes);
 		},
 		i(local) {
@@ -10672,22 +11831,22 @@ function create_each_block_1(key_1, ctx) {
 	};
 }
 
-// (106:4) {#each month as week (week.weekNum)}
-function create_each_block$1(key_1, ctx) {
+// (69:4) {#each month as week (week.weekNum)}
+function create_each_block_4(key_1, ctx) {
 	let tr;
 	let t0;
 	let each_blocks = [];
 	let each_1_lookup = new Map();
 	let t1;
 	let current;
-	let if_block = /*showWeekNums*/ ctx[3] && create_if_block_1(ctx);
-	let each_value_1 = ensure_array_like(/*week*/ ctx[11].days);
-	const get_key = ctx => /*day*/ ctx[14].format();
+	let if_block = /*showWeekNums*/ ctx[3] && create_if_block_4(ctx);
+	let each_value_5 = ensure_array_like(/*week*/ ctx[22].days);
+	const get_key = ctx => /*day*/ ctx[25].format();
 
-	for (let i = 0; i < each_value_1.length; i += 1) {
-		let child_ctx = get_each_context_1(ctx, each_value_1, i);
+	for (let i = 0; i < each_value_5.length; i += 1) {
+		let child_ctx = get_each_context_5(ctx, each_value_5, i);
 		let key = get_key(child_ctx);
-		each_1_lookup.set(key, each_blocks[i] = create_each_block_1(key, child_ctx));
+		each_1_lookup.set(key, each_blocks[i] = create_each_block_5(key, child_ctx));
 	}
 
 	return {
@@ -10726,11 +11885,11 @@ function create_each_block$1(key_1, ctx) {
 				if (if_block) {
 					if_block.p(ctx, dirty);
 
-					if (dirty & /*showWeekNums*/ 8) {
+					if (dirty[0] & /*showWeekNums*/ 8) {
 						transition_in(if_block, 1);
 					}
 				} else {
-					if_block = create_if_block_1(ctx);
+					if_block = create_if_block_4(ctx);
 					if_block.c();
 					transition_in(if_block, 1);
 					if_block.m(tr, t0);
@@ -10745,10 +11904,10 @@ function create_each_block$1(key_1, ctx) {
 				check_outros();
 			}
 
-			if (dirty & /*month*/ 2) {
-				each_value_1 = ensure_array_like(/*week*/ ctx[11].days);
+			if (dirty[0] & /*month*/ 2) {
+				each_value_5 = ensure_array_like(/*week*/ ctx[22].days);
 				group_outros();
-				each_blocks = update_keyed_each(each_blocks, dirty, get_key, 1, ctx, each_value_1, each_1_lookup, tr, outro_and_destroy_block, create_each_block_1, t1, get_each_context_1);
+				each_blocks = update_keyed_each(each_blocks, dirty, get_key, 1, ctx, each_value_5, each_1_lookup, tr, outro_and_destroy_block, create_each_block_5, t1, get_each_context_5);
 				check_outros();
 			}
 		},
@@ -10756,7 +11915,7 @@ function create_each_block$1(key_1, ctx) {
 			if (current) return;
 			transition_in(if_block);
 
-			for (let i = 0; i < each_value_1.length; i += 1) {
+			for (let i = 0; i < each_value_5.length; i += 1) {
 				transition_in(each_blocks[i]);
 			}
 
@@ -10785,85 +11944,225 @@ function create_each_block$1(key_1, ctx) {
 	};
 }
 
-function create_fragment$2(ctx) {
-	let div1;
-	let div0;
+// (84:1) {#if crrView === 'months'}
+function create_if_block_1(ctx) {
+	let yearnav;
 	let t;
+	let table;
+	let tbody;
 	let current;
-	let each_value_4 = ensure_array_like(togglePeriods);
+	yearnav = new YearNav({});
+	let each_value_2 = ensure_array_like(monthsIndexesInQuarters);
 	let each_blocks = [];
 
-	for (let i = 0; i < each_value_4.length; i += 1) {
-		each_blocks[i] = create_each_block_4(get_each_context_4(ctx, each_value_4, i));
+	for (let i = 0; i < each_value_2.length; i += 1) {
+		each_blocks[i] = create_each_block_2(get_each_context_2(ctx, each_value_2, i));
 	}
 
-	let if_block = /*crrView*/ ctx[0] === 'days' && create_if_block(ctx);
+	const out = i => transition_out(each_blocks[i], 1, 1, () => {
+		each_blocks[i] = null;
+	});
 
 	return {
 		c() {
-			div1 = element("div");
-			div0 = element("div");
+			create_component(yearnav.$$.fragment);
+			t = space();
+			table = element("table");
+			tbody = element("tbody");
 
 			for (let i = 0; i < each_blocks.length; i += 1) {
 				each_blocks[i].c();
 			}
 
-			t = space();
-			if (if_block) if_block.c();
-			attr(div0, "class", "flex rounded-md space-x-1 p-1 w-full svelte-1e4cssg");
-			attr(div1, "id", "calendar-container");
-			attr(div1, "class", "container svelte-1e4cssg");
+			attr(table, "class", "calendar svelte-1wybodm");
 		},
 		m(target, anchor) {
-			insert(target, div1, anchor);
-			append(div1, div0);
+			mount_component(yearnav, target, anchor);
+			insert(target, t, anchor);
+			insert(target, table, anchor);
+			append(table, tbody);
 
 			for (let i = 0; i < each_blocks.length; i += 1) {
 				if (each_blocks[i]) {
-					each_blocks[i].m(div0, null);
+					each_blocks[i].m(tbody, null);
 				}
 			}
 
-			append(div1, t);
-			if (if_block) if_block.m(div1, null);
 			current = true;
 		},
-		p(ctx, [dirty]) {
-			if (dirty & /*crrView*/ 1) {
-				each_value_4 = ensure_array_like(togglePeriods);
+		p(ctx, dirty) {
+			if (dirty[0] & /*showWeekNums*/ 8) {
+				each_value_2 = ensure_array_like(monthsIndexesInQuarters);
 				let i;
 
-				for (i = 0; i < each_value_4.length; i += 1) {
-					const child_ctx = get_each_context_4(ctx, each_value_4, i);
+				for (i = 0; i < each_value_2.length; i += 1) {
+					const child_ctx = get_each_context_2(ctx, each_value_2, i);
 
 					if (each_blocks[i]) {
 						each_blocks[i].p(child_ctx, dirty);
+						transition_in(each_blocks[i], 1);
 					} else {
-						each_blocks[i] = create_each_block_4(child_ctx);
+						each_blocks[i] = create_each_block_2(child_ctx);
 						each_blocks[i].c();
-						each_blocks[i].m(div0, null);
+						transition_in(each_blocks[i], 1);
+						each_blocks[i].m(tbody, null);
 					}
 				}
 
-				for (; i < each_blocks.length; i += 1) {
-					each_blocks[i].d(1);
+				group_outros();
+
+				for (i = each_value_2.length; i < each_blocks.length; i += 1) {
+					out(i);
 				}
 
-				each_blocks.length = each_value_4.length;
+				check_outros();
+			}
+		},
+		i(local) {
+			if (current) return;
+			transition_in(yearnav.$$.fragment, local);
+
+			for (let i = 0; i < each_value_2.length; i += 1) {
+				transition_in(each_blocks[i]);
 			}
 
-			if (/*crrView*/ ctx[0] === 'days') {
-				if (if_block) {
-					if_block.p(ctx, dirty);
+			current = true;
+		},
+		o(local) {
+			transition_out(yearnav.$$.fragment, local);
+			each_blocks = each_blocks.filter(Boolean);
 
-					if (dirty & /*crrView*/ 1) {
+			for (let i = 0; i < each_blocks.length; i += 1) {
+				transition_out(each_blocks[i]);
+			}
+
+			current = false;
+		},
+		d(detaching) {
+			if (detaching) {
+				detach(t);
+				detach(table);
+			}
+
+			destroy_component(yearnav, detaching);
+			destroy_each(each_blocks, detaching);
+		}
+	};
+}
+
+// (90:6) {#if showWeekNums}
+function create_if_block_2(ctx) {
+	let quarternum;
+	let current;
+	quarternum = new QuarterNum({ props: { quarterNum: /*i*/ ctx[18] + 1 } });
+
+	return {
+		c() {
+			create_component(quarternum.$$.fragment);
+		},
+		m(target, anchor) {
+			mount_component(quarternum, target, anchor);
+			current = true;
+		},
+		i(local) {
+			if (current) return;
+			transition_in(quarternum.$$.fragment, local);
+			current = true;
+		},
+		o(local) {
+			transition_out(quarternum.$$.fragment, local);
+			current = false;
+		},
+		d(detaching) {
+			destroy_component(quarternum, detaching);
+		}
+	};
+}
+
+// (93:6) {#each quarterMonthsIndexes as monthIndex}
+function create_each_block_3(ctx) {
+	let month_1;
+	let current;
+
+	month_1 = new Month({
+			props: { monthIndex: /*monthIndex*/ ctx[19] }
+		});
+
+	return {
+		c() {
+			create_component(month_1.$$.fragment);
+		},
+		m(target, anchor) {
+			mount_component(month_1, target, anchor);
+			current = true;
+		},
+		p: noop,
+		i(local) {
+			if (current) return;
+			transition_in(month_1.$$.fragment, local);
+			current = true;
+		},
+		o(local) {
+			transition_out(month_1.$$.fragment, local);
+			current = false;
+		},
+		d(detaching) {
+			destroy_component(month_1, detaching);
+		}
+	};
+}
+
+// (88:4) {#each monthsIndexesInQuarters as quarterMonthsIndexes, i}
+function create_each_block_2(ctx) {
+	let tr;
+	let t0;
+	let t1;
+	let current;
+	let if_block = /*showWeekNums*/ ctx[3] && create_if_block_2(ctx);
+	let each_value_3 = ensure_array_like(/*quarterMonthsIndexes*/ ctx[16]);
+	let each_blocks = [];
+
+	for (let i = 0; i < each_value_3.length; i += 1) {
+		each_blocks[i] = create_each_block_3(get_each_context_3(ctx, each_value_3, i));
+	}
+
+	return {
+		c() {
+			tr = element("tr");
+			if (if_block) if_block.c();
+			t0 = space();
+
+			for (let i = 0; i < each_blocks.length; i += 1) {
+				each_blocks[i].c();
+			}
+
+			t1 = space();
+		},
+		m(target, anchor) {
+			insert(target, tr, anchor);
+			if (if_block) if_block.m(tr, null);
+			append(tr, t0);
+
+			for (let i = 0; i < each_blocks.length; i += 1) {
+				if (each_blocks[i]) {
+					each_blocks[i].m(tr, null);
+				}
+			}
+
+			append(tr, t1);
+			current = true;
+		},
+		p(ctx, dirty) {
+			if (/*showWeekNums*/ ctx[3]) {
+				if (if_block) {
+					if (dirty[0] & /*showWeekNums*/ 8) {
 						transition_in(if_block, 1);
 					}
 				} else {
-					if_block = create_if_block(ctx);
+					if_block = create_if_block_2(ctx);
 					if_block.c();
 					transition_in(if_block, 1);
-					if_block.m(div1, null);
+					if_block.m(tr, t0);
 				}
 			} else if (if_block) {
 				group_outros();
@@ -10878,10 +12177,434 @@ function create_fragment$2(ctx) {
 		i(local) {
 			if (current) return;
 			transition_in(if_block);
+
+			for (let i = 0; i < each_value_3.length; i += 1) {
+				transition_in(each_blocks[i]);
+			}
+
 			current = true;
 		},
 		o(local) {
 			transition_out(if_block);
+			each_blocks = each_blocks.filter(Boolean);
+
+			for (let i = 0; i < each_blocks.length; i += 1) {
+				transition_out(each_blocks[i]);
+			}
+
+			current = false;
+		},
+		d(detaching) {
+			if (detaching) {
+				detach(tr);
+			}
+
+			if (if_block) if_block.d();
+			destroy_each(each_blocks, detaching);
+		}
+	};
+}
+
+// (101:1) {#if crrView === 'years'}
+function create_if_block(ctx) {
+	let yearsnav;
+	let t;
+	let table;
+	let tbody;
+	let current;
+	yearsnav = new YearsNav({});
+
+	let each_value = ensure_array_like(getYears({
+		startRangeYear: +/*$yearsRanges*/ ctx[4].ranges[/*$yearsRanges*/ ctx[4].crrRangeIndex].split('-')[0]
+	}));
+
+	let each_blocks = [];
+
+	for (let i = 0; i < each_value.length; i += 1) {
+		each_blocks[i] = create_each_block$1(get_each_context$1(ctx, each_value, i));
+	}
+
+	const out = i => transition_out(each_blocks[i], 1, 1, () => {
+		each_blocks[i] = null;
+	});
+
+	return {
+		c() {
+			create_component(yearsnav.$$.fragment);
+			t = space();
+			table = element("table");
+			tbody = element("tbody");
+
+			for (let i = 0; i < each_blocks.length; i += 1) {
+				each_blocks[i].c();
+			}
+
+			attr(table, "class", "calendar svelte-1wybodm");
+		},
+		m(target, anchor) {
+			mount_component(yearsnav, target, anchor);
+			insert(target, t, anchor);
+			insert(target, table, anchor);
+			append(table, tbody);
+
+			for (let i = 0; i < each_blocks.length; i += 1) {
+				if (each_blocks[i]) {
+					each_blocks[i].m(tbody, null);
+				}
+			}
+
+			current = true;
+		},
+		p(ctx, dirty) {
+			if (dirty[0] & /*$yearsRanges*/ 16) {
+				each_value = ensure_array_like(getYears({
+					startRangeYear: +/*$yearsRanges*/ ctx[4].ranges[/*$yearsRanges*/ ctx[4].crrRangeIndex].split('-')[0]
+				}));
+
+				let i;
+
+				for (i = 0; i < each_value.length; i += 1) {
+					const child_ctx = get_each_context$1(ctx, each_value, i);
+
+					if (each_blocks[i]) {
+						each_blocks[i].p(child_ctx, dirty);
+						transition_in(each_blocks[i], 1);
+					} else {
+						each_blocks[i] = create_each_block$1(child_ctx);
+						each_blocks[i].c();
+						transition_in(each_blocks[i], 1);
+						each_blocks[i].m(tbody, null);
+					}
+				}
+
+				group_outros();
+
+				for (i = each_value.length; i < each_blocks.length; i += 1) {
+					out(i);
+				}
+
+				check_outros();
+			}
+		},
+		i(local) {
+			if (current) return;
+			transition_in(yearsnav.$$.fragment, local);
+
+			for (let i = 0; i < each_value.length; i += 1) {
+				transition_in(each_blocks[i]);
+			}
+
+			current = true;
+		},
+		o(local) {
+			transition_out(yearsnav.$$.fragment, local);
+			each_blocks = each_blocks.filter(Boolean);
+
+			for (let i = 0; i < each_blocks.length; i += 1) {
+				transition_out(each_blocks[i]);
+			}
+
+			current = false;
+		},
+		d(detaching) {
+			if (detaching) {
+				detach(t);
+				detach(table);
+			}
+
+			destroy_component(yearsnav, detaching);
+			destroy_each(each_blocks, detaching);
+		}
+	};
+}
+
+// (107:6) {#each rowYearsRange as year}
+function create_each_block_1(ctx) {
+	let year_1;
+	let current;
+	year_1 = new Year({ props: { year: /*year*/ ctx[13] } });
+
+	return {
+		c() {
+			create_component(year_1.$$.fragment);
+		},
+		m(target, anchor) {
+			mount_component(year_1, target, anchor);
+			current = true;
+		},
+		p(ctx, dirty) {
+			const year_1_changes = {};
+			if (dirty[0] & /*$yearsRanges*/ 16) year_1_changes.year = /*year*/ ctx[13];
+			year_1.$set(year_1_changes);
+		},
+		i(local) {
+			if (current) return;
+			transition_in(year_1.$$.fragment, local);
+			current = true;
+		},
+		o(local) {
+			transition_out(year_1.$$.fragment, local);
+			current = false;
+		},
+		d(detaching) {
+			destroy_component(year_1, detaching);
+		}
+	};
+}
+
+// (105:4) {#each getYears( { startRangeYear: +$yearsRanges.ranges[$yearsRanges.crrRangeIndex].split('-')[0] } ) as rowYearsRange}
+function create_each_block$1(ctx) {
+	let tr;
+	let t;
+	let current;
+	let each_value_1 = ensure_array_like(/*rowYearsRange*/ ctx[10]);
+	let each_blocks = [];
+
+	for (let i = 0; i < each_value_1.length; i += 1) {
+		each_blocks[i] = create_each_block_1(get_each_context_1(ctx, each_value_1, i));
+	}
+
+	const out = i => transition_out(each_blocks[i], 1, 1, () => {
+		each_blocks[i] = null;
+	});
+
+	return {
+		c() {
+			tr = element("tr");
+
+			for (let i = 0; i < each_blocks.length; i += 1) {
+				each_blocks[i].c();
+			}
+
+			t = space();
+		},
+		m(target, anchor) {
+			insert(target, tr, anchor);
+
+			for (let i = 0; i < each_blocks.length; i += 1) {
+				if (each_blocks[i]) {
+					each_blocks[i].m(tr, null);
+				}
+			}
+
+			append(tr, t);
+			current = true;
+		},
+		p(ctx, dirty) {
+			if (dirty[0] & /*$yearsRanges*/ 16) {
+				each_value_1 = ensure_array_like(/*rowYearsRange*/ ctx[10]);
+				let i;
+
+				for (i = 0; i < each_value_1.length; i += 1) {
+					const child_ctx = get_each_context_1(ctx, each_value_1, i);
+
+					if (each_blocks[i]) {
+						each_blocks[i].p(child_ctx, dirty);
+						transition_in(each_blocks[i], 1);
+					} else {
+						each_blocks[i] = create_each_block_1(child_ctx);
+						each_blocks[i].c();
+						transition_in(each_blocks[i], 1);
+						each_blocks[i].m(tr, t);
+					}
+				}
+
+				group_outros();
+
+				for (i = each_value_1.length; i < each_blocks.length; i += 1) {
+					out(i);
+				}
+
+				check_outros();
+			}
+		},
+		i(local) {
+			if (current) return;
+
+			for (let i = 0; i < each_value_1.length; i += 1) {
+				transition_in(each_blocks[i]);
+			}
+
+			current = true;
+		},
+		o(local) {
+			each_blocks = each_blocks.filter(Boolean);
+
+			for (let i = 0; i < each_blocks.length; i += 1) {
+				transition_out(each_blocks[i]);
+			}
+
+			current = false;
+		},
+		d(detaching) {
+			if (detaching) {
+				detach(tr);
+			}
+
+			destroy_each(each_blocks, detaching);
+		}
+	};
+}
+
+function create_fragment$2(ctx) {
+	let div1;
+	let div0;
+	let t0;
+	let t1;
+	let t2;
+	let current;
+	let each_value_8 = ensure_array_like(togglePeriods);
+	let each_blocks = [];
+
+	for (let i = 0; i < each_value_8.length; i += 1) {
+		each_blocks[i] = create_each_block_8(get_each_context_8(ctx, each_value_8, i));
+	}
+
+	let if_block0 = /*crrView*/ ctx[0] === 'days' && create_if_block_3(ctx);
+	let if_block1 = /*crrView*/ ctx[0] === 'months' && create_if_block_1(ctx);
+	let if_block2 = /*crrView*/ ctx[0] === 'years' && create_if_block(ctx);
+
+	return {
+		c() {
+			div1 = element("div");
+			div0 = element("div");
+
+			for (let i = 0; i < each_blocks.length; i += 1) {
+				each_blocks[i].c();
+			}
+
+			t0 = space();
+			if (if_block0) if_block0.c();
+			t1 = space();
+			if (if_block1) if_block1.c();
+			t2 = space();
+			if (if_block2) if_block2.c();
+			attr(div0, "class", "flex rounded-md space-x-1 p-1 w-full svelte-1wybodm");
+			attr(div1, "id", "calendar-container");
+			attr(div1, "class", "container svelte-1wybodm");
+		},
+		m(target, anchor) {
+			insert(target, div1, anchor);
+			append(div1, div0);
+
+			for (let i = 0; i < each_blocks.length; i += 1) {
+				if (each_blocks[i]) {
+					each_blocks[i].m(div0, null);
+				}
+			}
+
+			append(div1, t0);
+			if (if_block0) if_block0.m(div1, null);
+			append(div1, t1);
+			if (if_block1) if_block1.m(div1, null);
+			append(div1, t2);
+			if (if_block2) if_block2.m(div1, null);
+			current = true;
+		},
+		p(ctx, dirty) {
+			if (dirty[0] & /*crrView*/ 1) {
+				each_value_8 = ensure_array_like(togglePeriods);
+				let i;
+
+				for (i = 0; i < each_value_8.length; i += 1) {
+					const child_ctx = get_each_context_8(ctx, each_value_8, i);
+
+					if (each_blocks[i]) {
+						each_blocks[i].p(child_ctx, dirty);
+					} else {
+						each_blocks[i] = create_each_block_8(child_ctx);
+						each_blocks[i].c();
+						each_blocks[i].m(div0, null);
+					}
+				}
+
+				for (; i < each_blocks.length; i += 1) {
+					each_blocks[i].d(1);
+				}
+
+				each_blocks.length = each_value_8.length;
+			}
+
+			if (/*crrView*/ ctx[0] === 'days') {
+				if (if_block0) {
+					if_block0.p(ctx, dirty);
+
+					if (dirty[0] & /*crrView*/ 1) {
+						transition_in(if_block0, 1);
+					}
+				} else {
+					if_block0 = create_if_block_3(ctx);
+					if_block0.c();
+					transition_in(if_block0, 1);
+					if_block0.m(div1, t1);
+				}
+			} else if (if_block0) {
+				group_outros();
+
+				transition_out(if_block0, 1, 1, () => {
+					if_block0 = null;
+				});
+
+				check_outros();
+			}
+
+			if (/*crrView*/ ctx[0] === 'months') {
+				if (if_block1) {
+					if_block1.p(ctx, dirty);
+
+					if (dirty[0] & /*crrView*/ 1) {
+						transition_in(if_block1, 1);
+					}
+				} else {
+					if_block1 = create_if_block_1(ctx);
+					if_block1.c();
+					transition_in(if_block1, 1);
+					if_block1.m(div1, t2);
+				}
+			} else if (if_block1) {
+				group_outros();
+
+				transition_out(if_block1, 1, 1, () => {
+					if_block1 = null;
+				});
+
+				check_outros();
+			}
+
+			if (/*crrView*/ ctx[0] === 'years') {
+				if (if_block2) {
+					if_block2.p(ctx, dirty);
+
+					if (dirty[0] & /*crrView*/ 1) {
+						transition_in(if_block2, 1);
+					}
+				} else {
+					if_block2 = create_if_block(ctx);
+					if_block2.c();
+					transition_in(if_block2, 1);
+					if_block2.m(div1, null);
+				}
+			} else if (if_block2) {
+				group_outros();
+
+				transition_out(if_block2, 1, 1, () => {
+					if_block2 = null;
+				});
+
+				check_outros();
+			}
+		},
+		i(local) {
+			if (current) return;
+			transition_in(if_block0);
+			transition_in(if_block1);
+			transition_in(if_block2);
+			current = true;
+		},
+		o(local) {
+			transition_out(if_block0);
+			transition_out(if_block1);
+			transition_out(if_block2);
 			current = false;
 		},
 		d(detaching) {
@@ -10890,7 +12613,9 @@ function create_fragment$2(ctx) {
 			}
 
 			destroy_each(each_blocks, detaching);
-			if (if_block) if_block.d();
+			if (if_block0) if_block0.d();
+			if (if_block1) if_block1.d();
+			if (if_block2) if_block2.d();
 		}
 	};
 }
@@ -10900,14 +12625,14 @@ function instance$2($$self, $$props, $$invalidate) {
 	let localizedWeekdaysShort;
 	let month;
 	let $settingsStore;
-	let $displayedDate;
+	let $displayedDateStore;
+	let $yearsRanges;
 	component_subscribe($$self, settingsStore, $$value => $$invalidate(5, $settingsStore = $$value));
+	component_subscribe($$self, displayedDateStore, $$value => $$invalidate(6, $displayedDateStore = $$value));
+	component_subscribe($$self, yearsRanges, $$value => $$invalidate(4, $yearsRanges = $$value));
 	window.dayjs.extend(weekOfYear);
 	window.dayjs.extend(isoWeek);
 	getContext(VIEW);
-	let displayedDate = writable(window.moment());
-	component_subscribe($$self, displayedDate, value => $$invalidate(6, $displayedDate = value));
-	setContext(DISPLAYED_DATE, displayedDate);
 	let crrView = 'days';
 
 	const reindexNotes = () => {
@@ -10919,48 +12644,15 @@ function instance$2($$self, $$props, $$invalidate) {
 	const click_handler = period => $$invalidate(0, crrView = period);
 
 	$$self.$$.update = () => {
-		if ($$self.$$.dirty & /*$settingsStore*/ 32) {
+		if ($$self.$$.dirty[0] & /*$settingsStore*/ 32) {
 			$$invalidate(3, { localeData: { showWeekNums, localizedWeekdaysShort } } = $settingsStore, showWeekNums, ($$invalidate(2, localizedWeekdaysShort), $$invalidate(5, $settingsStore)));
 		}
 
-		if ($$self.$$.dirty & /*$displayedDate*/ 64) {
-			$$invalidate(1, month = getMonth($displayedDate));
+		if ($$self.$$.dirty[0] & /*$displayedDateStore*/ 64) {
+			$$invalidate(1, month = getMonth($displayedDateStore));
 		}
 
-		if ($$self.$$.dirty & /*$settingsStore*/ 32) {
-			// let hoverTimeout: number;
-			// let showPopover: boolean = false;
-			// let popoverMetadata: IDayMetadata[];
-			// let hoveredDay = writable<HTMLElement>(null);
-			// const fileCache = new PeriodicNotesCache(plugin);
-			// function openPopover() {
-			//   showPopover = true;
-			// }
-			// function updatePopover(event: CustomEvent) {
-			//   const { metadata, target } = event.detail;
-			//   if (!showPopover) {
-			//     window.clearTimeout(hoverTimeout);
-			//     hoverTimeout = window.setTimeout(() => {
-			//       if ($hoveredDay === target) {
-			//         openPopover(); }
-			//     }, 750);
-			//   }
-			//   if ($hoveredDay !== target) {
-			//     hoveredDay.set(target);
-			//     popoverMetadata = metadata;
-			//   }
-			// }
-			// const dismissPopover = debounce(
-			//   (event: CustomEvent) => {
-			//     // if the user didn't hover onto another day
-			//     if ($hoveredDay === event.detail.target) {
-			//       hoveredDay.set(null);
-			//       showPopover = false;
-			//     }
-			//   },
-			//   250,
-			//   true
-			// );
+		if ($$self.$$.dirty[0] & /*$settingsStore*/ 32) {
 			(reindexNotes());
 		}
 	};
@@ -10970,9 +12662,9 @@ function instance$2($$self, $$props, $$invalidate) {
 		month,
 		localizedWeekdaysShort,
 		showWeekNums,
-		displayedDate,
+		$yearsRanges,
 		$settingsStore,
-		$displayedDate,
+		$displayedDateStore,
 		click_handler
 	];
 }
@@ -10980,14 +12672,14 @@ function instance$2($$self, $$props, $$invalidate) {
 class Calendar extends SvelteComponent {
 	constructor(options) {
 		super();
-		init(this, options, instance$2, create_fragment$2, safe_not_equal, {}, add_css$2);
+		init(this, options, instance$2, create_fragment$2, safe_not_equal, {}, add_css$2, [-1, -1]);
 	}
 }
 
 /* src/View.svelte generated by Svelte v4.2.0 */
 
 function add_css$1(target) {
-	append_styles(target, "svelte-1teib1k", ".container.svelte-1teib1k{width:100%\n}@media(min-width: 640px){.container.svelte-1teib1k{max-width:640px\n    }}@media(min-width: 768px){.container.svelte-1teib1k{max-width:768px\n    }}@media(min-width: 1024px){.container.svelte-1teib1k{max-width:1024px\n    }}@media(min-width: 1280px){.container.svelte-1teib1k{max-width:1280px\n    }}@media(min-width: 1536px){.container.svelte-1teib1k{max-width:1536px\n    }}.pointer-events-none.svelte-1teib1k{pointer-events:none\n}.invisible.svelte-1teib1k{visibility:hidden\n}.collapse.svelte-1teib1k{visibility:collapse\n}.absolute.svelte-1teib1k{position:absolute\n}.relative.svelte-1teib1k{position:relative\n}.left-0.svelte-1teib1k{left:0px\n}.top-0.svelte-1teib1k{top:0px\n}.m-0.svelte-1teib1k{margin:0px\n}.mx-\\[1px\\].svelte-1teib1k{margin-left:1px;margin-right:1px\n}.mt-2.svelte-1teib1k{margin-top:0.5rem\n}.mt-3.svelte-1teib1k{margin-top:0.75rem\n}.mt-7.svelte-1teib1k{margin-top:1.75rem\n}.block.svelte-1teib1k{display:block\n}.inline-block.svelte-1teib1k{display:inline-block\n}.flex.svelte-1teib1k{display:flex\n}.table.svelte-1teib1k{display:table\n}.contents.svelte-1teib1k{display:contents\n}.h-3.svelte-1teib1k{height:0.75rem\n}.h-\\[6px\\].svelte-1teib1k{height:6px\n}.w-3.svelte-1teib1k{width:0.75rem\n}.w-\\[6px\\].svelte-1teib1k{width:6px\n}.w-full.svelte-1teib1k{width:100%\n}.w-max.svelte-1teib1k{width:-moz-max-content;width:max-content\n}.border-collapse.svelte-1teib1k{border-collapse:collapse\n}.transform.svelte-1teib1k{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.cursor-default.svelte-1teib1k{cursor:default\n}.cursor-not-allowed.svelte-1teib1k{cursor:not-allowed\n}.cursor-pointer.svelte-1teib1k{cursor:pointer\n}.flex-wrap.svelte-1teib1k{flex-wrap:wrap\n}.items-center.svelte-1teib1k{align-items:center\n}.justify-between.svelte-1teib1k{justify-content:space-between\n}.rounded-md.svelte-1teib1k{border-radius:0.375rem\n}.border-0.svelte-1teib1k{border-width:0px\n}.bg-gray-100.svelte-1teib1k{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))\n}.p-1.svelte-1teib1k{padding:0.25rem\n}.px-4.svelte-1teib1k{padding-left:1rem;padding-right:1rem\n}.py-2.svelte-1teib1k{padding-top:0.5rem;padding-bottom:0.5rem\n}.pt-4.svelte-1teib1k{padding-top:1rem\n}.text-sm.svelte-1teib1k{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-1teib1k{font-size:0.75rem;line-height:1rem\n}.uppercase.svelte-1teib1k{text-transform:uppercase\n}.capitalize.svelte-1teib1k{text-transform:capitalize\n}.text-\\[--text-muted\\].svelte-1teib1k{color:var(--text-muted)\n}.text-\\[--text-on-accent\\].svelte-1teib1k{color:var(--text-on-accent)\n}.text-black.svelte-1teib1k{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))\n}.text-white.svelte-1teib1k{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))\n}.opacity-0.svelte-1teib1k{opacity:0\n}.opacity-50.svelte-1teib1k{opacity:0.5\n}.filter.svelte-1teib1k{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)\n}.transition.svelte-1teib1k{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms\n}.duration-300.svelte-1teib1k{transition-duration:300ms\n}.\\[all\\:inherit\\].svelte-1teib1k{all:inherit\n}.hover\\:cursor-pointer.svelte-1teib1k:hover{cursor:pointer\n}");
+	append_styles(target, "svelte-1w1xdpc", ".container.svelte-1w1xdpc{width:100%\n}@media(min-width: 640px){.container.svelte-1w1xdpc{max-width:640px\n    }}@media(min-width: 768px){.container.svelte-1w1xdpc{max-width:768px\n    }}@media(min-width: 1024px){.container.svelte-1w1xdpc{max-width:1024px\n    }}@media(min-width: 1280px){.container.svelte-1w1xdpc{max-width:1280px\n    }}@media(min-width: 1536px){.container.svelte-1w1xdpc{max-width:1536px\n    }}.pointer-events-none.svelte-1w1xdpc{pointer-events:none\n}.invisible.svelte-1w1xdpc{visibility:hidden\n}.collapse.svelte-1w1xdpc{visibility:collapse\n}.absolute.svelte-1w1xdpc{position:absolute\n}.relative.svelte-1w1xdpc{position:relative\n}.left-0.svelte-1w1xdpc{left:0px\n}.top-0.svelte-1w1xdpc{top:0px\n}.m-0.svelte-1w1xdpc{margin:0px\n}.mx-\\[1px\\].svelte-1w1xdpc{margin-left:1px;margin-right:1px\n}.mt-2.svelte-1w1xdpc{margin-top:0.5rem\n}.mt-3.svelte-1w1xdpc{margin-top:0.75rem\n}.mt-7.svelte-1w1xdpc{margin-top:1.75rem\n}.block.svelte-1w1xdpc{display:block\n}.inline-block.svelte-1w1xdpc{display:inline-block\n}.flex.svelte-1w1xdpc{display:flex\n}.table.svelte-1w1xdpc{display:table\n}.contents.svelte-1w1xdpc{display:contents\n}.h-3.svelte-1w1xdpc{height:0.75rem\n}.h-\\[6px\\].svelte-1w1xdpc{height:6px\n}.w-3.svelte-1w1xdpc{width:0.75rem\n}.w-\\[6px\\].svelte-1w1xdpc{width:6px\n}.w-full.svelte-1w1xdpc{width:100%\n}.w-max.svelte-1w1xdpc{width:-moz-max-content;width:max-content\n}.border-collapse.svelte-1w1xdpc{border-collapse:collapse\n}.transform.svelte-1w1xdpc{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.cursor-default.svelte-1w1xdpc{cursor:default\n}.cursor-not-allowed.svelte-1w1xdpc{cursor:not-allowed\n}.cursor-pointer.svelte-1w1xdpc{cursor:pointer\n}.items-center.svelte-1w1xdpc{align-items:center\n}.justify-between.svelte-1w1xdpc{justify-content:space-between\n}.rounded-md.svelte-1w1xdpc{border-radius:0.375rem\n}.border-0.svelte-1w1xdpc{border-width:0px\n}.bg-gray-100.svelte-1w1xdpc{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))\n}.p-1.svelte-1w1xdpc{padding:0.25rem\n}.px-4.svelte-1w1xdpc{padding-left:1rem;padding-right:1rem\n}.py-2.svelte-1w1xdpc{padding-top:0.5rem;padding-bottom:0.5rem\n}.pt-4.svelte-1w1xdpc{padding-top:1rem\n}.text-sm.svelte-1w1xdpc{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-1w1xdpc{font-size:0.75rem;line-height:1rem\n}.uppercase.svelte-1w1xdpc{text-transform:uppercase\n}.capitalize.svelte-1w1xdpc{text-transform:capitalize\n}.text-\\[--text-muted\\].svelte-1w1xdpc{color:var(--text-muted)\n}.text-\\[--text-on-accent\\].svelte-1w1xdpc{color:var(--text-on-accent)\n}.text-black.svelte-1w1xdpc{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))\n}.text-white.svelte-1w1xdpc{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))\n}.opacity-0.svelte-1w1xdpc{opacity:0\n}.opacity-50.svelte-1w1xdpc{opacity:0.5\n}.transition.svelte-1w1xdpc{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms\n}.duration-300.svelte-1w1xdpc{transition-duration:300ms\n}.\\[all\\:inherit\\].svelte-1w1xdpc{all:inherit\n}.hover\\:cursor-pointer.svelte-1w1xdpc:hover{cursor:pointer\n}");
 }
 
 function create_fragment$1(ctx) {
@@ -11002,7 +12694,7 @@ function create_fragment$1(ctx) {
 		c() {
 			div = element("div");
 			create_component(calendar.$$.fragment);
-			attr(div, "class", div_class_value = "" + (null_to_empty(clsx(/*popup*/ ctx[0] && 'w-max opacity-0 pointer-events-none absolute top-0 left-0 duration-300')) + " svelte-1teib1k"));
+			attr(div, "class", div_class_value = "" + (null_to_empty(clsx(/*popup*/ ctx[0] && 'w-max opacity-0 pointer-events-none absolute top-0 left-0 duration-300')) + " svelte-1w1xdpc"));
 			attr(div, "data-popup", div_data_popup_value = /*popup*/ ctx[0] && 'calendarPopup');
 		},
 		m(target, anchor) {
@@ -11011,7 +12703,7 @@ function create_fragment$1(ctx) {
 			current = true;
 		},
 		p(ctx, [dirty]) {
-			if (!current || dirty & /*popup*/ 1 && div_class_value !== (div_class_value = "" + (null_to_empty(clsx(/*popup*/ ctx[0] && 'w-max opacity-0 pointer-events-none absolute top-0 left-0 duration-300')) + " svelte-1teib1k"))) {
+			if (!current || dirty & /*popup*/ 1 && div_class_value !== (div_class_value = "" + (null_to_empty(clsx(/*popup*/ ctx[0] && 'w-max opacity-0 pointer-events-none absolute top-0 left-0 duration-300')) + " svelte-1w1xdpc"))) {
 				attr(div, "class", div_class_value);
 			}
 
@@ -11039,19 +12731,51 @@ function create_fragment$1(ctx) {
 }
 
 function instance$1($$self, $$props, $$invalidate) {
+	let $displayedDateStore;
+	component_subscribe($$self, displayedDateStore, $$value => $$invalidate(3, $displayedDateStore = $$value));
 	let { popup = false } = $$props;
+
+	function rerenderCalendar() {
+		rerenderStore.update(val => ({ ...val, rerender: true }));
+	}
+
+	let today = window.moment();
+
+	let heartbeat = setInterval(
+		() => {
+			// update today
+			today = window.moment();
+
+			// update displayedDateStore to new current date only if new current date is one day ahead.
+			// useful to update the display with the new month, year or years range
+			if (today.isSame($displayedDateStore.clone().add(1, 'day'))) {
+				console.log('⚙⚙⚙ RERENDERING CALENdAR ⚙⚙⚙️');
+				displayedDateStore.set(today);
+				rerenderCalendar();
+			}
+		},
+		1000 * 60
+	);
+
+	onDestroy(() => {
+		clearInterval(heartbeat);
+	});
 
 	$$self.$$set = $$props => {
 		if ('popup' in $$props) $$invalidate(0, popup = $$props.popup);
 	};
 
-	return [popup];
+	return [popup, rerenderCalendar];
 }
 
 class View extends SvelteComponent {
 	constructor(options) {
 		super();
-		init(this, options, instance$1, create_fragment$1, safe_not_equal, { popup: 0 }, add_css$1);
+		init(this, options, instance$1, create_fragment$1, safe_not_equal, { popup: 0, rerenderCalendar: 1 }, add_css$1);
+	}
+
+	get rerenderCalendar() {
+		return this.$$.ctx[1];
 	}
 }
 
@@ -11111,6 +12835,19 @@ class CalendarView extends obsidian.ItemView {
         });
         this.updateActiveFile();
     }
+    onFileCreated(file) {
+        console.log('onFileCreated() > file: ', file);
+        if (this.app.workspace.layoutReady && this.view) {
+            granularities.forEach((granularity) => {
+                // only store note from notes folder if filename represents a valid date
+                if (getDateFromFile(file, granularity)) {
+                    notesStores[granularity].reindex();
+                    console.log("File creatd, running rerenderCalendar()");
+                    this.view.rerenderCalendar();
+                }
+            });
+        }
+    }
     async onFileDeleted(file) {
         granularities.forEach((granularity) => {
             if (getDateFromFile(file, granularity)) {
@@ -11121,19 +12858,9 @@ class CalendarView extends obsidian.ItemView {
     }
     async onFileModified(file) {
         const date = getDateFromFile(file, 'day') || getDateFromFile(file, 'week');
-        if (date && this.view) ;
-    }
-    onFileCreated(file) {
-        console.log('onFileCreated() > file: ', file);
-        if (this.app.workspace.layoutReady && this.view) {
-            // do this ifs for every single granularity
-            granularities.forEach((granularity) => {
-                // only add new note from notes folder to store if a date can be obtained from filename
-                if (getDateFromFile(file, granularity)) {
-                    notesStores[granularity].reindex();
-                    // this.view.tick();
-                }
-            });
+        if (date && this.view) {
+            console.log("File modified, running rerenderCalendar()");
+            this.view.rerenderCalendar();
         }
     }
     onFileOpen() {
@@ -11205,10 +12932,11 @@ class CalendarView extends obsidian.ItemView {
                         break;
                     }
                 }
-                // save file in store activeFile
+                // save file in activeFile store
                 if (noteDate && noteGranularity) {
                     activeFile.setFile(getDateUID(noteDate, noteGranularity));
-                    this.view && this.view.tick();
+                    console.log("update active file, running rerenderCalendar()");
+                    this.view && this.view.rerenderCalendar();
                 }
             }
         }
@@ -11224,7 +12952,7 @@ class CalendarView extends obsidian.ItemView {
 /* src/calendar-ui/components/Nldatepicker.svelte generated by Svelte v4.2.0 */
 
 function add_css(target) {
-	append_styles(target, "svelte-1teib1k", ".container.svelte-1teib1k{width:100%\n}@media(min-width: 640px){.container.svelte-1teib1k{max-width:640px\n    }}@media(min-width: 768px){.container.svelte-1teib1k{max-width:768px\n    }}@media(min-width: 1024px){.container.svelte-1teib1k{max-width:1024px\n    }}@media(min-width: 1280px){.container.svelte-1teib1k{max-width:1280px\n    }}@media(min-width: 1536px){.container.svelte-1teib1k{max-width:1536px\n    }}.pointer-events-none.svelte-1teib1k{pointer-events:none\n}.invisible.svelte-1teib1k{visibility:hidden\n}.collapse.svelte-1teib1k{visibility:collapse\n}.absolute.svelte-1teib1k{position:absolute\n}.relative.svelte-1teib1k{position:relative\n}.left-0.svelte-1teib1k{left:0px\n}.top-0.svelte-1teib1k{top:0px\n}.m-0.svelte-1teib1k{margin:0px\n}.mx-\\[1px\\].svelte-1teib1k{margin-left:1px;margin-right:1px\n}.mt-2.svelte-1teib1k{margin-top:0.5rem\n}.mt-3.svelte-1teib1k{margin-top:0.75rem\n}.mt-7.svelte-1teib1k{margin-top:1.75rem\n}.block.svelte-1teib1k{display:block\n}.inline-block.svelte-1teib1k{display:inline-block\n}.flex.svelte-1teib1k{display:flex\n}.table.svelte-1teib1k{display:table\n}.contents.svelte-1teib1k{display:contents\n}.h-3.svelte-1teib1k{height:0.75rem\n}.h-\\[6px\\].svelte-1teib1k{height:6px\n}.w-3.svelte-1teib1k{width:0.75rem\n}.w-\\[6px\\].svelte-1teib1k{width:6px\n}.w-full.svelte-1teib1k{width:100%\n}.w-max.svelte-1teib1k{width:-moz-max-content;width:max-content\n}.border-collapse.svelte-1teib1k{border-collapse:collapse\n}.transform.svelte-1teib1k{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.cursor-default.svelte-1teib1k{cursor:default\n}.cursor-not-allowed.svelte-1teib1k{cursor:not-allowed\n}.cursor-pointer.svelte-1teib1k{cursor:pointer\n}.flex-wrap.svelte-1teib1k{flex-wrap:wrap\n}.items-center.svelte-1teib1k{align-items:center\n}.justify-between.svelte-1teib1k{justify-content:space-between\n}.rounded-md.svelte-1teib1k{border-radius:0.375rem\n}.border-0.svelte-1teib1k{border-width:0px\n}.bg-gray-100.svelte-1teib1k{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))\n}.p-1.svelte-1teib1k{padding:0.25rem\n}.px-4.svelte-1teib1k{padding-left:1rem;padding-right:1rem\n}.py-2.svelte-1teib1k{padding-top:0.5rem;padding-bottom:0.5rem\n}.pt-4.svelte-1teib1k{padding-top:1rem\n}.text-sm.svelte-1teib1k{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-1teib1k{font-size:0.75rem;line-height:1rem\n}.uppercase.svelte-1teib1k{text-transform:uppercase\n}.capitalize.svelte-1teib1k{text-transform:capitalize\n}.text-\\[--text-muted\\].svelte-1teib1k{color:var(--text-muted)\n}.text-\\[--text-on-accent\\].svelte-1teib1k{color:var(--text-on-accent)\n}.text-black.svelte-1teib1k{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))\n}.text-white.svelte-1teib1k{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))\n}.opacity-0.svelte-1teib1k{opacity:0\n}.opacity-50.svelte-1teib1k{opacity:0.5\n}.filter.svelte-1teib1k{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)\n}.transition.svelte-1teib1k{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms\n}.duration-300.svelte-1teib1k{transition-duration:300ms\n}.\\[all\\:inherit\\].svelte-1teib1k{all:inherit\n}.hover\\:cursor-pointer.svelte-1teib1k:hover{cursor:pointer\n}");
+	append_styles(target, "svelte-1w1xdpc", ".container.svelte-1w1xdpc{width:100%\n}@media(min-width: 640px){.container.svelte-1w1xdpc{max-width:640px\n    }}@media(min-width: 768px){.container.svelte-1w1xdpc{max-width:768px\n    }}@media(min-width: 1024px){.container.svelte-1w1xdpc{max-width:1024px\n    }}@media(min-width: 1280px){.container.svelte-1w1xdpc{max-width:1280px\n    }}@media(min-width: 1536px){.container.svelte-1w1xdpc{max-width:1536px\n    }}.pointer-events-none.svelte-1w1xdpc{pointer-events:none\n}.invisible.svelte-1w1xdpc{visibility:hidden\n}.collapse.svelte-1w1xdpc{visibility:collapse\n}.absolute.svelte-1w1xdpc{position:absolute\n}.relative.svelte-1w1xdpc{position:relative\n}.left-0.svelte-1w1xdpc{left:0px\n}.top-0.svelte-1w1xdpc{top:0px\n}.m-0.svelte-1w1xdpc{margin:0px\n}.mx-\\[1px\\].svelte-1w1xdpc{margin-left:1px;margin-right:1px\n}.mt-2.svelte-1w1xdpc{margin-top:0.5rem\n}.mt-3.svelte-1w1xdpc{margin-top:0.75rem\n}.mt-7.svelte-1w1xdpc{margin-top:1.75rem\n}.block.svelte-1w1xdpc{display:block\n}.inline-block.svelte-1w1xdpc{display:inline-block\n}.flex.svelte-1w1xdpc{display:flex\n}.table.svelte-1w1xdpc{display:table\n}.contents.svelte-1w1xdpc{display:contents\n}.h-3.svelte-1w1xdpc{height:0.75rem\n}.h-\\[6px\\].svelte-1w1xdpc{height:6px\n}.w-3.svelte-1w1xdpc{width:0.75rem\n}.w-\\[6px\\].svelte-1w1xdpc{width:6px\n}.w-full.svelte-1w1xdpc{width:100%\n}.w-max.svelte-1w1xdpc{width:-moz-max-content;width:max-content\n}.border-collapse.svelte-1w1xdpc{border-collapse:collapse\n}.transform.svelte-1w1xdpc{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.cursor-default.svelte-1w1xdpc{cursor:default\n}.cursor-not-allowed.svelte-1w1xdpc{cursor:not-allowed\n}.cursor-pointer.svelte-1w1xdpc{cursor:pointer\n}.items-center.svelte-1w1xdpc{align-items:center\n}.justify-between.svelte-1w1xdpc{justify-content:space-between\n}.rounded-md.svelte-1w1xdpc{border-radius:0.375rem\n}.border-0.svelte-1w1xdpc{border-width:0px\n}.bg-gray-100.svelte-1w1xdpc{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))\n}.p-1.svelte-1w1xdpc{padding:0.25rem\n}.px-4.svelte-1w1xdpc{padding-left:1rem;padding-right:1rem\n}.py-2.svelte-1w1xdpc{padding-top:0.5rem;padding-bottom:0.5rem\n}.pt-4.svelte-1w1xdpc{padding-top:1rem\n}.text-sm.svelte-1w1xdpc{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-1w1xdpc{font-size:0.75rem;line-height:1rem\n}.uppercase.svelte-1w1xdpc{text-transform:uppercase\n}.capitalize.svelte-1w1xdpc{text-transform:capitalize\n}.text-\\[--text-muted\\].svelte-1w1xdpc{color:var(--text-muted)\n}.text-\\[--text-on-accent\\].svelte-1w1xdpc{color:var(--text-on-accent)\n}.text-black.svelte-1w1xdpc{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))\n}.text-white.svelte-1w1xdpc{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))\n}.opacity-0.svelte-1w1xdpc{opacity:0\n}.opacity-50.svelte-1w1xdpc{opacity:0.5\n}.transition.svelte-1w1xdpc{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms\n}.duration-300.svelte-1w1xdpc{transition-duration:300ms\n}.\\[all\\:inherit\\].svelte-1w1xdpc{all:inherit\n}.hover\\:cursor-pointer.svelte-1w1xdpc:hover{cursor:pointer\n}");
 }
 
 function get_each_context(ctx, list, i) {
@@ -11343,7 +13071,7 @@ function create_fragment(ctx) {
 			attr(input0, "spellcheck", "false");
 			attr(input0, "placeholder", "Today");
 			attr(div3, "class", "setting-item-control");
-			attr(div4, "class", "setting-item border-0 svelte-1teib1k");
+			attr(div4, "class", "setting-item border-0 svelte-1w1xdpc");
 			attr(div7, "class", "setting-item-info");
 			attr(input1, "type", "text");
 			attr(input1, "spellcheck", "false");
@@ -11355,16 +13083,16 @@ function create_fragment(ctx) {
 			if (/*granularity*/ ctx[3] === void 0) add_render_callback(() => /*select_change_handler*/ ctx[11].call(select));
 			attr(div13, "class", "setting-item-control");
 			attr(div14, "class", "setting-item");
-			attr(button0, "class", "cursor-pointer svelte-1teib1k");
+			attr(button0, "class", "cursor-pointer svelte-1w1xdpc");
 
 			attr(button1, "class", button1_class_value = "" + (null_to_empty(`mod-cta ${/*parsedDate*/ ctx[4]
 			? 'cursor-pointer'
-			: 'cursor-not-allowed opacity-50'}`) + " svelte-1teib1k"));
+			: 'cursor-not-allowed opacity-50'}`) + " svelte-1w1xdpc"));
 
 			attr(button1, "aria-disabled", button1_aria_disabled_value = !Boolean(/*parsedDate*/ ctx[4]));
 			button1.disabled = button1_disabled_value = !Boolean(/*parsedDate*/ ctx[4]);
-			attr(div15, "class", "modal-button-container mt-3 svelte-1teib1k");
-			attr(div16, "class", "pt-4 svelte-1teib1k");
+			attr(div15, "class", "modal-button-container mt-3 svelte-1w1xdpc");
+			attr(div16, "class", "pt-4 svelte-1w1xdpc");
 		},
 		m(target, anchor) {
 			insert(target, div16, anchor);
@@ -11436,7 +13164,7 @@ function create_fragment(ctx) {
 
 			if (dirty & /*parsedDate*/ 16 && button1_class_value !== (button1_class_value = "" + (null_to_empty(`mod-cta ${/*parsedDate*/ ctx[4]
 			? 'cursor-pointer'
-			: 'cursor-not-allowed opacity-50'}`) + " svelte-1teib1k"))) {
+			: 'cursor-not-allowed opacity-50'}`) + " svelte-1w1xdpc"))) {
 				attr(button1, "class", button1_class_value);
 			}
 

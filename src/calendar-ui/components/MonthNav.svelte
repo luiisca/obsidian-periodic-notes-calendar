@@ -4,39 +4,47 @@
 	import type { Moment } from 'moment';
 
 	import Arrow from './Arrow.svelte';
-	import { DISPLAYED_DATE, VIEW } from '../context';
+	import { VIEW } from '../context';
 	import Dot from './Dot.svelte';
 	import type { ICalendarViewCtx } from '@/view';
 	import { isMetaPressed } from '../utils';
-	import { yearsRanges } from '@/stores';
+	import { displayedDateStore, yearsRanges } from '@/stores';
 
-	export let today: Moment;
+	let today: Moment;
+	$: $displayedDateStore, (today = window.moment());
 
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
-	let displayedDate = getContext<Writable<Moment>>(DISPLAYED_DATE);
 
 	function decrementdisplayedDate() {
 		let newYear = 0;
-		displayedDate.update((date) => {
+		displayedDateStore.update((date) => {
 			const newDate = date.clone().subtract(1, 'month');
 			newYear = newDate.year();
 
 			return newDate;
 		});
 
-		yearsRanges.updateRanges({ year: newYear, action: 'decrement' });
+		const crrRange = $yearsRanges.ranges[$yearsRanges.crrRangeIndex];
+		const crrRangeStartYear = crrRange.split('-')[0];
+		if (newYear < +crrRangeStartYear) {
+			yearsRanges.updateRanges({ action: 'decrement' });
+		}
 	}
 
 	function incrementdisplayedDate() {
 		let newYear = 0;
-		displayedDate.update((date) => {
+		displayedDateStore.update((date) => {
 			const newDate = date.clone().add(1, 'month');
 			newYear = newDate.year();
 
 			return newDate;
 		});
 
-		yearsRanges.updateRanges({ year: newYear, action: 'increment' });
+		const crrRange = $yearsRanges.ranges[$yearsRanges.crrRangeIndex];
+		const crrRangeEndYear = crrRange.split('-')[1];
+		if (newYear > +crrRangeEndYear) {
+			yearsRanges.updateRanges({ action: 'increment' });
+		}
 	}
 
 	function resetdisplayedDate() {
@@ -45,70 +53,61 @@
 			crrRangeIndex: values.ranges.findIndex((range) => range === values.todayRange)
 		}));
 
-		displayedDate.set(today.clone());
+		displayedDateStore.set(today.clone());
 	}
 
 	let showingCurrentMonth: boolean;
-	$: showingCurrentMonth = $displayedDate.isSame(today, 'month');
+	$: showingCurrentMonth = $displayedDateStore.isSame(today, 'month');
 </script>
 
 <div class="nav">
-	<!-- <Month
-    fileCache="{fileCache}"
-    getSourceSettings="{getSourceSettings}"
-    resetdisplayedDate="{resetdisplayedDate}"
-    {...eventHandlers}
-    on:hoverDay
-    on:endHoverDay
-  /> -->
-	<div
-	
-	>
+	<div>
 		<span class="flex justify-between title">
-			<button class="month [all:inherit]"
-		on:click={(event) =>
-			eventHandlers.onClick({
-				date: $displayedDate,
-				isNewSplit: isMetaPressed(event),
-				granularity: 'month'
-			})}
-		on:contextmenu={(event) =>
-			eventHandlers.onContextMenu({ date: $displayedDate, event, granularity: 'month' })}
-		on:pointerenter={(event) => {
-			eventHandlers.onHover({
-				date: $displayedDate,
-				targetEl: event.target,
-				isMetaPressed: isMetaPressed(event),
-				granularity: 'month'
-			});
-		}}
+			<button
+				class="month [all:inherit]"
+				on:click={(event) =>
+					eventHandlers.onClick({
+						date: $displayedDateStore,
+						isNewSplit: isMetaPressed(event),
+						granularity: 'month'
+					})}
+				on:contextmenu={(event) =>
+					eventHandlers.onContextMenu({ date: $displayedDateStore, event, granularity: 'month' })}
+				on:pointerenter={(event) => {
+					eventHandlers.onHover({
+						date: $displayedDateStore,
+						targetEl: event.target,
+						isMetaPressed: isMetaPressed(event),
+						granularity: 'month'
+					});
+				}}
 			>
-				{$displayedDate.format('MMMM')}
+				{$displayedDateStore.format('MMMM')}
 			</button>
 			<button
 				class="year [all:inherit]"
 				on:click={(event) =>
 					eventHandlers.onClick({
-						date: $displayedDate.startOf('year'),
+						date: $displayedDateStore.startOf('year'),
 						isNewSplit: isMetaPressed(event),
 						granularity: 'year'
 					})}
 				on:contextmenu={(event) =>
 					eventHandlers.onContextMenu({
-						date: $displayedDate.startOf('year'),
+						date: $displayedDateStore.startOf('year'),
 						event,
 						granularity: 'year'
 					})}
 				on:pointerenter={(event) => {
 					eventHandlers.onHover({
-						date: $displayedDate.startOf('year'),
+						date: $displayedDateStore.startOf('year'),
 						targetEl: event.target,
 						isMetaPressed: isMetaPressed(event),
 						granularity: 'year'
 					});
 				}}
 			>
-				{$displayedDate.format('YYYY')}
+				{$displayedDateStore.format('YYYY')}
 			</button>
 		</span>
 	</div>

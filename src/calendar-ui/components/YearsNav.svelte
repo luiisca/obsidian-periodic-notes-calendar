@@ -1,65 +1,21 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
-	import type { Writable } from 'svelte/store';
-	import type { Moment } from 'moment';
-
-	import Arrow from './Arrow.svelte';
-	import { DISPLAYED_DATE, VIEW } from '../context';
-	import Dot from './Dot.svelte';
-	import type { ICalendarViewCtx } from '@/view';
-	import { isMetaPressed } from '../utils';
-	import { yearsRanges } from '@/stores';
 	import { YEARS_RANGE_SIZE } from '@/constants';
+	import Arrow from './Arrow.svelte';
+	import Dot from './Dot.svelte';
+	import { displayedDateStore, yearsRanges } from '@/stores';
 
-	export let today: Moment;
+	const todayMoment = window.moment();
 
-	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
-	let displayedDate = getContext<Writable<Moment>>(DISPLAYED_DATE);
+	function decrementdisplayedYearRange() {
+		console.log('decrementdisplayedYearRange() > yearsRanges store: ', $yearsRanges);
 
-	function decrementdisplayedDate() {
-		console.log('decrementdisplayedDate() > yearsRanges store: ', $yearsRanges);
-		let newYear = 0;
-		displayedDate.update((date) => {
-			const newDate = date.clone().subtract(YEARS_RANGE_SIZE, 'year');
-			newYear = newDate.year();
-
-			return newDate;
-		});
-
-		const prevRange = $yearsRanges.ranges[$yearsRanges.crrRangeIndex - 1];
-		if (prevRange) {
-			if ($yearsRanges.crrRangeIndex > 0) {
-				yearsRanges.updateCrrRangeIndex({ modifier: -1 });
-			}
-
-			return;
-		}
-
-		yearsRanges.addNewRange({ year: +newYear + YEARS_RANGE_SIZE - 1, action: 'decrement' });
-		if ($yearsRanges.crrRangeIndex > 0) {
-			yearsRanges.updateCrrRangeIndex({ modifier: -1 });
-		}
+		yearsRanges.updateRanges({ action: 'decrement', displayedDateModifier: -YEARS_RANGE_SIZE });
 	}
 
 	function incrementdisplayedDate() {
 		console.log('incrementedisplayedDate() > yearsRanges store: ', $yearsRanges);
-		let newYear = 0;
-		displayedDate.update((date) => {
-			const newDate = date.clone().add(YEARS_RANGE_SIZE, 'year');
-			newYear = newDate.year();
 
-			return newDate;
-		});
-
-		const nextRange = $yearsRanges.ranges[$yearsRanges.crrRangeIndex + 1];
-		if (nextRange) {
-			yearsRanges.updateCrrRangeIndex({ modifier: +1 });
-
-			return;
-		}
-
-		yearsRanges.addNewRange({ year: +newYear, action: 'increment' });
-		yearsRanges.updateCrrRangeIndex({ modifier: +1 });
+		yearsRanges.updateRanges({ action: 'increment' });
 	}
 
 	function resetdisplayedDate() {
@@ -68,11 +24,17 @@
 			crrRangeIndex: values.ranges.findIndex((range) => range === values.todayRange)
 		}));
 
-		displayedDate.set(today.clone());
+		displayedDateStore.set(todayMoment.clone());
 	}
 
-	let showingCurrentMonth: boolean;
-	$: showingCurrentMonth = $displayedDate.isSame(today, 'year');
+	let showingCurrentRange: boolean;
+	$: $displayedDateStore,
+		(() => {
+			showingCurrentRange =
+				$yearsRanges.todayRange === $yearsRanges.ranges[$yearsRanges.crrRangeIndex];
+			// select or create new range every time displayed date updates
+			yearsRanges.selectOrCreateRanges();
+		})();
 </script>
 
 <div class="nav">
@@ -86,14 +48,14 @@
 
 	<div class="right-nav">
 		<!-- TODO: add tab support -->
-		<Arrow direction="left" onClick={decrementdisplayedDate} tooltip="Previous Year" />
+		<Arrow direction="left" onClick={decrementdisplayedYearRange} tooltip="Previous Year" />
 		<button
-			aria-label={!showingCurrentMonth ? 'Reset to current year' : null}
+			aria-label={!showingCurrentRange ? 'Reset to current year' : null}
 			class="reset-button"
-			class:active={showingCurrentMonth}
+			class:active={showingCurrentRange}
 			on:click={resetdisplayedDate}
 		>
-			<Dot class="h-3 w-3" isFilled={showingCurrentMonth} />
+			<Dot class="h-3 w-3" isFilled={showingCurrentRange} />
 		</button>
 		<Arrow direction="right" onClick={incrementdisplayedDate} tooltip="Next Year" />
 	</div>

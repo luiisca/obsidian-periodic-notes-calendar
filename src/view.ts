@@ -135,6 +135,21 @@ export class CalendarView extends ItemView {
 		this.updateActiveFile();
 	}
 
+	private onFileCreated(file: TFile) {
+		console.log('onFileCreated() > file: ', file);
+
+		if (this.app.workspace.layoutReady && this.view) {
+			granularities.forEach((granularity) => {
+				// only store note from notes folder if filename represents a valid date
+				if (getDateFromFile(file, granularity)) {
+					notesStores[granularity].reindex();
+					console.log("File creatd, running rerenderCalendar()")
+					this.view.rerenderCalendar();
+				}
+			});
+		}
+	}
+
 	private async onFileDeleted(file: TFile): Promise<void> {
 		granularities.forEach((granularity) => {
 			if (getDateFromFile(file, granularity)) {
@@ -147,23 +162,8 @@ export class CalendarView extends ItemView {
 	private async onFileModified(file: TFile): Promise<void> {
 		const date = getDateFromFile(file, 'day') || getDateFromFile(file, 'week');
 		if (date && this.view) {
-			// this.view.tick();
-		}
-	}
-
-	private onFileCreated(file: TFile) {
-		console.log('onFileCreated() > file: ', file);
-
-		if (this.app.workspace.layoutReady && this.view) {
-			// do this ifs for every single granularity
-
-			granularities.forEach((granularity) => {
-				// only add new note from notes folder to store if a date can be obtained from filename
-				if (getDateFromFile(file, granularity)) {
-					notesStores[granularity].reindex();
-					// this.view.tick();
-				}
-			});
+					console.log("File modified, running rerenderCalendar()")
+			this.view.rerenderCalendar();
 		}
 	}
 
@@ -258,11 +258,12 @@ export class CalendarView extends ItemView {
 					}
 				}
 
-				// save file in store activeFile
+				// save file in activeFile store
 				if (noteDate && noteGranularity) {
 					activeFile.setFile(getDateUID(noteDate, noteGranularity));
 
-					this.view && this.view.tick();
+					console.log("update active file, running rerenderCalendar()")
+					this.view && this.view.rerenderCalendar();
 				}
 			}
 		}

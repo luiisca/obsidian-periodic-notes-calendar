@@ -1,42 +1,52 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
-	import type { Writable } from 'svelte/store';
 	import type { Moment } from 'moment';
 
 	import Arrow from './Arrow.svelte';
-	import { DISPLAYED_DATE, VIEW } from '../context';
+	import { VIEW } from '../context';
 	import Dot from './Dot.svelte';
 	import type { ICalendarViewCtx } from '@/view';
 	import { isMetaPressed } from '../utils';
-	import { yearsRanges } from '@/stores';
+	import { displayedDateStore, yearsRanges } from '@/stores';
+	import { YEARS_RANGE_SIZE } from '@/constants';
 
-	export let today: Moment;
+	let today: Moment;
+	$: $displayedDateStore, (today = window.moment());
 
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
-	let displayedDate = getContext<Writable<Moment>>(DISPLAYED_DATE);
 
-	function decrementdisplayedDate() {
+	function decrementdisplayedYear() {
 		let newYear = 0;
-		displayedDate.update((date) => {
+		displayedDateStore.update((date) => {
 			const newDate = date.clone().subtract(1, 'year');
 			newYear = newDate.year();
 
 			return newDate;
 		});
 
-		yearsRanges.updateRanges({ year: newYear, action: 'decrement' });
+		const { ranges, crrRangeIndex } = $yearsRanges;
+		const crrRange = ranges[crrRangeIndex];
+		const [crrRangeStartYear] = crrRange.split('-');
+		if (newYear < +crrRangeStartYear) {
+			yearsRanges.updateRanges({ action: 'decrement' });
+		}
 	}
 
 	function incrementdisplayedDate() {
 		let newYear = 0;
-		displayedDate.update((date) => {
+		displayedDateStore.update((date) => {
 			const newDate = date.clone().add(1, 'year');
 			newYear = newDate.year();
 
 			return newDate;
 		});
 
-		yearsRanges.updateRanges({ year: newYear, action: 'increment' });
+		const { ranges, crrRangeIndex } = $yearsRanges;
+		const crrRange = ranges[crrRangeIndex];
+		const [_, crrRangeEndYear] = crrRange.split('-');
+		if (newYear > +crrRangeEndYear) {
+			yearsRanges.updateRanges({ action: 'increment' });
+		}
 	}
 
 	function resetdisplayedDate() {
@@ -45,11 +55,16 @@
 			crrRangeIndex: values.ranges.findIndex((range) => range === values.todayRange)
 		}));
 
-		displayedDate.set(today.clone());
+		displayedDateStore.set(today.clone());
 	}
 
-	let showingCurrentMonth: boolean;
-	$: showingCurrentMonth = $displayedDate.isSame(today, 'year');
+	let showingCurrentYear: boolean;
+	$: $displayedDateStore,
+		(() => {
+			showingCurrentYear = $displayedDateStore.isSame(today, 'year');
+			// select or create new range every time displayed date updates
+			yearsRanges.selectOrCreateRanges();
+		})();
 </script>
 
 <div class="nav">
@@ -59,26 +74,26 @@
 				class="month [all:inherit]"
 				on:click={(event) =>
 					eventHandlers.onClick({
-						date: $displayedDate,
+						date: $displayedDateStore,
 						isNewSplit: isMetaPressed(event),
 						granularity: 'year'
 					})}
 				on:contextmenu={(event) =>
 					eventHandlers.onContextMenu({
-						date: $displayedDate,
+						date: $displayedDateStore,
 						event,
 						granularity: 'year'
 					})}
 				on:pointerenter={(event) => {
 					eventHandlers.onHover({
-						date: $displayedDate,
+						date: $displayedDateStore,
 						targetEl: event.target,
 						isMetaPressed: isMetaPressed(event),
 						granularity: 'year'
 					});
 				}}
 			>
-				{$displayedDate.format('YYYY')}
+				{$displayedDateStore.format('YYYY')}
 			</button>
 			<span class="year cursor-default">
 				{$yearsRanges.ranges?.[$yearsRanges.crrRangeIndex] || ''}
@@ -88,14 +103,14 @@
 
 	<div class="right-nav">
 		<!-- TODO: add tab support -->
-		<Arrow direction="left" onClick={decrementdisplayedDate} tooltip="Previous Year" />
+		<Arrow direction="left" onClick={decrementdisplayedYear} tooltip="Previous Year" />
 		<button
-			aria-label={!showingCurrentMonth ? 'Reset to current year' : null}
+			aria-label={!showingCurrentYear ? 'Reset to current year' : null}
 			class="reset-button"
-			class:active={showingCurrentMonth}
+			class:active={showingCurrentYear}
 			on:click={resetdisplayedDate}
 		>
-			<Dot class="h-3 w-3" isFilled={showingCurrentMonth} />
+			<Dot class="h-3 w-3" isFilled={showingCurrentYear} />
 		</button>
 		<Arrow direction="right" onClick={incrementdisplayedDate} tooltip="Next Year" />
 	</div>

@@ -1,6 +1,6 @@
 {
   "viewOpen": false,
-  "shouldConfirmBeforeCreate": true,
+  "shouldConfirmBeforeCreate": false,
   "yearsRangesStart": 2020,
   "autoHoverPreview": true,
   "crrNldModalGranularity": "day",

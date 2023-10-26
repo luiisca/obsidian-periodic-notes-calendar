@@ -35,120 +35,167 @@ function createNotesStore(granularity: IGranularity) {
 
 type IRanges = `${string}-${string}`[];
 function createYearsRangesStore() {
-	console.log('stores.ts > createYearsRangesStore() 🏪');
+	const defaultRange = `${DEFAULT_SETTINGS.yearsRangesStart}-${
+		DEFAULT_SETTINGS.yearsRangesStart + YEARS_RANGE_SIZE - 1
+	}` as `${string}-${string}`;
 	const store = writable<{
 		ranges: IRanges;
 		todayRange: `${string}-${string}`;
 		crrRangeIndex: number;
-	}>();
+	}>({
+		ranges: [defaultRange],
+		todayRange: defaultRange,
+		crrRangeIndex: 0
+	});
 
-	const defaultStart = DEFAULT_SETTINGS.yearsRangesStart;
-	const crrYear = window.moment().year();
-	const ranges: IRanges = [];
-	let lastRangeYear = 0;
+	const addNewRange = ({
+		startYear,
+		action
+	}: {
+		startYear: number;
+		action: 'increment' | 'decrement';
+	}) => {
+		store.update((values) => {
+			const newRanges = values.ranges;
+			newRanges[action === 'increment' ? 'push' : 'unshift'](
+				`${startYear}-${startYear + YEARS_RANGE_SIZE - 1}`
+			);
 
-	while (crrYear > lastRangeYear) {
-		if (ranges.length === 0) {
-			ranges.push(`${defaultStart}-${defaultStart + YEARS_RANGE_SIZE - 1}`);
-			lastRangeYear = defaultStart + YEARS_RANGE_SIZE - 1;
-		} else {
-			const lastYear = ranges[ranges.length - 1].split('-')[1];
-			ranges.push(`${lastYear}-${+lastYear + YEARS_RANGE_SIZE - 1}`);
-			lastRangeYear = +lastYear + YEARS_RANGE_SIZE - 1;
-		}
-	}
-
-	for (const [i, range] of ranges.entries()) {
-		const [start, end] = range.split('-');
-
-		if (crrYear >= +start && crrYear <= +end) {
-			store.update((values) => ({
+			return {
 				...values,
-				todayRange: range,
-				crrRangeIndex: i
-			}));
+				ranges: newRanges
+			};
+		});
+	};
+	const updateRanges = ({
+		action,
+		displayedDateModifier
+	}: {
+		action: 'decrement' | 'increment';
+		displayedDateModifier?: number;
+	}) => {
+		const { ranges, crrRangeIndex } = get(store);
+		const crrRange = ranges[crrRangeIndex];
+		const [crrRangeStartYear, crrRangeEndYear] = crrRange.split('-');
+		const todayMoment = window.moment().clone();
 
-			break;
+		if (action === 'decrement') {
+			const prevRange = ranges[crrRangeIndex - 1];
+
+			displayedDateStore.set(
+				todayMoment.year(+crrRangeStartYear + (displayedDateModifier || -1)).startOf('year')
+			);
+
+			!prevRange &&
+				addNewRange({
+					startYear: +crrRangeStartYear - YEARS_RANGE_SIZE,
+					action: 'decrement'
+				});
+
+			if (crrRangeIndex > 0) {
+				updateCrrRangeIndex({ modifier: -1 });
+			}
 		}
-	}
 
-	store.update((values) => ({
-		...values,
-		ranges
-	}));
+		if (action === 'increment') {
+			const nextRange = ranges[crrRangeIndex + 1];
+
+			displayedDateStore.set(todayMoment.year(+crrRangeEndYear + 1).startOf('year'));
+
+			!nextRange && addNewRange({ startYear: +crrRangeEndYear + 1, action: 'increment' });
+			updateCrrRangeIndex({ modifier: +1 });
+		}
+	};
+	const updateCrrRangeIndex = ({ modifier }: { modifier: number }) => {
+		store.update((values) => ({
+			...values,
+			crrRangeIndex: values.crrRangeIndex + modifier
+		}));
+	};
+	const selectOrCreateRanges = () => {
+		const { ranges, crrRangeIndex, todayRange } = get(store);
+		const crrDisplayedYear = get(displayedDateStore).year();
+		const todayYear = window.moment().clone().year();
+		console.log('selectOrCreateRnages(), todayRange: ', todayRange);
+
+		const firstRange = ranges[0];
+		const lastRange = ranges[ranges.length - 1];
+		const firstRangeStartYear = firstRange.split('-')[0];
+		const lastRangeEndYear = lastRange.split('-')[1];
+
+		const newRanges = [...ranges];
+		let newCrrRangeIndex = crrRangeIndex;
+		let newTodayRange = todayRange;
+
+		if (+firstRangeStartYear > crrDisplayedYear) {
+			// push new ranges at the start of ranges
+			let newFirstRangeStartYear = +firstRangeStartYear;
+
+			while (+newFirstRangeStartYear > crrDisplayedYear) {
+				newRanges.unshift(
+					`${newFirstRangeStartYear - YEARS_RANGE_SIZE}-${newFirstRangeStartYear - 1}`
+				);
+
+				newFirstRangeStartYear -= YEARS_RANGE_SIZE;
+			}
+
+			newCrrRangeIndex = 0;
+		}
+
+		// push new ranges at the end of ranges
+		if (+lastRangeEndYear < crrDisplayedYear) {
+			let newLastRangeEndYear = +lastRangeEndYear;
+
+			while (+newLastRangeEndYear < crrDisplayedYear) {
+				newRanges.push(`${+newLastRangeEndYear + 1}-${newLastRangeEndYear + YEARS_RANGE_SIZE}`);
+
+				newLastRangeEndYear += YEARS_RANGE_SIZE;
+			}
+
+			newCrrRangeIndex = newRanges.length - 1;
+		}
+
+		// search for range containing crrDisplayedYear and set it as current range
+		if (crrDisplayedYear >= +firstRangeStartYear && crrDisplayedYear <= +lastRangeEndYear) {
+			for (const [i, range] of newRanges.entries()) {
+				const [start, end] = range.split('-');
+
+				if (crrDisplayedYear >= +start && crrDisplayedYear <= +end) {
+					newCrrRangeIndex = i;
+
+					break;
+				}
+			}
+		}
+
+		// update todayRange if it doesnt include todayYear anymore
+		const [todayRangeStartYear, todayRangeEndYear] = todayRange.split('-');
+		if (!(todayYear >= +todayRangeStartYear && todayYear <= +todayRangeEndYear)) {
+			for (const [_, range] of newRanges.entries()) {
+				const [start, end] = range.split('-');
+
+				if (todayYear >= +start && todayYear <= +end) {
+					newTodayRange = range;
+
+					break;
+				}
+			}
+		}
+
+		// update store
+		store.update((values) => ({
+			...values,
+			ranges: newRanges,
+			crrRangeIndex: newCrrRangeIndex,
+			todayRange: newTodayRange
+		}));
+	};
 
 	return {
-		addNewRange: ({ year, action }: { year: number; action: 'decrement' | 'increment' }) => {
-			if (action === 'decrement') {
-				store.update((values) => {
-					const newRanges = values.ranges;
-					newRanges.unshift(`${year - YEARS_RANGE_SIZE + 1}-${year}`);
-
-					return {
-						...values,
-						ranges: newRanges
-					};
-				});
-			}
-
-			if (action === 'increment') {
-				store.update((values) => {
-					const newRanges = values.ranges;
-					newRanges.push(`${year}-${year + YEARS_RANGE_SIZE - 1}`);
-
-					return {
-						...values,
-						ranges: newRanges
-					};
-				});
-			}
-		},
-		updateRanges: ({ year, action }: { year: number; action: 'decrement' | 'increment' }) => {
-			const { ranges, crrRangeIndex } = get(store);
-			const crrRange = ranges[crrRangeIndex];
-			const [start, end] = crrRange.split('-');
-
-			if (action === 'decrement') {
-				if (year < +start) {
-					const prevRange = ranges[crrRangeIndex - 1];
-
-					if (prevRange) {
-						if (crrRangeIndex > 0) {
-							yearsRanges.updateCrrRangeIndex({ modifier: -1 });
-						}
-
-						return;
-					}
-
-					yearsRanges.addNewRange({ year, action });
-
-					if (crrRangeIndex > 0) {
-						yearsRanges.updateCrrRangeIndex({ modifier: -1 });
-					}
-				}
-			}
-
-			if (action === 'increment') {
-				if (year > +end) {
-					const nextRange = ranges[crrRangeIndex + 1];
-
-					if (nextRange) {
-						yearsRanges.updateCrrRangeIndex({ modifier: +1 });
-
-						return;
-					}
-
-					yearsRanges.addNewRange({ year, action });
-					yearsRanges.updateCrrRangeIndex({ modifier: +1 });
-				}
-			}
-		},
-		updateCrrRangeIndex: ({ modifier }: { modifier: number }) => {
-			yearsRanges.update((values) => ({
-				...values,
-				crrRangeIndex: values.crrRangeIndex + modifier
-			}));
-		},
+		addNewRange,
+		updateRanges,
+		updateCrrRangeIndex,
+		selectOrCreateRanges,
 		...store
 	};
 }
@@ -176,5 +223,7 @@ function createSelectedFileStore() {
 	};
 }
 
+export const displayedDateStore = writable<Moment>(window.moment());
 export const activeFile = createSelectedFileStore();
 export const yearsRanges = createYearsRangesStore();
+export const rerenderStore = writable<Record<string, boolean>>({ rerender: true });

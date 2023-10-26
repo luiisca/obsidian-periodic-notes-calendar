@@ -4,16 +4,19 @@
 	import { getContext } from 'svelte';
 
 	import Dot from './Dot.svelte';
-	import { VIEW } from '../context';
 	import { isMetaPressed } from '../utils';
-	import type { ICalendarViewCtx } from '@/view';
 	import { getNoteByGranularity } from '@/calendar-io';
+	import type { ICalendarViewCtx } from '@/view';
+	import { VIEW } from '../context';
 	import { displayedDateStore, rerenderStore } from '@/stores';
 
-	export let monthIndex: number;
-	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
+	export let quarterNum: number;
 
-	const date = $displayedDateStore.clone().month(monthIndex).startOf('month');
+	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
+	const date = $displayedDateStore
+		.clone()
+		.quarter(quarterNum)
+		.startOf('quarter');
 </script>
 
 <td>
@@ -22,24 +25,27 @@
 			eventHandlers.onClick({
 				date,
 				isNewSplit: isMetaPressed(event),
-				granularity: 'month'
+				granularity: 'quarter'
 			})}
 		on:contextmenu={(event) =>
 			eventHandlers.onContextMenu({
 				date,
 				event,
-				granularity: 'month'
+				granularity: 'quarter'
 			})}
 		on:pointerenter={(event) =>
 			eventHandlers.onHover({
 				date,
 				targetEl: event.target,
 				isMetaPressed: isMetaPressed(event),
-				granularity: 'month'
-			})}>{$displayedDateStore.clone().month(monthIndex).format('MMMM')}</button
+				granularity: 'quarter'
+			})}>Q{quarterNum}</button
 	>
 
-	{#if $rerenderStore && getNoteByGranularity({ date, granularity: 'month' })}
+	{#if $rerenderStore && getNoteByGranularity({ date, granularity: 'quarter' })}
 		<Dot />
 	{/if}
 </td>
+
+<style>
+</style>
