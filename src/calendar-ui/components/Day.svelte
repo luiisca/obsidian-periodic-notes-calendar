@@ -10,6 +10,7 @@
 	import type { ICalendarViewCtx } from '@/view';
 	import { getNoteByGranularity } from '@/calendar-io';
 	import { rerenderStore } from '@/stores';
+	import EmojiSticker from './EmojiSticker.svelte';
 
 	// Properties
 	export let date: Moment;
@@ -17,7 +18,7 @@
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 </script>
 
-<td>
+<td class="relative ">
 	<!-- <MetadataResolver metadata="{metadata}" let:metadata>
     <div
       class="day"
@@ -38,7 +39,7 @@
     </div>
   </MetadataResolver> -->
 	<button
-		class="day"
+		class="day w-full flex flex-col"
 		on:click={(event) =>
 			eventHandlers.onClick({ date, isNewSplit: isMetaPressed(event), granularity: 'day' })}
 		on:contextmenu={(event) => eventHandlers.onContextMenu({ date, event, granularity: 'day' })}
@@ -53,13 +54,16 @@
 	>
 		{date.format('D')}
 		{#if $rerenderStore && getNoteByGranularity({ date, granularity: 'day' })}
-			<Dot />
+			<Dot isFilled/>
 		{/if}
-		<!-- <div>{$test}</div> -->
 	</button>
+	<EmojiSticker />
 </td>
 
 <style>
+	@tailwind base;
+	@tailwind components;
+	@tailwind utilities;
 	.day {
 		background-color: var(--color-background-day);
 		border-radius: 4px;
