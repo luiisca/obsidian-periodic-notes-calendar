@@ -4,6 +4,7 @@ import type { TFile } from 'obsidian';
 import { getAllNotesByGranularity, type IGranularity } from './calendar-io';
 import { YEARS_RANGE_SIZE, granularities } from './constants';
 import type { Moment } from 'moment';
+import DailyNoteFlexPlugin from './main';
 
 function createNotesStore(granularity: IGranularity) {
 	let hasError = false;
@@ -227,3 +228,4 @@ export const displayedDateStore = writable<Moment>(window.moment());
 export const activeFile = createSelectedFileStore();
 export const yearsRanges = createYearsRangesStore();
 export const rerenderStore = writable<Record<string, boolean>>({ rerender: true });
+export const pluginClassStore = writable<DailyNoteFlexPlugin>()

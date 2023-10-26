@@ -4,7 +4,13 @@ import View from './View.svelte';
 import { VIEW } from './calendar-ui/context';
 import { activeFile, notesStores, settingsStore } from './stores';
 import type { ISettings } from './settings';
-import { getDateFromFile, getDateUID, getNoteByGranularity, noteCreator, tryToCreateNote } from './calendar-io';
+import {
+	getDateFromFile,
+	getDateUID,
+	getNoteByGranularity,
+	noteCreator,
+	tryToCreateNote
+} from './calendar-io';
 import { createConfirmationDialog } from './calendar-ui/modals/confirmation';
 import type { Moment } from 'moment';
 import type { IGranularity } from './calendar-io';
@@ -14,6 +20,7 @@ import { capitalize, getOnCreateNoteDialogNoteFromGranularity } from './utils';
 import { getPeriodicityFromGranularity } from './calendar-io/parse';
 import { get } from 'svelte/store';
 import { isMetaPressed } from './calendar-ui/utils';
+import { createStickerDialog } from './calendar-ui/modals/sticker-picker';
 
 export const VIEW_TYPE_CALENDAR = 'calendar';
 
@@ -143,7 +150,7 @@ export class CalendarView extends ItemView {
 				// only store note from notes folder if filename represents a valid date
 				if (getDateFromFile(file, granularity)) {
 					notesStores[granularity].reindex();
-					console.log("File creatd, running rerenderCalendar()")
+					console.log('File creatd, running rerenderCalendar()');
 					this.view.rerenderCalendar();
 				}
 			});
@@ -162,7 +169,7 @@ export class CalendarView extends ItemView {
 	private async onFileModified(file: TFile): Promise<void> {
 		const date = getDateFromFile(file, 'day') || getDateFromFile(file, 'week');
 		if (date && this.view) {
-					console.log("File modified, running rerenderCalendar()")
+			console.log('File modified, running rerenderCalendar()');
 			this.view.rerenderCalendar();
 		}
 	}
@@ -177,8 +184,8 @@ export class CalendarView extends ItemView {
 	async onClick({ date, isNewSplit, granularity }: Parameters<TOnClick>[0]): Promise<void> {
 		const { workspace } = window.app;
 		const leaf = isNewSplit ? workspace.splitActiveLeaf() : workspace.getUnpinnedLeaf();
-		
-		tryToCreateNote({leaf, date, granularity})
+
+		tryToCreateNote({ leaf, date, granularity });
 	}
 
 	onHover({ date, targetEl, isMetaPressed, granularity }: Parameters<TOnHover>[0]): void {
@@ -215,6 +222,15 @@ export class CalendarView extends ItemView {
 		}
 
 		const fileMenu = new Menu();
+		fileMenu.addItem((item) =>
+			item
+				.setTitle('Add Sticker')
+				.setIcon('smile-plus')
+				.onClick(() => {
+					// open modal
+					createStickerDialog()
+				})
+		);
 		fileMenu.addItem((item) =>
 			item
 				.setTitle('Delete')
@@ -262,7 +278,7 @@ export class CalendarView extends ItemView {
 				if (noteDate && noteGranularity) {
 					activeFile.setFile(getDateUID(noteDate, noteGranularity));
 
-					console.log("update active file, running rerenderCalendar()")
+					console.log('update active file, running rerenderCalendar()');
 					this.view && this.view.rerenderCalendar();
 				}
 			}

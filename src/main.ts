@@ -2,7 +2,7 @@ import { Plugin, WorkspaceLeaf } from 'obsidian';
 import { computePosition, autoUpdate, flip, offset, shift, arrow } from '@floating-ui/dom';
 import { CalendarView, VIEW_TYPE_CALENDAR } from './view';
 import Calendar from './View.svelte';
-import { settingsStore } from './stores';
+import { pluginClassStore, settingsStore } from './stores';
 import { SettingsTab, type ISettings, DEFAULT_SETTINGS } from './settings';
 import { granularities } from './constants';
 import { isMetaPressed } from './calendar-ui/utils';
@@ -32,6 +32,7 @@ export default class DailyNoteFlexPlugin extends Plugin {
 		console.log('ON Load 🫵');
 		window.plugin = this; // access plugin methods globally
 
+		pluginClassStore.set(this)
 		this.register(
 			settingsStore.subscribe((settings) => {
 				this.settings = settings;
