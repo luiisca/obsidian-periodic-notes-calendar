@@ -5,32 +5,22 @@
 	window.dayjs.extend(weekOfYear);
 	window.dayjs.extend(isoWeek);
 
-	import { getContext } from 'svelte';
-
-	import { VIEW } from '../context';
 	import { getMonth, getStartOfWeek, getYears, isMetaPressed, isWeekend } from '../utils';
 	import {
 		displayedDateStore,
-		notesStores,
-		rerenderStore,
 		settingsStore,
 		yearsRanges
 	} from '@/stores';
-	import type { ICalendarViewCtx } from '@/view';
 	import Day from './Day.svelte';
 	import WeekNum from './WeekNum.svelte';
-	import { granularities, monthsIndexesInQuarters, togglePeriods } from '@/constants';
+	import { monthsIndexesInQuarters, togglePeriods } from '@/constants';
 	import { capitalize } from '@/utils';
 	import MonthNav from './MonthNav.svelte';
 	import YearNav from './YearNav.svelte';
 	import YearsNav from './YearsNav.svelte';
-	import Dot from './Dot.svelte';
-	import { getNoteByGranularity } from '@/calendar-io';
 	import QuarterNum from './QuarterNum.svelte';
 	import Month from './Month.svelte';
 	import Year from './Year.svelte';
-
-	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 
 	$: ({
 		localeData: { showWeekNums, localizedWeekdaysShort }

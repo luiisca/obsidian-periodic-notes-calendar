@@ -15,12 +15,14 @@
 	export let year: number;
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 
-	let date: Moment = window.moment().clone().year(year).startOf('year');
-	$: $displayedDateStore, (date = window.moment().clone().year(year).startOf('year'));
-
+	let date: Moment;
+	let dateUID: string;
 	let emoji: string | null = null;
 	const notesStore = notesStores['year'];
-	const dateUID = getDateUID(date, 'year');
+
+	$: date = $displayedDateStore.clone().year(year).startOf('year');
+
+	$: dateUID = getDateUID(date, 'year');
 	$: emoji = $notesStore[dateUID]?.sticker;
 </script>
 

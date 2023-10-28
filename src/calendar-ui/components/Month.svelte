@@ -10,15 +10,19 @@
 	import { getDateUID, getNoteByGranularity } from '@/calendar-io';
 	import { displayedDateStore, notesStores, rerenderStore } from '@/stores';
 	import EmojiSticker from './EmojiSticker.svelte';
+	import type { Moment } from 'moment';
 
 	export let monthIndex: number;
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 
-	const date = $displayedDateStore.clone().month(monthIndex).startOf('month');
-
+	let date: Moment;
+	let dateUID: string;
 	let emoji: string | null = null;
 	const notesStore = notesStores['month'];
-	const dateUID = getDateUID(date, 'month');
+
+	$: date = $displayedDateStore.clone().month(monthIndex).startOf('month');
+
+	$: dateUID = getDateUID(date, 'month');
 	$: emoji = $notesStore[dateUID]?.sticker;
 </script>
 

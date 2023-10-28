@@ -10,15 +10,19 @@
 	import { VIEW } from '../context';
 	import { displayedDateStore, notesStores, rerenderStore } from '@/stores';
 	import EmojiSticker from './EmojiSticker.svelte';
+	import type { Moment } from 'moment';
 
 	export let quarterNum: number;
-
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
-	const date = $displayedDateStore.clone().quarter(quarterNum).startOf('quarter');
 
+	let date: Moment;
+	let dateUID: string;
 	let emoji: string | null = null;
 	const notesStore = notesStores['quarter'];
-	const dateUID = getDateUID(date, 'quarter');
+
+	$: date = $displayedDateStore.clone().quarter(quarterNum).startOf('quarter');
+
+	$: dateUID = getDateUID(date, 'quarter');
 	$: emoji = $notesStore[dateUID]?.sticker;
 </script>
 
