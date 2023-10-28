@@ -35,7 +35,7 @@ export function getNoteByGranularity({
 }): TFile | undefined {
 	const notesStore = get(notesStores[granularity]);
 
-	return notesStore[getDateUID(date, granularity)];
+	return notesStore[getDateUID(date, granularity)]?.file;
 }
 
 // EXPLAN: only used at store.ts > createNotesStore() to reindex notes every time
@@ -73,13 +73,14 @@ export function getAllNotesByGranularity(
 						// update store separately to avoid possible slow downs
 						const emoji = data.match(/#sticker-([^\s]+)/)?.[1];
 
-						emoji && notesStores[granularity].update((values) => ({
-							...values,
-							[dateUID]: {
-								file: note,
-								sticker: emoji, 
-							}
-						}))
+						emoji &&
+							notesStores[granularity].update((values) => ({
+								...values,
+								[dateUID]: {
+									file: note,
+									sticker: emoji
+								}
+							}));
 					});
 
 					notes[dateUID] = {
@@ -135,6 +136,7 @@ export async function tryToCreateNote({
 				cta: 'Create',
 				onAccept: async () => {
 					file = await noteCreator[granularity](date);
+					console.log('tryToCreateNote() > onAccept() > file: ', file);
 					file && (await openFile(file));
 
 					return file;
