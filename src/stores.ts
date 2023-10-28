@@ -4,34 +4,31 @@ import type { TFile } from 'obsidian';
 import { getAllNotesByGranularity, type IGranularity } from './calendar-io';
 import { YEARS_RANGE_SIZE, granularities } from './constants';
 import type { Moment } from 'moment';
-import DailyNoteFlexPlugin from './main';
+import type DailyNoteFlexPlugin from './main';
 
 function createNotesStore(granularity: IGranularity) {
 	let hasError = false;
-	const store = writable<Record<string, TFile>>({});
 
-	return {
-		reindex: () => {
-			console.log(`create${granularity}NotesStore > reindexing`);
+	const store = writable<Record<string, { file: TFile; sticker: string | null }>>({});
 
-			try {
-				const notes = getAllNotesByGranularity(granularity);
-				if (Object.keys(notes).length === 0) {
-					throw new Error('No notes found');
-				}
-				store.set(notes);
-				hasError = false;
-			} catch (err) {
-				if (!hasError) {
-					// Avoid error being shown multiple times
-					console.log('[Calendar] Failed to find daily notes folder', err);
-				}
-				store.set({});
-				hasError = true;
-			}
-		},
-		...store
-	};
+	// index all existing notes
+	try {
+		const notes = getAllNotesByGranularity(granularity);
+		if (Object.keys(notes).length === 0) {
+			throw new Error('No notes found');
+		}
+		store.set(notes);
+	} catch (err) {
+		if (!hasError) {
+			// Avoid error being shown multiple times
+			console.log('[Calendar] Failed to find daily notes folder', err);
+		}
+		store.set({});
+		hasError = true;
+	}
+
+	return store;
+
 }
 
 type IRanges = `${string}-${string}`[];
@@ -228,4 +225,4 @@ export const displayedDateStore = writable<Moment>(window.moment());
 export const activeFile = createSelectedFileStore();
 export const yearsRanges = createYearsRangesStore();
 export const rerenderStore = writable<Record<string, boolean>>({ rerender: true });
-export const pluginClassStore = writable<DailyNoteFlexPlugin>()
+export const pluginClassStore = writable<DailyNoteFlexPlugin>();

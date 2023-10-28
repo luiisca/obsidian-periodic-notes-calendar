@@ -8,17 +8,23 @@
 	import { VIEW } from '../context';
 	import { isMetaPressed } from '../utils';
 	import type { ICalendarViewCtx } from '@/view';
-	import { getNoteByGranularity } from '@/calendar-io';
-	import { rerenderStore } from '@/stores';
+	import { getDateUID, getNoteByGranularity } from '@/calendar-io';
+	import { notesStores, rerenderStore } from '@/stores';
 	import EmojiSticker from './EmojiSticker.svelte';
 
 	// Properties
 	export let date: Moment;
 
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
+
+	let emoji: string | null = null;
+	
+	const notesStore = notesStores['day'];
+	const UID = getDateUID(date, 'day');
+	$: emoji = $notesStore[UID]?.sticker;
 </script>
 
-<td class="relative ">
+<td class="relative">
 	<!-- <MetadataResolver metadata="{metadata}" let:metadata>
     <div
       class="day"
@@ -54,10 +60,10 @@
 	>
 		{date.format('D')}
 		{#if $rerenderStore && getNoteByGranularity({ date, granularity: 'day' })}
-			<Dot isFilled/>
+			<Dot isFilled />
 		{/if}
 	</button>
-	<EmojiSticker />
+	<EmojiSticker emoji={emoji} />
 </td>
 
 <style>

@@ -1,4 +1,14 @@
-import { App, FileView, ItemView, Menu, TAbstractFile, TFile, WorkspaceLeaf } from 'obsidian';
+import {
+	App,
+	FileView,
+	ItemView,
+	Menu,
+	TAbstractFile,
+	TFile,
+	WorkspaceLeaf,
+	type CachedMetadata,
+	type TagCache
+} from 'obsidian';
 
 import View from './View.svelte';
 import { VIEW } from './calendar-ui/context';
@@ -85,8 +95,14 @@ export class CalendarView extends ItemView {
 			this.app.vault.on('delete', (file: TAbstractFile) => this.onFileDeleted(file as TFile))
 		);
 		this.registerEvent(
-			this.app.vault.on('modify', (file: TAbstractFile) => this.onFileModified(file as TFile))
+			this.app.vault.on('rename', (file: TAbstractFile, oldPath: string) =>
+				this.onFileRenamed(file as TFile, oldPath)
+			)
 		);
+		// this.registerEvent(
+		// 	this.app.vault.on('modify', (file: TAbstractFile) => this.onFileModified(file as TFile))
+		// );
+		this.registerEvent(this.app.metadataCache.on('changed', this.onFileModified));
 		this.registerEvent(this.app.workspace.on('file-open', () => this.onFileOpen()));
 
 		this.register(
@@ -136,20 +152,26 @@ export class CalendarView extends ItemView {
 
 	// app.workspace and app.vault event handlers
 	private onNoteSettingsUpdate(): void {
+		// 1. update array of valid formats if there are new ones for any granularity
+		// validFormats = {
+		// 	day: ['format1', 'format2', 'format3'],
+		// 	week: ['format1'],
+		// 	month: ['format1'],
+		// }
 		granularities.forEach((granularity) => {
-			notesStores[granularity].reindex();
+			// notesStores[granularity].reindex();
 		});
 		this.updateActiveFile();
 	}
 
 	private onFileCreated(file: TFile) {
-		console.log('onFileCreated() > file: ', file);
+		console.log('✅ onFileCreated > file: ✅', file);
 
 		if (this.app.workspace.layoutReady && this.view) {
 			granularities.forEach((granularity) => {
 				// only store note from notes folder if filename represents a valid date
 				if (getDateFromFile(file, granularity)) {
-					notesStores[granularity].reindex();
+					// notesStores[granularity].reindex();
 					console.log('File creatd, running rerenderCalendar()');
 					this.view.rerenderCalendar();
 				}
@@ -158,19 +180,49 @@ export class CalendarView extends ItemView {
 	}
 
 	private async onFileDeleted(file: TFile): Promise<void> {
+		console.log('❌ ON file deleted ❌');
+
 		granularities.forEach((granularity) => {
 			if (getDateFromFile(file, granularity)) {
-				notesStores[granularity].reindex();
+				// notesStores[granularity].reindex();
 			}
 		});
 		this.updateActiveFile();
 	}
 
-	private async onFileModified(file: TFile): Promise<void> {
-		const date = getDateFromFile(file, 'day') || getDateFromFile(file, 'week');
-		if (date && this.view) {
-			console.log('File modified, running rerenderCalendar()');
-			this.view.rerenderCalendar();
+	private async onFileRenamed(file: TFile, oldPath: string): Promise<void> {
+		// 1. get UID
+		// 2.1 if delete and UID exists -> remove existing TFile with corresponding UID
+		// 2.2 if create and UID does not exist -> add new TFile with corresponding UID
+		// 2.3 if rename and UID (from oldPath) exists-> update existing file.
+
+		console.log('‍✏️On file renamed ✏️ > file: ', file, oldPath);
+		this.view.rerenderCalendar();
+	}
+	private async onFileModified(file: TFile, data: string, cache: CachedMetadata): Promise<void> {
+		console.log('‍✏️On file modified ✏️ > file: ', file, cache);
+
+		const stickerTag = cache.tags?.find((el: TagCache) => el.tag.contains('sticker-'))?.tag;
+		const stickerTagIsValid = stickerTag && stickerTag[stickerTag.length - 1] !== '-';
+
+		if (stickerTagIsValid) {
+			let date: Moment | null = null;
+			const granularity = granularities.find(
+				(granularity) => (date = getDateFromFile(file, granularity))
+			);
+
+			if (date && granularity) {
+				const dateUID = getDateUID(date, granularity);
+
+				// update matching file in store
+				notesStores[granularity].update((values) => ({
+					...values,
+					[dateUID]: {
+						file,
+						sticker: stickerTag.match(/#sticker-(.+)/)?.[1] || null
+					}
+				}));
+			}
 		}
 	}
 
@@ -228,7 +280,7 @@ export class CalendarView extends ItemView {
 				.setIcon('smile-plus')
 				.onClick(() => {
 					// open modal
-					createStickerDialog()
+					createStickerDialog();
 				})
 		);
 		fileMenu.addItem((item) =>
