@@ -7,16 +7,22 @@
 	import { VIEW } from '../context';
 	import { isMetaPressed } from '../utils';
 	import type { ICalendarViewCtx } from '@/view';
-	import { getNoteByGranularity } from '@/calendar-io';
-	import { displayedDateStore, rerenderStore } from '@/stores';
+	import { getDateUID, getNoteByGranularity } from '@/calendar-io';
+	import { displayedDateStore, notesStores, rerenderStore } from '@/stores';
+	import EmojiSticker from './EmojiSticker.svelte';
 
 	export let monthIndex: number;
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 
 	const date = $displayedDateStore.clone().month(monthIndex).startOf('month');
+
+	let emoji: string | null = null;
+	const notesStore = notesStores['month'];
+	const dateUID = getDateUID(date, 'month');
+	$: emoji = $notesStore[dateUID]?.sticker;
 </script>
 
-<td>
+<td class="relative">
 	<button
 		on:click={(event) =>
 			eventHandlers.onClick({
@@ -36,10 +42,19 @@
 				targetEl: event.target,
 				isMetaPressed: isMetaPressed(event),
 				granularity: 'month'
-			})}>{$displayedDateStore.clone().month(monthIndex).format('MMMM')}</button
+			})}
 	>
+		{$displayedDateStore.clone().month(monthIndex).format('MMMM')}
+		{#if $rerenderStore && getNoteByGranularity({ date, granularity: 'month' })}
+			<Dot />
+		{/if}
+	</button>
 
-	{#if $rerenderStore && getNoteByGranularity({ date, granularity: 'month' })}
-		<Dot />
-	{/if}
+	<EmojiSticker {emoji} />
 </td>
+
+<style>
+	@tailwind base;
+	@tailwind components;
+	@tailwind utilities;
+</style>

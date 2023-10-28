@@ -1,4 +1,4 @@
-import { get, writable } from 'svelte/store';
+import { get, writable, type Writable } from 'svelte/store';
 import { DEFAULT_SETTINGS, type ISettings } from './settings';
 import type { TFile } from 'obsidian';
 import { getAllNotesByGranularity, type IGranularity } from './calendar-io';
@@ -6,10 +6,11 @@ import { YEARS_RANGE_SIZE, granularities } from './constants';
 import type { Moment } from 'moment';
 import type DailyNoteFlexPlugin from './main';
 
+export type TNotesStore = Record<string, { file: TFile; sticker: string | null }>
 function createNotesStore(granularity: IGranularity) {
 	let hasError = false;
 
-	const store = writable<Record<string, { file: TFile; sticker: string | null }>>({});
+	const store = writable<TNotesStore>({});
 
 	// index all existing notes
 	try {
@@ -198,8 +199,8 @@ function createYearsRangesStore() {
 	};
 }
 
-type TNotesStore = Record<IGranularity, ReturnType<typeof createNotesStore>>;
-export const notesStores: TNotesStore = {} as TNotesStore;
+type TNotesStores = Record<IGranularity, Writable<TNotesStore>>
+export const notesStores: TNotesStores = {} as TNotesStores;
 
 granularities.forEach((granularity) => {
 	const notesExtStore = createNotesStore(granularity);

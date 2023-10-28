@@ -1,16 +1,15 @@
 import { Modal } from 'obsidian';
 import StickerModalComponent from '../components/StickerModal.svelte';
+import type { TNotesStore } from '@/stores';
+import type { Writable } from 'svelte/store';
 
-export interface IConfirmationDialogParams<T> {
-	text: string;
-	title: string;
-	cta: string;
-	onAccept: () => Promise<T>;
-	note?: string | null;
+export interface IStickerDialogParams {
+	noteStore: Writable<TNotesStore>;
+	noteDateUID: string;
 }
 
 export class StickerModal extends Modal {
-	constructor() {
+	constructor(params: IStickerDialogParams) {
 		super(window.app);
 
 		this.titleEl.empty();
@@ -25,11 +24,12 @@ export class StickerModal extends Modal {
 			target: svelteContainer,
 			props: {
 				modalClass: this,
+				...params
             }
 		});
 	}
 }
 
-export function createStickerDialog() {
-	new StickerModal().open();
+export function createStickerDialog(params: IStickerDialogParams) {
+	new StickerModal(params).open();
 }

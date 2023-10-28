@@ -5,21 +5,24 @@
 
 	import Dot from './Dot.svelte';
 	import { isMetaPressed } from '../utils';
-	import { getNoteByGranularity } from '@/calendar-io';
+	import { getDateUID, getNoteByGranularity } from '@/calendar-io';
 	import type { ICalendarViewCtx } from '@/view';
 	import { VIEW } from '../context';
-	import { displayedDateStore, rerenderStore } from '@/stores';
+	import { displayedDateStore, notesStores, rerenderStore } from '@/stores';
+	import EmojiSticker from './EmojiSticker.svelte';
 
 	export let quarterNum: number;
 
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
-	const date = $displayedDateStore
-		.clone()
-		.quarter(quarterNum)
-		.startOf('quarter');
+	const date = $displayedDateStore.clone().quarter(quarterNum).startOf('quarter');
+
+	let emoji: string | null = null;
+	const notesStore = notesStores['quarter'];
+	const dateUID = getDateUID(date, 'quarter');
+	$: emoji = $notesStore[dateUID]?.sticker;
 </script>
 
-<td>
+<td class="relative">
 	<button
 		on:click={(event) =>
 			eventHandlers.onClick({
@@ -39,13 +42,19 @@
 				targetEl: event.target,
 				isMetaPressed: isMetaPressed(event),
 				granularity: 'quarter'
-			})}>Q{quarterNum}</button
+			})}
 	>
+		Q{quarterNum}
+		{#if $rerenderStore && getNoteByGranularity({ date, granularity: 'quarter' })}
+			<Dot />
+		{/if}
+	</button>
 
-	{#if $rerenderStore && getNoteByGranularity({ date, granularity: 'quarter' })}
-		<Dot />
-	{/if}
+	<EmojiSticker {emoji} />
 </td>
 
 <style>
+	@tailwind base;
+	@tailwind components;
+	@tailwind utilities;
 </style>

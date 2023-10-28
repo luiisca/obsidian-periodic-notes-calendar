@@ -18,10 +18,9 @@
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 
 	let emoji: string | null = null;
-	
 	const notesStore = notesStores['day'];
-	const UID = getDateUID(date, 'day');
-	$: emoji = $notesStore[UID]?.sticker;
+	const dateUID = getDateUID(date, 'day');
+	$: emoji = $notesStore[dateUID]?.sticker;
 </script>
 
 <td class="relative">
@@ -63,7 +62,7 @@
 			<Dot isFilled />
 		{/if}
 	</button>
-	<EmojiSticker emoji={emoji} />
+	<EmojiSticker {emoji} />
 </td>
 
 <style>

@@ -7,12 +7,13 @@ import {
 	TFile,
 	WorkspaceLeaf,
 	type CachedMetadata,
-	type TagCache
+	type TagCache,
+	Notice
 } from 'obsidian';
 
 import View from './View.svelte';
 import { VIEW } from './calendar-ui/context';
-import { activeFile, notesStores, settingsStore } from './stores';
+import { activeFile, notesStores, settingsStore, type TNotesStore } from './stores';
 import type { ISettings } from './settings';
 import {
 	getDateFromFile,
@@ -27,8 +28,8 @@ import type { IGranularity } from './calendar-io';
 import { granularities } from './constants';
 import { getNoteSettingsByGranularity } from './calendar-io/settings';
 import { capitalize, getOnCreateNoteDialogNoteFromGranularity } from './utils';
-import { getPeriodicityFromGranularity } from './calendar-io/parse';
-import { get } from 'svelte/store';
+import { getDateFromPath, getPeriodicityFromGranularity } from './calendar-io/parse';
+import { get, type Writable } from 'svelte/store';
 import { isMetaPressed } from './calendar-ui/utils';
 import { createStickerDialog } from './calendar-ui/modals/sticker-picker';
 
@@ -168,44 +169,6 @@ export class CalendarView extends ItemView {
 		console.log('✅ onFileCreated > file: ✅', file);
 
 		if (this.app.workspace.layoutReady && this.view) {
-			granularities.forEach((granularity) => {
-				// only store note from notes folder if filename represents a valid date
-				if (getDateFromFile(file, granularity)) {
-					// notesStores[granularity].reindex();
-					console.log('File creatd, running rerenderCalendar()');
-					this.view.rerenderCalendar();
-				}
-			});
-		}
-	}
-
-	private async onFileDeleted(file: TFile): Promise<void> {
-		console.log('❌ ON file deleted ❌');
-
-		granularities.forEach((granularity) => {
-			if (getDateFromFile(file, granularity)) {
-				// notesStores[granularity].reindex();
-			}
-		});
-		this.updateActiveFile();
-	}
-
-	private async onFileRenamed(file: TFile, oldPath: string): Promise<void> {
-		// 1. get UID
-		// 2.1 if delete and UID exists -> remove existing TFile with corresponding UID
-		// 2.2 if create and UID does not exist -> add new TFile with corresponding UID
-		// 2.3 if rename and UID (from oldPath) exists-> update existing file.
-
-		console.log('‍✏️On file renamed ✏️ > file: ', file, oldPath);
-		this.view.rerenderCalendar();
-	}
-	private async onFileModified(file: TFile, data: string, cache: CachedMetadata): Promise<void> {
-		console.log('‍✏️On file modified ✏️ > file: ', file, cache);
-
-		const stickerTag = cache.tags?.find((el: TagCache) => el.tag.contains('sticker-'))?.tag;
-		const stickerTagIsValid = stickerTag && stickerTag[stickerTag.length - 1] !== '-';
-
-		if (stickerTagIsValid) {
 			let date: Moment | null = null;
 			const granularity = granularities.find(
 				(granularity) => (date = getDateFromFile(file, granularity))
@@ -213,16 +176,141 @@ export class CalendarView extends ItemView {
 
 			if (date && granularity) {
 				const dateUID = getDateUID(date, granularity);
+				const fileExists = get(notesStores[granularity])[dateUID];
 
 				// update matching file in store
-				notesStores[granularity].update((values) => ({
-					...values,
-					[dateUID]: {
-						file,
-						sticker: stickerTag.match(/#sticker-(.+)/)?.[1] || null
-					}
-				}));
+				!fileExists &&
+					notesStores[granularity].update((values) => ({
+						...values,
+						[dateUID]: {
+							file,
+							sticker: null
+						}
+					}));
+
+				console.log(`${dateUID} succesfully created`, 'new store: ', get(notesStores[granularity]));
 			}
+		}
+	}
+
+	private async onFileDeleted(file: TFile): Promise<void> {
+		console.log('❌ ON file deleted ❌');
+
+		let date: Moment | null = null;
+		const granularity = granularities.find(
+			(granularity) => (date = getDateFromFile(file, granularity))
+		);
+
+		if (date && granularity) {
+			const notesStore = notesStores[granularity];
+			const dateUID = getDateUID(date, granularity);
+			const fileExists = get(notesStore)[dateUID];
+			const newStore = {
+				...get(notesStore)
+			};
+
+			if (fileExists) {
+				delete newStore[dateUID];
+				notesStore.update(() => newStore);
+				console.log(`${dateUID} succesfully deleted`, 'new store: ', get(notesStores[granularity]));
+			}
+		}
+
+		this.updateActiveFile();
+	}
+
+	private async onFileRenamed(file: TFile, oldPath: string): Promise<void> {
+		let newDate: Moment | null = null;
+		const newGranularity = granularities.find(
+			(granularity) => (newDate = getDateFromFile(file, granularity))
+		);
+		let oldDate: Moment | null = null;
+		const oldGranularity = granularities.find(
+			(granularity) => (oldDate = getDateFromPath(oldPath, granularity))
+		);
+		const oldIsValid = oldDate && oldGranularity;
+		const newIsValid = newDate && newGranularity;
+
+		// OLD filename INVALID ❌ && NEW filename VALID ✅ => update store to add NEW file with null emoji
+		if (!oldIsValid && newIsValid) {
+			const notesStore = notesStores[newGranularity];
+			const dateUID = getDateUID(newDate as unknown as Moment, newGranularity);
+			notesStore.update((values) => ({
+				...values,
+				[dateUID]: {
+					file,
+					sticker: null
+				}
+			}));
+		}
+
+		// OLD filename VALID ✅ && NEW filename INVALID ❌ => update store to remove OLD
+		if (oldIsValid && !newIsValid) {
+			const notesStore = notesStores[oldGranularity];
+			const dateUID = getDateUID(oldDate as unknown as Moment, newGranularity);
+
+			const newStore = {
+				...get(notesStore)
+			};
+			delete newStore[dateUID];
+
+			notesStore.set(newStore);
+		}
+
+		// OLD filename CALID ✅ && NEW filename INVALID ✅ => update store to remove OLD and add NEW one with OLD emoji
+		if (oldIsValid && newIsValid) {
+			const newNotesStore = notesStores[newGranularity];
+			const newDateUID = getDateUID(newDate as unknown as Moment, newGranularity);
+
+			const oldNotesStore = notesStores[oldGranularity];
+			const oldDateUID = getDateUID(oldDate as unknown as Moment, newGranularity);
+			const oldEmoji = get(oldNotesStore)[oldDateUID].sticker;
+
+			// remove OLD file
+			const newStore = {
+				...get(oldNotesStore)
+			};
+			delete newStore[oldDateUID];
+
+			// add NEW file to store with OLD emoji
+			newNotesStore.update((values) => ({
+				...values,
+				[newDateUID]: {
+					file,
+					sticker: oldEmoji
+				}
+			}));
+		}
+
+		console.log('‍✏️On file renamed ✏️ > file: ', file, oldPath);
+		console.log('new store: ', newGranularity && get(notesStores[newGranularity]));
+		this.view.rerenderCalendar();
+	}
+	private async onFileModified(file: TFile, data: string, cache: CachedMetadata): Promise<void> {
+		console.log('‍✏️On file modified ✏️ > file: ', file, cache);
+
+		let date: Moment | null = null;
+		const granularity = granularities.find(
+			(granularity) => (date = getDateFromFile(file, granularity))
+		);
+		const dateUID = date && granularity ? getDateUID(date, granularity) : null;
+		const notesStore = (granularity && notesStores[granularity]) || null;
+
+		const oldEmoji = notesStore && dateUID && get(notesStore)[dateUID].sticker;
+		const newEmoji =
+			cache.tags
+				?.find((el: TagCache) => el.tag.contains('sticker-'))
+				?.tag.match(/#sticker-([^\s]+)/)?.[1] || null;
+
+		if (oldEmoji !== newEmoji && notesStore && granularity && dateUID) {
+			console.log('updating EMOJI 🏳️‍🌈')
+			notesStores[granularity].update((values) => ({
+				...values,
+				[dateUID]: {
+					file,
+					sticker: newEmoji
+				}
+			}));
 		}
 	}
 
@@ -267,9 +355,12 @@ export class CalendarView extends ItemView {
 
 	onContextMenu({ date, event, granularity }: Parameters<TOnContextMenu>[0]): void {
 		const note = getNoteByGranularity({ date, granularity });
+		const dateUID = getDateUID(date, granularity);
 
 		if (!note) {
-			// If no file exists for a given day, show nothing.
+			// TODO: improve wording
+			new Notice('Create a note first');
+
 			return;
 		}
 
@@ -280,7 +371,7 @@ export class CalendarView extends ItemView {
 				.setIcon('smile-plus')
 				.onClick(() => {
 					// open modal
-					createStickerDialog();
+					createStickerDialog({ noteStore: notesStores[granularity], noteDateUID: dateUID });
 				})
 		);
 		fileMenu.addItem((item) =>

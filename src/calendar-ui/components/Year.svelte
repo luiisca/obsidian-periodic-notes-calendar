@@ -7,18 +7,24 @@
 	import { VIEW } from '../context';
 	import { isMetaPressed } from '../utils';
 	import type { ICalendarViewCtx } from '@/view';
-	import { getNoteByGranularity } from '@/calendar-io';
-	import { displayedDateStore, rerenderStore } from '@/stores';
+	import { getDateUID, getNoteByGranularity } from '@/calendar-io';
+	import { displayedDateStore, notesStores, rerenderStore } from '@/stores';
 	import type { Moment } from 'moment';
+	import EmojiSticker from './EmojiSticker.svelte';
 
 	export let year: number;
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 
-	let date: Moment;
+	let date: Moment = window.moment().clone().year(year).startOf('year');
 	$: $displayedDateStore, (date = window.moment().clone().year(year).startOf('year'));
+
+	let emoji: string | null = null;
+	const notesStore = notesStores['year'];
+	const dateUID = getDateUID(date, 'year');
+	$: emoji = $notesStore[dateUID]?.sticker;
 </script>
 
-<td>
+<td class="relative">
 	<button
 		on:click={(event) =>
 			eventHandlers.onClick({
@@ -39,10 +45,19 @@
 				isMetaPressed: isMetaPressed(event),
 				granularity: 'year'
 			});
-		}}>{year}</button
+		}}
 	>
+		{year}
+		{#if $rerenderStore && getNoteByGranularity({ date, granularity: 'year' })}
+			<Dot />
+		{/if}
+	</button>
 
-	{#if $rerenderStore && getNoteByGranularity({ date, granularity: 'year' })}
-		<Dot />
-	{/if}
+	<EmojiSticker {emoji} />
 </td>
+
+<style>
+	@tailwind base;
+	@tailwind components;
+	@tailwind utilities;
+</style>

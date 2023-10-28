@@ -2,9 +2,13 @@
 	import { onMount } from 'svelte';
 	import type { StickerModal } from '../modals/sticker-picker';
 	import { Notice } from 'obsidian';
-	import { pluginClassStore } from '@/stores';
+	import { pluginClassStore, type TNotesStore } from '@/stores';
+	import { get, type Writable } from 'svelte/store';
+	import { STICKER_TAG_PREFIX } from '@/constants';
 
 	export let modalClass: StickerModal;
+	export let noteStore: Writable<TNotesStore>;
+	export let noteDateUID: string;
 
 	let loading: boolean = false;
 	let loaded: boolean = false;
@@ -17,9 +21,45 @@
 			console.log('script loaded! > Picker loaded ✅');
 			const theme = $pluginClassStore.app.getTheme() === 'moonstone' ? 'light' : 'dark';
 			const pickerOptions = {
-				onEmojiSelect: (emoji) => {
+				onEmojiSelect: (emoji: string) => {
 					console.log('EMOJI SELECTED: ', emoji);
 					modalClass.close();
+
+					// update store note with new emoji
+					noteStore.update((values) => ({
+						...values,
+						[noteDateUID]: {
+							file: values[noteDateUID].file,
+							sticker: emoji.native
+						}
+					}));
+
+					// add new tag to file
+					const file = get(noteStore)[noteDateUID].file;
+					window.app.vault.process(file, (data) => {
+						const newTag = `${STICKER_TAG_PREFIX}${emoji.native}`;
+						const prevStickerTag = data.match(/#sticker-[^\s]+/);
+
+						console.log('ABOUT to replace previous tags: ', prevStickerTag, data);
+						if (prevStickerTag) {
+							let firstMatched: boolean = false;
+
+							return data
+								.replace(/#sticker-[^\s]+/g, () => {
+									if (!firstMatched) {
+										firstMatched = true;
+
+										return newTag;
+									}
+									return '';
+								})
+								.replace(/\s+/g, ' ');
+						} else {
+							return `${newTag} ${data}`;
+						}
+
+						return data;
+					});
 				},
 				autoFocus: true,
 				theme

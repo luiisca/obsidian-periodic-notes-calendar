@@ -9,3 +9,5 @@ export const monthsIndexesInQuarters = [
 	[9, 10, 11]
 ] as const;
 export const YEARS_RANGE_SIZE = 12
+
+export const STICKER_TAG_PREFIX = '#sticker-';

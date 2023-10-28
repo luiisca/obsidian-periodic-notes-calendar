@@ -38,8 +38,13 @@ export function getNoteByGranularity({
 	return notesStore[getDateUID(date, granularity)];
 }
 
-export function getAllNotesByGranularity(granularity: IGranularity): Record<string, TFile> {
-	const notes: Record<string, TFile> = {};
+// EXPLAN: only used at store.ts > createNotesStore() to reindex notes every time
+// a new note is added or deleted or settings change.
+export function getAllNotesByGranularity(
+	granularity: IGranularity
+): Record<string, { file: TFile; sticker: string | null }> {
+	// Record<string, {file: TFile; sticker: string}
+	const notes: Record<string, { file: TFile; sticker: string | null }> = {};
 	const { vault } = window.app;
 
 	try {
@@ -61,9 +66,26 @@ export function getAllNotesByGranularity(granularity: IGranularity): Record<stri
 			if (note instanceof TFile) {
 				// if file name maps to a valid dayjs date, it is saved in store.
 				const date = getDateFromFile(note, granularity);
+
 				if (date) {
 					const dateUID = getDateUID(date, granularity);
-					notes[dateUID] = note;
+					window.app.vault.cachedRead(note).then((data) => {
+						// update store separately to avoid possible slow downs
+						const emoji = data.match(/#sticker-([^\s]+)/)?.[1];
+
+						emoji && notesStores[granularity].update((values) => ({
+							...values,
+							[dateUID]: {
+								file: note,
+								sticker: emoji, 
+							}
+						}))
+					});
+
+					notes[dateUID] = {
+						file: note,
+						sticker: null
+					};
 				}
 			}
 		});

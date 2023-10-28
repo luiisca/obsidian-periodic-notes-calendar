@@ -6,19 +6,25 @@
 
 	import Dot from './Dot.svelte';
 	import { isMetaPressed } from '../utils';
-	import { getNoteByGranularity } from '@/calendar-io';
+	import { getDateUID, getNoteByGranularity } from '@/calendar-io';
 	import type { ICalendarViewCtx } from '@/view';
 	import { VIEW } from '../context';
-	import { rerenderStore } from '@/stores';
+	import { notesStores, rerenderStore } from '@/stores';
+	import EmojiSticker from './EmojiSticker.svelte';
 
 	// Properties
 	export let weekNum: number;
 	export let startOfWeekDate: Moment;
 
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
+
+	let emoji: string | null = null;
+	const notesStore = notesStores['week'];
+	const dateUID = getDateUID(startOfWeekDate, 'week');
+	$: emoji = $notesStore[dateUID]?.sticker;
 </script>
 
-<td>
+<td class="relative">
 	<!-- <MetadataResolver metadata="{metadata}" let:metadata>
     <div
       class="week-num"
@@ -60,9 +66,14 @@
 			<Dot />
 		{/if}
 	</button>
+	<EmojiSticker {emoji} />
 </td>
 
 <style>
+	@tailwind base;
+	@tailwind components;
+	@tailwind utilities;
+
 	td {
 		border-right: 1px solid var(--background-modifier-border);
 	}

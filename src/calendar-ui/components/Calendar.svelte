@@ -36,15 +36,16 @@
 		localeData: { showWeekNums, localizedWeekdaysShort }
 	} = $settingsStore);
 	$: month = getMonth($displayedDateStore);
-	$: $settingsStore, reindexNotes();
+	// $: $settingsStore, reindexNotes();
 
 	let crrView: (typeof togglePeriods)[number] = 'days';
 
-	const reindexNotes = () => {
-		granularities.forEach((granularity) => {
-			notesStores[granularity].reindex();
-		});
-	};
+	// TODO: move reindex to either a vault event or view.ts
+	// const reindexNotes = () => {
+	// 	granularities.forEach((granularity) => {
+	// 		notesStores[granularity].reindex();
+	// 	});
+	// };
 </script>
 
 <div id="calendar-container" class="container">
@@ -130,6 +131,7 @@
 </div>
 
 <style>
+	@tailwind base;
 	@tailwind components;
 	@tailwind utilities;
 
