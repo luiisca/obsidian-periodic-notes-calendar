@@ -14170,10 +14170,9 @@ class DailyNoteFlexPlugin extends obsidian.Plugin {
         await this.saveData(this.settings);
     }
     handleRibbon() {
-        this.addRibbonIcon('dice', 'daily-note-flex-plugin', () => {
+        this.addRibbonIcon('dice', 'Open calendar', () => {
             if (this.settings.viewOpen) {
                 this.toggleView();
-                console.log('localeWeekStartNum 📅', window._bundledLocaleWeekSpec);
                 return;
             }
         });
@@ -14334,6 +14333,7 @@ class DailyNoteFlexPlugin extends obsidian.Plugin {
         });
     }
     revealView() {
+        // get calendar view and set it as active
         this.app.workspace.revealLeaf(this.app.workspace.getLeavesOfType(VIEW_TYPE_CALENDAR)[0]);
         this.app.workspace.getLeavesOfType(VIEW_TYPE_CALENDAR)[0].setViewState({
             type: VIEW_TYPE_CALENDAR,
@@ -14341,52 +14341,64 @@ class DailyNoteFlexPlugin extends obsidian.Plugin {
         });
     }
     async toggleView() {
+        /**
+         * HTMLElement where View is rendered at
+         */
         const leaf = this.app.workspace.getLeavesOfType(VIEW_TYPE_CALENDAR)[0];
         if (!leaf) {
             await this.initView();
-            this.revealView();
             return;
         }
-        const ACTIVE_CLASSNAME = 'is-active';
-        const WORKSPACE_SPLIT_CLASSNAME = '.workspace-split';
-        // @ts-ignore
-        const closestWorkspaceSplitClassName = leaf.containerEl.closest(WORKSPACE_SPLIT_CLASSNAME)
-            .className;
-        const leafSplit = (closestWorkspaceSplitClassName.match('right')?.[0] ||
-            closestWorkspaceSplitClassName.match('left')?.[0] ||
-            'root');
-        // @ts-ignore
-        const leafActive = leaf.tabHeaderEl.className.includes(ACTIVE_CLASSNAME);
-        const leftSplit = this.app.workspace.leftSplit;
-        const rightSplit = this.app.workspace.rightSplit;
-        const leafSideDockOpen = leafSplit === 'left'
-            ? !leftSplit.collapsed
-            : leafSplit === 'right'
-                ? !rightSplit.collapsed
-                : false;
-        // Scenarios
-        if (leafSideDockOpen) {
+        const getSplitPos = () => {
+            const closestWorkspaceSplitClassName = leaf.containerEl.closest('.workspace-split')?.className;
+            if (closestWorkspaceSplitClassName?.includes('left')) {
+                return 'left';
+            }
+            if (closestWorkspaceSplitClassName?.includes('right')) {
+                return 'right';
+            }
+            return 'root';
+        };
+        /**
+         * The worskpace split where leaf is currently attached to
+         * based on closest workspace split className
+         */
+        const crrSplitPos = getSplitPos();
+        console.log('crrSplitPos', crrSplitPos);
+        /**
+         * A split is a container for leaf nodes that slides in when clicking the collapse button, except for the root split (markdown editor). There are three types: left, root, and right.
+         */
+        const crrSplit = this.app.workspace[`${crrSplitPos}Split`];
+        console.log('crrSplit', crrSplit);
+        const leafActive = leaf.tabHeaderEl.className.includes('is-active');
+        console.log('leafActive', leafActive);
+        // Scnearios
+        // eval root split
+        if (crrSplit instanceof obsidian.WorkspaceRoot) {
             if (leafActive) {
-                // 1. leaf sidedock open and leaf active -> close sidedock
-                (leafSplit === 'left' && leftSplit.collapse()) ||
-                    (leafSplit === 'right' && rightSplit.collapse());
-                return;
-            }
-            if (!leafActive) {
-                // 2. leaf sidedock open and leaf not active -> reveal view
-                this.revealView();
-                return;
-            }
-        }
-        if (!leafSideDockOpen) {
-            if (leafSplit === 'root' && leafActive) {
-                // 4. root split open and leaf active -> close root split
-                leaf.detach();
+                // 1. root split && leaf active
+                leaf.view.unload();
                 await this.initView({ active: false });
                 return;
             }
-            // 3. leaf sidedock close -> open leaf sidedock and reveal view
-            // 5. root split open and leaf not active -> reveal view
+            // 2. root split && leaf NOT active
+            this.revealView();
+            return;
+        }
+        // eval left or right split
+        // only leftSplit and rightSplit can be collapsed
+        if (!crrSplit.collapsed) {
+            if (leafActive) {
+                // 3. crr split open and leaf active
+                crrSplit.collapse();
+            }
+            else {
+                // 4. crr split open and leaf NOT active
+                this.revealView();
+            }
+        }
+        else {
+            // 5. crr split collapsed
             this.revealView();
         }
     }
