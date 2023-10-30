@@ -149,6 +149,14 @@ export class CalendarView extends ItemView {
 			target: this.contentEl,
 			context
 		});
+
+		// index existing notes
+		if (this.app.workspace.layoutReady && this.view) {
+			console.log("🔥🔥🔥 view.ts > onOpen() > indexing notes 🔥🔥🔥")
+			granularities.forEach((granularity) => {
+				notesStores[granularity].index();
+			});
+		}
 	}
 
 	// app.workspace and app.vault event handlers
@@ -303,7 +311,7 @@ export class CalendarView extends ItemView {
 				?.tag.match(/#sticker-([^\s]+)/)?.[1] || null;
 
 		if (oldEmoji !== newEmoji && notesStore && granularity && dateUID) {
-			console.log('updating EMOJI 🏳️‍🌈')
+			console.log('updating EMOJI 🏳️‍🌈');
 			notesStores[granularity].update((values) => ({
 				...values,
 				[dateUID]: {

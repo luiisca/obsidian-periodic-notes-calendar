@@ -14,20 +14,19 @@
 		}));
 	}
 
-	let today: Moment = window.moment()
+	let today: Moment = window.moment();
 
 	let heartbeat = setInterval(() => {
 		// update today
 		today = window.moment();
 
 		// update displayedDateStore to new current date only if new current date is one day ahead.
-		// useful to update the display with the new month, year or years range
+		// useful to update display with new current month, year or years range automatically
 		if (today.isSame($displayedDateStore.clone().add(1, 'day'))) {
 			console.log('⚙⚙⚙ RERENDERING CALENdAR ⚙⚙⚙️');
 
 			displayedDateStore.set(today);
 			rerenderCalendar();
-
 		}
 	}, 1000 * 60);
 

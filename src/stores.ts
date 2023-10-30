@@ -6,30 +6,34 @@ import { YEARS_RANGE_SIZE, granularities } from './constants';
 import type { Moment } from 'moment';
 import type DailyNoteFlexPlugin from './main';
 
-export type TNotesStore = Record<string, { file: TFile; sticker: string | null }>
+export type TNotesStore = Record<string, { file: TFile; sticker: string | null }>;
 function createNotesStore(granularity: IGranularity) {
+	console.log(`🤯🤯🤯 createNotesStore(${granularity}) 🤯🤯🤯`);
 	let hasError = false;
 
 	const store = writable<TNotesStore>({});
 
 	// index all existing notes
-	try {
-		const notes = getAllNotesByGranularity(granularity);
-		if (Object.keys(notes).length === 0) {
-			throw new Error('No notes found');
-		}
-		store.set(notes);
-	} catch (err) {
-		if (!hasError) {
-			// Avoid error being shown multiple times
-			console.log('[Calendar] Failed to find daily notes folder', err);
-		}
-		store.set({});
-		hasError = true;
-	}
-
-	return store;
-
+	return {
+		index: () => {
+			try {
+				const notes = getAllNotesByGranularity(granularity);
+				console.log('createNotesStore() > notes: ', notes);
+				if (Object.keys(notes).length === 0) {
+					throw new Error('No notes found');
+				}
+				store.set(notes);
+			} catch (err) {
+				if (!hasError) {
+					// Avoid error being shown multiple times
+					console.log('[Calendar] Failed to find daily notes folder', err);
+				}
+				store.set({});
+				hasError = true;
+			}
+		},
+		...store
+	};
 }
 
 type IRanges = `${string}-${string}`[];
@@ -199,15 +203,6 @@ function createYearsRangesStore() {
 	};
 }
 
-type TNotesStores = Record<IGranularity, Writable<TNotesStore>>
-export const notesStores: TNotesStores = {} as TNotesStores;
-
-granularities.forEach((granularity) => {
-	const notesExtStore = createNotesStore(granularity);
-
-	notesStores[granularity] = notesExtStore;
-});
-
 export const settingsStore = writable<ISettings>(DEFAULT_SETTINGS);
 
 function createSelectedFileStore() {
@@ -227,3 +222,12 @@ export const activeFile = createSelectedFileStore();
 export const yearsRanges = createYearsRangesStore();
 export const rerenderStore = writable<Record<string, boolean>>({ rerender: true });
 export const pluginClassStore = writable<DailyNoteFlexPlugin>();
+
+type TNotesStores = Record<IGranularity, Writable<TNotesStore> & { index: () => void }>;
+export const notesStores: TNotesStores = {} as TNotesStores;
+
+granularities.forEach((granularity) => {
+	const notesExtStore = createNotesStore(granularity);
+
+	notesStores[granularity] = notesExtStore;
+});

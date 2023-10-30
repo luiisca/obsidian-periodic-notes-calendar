@@ -44,7 +44,8 @@ export default class DailyNoteFlexPlugin extends Plugin {
 
 		this.handleRibbon();
 
-		this.handleView();
+		// register view
+		this.registerView(VIEW_TYPE_CALENDAR, (leaf) => new CalendarView(leaf));
 
 		// Commands
 		this.addCommand({
@@ -113,6 +114,7 @@ export default class DailyNoteFlexPlugin extends Plugin {
 			console.log('ON Layout REady 🙌');
 			// const localeWeekStartNum = window._bundledLocaleWeekSpec.dow;
 
+			this.initView({active: false});
 			this.handlePopup();
 		});
 	}
@@ -313,14 +315,6 @@ export default class DailyNoteFlexPlugin extends Plugin {
 		};
 	}
 
-	async handleView() {
-		// register view
-		this.registerView(VIEW_TYPE_CALENDAR, (leaf) => new CalendarView(leaf));
-
-		// TODO: Try to not block initial loading by deferring loading with 'onLayoutReady'
-		// activate view
-		await this.initView();
-	}
 	async initView({ active }: { active: boolean } = { active: true }) {
 		this.app.workspace.detachLeavesOfType(VIEW_TYPE_CALENDAR);
 
