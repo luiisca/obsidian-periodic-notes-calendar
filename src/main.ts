@@ -16,6 +16,7 @@ export default class DailyNoteFlexPlugin extends Plugin {
 	public settings: ISettings;
 	popupCalendar: Calendar;
 	cleanupPopup: () => void;
+	popupAutoUpdateCleanup: () => void;
 
 	onunload() {
 		console.log('ON Unload ⛰️');
@@ -115,7 +116,9 @@ export default class DailyNoteFlexPlugin extends Plugin {
 			// const localeWeekStartNum = window._bundledLocaleWeekSpec.dow;
 
 			this.initView({ active: false });
-			this.handlePopup();
+
+			// TODO: add open popup on ribbon hover setting
+			// this.handlePopup(); // only needed once TODO implemented
 		});
 	}
 
@@ -148,121 +151,27 @@ export default class DailyNoteFlexPlugin extends Plugin {
 				this.toggleView();
 
 				return;
+			} else {
+				this.handlePopup({ ribbonClicked: true });
 			}
-		});
+		}).id = 'daily-note-flex-plugin-ribbon';
 	}
-	handlePopup() {
-		console.log('HANDLE popup called 🍿');
-
-		console.log('HandlePopup(): ViewOPen', this.settings.viewOpen);
+	handlePopup({ ribbonClicked }: { ribbonClicked: boolean } = { ribbonClicked: false }) {
+		// TODO: should check for open popuo on ribbon hover setting to add a onHover event listner
 		if (this.settings.viewOpen) return;
-		// Local State
-		let popupState: { open: boolean; autoUpdateCleanup: () => void } = {
-			open: false,
-			autoUpdateCleanup: () => ({})
-		};
-		const options = {
-			target: 'calendarPopup'
-		};
-		const focusableAllowedList =
-			':is(a[href], button, input, textarea, select, details, [tabindex]):not([tabindex="-1"])';
-		let focusablePopupElements: HTMLElement[];
 
-		// Elements
-		const referenceEl = document.querySelector(
-			`[aria-label="daily-note-flex-plugin"]`
-		) as HTMLElement;
-		console.log('REFERENCEEl', referenceEl);
-		console.log('POPUPCOMPONENT', this.popupCalendar);
 		this.popupCalendar = new Calendar({
 			target: document.body,
 			props: { popup: true }
 		});
 
-		const floatingEl = document.querySelector(`[data-popup="${options.target}"]`) as HTMLElement;
-		console.log('FLOATINGEL', floatingEl);
+		const referenceEl = document.querySelector(
+			`[id="daily-note-flex-plugin-ribbon"]`
+		) as HTMLElement;
+		const floatingEl = document.querySelector('[data-popup="true"]') as HTMLElement;
 		const arrowEl = document.createElement('div') as HTMLElement;
+		const opened = (floatingEl.dataset.opened as string) === 'true' ? true : false;
 
-		// State Handlers
-		function open() {
-			// Set open state to on
-			popupState.open = true;
-			// Update render settings
-			render();
-			// Update the DOM
-			floatingEl.style.display = 'block';
-			floatingEl.style.opacity = '1';
-			floatingEl.style.pointerEvents = 'auto';
-			// enable popup interactions
-			floatingEl.removeAttribute('inert');
-			// Trigger Floating UI autoUpdate (open only)
-			// https://floating-ui.com/docs/autoUpdate
-			popupState.autoUpdateCleanup = autoUpdate(referenceEl, floatingEl, render);
-		}
-		function close() {
-			// Set open state to off
-			popupState.open = false;
-			// Update the DOM
-			floatingEl.style.opacity = '0';
-			// disable popup interactions
-			floatingEl.setAttribute('inert', '');
-			// Cleanup Floating UI autoUpdate (close only)
-			if (popupState.autoUpdateCleanup) popupState.autoUpdateCleanup();
-		}
-
-		// Event Handlers
-		function toggle() {
-			console.log('ON ribbon click 🐭');
-			popupState.open ? close() : open();
-		}
-		function onWindowClick(event: { target: Node | null }) {
-			console.log('ON window click 🪟', event);
-			// console.log("FloatingEL", floatingEl)
-			// console.log("Event target", event.target)
-			// Return if the popup is not yet open
-			if (!popupState.open) return;
-			// Return if reference element is clicked
-			if (referenceEl.contains(event.target)) return;
-			// If click outside the popup
-			if (floatingEl && floatingEl.contains(event.target) === false) {
-				close();
-				return;
-			}
-		}
-
-		// Keyboard Interactions for A11y
-		const onWindowKeyDown = (event: KeyboardEvent) => {
-			if (!popupState.open) return;
-			// Handle keys
-			const key: string = event.key;
-			// On Esc key
-			if (key === 'Escape') {
-				event.preventDefault();
-				referenceEl.focus();
-				close();
-				return;
-			}
-			// Update focusable elements (important for Autocomplete)
-			focusablePopupElements = Array.from(floatingEl?.querySelectorAll(focusableAllowedList));
-			// On Tab or ArrowDown key
-			const triggerMenuFocused: boolean = popupState.open && document.activeElement === referenceEl;
-			if (
-				triggerMenuFocused &&
-				(key === 'ArrowDown' || key === 'Tab') &&
-				focusableAllowedList.length > 0 &&
-				focusablePopupElements.length > 0
-			) {
-				event.preventDefault();
-				focusablePopupElements[0].focus();
-			}
-		};
-
-		// Event Listeners
-		referenceEl.addEventListener('click', toggle);
-		window.addEventListener('click', onWindowClick);
-		window.addEventListener('keydown', onWindowKeyDown);
-
-		// Render Floating UI Popup
 		const render = () => {
 			computePosition(referenceEl, floatingEl, {
 				placement: 'right',
@@ -296,22 +205,109 @@ export default class DailyNoteFlexPlugin extends Plugin {
 			});
 		};
 
-		// Render popup
-		render();
-
 		this.cleanupPopup = () => {
-			popupState = {
-				open: false,
-				autoUpdateCleanup: () => ({})
-			};
+			this.popupAutoUpdateCleanup = () => ({});
 
-			// Remove Event Listeners
-			referenceEl.removeEventListener('click', toggle);
 			window.removeEventListener('click', onWindowClick);
 			window.removeEventListener('keydown', onWindowKeyDown);
 
 			this.popupCalendar && this.popupCalendar.$destroy();
 		};
+
+		// State Handlers
+		const open = () => {
+			render();
+			floatingEl.dataset.opened = 'true';
+
+			floatingEl.style.display = 'block';
+			floatingEl.style.opacity = '1';
+			floatingEl.style.pointerEvents = 'auto';
+			// enable popup interactions
+			floatingEl.removeAttribute('inert');
+
+			// Trigger Floating UI autoUpdate (open only)
+			// https://floating-ui.com/docs/autoUpdate
+			this.popupAutoUpdateCleanup = autoUpdate(referenceEl, floatingEl, render);
+		};
+		const close = () => {
+			floatingEl.dataset.opened = 'false';
+
+			floatingEl.style.opacity = '0';
+			// disable popup interactions
+			floatingEl.setAttribute('inert', '');
+
+			// Cleanup Floating UI autoUpdate
+			this.popupAutoUpdateCleanup();
+		};
+		function toggle() {
+			opened ? close() : open();
+		}
+
+		// Event Handlers
+		function onWindowClick(event: MouseEvent) {
+			const ev = event as MouseEvent & { target: Node | null };
+			const floatingEl = document.querySelector('[data-popup="true"]') as HTMLElement;
+			const opened = (floatingEl.dataset.opened as string) === 'true' ? true : false;
+
+			if (!opened) return;
+
+			if (referenceEl.contains(ev.target)) return;
+
+			if (floatingEl && !floatingEl.contains(ev.target)) {
+				close();
+				// remove event listener when closing popup to avoid polluting the event stack
+				window.removeEventListener('click', onWindowClick);
+
+				return;
+			}
+		}
+
+		// Accessibility Keyboard Interactions
+		const onWindowKeyDown = (event: KeyboardEvent) => {
+			const floatingEl = document.querySelector('[data-popup="true"]') as HTMLElement;
+			const opened = (floatingEl.dataset.opened as string) === 'true' ? true : false;
+
+			if (!opened) return;
+
+			const focusableAllowedList =
+				':is(a[href], button, input, textarea, select, details, [tabindex]):not([tabindex="-1"])';
+
+			const focusablePopupElements: HTMLElement[] = Array.from(
+				floatingEl?.querySelectorAll(focusableAllowedList)
+			);
+
+			if (event.key === 'Escape') {
+				event.preventDefault();
+				referenceEl.focus();
+				close();
+				// remove event listener when closing popup to avoid polluting the event stack
+				window.removeEventListener('keydown', onWindowKeyDown);
+
+				return;
+			}
+
+			const referenceElFocused: boolean = opened && document.activeElement === referenceEl;
+			// When the user focuses on 'referenceEl' and then presses the Tab or ArrowDown key, the first element inside the view should receive focus.
+			if (
+				referenceElFocused &&
+				(event.key === 'ArrowDown' || event.key === 'Tab') &&
+				focusablePopupElements.length > 0
+			) {
+				event.preventDefault();
+				focusablePopupElements[0].focus();
+			}
+		};
+
+		// Event Listeners
+		window.addEventListener('click', onWindowClick);
+		window.addEventListener('keydown', onWindowKeyDown);
+
+		// ribbon clicked || autoStart calendar setting
+		if (ribbonClicked) {
+			toggle();
+		}
+		// autoStart calendar setting
+		// add onHOver eventlistener
 	}
 
 	async initView({ active }: { active: boolean } = { active: true }) {
@@ -405,7 +401,7 @@ export default class DailyNoteFlexPlugin extends Plugin {
 			// 5. crr split collapsed
 			this.revealView();
 		}
-	} 
+	}
 
 	removeLocaleScripts() {
 		console.log('removing locales scripts 🎑');
