@@ -11,6 +11,15 @@ import type { Moment } from 'moment';
 import { getPeriodicityFromGranularity } from './calendar-io/parse';
 import type { IPeriodicites } from './calendar-io/types';
 import { createNldatePickerDialog } from './calendar-ui/modals/nldate-picker';
+import {
+	closePopover,
+	popoverstore,
+	registerTogglePopupOnHover,
+	togglePopover,
+	togglePopupOnClick,
+	togglePopupOnHover
+} from './popover';
+import { get } from 'svelte/store';
 
 export default class DailyNoteFlexPlugin extends Plugin {
 	public settings: ISettings;
@@ -117,8 +126,9 @@ export default class DailyNoteFlexPlugin extends Plugin {
 
 			this.initView({ active: false });
 
-			// TODO: add open popup on ribbon hover setting
-			// this.handlePopup(); // only needed once TODO implemented
+			if (this.settings.openPopupOnRibbonHover) {
+				this.cleanupPopup = registerTogglePopupOnHover({ plugin: this });
+			}
 		});
 	}
 
@@ -147,167 +157,27 @@ export default class DailyNoteFlexPlugin extends Plugin {
 
 	handleRibbon() {
 		this.addRibbonIcon('dice', 'Open calendar', () => {
+			console.log('RIBBON clicked!');
 			if (this.settings.viewOpen) {
 				this.toggleView();
+				const popoverStore = get(popoverstore);
+				if (this.settings.openPopupOnRibbonHover && popoverStore.opened) {
+					togglePopover();
+				}
 
 				return;
 			} else {
-				this.handlePopup({ ribbonClicked: true });
+				if (this.settings.openPopupOnRibbonHover) {
+					togglePopover();
+
+					return;
+				} else {
+					this.cleanupPopup = togglePopupOnClick({ plugin: this });
+
+					return;
+				}
 			}
 		}).id = 'daily-note-flex-plugin-ribbon';
-	}
-	handlePopup({ ribbonClicked }: { ribbonClicked: boolean } = { ribbonClicked: false }) {
-		// TODO: should check for open popuo on ribbon hover setting to add a onHover event listner
-		if (this.settings.viewOpen) return;
-
-		this.popupCalendar = new Calendar({
-			target: document.body,
-			props: { popup: true }
-		});
-
-		const referenceEl = document.querySelector(
-			`[id="daily-note-flex-plugin-ribbon"]`
-		) as HTMLElement;
-		const floatingEl = document.querySelector('[data-popup="true"]') as HTMLElement;
-		const arrowEl = document.createElement('div') as HTMLElement;
-		const opened = (floatingEl.dataset.opened as string) === 'true' ? true : false;
-
-		const render = () => {
-			computePosition(referenceEl, floatingEl, {
-				placement: 'right',
-				middleware: [offset(16), shift({ padding: 8 }), flip(), arrow({ element: arrowEl })]
-			}).then(({ x, y, placement, middlewareData }) => {
-				Object.assign(floatingEl.style, {
-					left: `${x}px`,
-					top: `${y}px`
-				});
-				// Handle Arrow Placement:
-				// https://floating-ui.com/docs/arrow
-				if (arrowEl && middlewareData.arrow) {
-					const { x: arrowX, y: arrowY } = middlewareData.arrow;
-
-					const staticSide = {
-						top: 'bottom',
-						right: 'left',
-						bottom: 'top',
-						left: 'right'
-					}[placement.split('-')[0]];
-
-					staticSide &&
-						Object.assign(arrowEl.style, {
-							left: arrowX != null ? `${arrowX}px` : '',
-							top: arrowY != null ? `${arrowY}px` : '',
-							right: '',
-							bottom: '',
-							[staticSide]: '-4px'
-						});
-				}
-			});
-		};
-
-		this.cleanupPopup = () => {
-			this.popupAutoUpdateCleanup = () => ({});
-
-			window.removeEventListener('click', onWindowClick);
-			window.removeEventListener('keydown', onWindowKeyDown);
-
-			this.popupCalendar && this.popupCalendar.$destroy();
-		};
-
-		// State Handlers
-		const open = () => {
-			render();
-			floatingEl.dataset.opened = 'true';
-
-			floatingEl.style.display = 'block';
-			floatingEl.style.opacity = '1';
-			floatingEl.style.pointerEvents = 'auto';
-			// enable popup interactions
-			floatingEl.removeAttribute('inert');
-
-			// Trigger Floating UI autoUpdate (open only)
-			// https://floating-ui.com/docs/autoUpdate
-			this.popupAutoUpdateCleanup = autoUpdate(referenceEl, floatingEl, render);
-		};
-		const close = () => {
-			floatingEl.dataset.opened = 'false';
-
-			floatingEl.style.opacity = '0';
-			// disable popup interactions
-			floatingEl.setAttribute('inert', '');
-
-			// Cleanup Floating UI autoUpdate
-			this.popupAutoUpdateCleanup();
-		};
-		function toggle() {
-			opened ? close() : open();
-		}
-
-		// Event Handlers
-		function onWindowClick(event: MouseEvent) {
-			const ev = event as MouseEvent & { target: Node | null };
-			const floatingEl = document.querySelector('[data-popup="true"]') as HTMLElement;
-			const opened = (floatingEl.dataset.opened as string) === 'true' ? true : false;
-
-			if (!opened) return;
-
-			if (referenceEl.contains(ev.target)) return;
-
-			if (floatingEl && !floatingEl.contains(ev.target)) {
-				close();
-				// remove event listener when closing popup to avoid polluting the event stack
-				window.removeEventListener('click', onWindowClick);
-
-				return;
-			}
-		}
-
-		// Accessibility Keyboard Interactions
-		const onWindowKeyDown = (event: KeyboardEvent) => {
-			const floatingEl = document.querySelector('[data-popup="true"]') as HTMLElement;
-			const opened = (floatingEl.dataset.opened as string) === 'true' ? true : false;
-
-			if (!opened) return;
-
-			const focusableAllowedList =
-				':is(a[href], button, input, textarea, select, details, [tabindex]):not([tabindex="-1"])';
-
-			const focusablePopupElements: HTMLElement[] = Array.from(
-				floatingEl?.querySelectorAll(focusableAllowedList)
-			);
-
-			if (event.key === 'Escape') {
-				event.preventDefault();
-				referenceEl.focus();
-				close();
-				// remove event listener when closing popup to avoid polluting the event stack
-				window.removeEventListener('keydown', onWindowKeyDown);
-
-				return;
-			}
-
-			const referenceElFocused: boolean = opened && document.activeElement === referenceEl;
-			// When the user focuses on 'referenceEl' and then presses the Tab or ArrowDown key, the first element inside the view should receive focus.
-			if (
-				referenceElFocused &&
-				(event.key === 'ArrowDown' || event.key === 'Tab') &&
-				focusablePopupElements.length > 0
-			) {
-				event.preventDefault();
-				focusablePopupElements[0].focus();
-			}
-		};
-
-		// Event Listeners
-		window.addEventListener('click', onWindowClick);
-		window.addEventListener('keydown', onWindowKeyDown);
-
-		// ribbon clicked || autoStart calendar setting
-		if (ribbonClicked) {
-			toggle();
-		}
-		// autoStart calendar setting
-		// add onHOver eventlistener
 	}
 
 	async initView({ active }: { active: boolean } = { active: true }) {

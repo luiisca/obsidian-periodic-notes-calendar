@@ -9,6 +9,7 @@ import weekday from 'dayjs/plugin/weekday';
 import localeData from 'dayjs/plugin/localeData';
 import locales from './locales';
 import type { IGranularity } from './calendar-io';
+import { registerTogglePopupOnHover } from './popover';
 
 dayjs.extend(weekday);
 dayjs.extend(localeData);
@@ -18,6 +19,7 @@ export interface ISettings {
 	shouldConfirmBeforeCreate: boolean;
 	yearsRangesStart: 2020;
 	autoHoverPreview: boolean;
+	openPopupOnRibbonHover: boolean;
 	crrNldModalGranularity: IGranularity;
 
 	localeData: {
@@ -36,6 +38,7 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
 	shouldConfirmBeforeCreate: true,
 	yearsRangesStart: 2020,
 	autoHoverPreview: false,
+	openPopupOnRibbonHover: false,
 	crrNldModalGranularity: 'day',
 
 	localeData: {
@@ -91,6 +94,7 @@ export class SettingsTab extends PluginSettingTab {
 		});
 
 		this.addPopoverSetting();
+		this.addOpenPopoverOnRibbonHoverSetting();
 		this.addConfirmCreateSetting();
 		this.addConfirmAutoHoverPreviewSetting();
 		this.addShowWeeklyNoteSetting();
@@ -114,19 +118,33 @@ export class SettingsTab extends PluginSettingTab {
 			.setDesc('Show Calendar view when clicking on ribbon icon instead of default popup')
 			.addToggle((viewOpen) =>
 				viewOpen.setValue(this.plugin.settings.viewOpen).onChange(async (viewOpen) => {
-					console.log('ON toggle setting ⚙️');
-
-					// destroy popup when no longer active
-					viewOpen && this.plugin.popupCalendar && this.plugin.cleanupPopup();
+					this.plugin.cleanupPopup && this.plugin.cleanupPopup();
+					if (!viewOpen && this.plugin.settings.openPopupOnRibbonHover) {
+						registerTogglePopupOnHover({ plugin: this.plugin });
+					}
 
 					await this.plugin.saveSettings(() => ({
 						viewOpen
 					}));
-
-					// rerender popup when reactivated
-					!viewOpen && this.plugin.handlePopup();
 				})
 			);
+	}
+	addOpenPopoverOnRibbonHoverSetting() {
+		// TODO: improve wording
+		new Setting(this.containerEl).setName('Open popup on Ribbon hover').addToggle((el) =>
+			el
+				.setValue(this.plugin.settings.openPopupOnRibbonHover)
+				.onChange(async (openPopupOnRibbonHover) => {
+					this.plugin.cleanupPopup && this.plugin.cleanupPopup();
+					if (openPopupOnRibbonHover) {
+						registerTogglePopupOnHover({plugin: this.plugin})
+					}
+
+					await this.plugin.saveSettings(() => ({
+						openPopupOnRibbonHover
+					}));
+				})
+		);
 	}
 
 	addConfirmCreateSetting(): void {

@@ -3,6 +3,7 @@
   "shouldConfirmBeforeCreate": false,
   "yearsRangesStart": 2020,
   "autoHoverPreview": false,
+  "openPopupOnRibbonHover": false,
   "crrNldModalGranularity": "day",
   "localeData": {
     "loading": false,
