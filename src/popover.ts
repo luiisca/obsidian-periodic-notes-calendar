@@ -8,13 +8,13 @@ const DEFAULT_STATE = {
 	opened: false,
 	referenceEl: null,
 	floatingEl: null,
-	cleanupPopupAutoUpdate: () => ({})
+	cleanupPopoverAutoUpdate: () => ({})
 } as const;
 export const popoverstore = writable<{
 	opened: boolean;
 	referenceEl: HTMLElement | null;
 	floatingEl: HTMLElement | null;
-	cleanupPopupAutoUpdate: () => void;
+	cleanupPopoverAutoUpdate: () => void;
 }>(DEFAULT_STATE);
 
 const positionFloatingEl = ({
@@ -24,11 +24,13 @@ const positionFloatingEl = ({
 	referenceEl: HTMLElement;
 	floatingEl: HTMLElement;
 }) => {
-	const arrowEl = document.createElement('div') as HTMLElement;
+	const arrowEl = document.querySelector('#arrow') as HTMLDivElement;
+
+	console.log('ArrowEl', arrowEl)
 
 	computePosition(referenceEl, floatingEl, {
 		placement: 'right',
-		middleware: [offset(16), shift({ padding: 8 }), flip(), arrow({ element: arrowEl })]
+		middleware: [flip(), arrow({ element: arrowEl })]
 	}).then(({ x, y, placement, middlewareData }) => {
 		Object.assign(floatingEl.style, {
 			left: `${x}px`,
@@ -52,7 +54,7 @@ const positionFloatingEl = ({
 					top: arrowY != null ? `${arrowY}px` : '',
 					right: '',
 					bottom: '',
-					[staticSide]: '-4px'
+					[staticSide]: '9px'
 				});
 		}
 	});
@@ -81,7 +83,7 @@ const setFloatingElInteractivity = ({
 
 const getReferenceEl = () =>
 	document.querySelector(`[id="daily-note-flex-plugin-ribbon"]`) as HTMLElement;
-const getFloatingEl = () => document.querySelector('[data-popup="true"]') as HTMLElement;
+const getFloatingEl = () => document.querySelector('[data-popover="true"]') as HTMLElement;
 
 const openPopover = () => {
 	const { referenceEl, floatingEl } = get(popoverstore);
@@ -96,19 +98,19 @@ const openPopover = () => {
 			opened: true,
 			// Trigger Floating UI autoUpdate (open only)
 			// https://floating-ui.com/docs/autoUpdate
-			cleanupPopupAutoUpdate: autoUpdate(referenceEl, floatingEl, () =>
+			cleanupPopoverAutoUpdate: autoUpdate(referenceEl, floatingEl, () =>
 				positionFloatingEl({ referenceEl, floatingEl })
 			)
 		}));
 	}
 };
 export const closePopover = () => {
-	const { referenceEl, floatingEl, cleanupPopupAutoUpdate } = get(popoverstore);
+	const { referenceEl, floatingEl, cleanupPopoverAutoUpdate } = get(popoverstore);
 
 	if (referenceEl && floatingEl) {
 		hideFloatingEl({ floatingEl });
 		setFloatingElInteractivity({ floatingEl, enabled: false });
-		cleanupPopupAutoUpdate();
+		cleanupPopoverAutoUpdate();
 
 		popoverstore.update((values) => ({
 			...values,
@@ -118,12 +120,12 @@ export const closePopover = () => {
 };
 export const togglePopover = () => {
 	const { opened } = get(popoverstore);
-	const { openPopupOnRibbonHover } = get(settingsStore);
+	const { openPopoverOnRibbonHover } = get(settingsStore);
 
 	if (!opened) {
 		openPopover();
 
-		if (openPopupOnRibbonHover) {
+		if (openPopoverOnRibbonHover) {
 			window.addEventListener('mouseover', onWindowEvent);
 		} else {
 			window.addEventListener('click', onWindowEvent);
@@ -151,12 +153,17 @@ const onRibbonHover = () => {
 };
 
 const onWindowEvent = (event: MouseEvent) => {
+	console.log('onWindowEvent() > event.target: ', event.target);
+
 	const { referenceEl, floatingEl } = get(popoverstore);
 
 	if (referenceEl && floatingEl) {
 		const ev = event as MouseEvent & { target: Node | null };
 		const referenceElTouched = referenceEl.contains(ev.target);
 		const floatingElTouched = floatingEl.contains(ev.target);
+
+		console.log('referenceEl, floatingEl', referenceEl, floatingEl);
+		console.log(floatingElTouched && "🥲🥲🥲🥲🥲🥲🥲🥲 I the floating element have been touched 🥲🥲🥲🥲🥲🥲🥲🥲");
 
 		if (referenceElTouched) return;
 
@@ -177,7 +184,7 @@ const onWindowKeyDown = (event: KeyboardEvent) => {
 		const focusableAllowedList =
 			':is(a[href], button, input, textarea, select, details, [tabindex]):not([tabindex="-1"])';
 
-		const focusablePopupElements: HTMLElement[] = Array.from(
+		const focusablePopoverElements: HTMLElement[] = Array.from(
 			floatingEl?.querySelectorAll(focusableAllowedList)
 		);
 
@@ -186,9 +193,9 @@ const onWindowKeyDown = (event: KeyboardEvent) => {
 		if (
 			referenceElFocused &&
 			(event.key === 'ArrowDown' || event.key === 'Tab') &&
-			focusablePopupElements.length > 0
+			focusablePopoverElements.length > 0
 		) {
-			focusablePopupElements[0].focus();
+			focusablePopoverElements[0].focus();
 
 			return;
 		}
@@ -202,11 +209,11 @@ const onWindowKeyDown = (event: KeyboardEvent) => {
 	}
 };
 
-const setupView = ({ plugin }: { plugin: DailyNoteFlexPlugin }) => {
-	if (!plugin.popupCalendar) {
+const setupView = () => {
+	if (!getFloatingEl()) {
 		new View({
 			target: document.body,
-			props: { popup: true }
+			props: { popover: true }
 		});
 
 		popoverstore.update((values) => ({
@@ -217,48 +224,48 @@ const setupView = ({ plugin }: { plugin: DailyNoteFlexPlugin }) => {
 	}
 };
 // define both onRibbonClicked and onRibbonHovered fns
-export const togglePopupOnClick = ({ plugin }: { plugin: DailyNoteFlexPlugin }) => {
-	setupView({ plugin });
+export const togglePopoverOnClick = ({ plugin }: { plugin: DailyNoteFlexPlugin }) => {
+	setupView();
 	togglePopover();
 
-	const cleanupPopup = () => {
+	const cleanupPopover = () => {
 		popoverstore.update((values) => ({
 			...values,
 			opened: false,
 			referenceEl: null,
 			floatingEl: null,
-			cleanupPopupAutoUpdate: () => ({})
+			cleanupPopoverAutoUpdate: () => ({})
 		}));
 
 		window.removeEventListener('click', onWindowEvent);
 
-		plugin.popupCalendar && plugin.popupCalendar.$destroy();
+		plugin.popoverCalendar && plugin.popoverCalendar.$destroy();
 	};
-	return cleanupPopup;
+	return cleanupPopover;
 };
 
-export const registerTogglePopupOnHover = ({ plugin }: { plugin: DailyNoteFlexPlugin }) => {
-	setupView({ plugin });
+export const registerTogglePopoverOnHover = ({ plugin }: { plugin: DailyNoteFlexPlugin }) => {
+	setupView();
 	const { referenceEl } = get(popoverstore);
 
 	if (referenceEl) {
 		referenceEl.addEventListener('mouseover', onRibbonHover);
 	}
 
-	const cleanupPopup = () => {
+	const cleanupPopover = () => {
 		popoverstore.update((values) => ({
 			...values,
 			opened: false,
 			referenceEl: null,
 			floatingEl: null,
-			cleanupPopupAutoUpdate: () => ({})
+			cleanupPopoverAutoUpdate: () => ({})
 		}));
 
 		referenceEl && referenceEl.removeEventListener('mouseover', onRibbonHover);
 		window.removeEventListener('mouseover', onWindowEvent);
 		window.removeEventListener('keydown', onWindowKeyDown);
 
-		plugin.popupCalendar && plugin.popupCalendar.$destroy();
+		plugin.popoverCalendar && plugin.popoverCalendar.$destroy();
 	};
-	return cleanupPopup;
+	return cleanupPopover;
 };

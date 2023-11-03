@@ -1,7 +1,7 @@
 import { Plugin, WorkspaceLeaf, WorkspaceRoot } from 'obsidian';
 import { computePosition, autoUpdate, flip, offset, shift, arrow } from '@floating-ui/dom';
 import { CalendarView, VIEW_TYPE_CALENDAR } from './view';
-import Calendar from './View.svelte';
+import type Calendar from './View.svelte';
 import { pluginClassStore, settingsStore } from './stores';
 import { SettingsTab, type ISettings, DEFAULT_SETTINGS } from './settings';
 import { granularities } from './constants';
@@ -12,27 +12,25 @@ import { getPeriodicityFromGranularity } from './calendar-io/parse';
 import type { IPeriodicites } from './calendar-io/types';
 import { createNldatePickerDialog } from './calendar-ui/modals/nldate-picker';
 import {
-	closePopover,
 	popoverstore,
-	registerTogglePopupOnHover,
+	registerTogglePopoverOnHover,
 	togglePopover,
-	togglePopupOnClick,
-	togglePopupOnHover
+	togglePopoverOnClick,
 } from './popover';
 import { get } from 'svelte/store';
 
 export default class DailyNoteFlexPlugin extends Plugin {
 	public settings: ISettings;
-	popupCalendar: Calendar;
-	cleanupPopup: () => void;
-	popupAutoUpdateCleanup: () => void;
+	popoverCalendar: Calendar;
+	cleanupPopover: () => void;
+	popoverAutoUpdateCleanup: () => void;
 
 	onunload() {
 		console.log('ON Unload ⛰️');
 
 		this.app.workspace.getLeavesOfType(VIEW_TYPE_CALENDAR).forEach((leaf) => leaf.detach());
 
-		this.cleanupPopup && this.cleanupPopup();
+		this.cleanupPopover && this.cleanupPopover();
 		this.removeLocaleScripts();
 
 		window.plugin = null;
@@ -126,8 +124,8 @@ export default class DailyNoteFlexPlugin extends Plugin {
 
 			this.initView({ active: false });
 
-			if (this.settings.openPopupOnRibbonHover) {
-				this.cleanupPopup = registerTogglePopupOnHover({ plugin: this });
+			if (this.settings.openPopoverOnRibbonHover) {
+				this.cleanupPopover = registerTogglePopoverOnHover({ plugin: this });
 			}
 		});
 	}
@@ -161,18 +159,18 @@ export default class DailyNoteFlexPlugin extends Plugin {
 			if (this.settings.viewOpen) {
 				this.toggleView();
 				const popoverStore = get(popoverstore);
-				if (this.settings.openPopupOnRibbonHover && popoverStore.opened) {
+				if (this.settings.openPopoverOnRibbonHover && popoverStore.opened) {
 					togglePopover();
 				}
 
 				return;
 			} else {
-				if (this.settings.openPopupOnRibbonHover) {
+				if (this.settings.openPopoverOnRibbonHover) {
 					togglePopover();
 
 					return;
 				} else {
-					this.cleanupPopup = togglePopupOnClick({ plugin: this });
+					this.cleanupPopover = togglePopoverOnClick({ plugin: this });
 
 					return;
 				}

@@ -15,7 +15,7 @@
 	import { getNoteSettingsByGranularity } from './calendar-io/settings';
 	import { createStickerDialog } from './calendar-ui/modals/sticker-picker';
 
-	export let popup: boolean = false;
+	export let popover: boolean = false;
 
 	export function rerenderCalendar() {
 		rerenderStore.update((val) => ({
@@ -157,15 +157,29 @@
 	});
 </script>
 
-<div
-	class={clsx(popup && 'bg-red-500 w-max opacity-0 pointer-events-none absolute top-0 left-0 duration-300')}
-	data-popup={popup}
-	data-opened='false'
->
+{#if popover}
+	<div
+		class={clsx(
+			popover &&
+				'bg-transparent w-max opacity-0 pointer-events-none absolute top-0 left-0 duration-300 z-[999]'
+		)}
+		data-popover={popover}
+		data-opened="false"
+	>
+		<div id="arrow" class="rotate-45 absolute w-2.5 h-2.5 bg-slate-500" />
+		<div class="ml-[5px] p-2">
+			<div class="bg-slate-500 rounded-sm">
+				<Calendar />
+			</div>
+		</div>
+	</div>
+{/if}
+{#if !popover}
 	<Calendar />
-</div>
+{/if}
 
 <style>
+	@tailwind base;
 	@tailwind components;
 	@tailwind utilities;
 </style>
