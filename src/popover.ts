@@ -12,6 +12,7 @@ export interface IPopoverState {
 	customX?: number;
 	customY?: number;
 	onWindowEvent?: (event: MouseEvent) => void;
+	handleOnFloatingElEvent?: (event: MouseEvent) => void;
 	handleOnWindowEvent: (event: MouseEvent) => void;
 	handleOnWindowKeyDown: (event: KeyboardEvent) => void;
 }
@@ -266,14 +267,12 @@ export const setupPopover = ({
 }) => {
 	const plugin = window.plugin as DailyNoteFlexPlugin;
 	// setup View
-	if (!getFloatingEl({ id })) {
-		plugin.popovers.push(
-			new view.Component({
-				target: document.body,
-				props: { popover: true, close: () => closePopover({id}), ...view.props }
-			})
-		);
-		console.log(`⚙⚙️⚙️️⚙️⚙SETTING UP ${id} popover⚙️⚙️⚙️. Plugin popover: `, plugin.popovers)
+	if (!getFloatingEl({ id }) && !plugin.popovers[id]) {
+		plugin.popovers[id] = new view.Component({
+			target: document.body,
+			props: { popover: true, close: () => closePopover({ id }), ...view.props }
+		});
+		console.log(`⚙⚙️⚙️️⚙️⚙SETTING UP ${id} popover⚙️⚙️⚙️. Plugin popover: `, plugin.popovers);
 
 		popoversStore.update((values) => ({
 			...values,
@@ -332,7 +331,9 @@ export const setupPopover = ({
 		window.removeEventListener('mouseover', handleOnWindowEvent);
 		window.removeEventListener('keydown', handleOnWindowKeyDown);
 
-		plugin.popovers && plugin.popovers.forEach((popover) => popover.$destroy());
+		if (plugin.popovers) {
+			Object.values(plugin.popovers).forEach((popover) => popover?.$destroy());
+		}
 	};
 
 	return cleanupPopover;

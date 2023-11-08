@@ -15,7 +15,7 @@ import { popoverOnWindowEvent } from './utils';
 
 export default class DailyNoteFlexPlugin extends Plugin {
 	public settings: ISettings;
-	popovers: SvelteComponent[] = [];
+	popovers: Record<string, SvelteComponent | null> = {};
 	popoversCleanups: (() => void)[] = [];
 	popoverAutoUpdateCleanup: () => void;
 

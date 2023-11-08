@@ -90,19 +90,9 @@ export const popoverOnWindowEvent = (event: MouseEvent) => {
 		emojiElStore?.floatingEl?.contains(ev.target) || ev.target?.id.includes(EMOJI_POPOVER_ID);
 	const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
 
-	console.log(
-		calendarElTouched
-			? 'calendar touched!'
-			: menuElTouched
-			? 'menu touched!'
-			: emojiElTouched
-			? 'emoji touched'
-			: 'none touched'
-	);
 	const targetOut = !calendarElTouched && !menuElTouched && !emojiElTouched;
 	const fileMenu = get(crrFileMenu);
 
-	console.log('event type: ', evType)
 	if (calendarElStore?.opened && !emojiElStore?.opened && !menuEl && targetOut) {
 		closePopover({ id: CALENDAR_POPOVER_ID });
 
@@ -112,16 +102,7 @@ export const popoverOnWindowEvent = (event: MouseEvent) => {
 		return;
 	}
 
-	console.log(
-		'MenuElTouched',
-		menuElTouched,
-		'menu',
-		document.querySelector('.menu'),
-		'target: ',
-		ev.target
-	);
 	if (calendarElStore?.opened && emojiElStore?.opened && evType === 'click' && targetOut) {
-		console.log('Window touched, about to close popovers!');
 		closePopover({ id: CALENDAR_POPOVER_ID });
 		closePopover({ id: EMOJI_POPOVER_ID });
 

@@ -68,31 +68,7 @@
 	sheet.replaceSync('section#root {font-family: inherit');
 	emojiMartEl.shadowRoot?.adoptedStyleSheets.push(sheet);
 
-	$: {
-		console.log('pickerContainerEl: ', pickerContainerEl);
-		pickerContainerEl?.appendChild(emojiMartEl);
-	}
-
-	$: if (pickerContainerEl && $settingsStore.openPopoverOnRibbonHover) {
-		const calendarPopoverStore = $popoversStore[CALENDAR_POPOVER_ID];
-
-		if (calendarPopoverStore) {
-			// remove mouseover event to ensure CP doesnt close on hover after EP is hidden
-			window.removeEventListener('mouseover', calendarPopoverStore.handleOnWindowEvent);
-
-			const addOnWindowEventListenerBack = () => {
-				// add window.mouseover ev listener back once CP is hovered
-				window.addEventListener('mouseover', calendarPopoverStore.handleOnWindowEvent);
-
-				calendarPopoverStore.floatingEl?.removeEventListener(
-					'mouseover',
-					addOnWindowEventListenerBack
-				);
-			};
-
-			calendarPopoverStore.floatingEl?.addEventListener('mouseover', addOnWindowEventListenerBack);
-		}
-	}
+	$: pickerContainerEl?.appendChild(emojiMartEl);
 </script>
 
 <div

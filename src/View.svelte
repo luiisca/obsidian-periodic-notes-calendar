@@ -19,11 +19,18 @@
 	} from './calendar-io';
 	import { VIEW } from './calendar-ui/context';
 	import { getNoteSettingsByGranularity } from './calendar-io/settings';
-	import { openPopover, popoversStore, setupPopover, togglePopover } from './popover';
+	import {
+		openPopover,
+		popoversStore,
+		setupPopover,
+		togglePopover,
+		type IPopoverState
+	} from './popover';
 	import { get } from 'svelte/store';
 	import StickerModalComponent from './calendar-ui/components/StickerModal.svelte';
 	import { CALENDAR_POPOVER_ID, EMOJI_POPOVER_ID } from './constants';
 	import { popoverOnWindowEvent } from './utils';
+	import type DailyNoteFlexPlugin from './main';
 
 	export let popover: boolean = false;
 
@@ -116,6 +123,7 @@
 	};
 
 	const onContextMenu = ({ date, event, granularity }: Parameters<TOnContextMenu>[0]): void => {
+		console.log('onContextMenu() 🤯🤯🤯🤯')
 		const note = getNoteByGranularity({ date, granularity });
 		const dateUID = getDateUID(date, granularity);
 
@@ -134,33 +142,46 @@
 				.setTitle('Add Sticker')
 				.setIcon('smile-plus')
 				.onClick(() => {
-					// open modal
-					const { opened } = get(popoversStore)[CALENDAR_POPOVER_ID];
+					const plugin = window.plugin as DailyNoteFlexPlugin;
 
-					if (opened) {
-						console.log('Loading Sticker floating el!');
+					const calendarPopoverStore = get(popoversStore)[CALENDAR_POPOVER_ID];
+					const emojiPopoverStore = get(popoversStore)[EMOJI_POPOVER_ID];
 
-						const referenceEl = event.target as HTMLElement;
+					if (calendarPopoverStore) {
+						const { opened: cpOpened } = calendarPopoverStore;
+						if (cpOpened) {
+							const referenceEl = event.target as HTMLElement;
 
-						console.log('open sticker menu() > x, y: ', event.pageX, event.pageY);
-						console.log('popover store: ', get(popoversStore));
+							// reset sticker popover when neccesary
+							if (emojiPopoverStore) {
+								const { referenceEl: existingSpReferenceEl } = emojiPopoverStore;
 
-						setupPopover({
-							id: EMOJI_POPOVER_ID,
-							referenceEl,
-							view: {
-								Component: StickerModalComponent,
-								props: {
-									noteStore: notesStores[granularity],
-									noteDateUID: dateUID
+								if (
+									!referenceEl.isEqualNode(existingSpReferenceEl) &&
+									plugin.popovers[EMOJI_POPOVER_ID]
+								) {
+									// destroy existing popover to allow setupPopover create new one with new position
+									plugin.popovers[EMOJI_POPOVER_ID].$destroy;
+									plugin.popovers[EMOJI_POPOVER_ID] = null;
 								}
-							},
-							customX: event.pageX,
-							customY: event.pageY,
-							onWindowEvent: popoverOnWindowEvent
-						});
+							}
 
-						openPopover({ id: EMOJI_POPOVER_ID });
+							setupPopover({
+								id: EMOJI_POPOVER_ID,
+								referenceEl,
+								view: {
+									Component: StickerModalComponent,
+									props: {
+										noteStore: notesStores[granularity],
+										noteDateUID: dateUID
+									}
+								},
+								customX: event.pageX,
+								customY: event.pageY
+							});
+
+							openPopover({ id: EMOJI_POPOVER_ID });
+						}
 					}
 				})
 		);
@@ -179,6 +200,56 @@
 			x: event.pageX,
 			y: event.pageY
 		});
+
+		if ($settingsStore.openPopoverOnRibbonHover) {
+			const calendarPopoverStore = $popoversStore[CALENDAR_POPOVER_ID];
+
+			if (calendarPopoverStore) {
+				// remove mouseover event to ensure CP doesnt close when any menu action is performed
+				window.removeEventListener('mouseover', calendarPopoverStore.handleOnWindowEvent);
+
+				const addOnWindowEventListenerBack = () => {
+					// add window.mouseover ev listener back once CP is hovered
+					const calendarPopoverStore = $popoversStore[CALENDAR_POPOVER_ID];
+					const emojiElStore = $popoversStore[EMOJI_POPOVER_ID];
+
+					if (
+						calendarPopoverStore?.opened &&
+						!emojiElStore?.opened &&
+						!document.querySelector('.menu')
+					) {
+						window.addEventListener('mouseover', calendarPopoverStore.handleOnWindowEvent);
+
+						calendarPopoverStore.floatingEl?.removeEventListener(
+							'mouseover',
+							addOnWindowEventListenerBack
+						);
+					}
+				};
+
+				// cleanup previous callback
+				if (calendarPopoverStore.handleOnFloatingElEvent) {
+					calendarPopoverStore.floatingEl?.removeEventListener(
+						'mouseover',
+						calendarPopoverStore.handleOnFloatingElEvent
+					);
+				}
+
+				// add new callback
+				popoversStore.update((values) => ({
+					...values,
+					[CALENDAR_POPOVER_ID]: {
+						...values[CALENDAR_POPOVER_ID],
+						handleOnFloatingElEvent: addOnWindowEventListenerBack
+					} as IPopoverState
+				}));
+
+				calendarPopoverStore.floatingEl?.addEventListener(
+					'mouseover',
+					addOnWindowEventListenerBack
+				);
+			}
+		}
 	};
 
 	setContext<ICalendarViewCtx>(VIEW, {
