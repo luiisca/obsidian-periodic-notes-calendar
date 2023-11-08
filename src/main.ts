@@ -1,28 +1,22 @@
 import { Plugin, WorkspaceLeaf, WorkspaceRoot } from 'obsidian';
-import { computePosition, autoUpdate, flip, offset, shift, arrow } from '@floating-ui/dom';
 import { CalendarView, VIEW_TYPE_CALENDAR } from './view';
-import type Calendar from './View.svelte';
+import View from './View.svelte';
 import { pluginClassStore, settingsStore } from './stores';
 import { SettingsTab, type ISettings, DEFAULT_SETTINGS } from './settings';
-import { granularities } from './constants';
-import { isMetaPressed } from './calendar-ui/utils';
+import { CALENDAR_POPOVER_ID, granularities } from './constants';
 import { tryToCreateNote } from './calendar-io';
-import type { Moment } from 'moment';
 import { getPeriodicityFromGranularity } from './calendar-io/parse';
 import type { IPeriodicites } from './calendar-io/types';
 import { createNldatePickerDialog } from './calendar-ui/modals/nldate-picker';
-import {
-	popoverstore,
-	registerTogglePopoverOnHover,
-	togglePopover,
-	togglePopoverOnClick,
-} from './popover';
+import { popoversStore, setupPopover, togglePopover } from './popover';
 import { get } from 'svelte/store';
+import type { SvelteComponent } from 'svelte';
+import { popoverOnWindowEvent } from './utils';
 
 export default class DailyNoteFlexPlugin extends Plugin {
 	public settings: ISettings;
-	popoverCalendar: Calendar;
-	cleanupPopover: () => void;
+	popovers: SvelteComponent[] = [];
+	popoversCleanups: (() => void)[] = [];
 	popoverAutoUpdateCleanup: () => void;
 
 	onunload() {
@@ -30,7 +24,7 @@ export default class DailyNoteFlexPlugin extends Plugin {
 
 		this.app.workspace.getLeavesOfType(VIEW_TYPE_CALENDAR).forEach((leaf) => leaf.detach());
 
-		this.cleanupPopover && this.cleanupPopover();
+		this.popoversCleanups.length > 0 && this.popoversCleanups.forEach((cleanup) => cleanup());
 		this.removeLocaleScripts();
 
 		window.plugin = null;
@@ -120,12 +114,22 @@ export default class DailyNoteFlexPlugin extends Plugin {
 
 		this.app.workspace.onLayoutReady(() => {
 			console.log('ON Layout REady 🙌');
-			// const localeWeekStartNum = window._bundledLocaleWeekSpec.dow;
 
 			this.initView({ active: false });
 
+			console.log('openPopoverOnRibbonHover: ', this.settings.openPopoverOnRibbonHover);
 			if (this.settings.openPopoverOnRibbonHover) {
-				this.cleanupPopover = registerTogglePopoverOnHover({ plugin: this });
+				console.log('about to setupPopover!');
+				this.popoversCleanups.push(
+					setupPopover({
+						id: CALENDAR_POPOVER_ID,
+						openOnReferenceElHover: true,
+						view: {
+							Component: View
+						},
+						onWindowEvent: popoverOnWindowEvent
+					})
+				);
 			}
 		});
 	}
@@ -155,27 +159,36 @@ export default class DailyNoteFlexPlugin extends Plugin {
 
 	handleRibbon() {
 		this.addRibbonIcon('dice', 'Open calendar', () => {
-			console.log('RIBBON clicked!');
 			if (this.settings.viewOpen) {
 				this.toggleView();
-				const popoverStore = get(popoverstore);
+
+				const popoverStore = get(popoversStore)[CALENDAR_POPOVER_ID];
 				if (this.settings.openPopoverOnRibbonHover && popoverStore.opened) {
-					togglePopover();
+					togglePopover({ id: CALENDAR_POPOVER_ID });
 				}
 
 				return;
 			} else {
 				if (this.settings.openPopoverOnRibbonHover) {
-					togglePopover();
+					togglePopover({ id: CALENDAR_POPOVER_ID });
 
 					return;
 				} else {
-					this.cleanupPopover = togglePopoverOnClick({ plugin: this });
+					this.popoversCleanups.push(
+						setupPopover({
+							id: CALENDAR_POPOVER_ID,
+							view: {
+								Component: View
+							},
+							onWindowEvent: popoverOnWindowEvent
+						})
+					);
+					togglePopover({ id: CALENDAR_POPOVER_ID });
 
 					return;
 				}
 			}
-		}).id = 'daily-note-flex-plugin-ribbon';
+		}).id = `${CALENDAR_POPOVER_ID}-reference-el`;
 	}
 
 	async initView({ active }: { active: boolean } = { active: true }) {

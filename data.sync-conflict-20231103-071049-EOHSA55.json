@@ -1,0 +1,33 @@
+{
+  "viewOpen": false,
+  "shouldConfirmBeforeCreate": false,
+  "yearsRangesStart": 2020,
+  "autoHoverPreview": false,
+  "openPopupOnRibbonHover": true,
+  "crrNldModalGranularity": "day",
+  "localeData": {
+    "loading": false,
+    "weekStart": "Sunday",
+    "showWeekNums": true,
+    "sysLocale": "en",
+    "localeOverride": "en",
+    "localizedWeekdays": [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday"
+    ],
+    "localizedWeekdaysShort": [
+      "Sun",
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat"
+    ]
+  }
+}

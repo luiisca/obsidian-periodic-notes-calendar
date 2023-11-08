@@ -1,6 +1,6 @@
 import { get, writable, type Writable } from 'svelte/store';
 import { DEFAULT_SETTINGS, type ISettings } from './settings';
-import type { TFile } from 'obsidian';
+import { Menu, type TFile } from 'obsidian';
 import { getAllNotesByGranularity, type IGranularity } from './calendar-io';
 import { YEARS_RANGE_SIZE, granularities } from './constants';
 import type { Moment } from 'moment';
@@ -231,3 +231,5 @@ granularities.forEach((granularity) => {
 
 	notesStores[granularity] = notesExtStore;
 });
+
+export const crrFileMenu = writable<Menu | null>(null)

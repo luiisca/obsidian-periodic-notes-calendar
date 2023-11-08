@@ -3,7 +3,13 @@
 	import clsx from 'clsx';
 	import { onDestroy, setContext } from 'svelte';
 	import Calendar from './calendar-ui/components/Calendar.svelte';
-	import { displayedDateStore, notesStores, rerenderStore, settingsStore } from './stores';
+	import {
+		crrFileMenu,
+		displayedDateStore,
+		notesStores,
+		rerenderStore,
+		settingsStore
+	} from './stores';
 	import type { Moment } from 'moment';
 	import {
 		tryToCreateNote,
@@ -13,7 +19,11 @@
 	} from './calendar-io';
 	import { VIEW } from './calendar-ui/context';
 	import { getNoteSettingsByGranularity } from './calendar-io/settings';
-	import { createStickerDialog } from './calendar-ui/modals/sticker-picker';
+	import { openPopover, popoversStore, setupPopover, togglePopover } from './popover';
+	import { get } from 'svelte/store';
+	import StickerModalComponent from './calendar-ui/components/StickerModal.svelte';
+	import { CALENDAR_POPOVER_ID, EMOJI_POPOVER_ID } from './constants';
+	import { popoverOnWindowEvent } from './utils';
 
 	export let popover: boolean = false;
 
@@ -117,13 +127,41 @@
 		}
 
 		const fileMenu = new Menu();
+		crrFileMenu.set(fileMenu);
+
 		fileMenu.addItem((item) =>
 			item
 				.setTitle('Add Sticker')
 				.setIcon('smile-plus')
 				.onClick(() => {
 					// open modal
-					createStickerDialog({ noteStore: notesStores[granularity], noteDateUID: dateUID });
+					const { opened } = get(popoversStore)[CALENDAR_POPOVER_ID];
+
+					if (opened) {
+						console.log('Loading Sticker floating el!');
+
+						const referenceEl = event.target as HTMLElement;
+
+						console.log('open sticker menu() > x, y: ', event.pageX, event.pageY);
+						console.log('popover store: ', get(popoversStore));
+
+						setupPopover({
+							id: EMOJI_POPOVER_ID,
+							referenceEl,
+							view: {
+								Component: StickerModalComponent,
+								props: {
+									noteStore: notesStores[granularity],
+									noteDateUID: dateUID
+								}
+							},
+							customX: event.pageX,
+							customY: event.pageY,
+							onWindowEvent: popoverOnWindowEvent
+						});
+
+						openPopover({ id: EMOJI_POPOVER_ID });
+					}
 				})
 		);
 		fileMenu.addItem((item) =>
@@ -161,12 +199,12 @@
 	<div
 		class={clsx(
 			popover &&
-				'bg-transparent w-max opacity-0 pointer-events-none absolute top-0 left-0 duration-300 z-[999]'
+				'bg-transparent z-10 w-max opacity-0 pointer-events-none absolute top-0 left-0 duration-300'
 		)}
 		data-popover={popover}
-		data-opened="false"
+		id={CALENDAR_POPOVER_ID}
 	>
-		<div id="arrow" class="rotate-45 absolute w-2.5 h-2.5 bg-slate-500" />
+		<div id={`${CALENDAR_POPOVER_ID}-arrow`} class="rotate-45 absolute w-2.5 h-2.5 bg-slate-500" />
 		<div class="ml-[5px] p-2">
 			<div class="bg-slate-500 rounded-sm">
 				<Calendar />

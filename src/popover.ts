@@ -1,40 +1,41 @@
-import { computePosition, autoUpdate, flip, offset, shift, arrow } from '@floating-ui/dom';
-import View from './View.svelte';
+import { computePosition, autoUpdate, flip, arrow } from '@floating-ui/dom';
 import { get, writable } from 'svelte/store';
 import type DailyNoteFlexPlugin from './main';
 import { settingsStore } from './stores';
+import type { ComponentType } from 'svelte';
 
-const DEFAULT_STATE = {
-	opened: false,
-	referenceEl: null,
-	floatingEl: null,
-	cleanupPopoverAutoUpdate: () => ({})
-} as const;
-export const popoverstore = writable<{
+export interface IPopoverState {
 	opened: boolean;
 	referenceEl: HTMLElement | null;
 	floatingEl: HTMLElement | null;
 	cleanupPopoverAutoUpdate: () => void;
-}>(DEFAULT_STATE);
+	customX?: number;
+	customY?: number;
+	onWindowEvent?: (event: MouseEvent) => void;
+	handleOnWindowEvent: (event: MouseEvent) => void;
+	handleOnWindowKeyDown: (event: KeyboardEvent) => void;
+}
+export const popoversStore = writable<Record<string, IPopoverState | undefined>>();
 
 const positionFloatingEl = ({
 	referenceEl,
-	floatingEl
+	floatingEl,
+	id
 }: {
 	referenceEl: HTMLElement;
 	floatingEl: HTMLElement;
+	id: string;
 }) => {
-	const arrowEl = document.querySelector('#arrow') as HTMLDivElement;
-
-	console.log('ArrowEl', arrowEl)
+	const arrowEl = document.querySelector(`#${id}-arrow`) as HTMLDivElement;
+	const { customX, customY } = get(popoversStore)[id] as IPopoverState;
 
 	computePosition(referenceEl, floatingEl, {
 		placement: 'right',
 		middleware: [flip(), arrow({ element: arrowEl })]
 	}).then(({ x, y, placement, middlewareData }) => {
 		Object.assign(floatingEl.style, {
-			left: `${x}px`,
-			top: `${y}px`
+			left: `${customX || x}px`,
+			top: `${customY || y}px`
 		});
 		// Handle Arrow Placement:
 		// https://floating-ui.com/docs/arrow
@@ -63,9 +64,13 @@ const revealFloatingEl = ({ floatingEl }: { floatingEl: HTMLElement }) => {
 	floatingEl.style.display = 'block';
 	floatingEl.style.opacity = '1';
 	floatingEl.style.pointerEvents = 'auto';
+
+	console.log('🙌 revealFloatingEl() > opacity: ', floatingEl.style.opacity);
 };
 const hideFloatingEl = ({ floatingEl }: { floatingEl: HTMLElement }) => {
 	floatingEl.style.opacity = '0';
+
+	console.log('🙌 hideFloatingEl() > opacity: ', floatingEl.style.opacity);
 };
 const setFloatingElInteractivity = ({
 	enabled,
@@ -81,104 +86,132 @@ const setFloatingElInteractivity = ({
 	}
 };
 
-const getReferenceEl = () =>
-	document.querySelector(`[id="daily-note-flex-plugin-ribbon"]`) as HTMLElement;
-const getFloatingEl = () => document.querySelector('[data-popover="true"]') as HTMLElement;
+const getReferenceEl = ({ id }: { id: string }) =>
+	document.querySelector(`[id=${id}-reference-el]`) as HTMLElement;
+const getFloatingEl = ({ id }: { id: string }) =>
+	document.querySelector(`#${id}[data-popover="true"]`) as HTMLElement;
 
-const openPopover = () => {
-	const { referenceEl, floatingEl } = get(popoverstore);
+export const openPopover = ({ id }: { id: string }) => {
+	console.log('openPopover() > id: ✅', id);
 
-	if (referenceEl && floatingEl) {
-		positionFloatingEl({ referenceEl, floatingEl });
-		revealFloatingEl({ floatingEl });
-		setFloatingElInteractivity({ floatingEl, enabled: true });
+	const popoverState = get(popoversStore)[id];
 
-		popoverstore.update((values) => ({
-			...values,
-			opened: true,
-			// Trigger Floating UI autoUpdate (open only)
-			// https://floating-ui.com/docs/autoUpdate
-			cleanupPopoverAutoUpdate: autoUpdate(referenceEl, floatingEl, () =>
-				positionFloatingEl({ referenceEl, floatingEl })
-			)
-		}));
-	}
-};
-export const closePopover = () => {
-	const { referenceEl, floatingEl, cleanupPopoverAutoUpdate } = get(popoverstore);
+	if (popoverState) {
+		const { referenceEl, floatingEl, handleOnWindowEvent, handleOnWindowKeyDown } = popoverState;
+		const { openPopoverOnRibbonHover } = get(settingsStore);
 
-	if (referenceEl && floatingEl) {
-		hideFloatingEl({ floatingEl });
-		setFloatingElInteractivity({ floatingEl, enabled: false });
-		cleanupPopoverAutoUpdate();
+		if (referenceEl && floatingEl) {
+			console.log('about to reveal floatingEl > id: ', id);
 
-		popoverstore.update((values) => ({
-			...values,
-			opened: false
-		}));
-	}
-};
-export const togglePopover = () => {
-	const { opened } = get(popoverstore);
-	const { openPopoverOnRibbonHover } = get(settingsStore);
+			positionFloatingEl({ referenceEl, floatingEl, id });
+			revealFloatingEl({ floatingEl });
+			setFloatingElInteractivity({ floatingEl, enabled: true });
 
-	if (!opened) {
-		openPopover();
-
-		if (openPopoverOnRibbonHover) {
-			window.addEventListener('mouseover', onWindowEvent);
-		} else {
-			window.addEventListener('click', onWindowEvent);
+			popoversStore.update((values) => ({
+				...values,
+				[id]: {
+					...values[id],
+					opened: true,
+					// Trigger Floating UI autoUpdate (open only)
+					// https://floating-ui.com/docs/autoUpdate
+					cleanupPopoverAutoUpdate: autoUpdate(referenceEl, floatingEl, () =>
+						positionFloatingEl({ referenceEl, floatingEl, id })
+					)
+				} as IPopoverState
+			}));
 		}
-		window.addEventListener('keydown', onWindowKeyDown);
-	} else {
-		closePopover();
 
-		window.removeEventListener('mouseover', onWindowEvent);
-		window.removeEventListener('click', onWindowEvent);
-		window.removeEventListener('keydown', onWindowKeyDown);
+		openPopoverOnRibbonHover && window.addEventListener('mouseover', handleOnWindowEvent);
+		window.addEventListener('click', handleOnWindowEvent);
+		window.addEventListener('keydown', handleOnWindowKeyDown);
+	}
+};
+export const closePopover = ({ id }: { id: string }) => {
+	console.log('closePopover() > id: ❌', id);
+	const popoverState = get(popoversStore)[id];
+
+	if (popoverState) {
+		const {
+			referenceEl,
+			floatingEl,
+			cleanupPopoverAutoUpdate,
+			handleOnWindowEvent,
+			handleOnWindowKeyDown
+		} = popoverState;
+
+		if (referenceEl && floatingEl) {
+			hideFloatingEl({ floatingEl });
+			setFloatingElInteractivity({ floatingEl, enabled: false });
+			cleanupPopoverAutoUpdate();
+
+			popoversStore.update((values) => ({
+				...values,
+				[id]: {
+					...values[id],
+					opened: false
+				} as IPopoverState
+			}));
+		}
+		window.removeEventListener('mouseover', handleOnWindowEvent);
+		window.removeEventListener('click', handleOnWindowEvent);
+		window.removeEventListener('keydown', handleOnWindowKeyDown);
+	}
+};
+export const togglePopover = ({ id }: { id: string }) => {
+	const popoverState = get(popoversStore)[id];
+	if (popoverState) {
+		const { opened } = popoverState;
+
+		console.log('ID: ', id.toUpperCase());
+		console.log('togglePopover() > opened: ', opened);
+
+		if (!opened) {
+			openPopover({ id });
+		} else {
+			closePopover({ id });
+		}
 	}
 };
 
 // event listeners
-const onRibbonHover = () => {
-	const { opened } = get(popoverstore);
+let handlePopoverOnReferenceElHover: (event: MouseEvent) => void;
+
+const onReferenceElHover = ({ id }: { id: string }) => {
+	const { opened, handleOnWindowEvent, handleOnWindowKeyDown } = get(popoversStore)[
+		id
+	] as IPopoverState;
 
 	if (!opened) {
-		openPopover();
+		openPopover({ id });
 
-		window.addEventListener('mouseover', onWindowEvent);
-		window.addEventListener('keydown', onWindowKeyDown);
+		window.addEventListener('mouseover', handleOnWindowEvent);
+		window.addEventListener('keydown', handleOnWindowKeyDown);
 	}
 };
 
-const onWindowEvent = (event: MouseEvent) => {
-	console.log('onWindowEvent() > event.target: ', event.target);
+export const popoverOnWindowEvent = ({ event, id }: { event: MouseEvent; id: string }) => {
+	console.log('ID: ', id.toUpperCase());
+	console.log('popoverOnWindowEvent() > event.target: ', event.target);
 
-	const { referenceEl, floatingEl } = get(popoverstore);
+	const popoverState = get(popoversStore)[id];
+	if (popoverState) {
+		const { referenceEl, floatingEl, onWindowEvent } = popoverState;
 
-	if (referenceEl && floatingEl) {
-		const ev = event as MouseEvent & { target: Node | null };
-		const referenceElTouched = referenceEl.contains(ev.target);
-		const floatingElTouched = floatingEl.contains(ev.target);
+		if (referenceEl && floatingEl) {
+			const ev = event as MouseEvent & { target: Node | null };
+			const referenceElTouched = referenceEl.contains(ev.target);
 
-		console.log('referenceEl, floatingEl', referenceEl, floatingEl);
-		console.log(floatingElTouched && "🥲🥲🥲🥲🥲🥲🥲🥲 I the floating element have been touched 🥲🥲🥲🥲🥲🥲🥲🥲");
+			if (referenceElTouched) return;
 
-		if (referenceElTouched) return;
-
-		if (!floatingElTouched) {
-			togglePopover();
-
-			return;
+			onWindowEvent?.(event);
 		}
 	}
 };
 
 // Accessibility Keyboard Interactions
-const onWindowKeyDown = (event: KeyboardEvent) => {
+const popoverOnWindowKeyDown = ({ event, id }: { event: KeyboardEvent; id: string }) => {
 	event.preventDefault();
-	const { referenceEl, floatingEl, opened } = get(popoverstore);
+	const { referenceEl, floatingEl, opened } = get(popoversStore)[id] as IPopoverState;
 
 	if (referenceEl && floatingEl) {
 		const focusableAllowedList =
@@ -202,70 +235,105 @@ const onWindowKeyDown = (event: KeyboardEvent) => {
 
 		if (event.key === 'Escape') {
 			referenceEl.focus();
-			togglePopover();
+			togglePopover({ id });
 
 			return;
 		}
 	}
 };
 
-const setupView = () => {
-	if (!getFloatingEl()) {
-		new View({
-			target: document.body,
-			props: { popover: true }
-		});
+export const setupPopover = ({
+	id,
+	referenceEl = getReferenceEl({ id }),
+	openOnReferenceElHover,
+	extraSetup,
+	view,
+	customX,
+	customY,
+	onWindowEvent
+}: {
+	id: string;
+	referenceEl?: HTMLElement;
+	openOnReferenceElHover?: boolean;
+	extraSetup?: () => void;
+	view: {
+		Component: ComponentType;
+		props?: Record<string, unknown>;
+	};
+	customX?: number;
+	customY?: number;
+	onWindowEvent?: (event: MouseEvent) => void;
+}) => {
+	const plugin = window.plugin as DailyNoteFlexPlugin;
+	// setup View
+	if (!getFloatingEl({ id })) {
+		plugin.popovers.push(
+			new view.Component({
+				target: document.body,
+				props: { popover: true, close: () => closePopover({id}), ...view.props }
+			})
+		);
+		console.log(`⚙⚙️⚙️️⚙️⚙SETTING UP ${id} popover⚙️⚙️⚙️. Plugin popover: `, plugin.popovers)
 
-		popoverstore.update((values) => ({
+		popoversStore.update((values) => ({
 			...values,
-			referenceEl: getReferenceEl(),
-			floatingEl: getFloatingEl()
+			[id]: {
+				opened: false,
+				referenceEl,
+				floatingEl: getFloatingEl({ id }),
+				cleanupPopoverAutoUpdate: () => ({}),
+				customX,
+				customY,
+				onWindowEvent,
+				handleOnWindowEvent: (event: MouseEvent) => {
+					popoverOnWindowEvent({ event, id });
+				},
+				handleOnWindowKeyDown: (event) => {
+					popoverOnWindowKeyDown({ event, id });
+				}
+			}
 		}));
 	}
-};
-// define both onRibbonClicked and onRibbonHovered fns
-export const togglePopoverOnClick = ({ plugin }: { plugin: DailyNoteFlexPlugin }) => {
-	setupView();
-	togglePopover();
 
-	const cleanupPopover = () => {
-		popoverstore.update((values) => ({
-			...values,
-			opened: false,
-			referenceEl: null,
-			floatingEl: null,
-			cleanupPopoverAutoUpdate: () => ({})
-		}));
+	extraSetup?.();
 
-		window.removeEventListener('click', onWindowEvent);
-
-		plugin.popoverCalendar && plugin.popoverCalendar.$destroy();
+	console.log('after extraSetup(), about to save new handlers');
+	handlePopoverOnReferenceElHover = (event: MouseEvent) => {
+		// console.log('handlePopoverOnReferenceElHOver() > id: ', id, event);
+		onReferenceElHover({ id });
 	};
-	return cleanupPopover;
-};
 
-export const registerTogglePopoverOnHover = ({ plugin }: { plugin: DailyNoteFlexPlugin }) => {
-	setupView();
-	const { referenceEl } = get(popoverstore);
+	if (openOnReferenceElHover) {
+		const { referenceEl } = get(popoversStore)[id] as IPopoverState;
 
-	if (referenceEl) {
-		referenceEl.addEventListener('mouseover', onRibbonHover);
+		// console.log('setupPopover() > referenceEl: ', referenceEl, !!referenceEl);
+		if (referenceEl) {
+			// console.log('about to event listener to referenceEl! 🚵🏿');
+			referenceEl.addEventListener('mouseover', handlePopoverOnReferenceElHover);
+		}
 	}
 
 	const cleanupPopover = () => {
-		popoverstore.update((values) => ({
+		const { handleOnWindowEvent, handleOnWindowKeyDown } = get(popoversStore)[id] as IPopoverState;
+
+		popoversStore.update((values) => ({
 			...values,
-			opened: false,
-			referenceEl: null,
-			floatingEl: null,
-			cleanupPopoverAutoUpdate: () => ({})
+			[id]: {
+				opened: false,
+				referenceEl: null,
+				floatingEl: null,
+				cleanupPopoverAutoUpdate: () => ({}),
+				handleOnWindowEvent: () => ({}),
+				handleOnWindowKeyDown: () => ({})
+			}
 		}));
 
-		referenceEl && referenceEl.removeEventListener('mouseover', onRibbonHover);
-		window.removeEventListener('mouseover', onWindowEvent);
-		window.removeEventListener('keydown', onWindowKeyDown);
+		referenceEl && referenceEl.removeEventListener('mouseover', handlePopoverOnReferenceElHover);
+		window.removeEventListener('mouseover', handleOnWindowEvent);
+		window.removeEventListener('keydown', handleOnWindowKeyDown);
 
-		plugin.popoverCalendar && plugin.popoverCalendar.$destroy();
+		plugin.popovers && plugin.popovers.forEach((popover) => popover.$destroy());
 	};
+
 	return cleanupPopover;
 };

@@ -4,6 +4,10 @@ import { getPeriodicityFromGranularity } from './calendar-io/parse';
 import type { Moment } from 'moment';
 import moment from 'moment';
 import { isMetaPressed } from './calendar-ui/utils';
+import { CALENDAR_POPOVER_ID, EMOJI_POPOVER_ID } from './constants';
+import { closePopover, popoversStore, removeWindowEventListeners, togglePopover } from './popover';
+import { crrFileMenu } from './stores';
+import { get } from 'svelte/store';
 
 export async function fetchWithRetry<T>(url: string, retries = 0): Promise<T | null> {
 	try {
@@ -71,3 +75,60 @@ export function getOnCreateNoteDialogNoteFromGranularity(granularity: IGranulari
 		return 'Note: Missing Periodic Notes plugin! Please install or activate. Defaults will be used for now.';
 	}
 }
+
+export const popoverOnWindowEvent = (event: MouseEvent) => {
+	const ev = event as MouseEvent & { target: HTMLElement | null };
+	const evType = ev.type as 'mouseover' | 'click';
+
+	const calendarElStore = get(popoversStore)[CALENDAR_POPOVER_ID];
+	const emojiElStore = get(popoversStore)[EMOJI_POPOVER_ID];
+	const menuEl = document.querySelector('.menu');
+
+	const calendarElTouched =
+		calendarElStore?.floatingEl?.contains(ev.target) || ev.target?.id.includes(CALENDAR_POPOVER_ID);
+	const emojiElTouched =
+		emojiElStore?.floatingEl?.contains(ev.target) || ev.target?.id.includes(EMOJI_POPOVER_ID);
+	const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
+
+	console.log(
+		calendarElTouched
+			? 'calendar touched!'
+			: menuElTouched
+			? 'menu touched!'
+			: emojiElTouched
+			? 'emoji touched'
+			: 'none touched'
+	);
+	const targetOut = !calendarElTouched && !menuElTouched && !emojiElTouched;
+	const fileMenu = get(crrFileMenu);
+
+	console.log('event type: ', evType)
+	if (calendarElStore?.opened && !emojiElStore?.opened && !menuEl && targetOut) {
+		closePopover({ id: CALENDAR_POPOVER_ID });
+
+		// close crr open ctx menu
+		fileMenu?.close();
+
+		return;
+	}
+
+	console.log(
+		'MenuElTouched',
+		menuElTouched,
+		'menu',
+		document.querySelector('.menu'),
+		'target: ',
+		ev.target
+	);
+	if (calendarElStore?.opened && emojiElStore?.opened && evType === 'click' && targetOut) {
+		console.log('Window touched, about to close popovers!');
+		closePopover({ id: CALENDAR_POPOVER_ID });
+		closePopover({ id: EMOJI_POPOVER_ID });
+
+		// close crr open ctx menu
+		const fileMenu = get(crrFileMenu);
+		fileMenu?.close();
+
+		return;
+	}
+};

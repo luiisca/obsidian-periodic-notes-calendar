@@ -9,9 +9,7 @@ import weekday from 'dayjs/plugin/weekday';
 import localeData from 'dayjs/plugin/localeData';
 import locales from './locales';
 import type { IGranularity } from './calendar-io';
-import { setupPopover } from './popover';
-import { CALENDAR_POPOVER_ID } from './constants';
-import View from './View.svelte';
+import { registerTogglePopupOnHover } from './popover';
 
 dayjs.extend(weekday);
 dayjs.extend(localeData);
@@ -21,7 +19,7 @@ export interface ISettings {
 	shouldConfirmBeforeCreate: boolean;
 	yearsRangesStart: 2020;
 	autoHoverPreview: boolean;
-	openPopoverOnRibbonHover: boolean;
+	openPopupOnRibbonHover: boolean;
 	crrNldModalGranularity: IGranularity;
 
 	localeData: {
@@ -40,7 +38,7 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
 	shouldConfirmBeforeCreate: true,
 	yearsRangesStart: 2020,
 	autoHoverPreview: false,
-	openPopoverOnRibbonHover: false,
+	openPopupOnRibbonHover: false,
 	crrNldModalGranularity: 'day',
 
 	localeData: {
@@ -117,20 +115,17 @@ export class SettingsTab extends PluginSettingTab {
 		// TODO: improve wording
 		new Setting(this.containerEl)
 			.setName('Ribbon icon opens Calendar view')
-			.setDesc('Show Calendar view when clicking on ribbon icon instead of default popover')
+			.setDesc('Show Calendar view when clicking on ribbon icon instead of default popup')
 			.addToggle((viewOpen) =>
 				viewOpen.setValue(this.plugin.settings.viewOpen).onChange(async (viewOpen) => {
-					this.plugin.popoversCleanups.length > 0 &&
-						this.plugin.popoversCleanups.forEach((cleanup) => cleanup());
+					console.log('ON toggle setting ⚙️');
 
-					if (!viewOpen && this.plugin.settings.openPopoverOnRibbonHover) {
-						setupPopover({
-							id: CALENDAR_POPOVER_ID,
-							openOnReferenceElHover: true,
-							view: {
-								Component: View
-							}
-						});
+					if (viewOpen) {
+						// destroy popup when no longer active
+						this.plugin.popupCalendar && this.plugin.cleanupPopup();
+					} else {
+						// rerender popup when reactivated
+						registerTogglePopupOnHover({ plugin: this.plugin });
 					}
 
 					await this.plugin.saveSettings(() => ({
@@ -141,26 +136,16 @@ export class SettingsTab extends PluginSettingTab {
 	}
 	addOpenPopoverOnRibbonHoverSetting() {
 		// TODO: improve wording
-		new Setting(this.containerEl).setName('Open popover on Ribbon hover').addToggle((el) =>
+		new Setting(this.containerEl).setName('Open popup on Ribbon hover').addToggle((el) =>
 			el
-				.setValue(this.plugin.settings.openPopoverOnRibbonHover)
-				.onChange(async (openPopoverOnRibbonHover) => {
-					this.plugin.popoversCleanups.length > 0 &&
-						this.plugin.popoversCleanups.forEach((cleanup) => cleanup());
-
-					if (openPopoverOnRibbonHover) {
-						setupPopover({
-							id: CALENDAR_POPOVER_ID,
-							openOnReferenceElHover: true,
-							view: {
-								Component: View
-							}
-						});
-					}
-
+				.setValue(this.plugin.settings.openPopupOnRibbonHover)
+				.onChange(async (openPopupOnRibbonHover) => {
 					await this.plugin.saveSettings(() => ({
-						openPopoverOnRibbonHover
+						openPopupOnRibbonHover
 					}));
+
+					// will add onHover callback
+					openPopupOnRibbonHover ? this.plugin.handlePopup() : this.plugin.cleanupPopup();
 				})
 		);
 	}

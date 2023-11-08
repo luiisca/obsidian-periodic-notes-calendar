@@ -11,3 +11,6 @@ export const monthsIndexesInQuarters = [
 export const YEARS_RANGE_SIZE = 12
 
 export const STICKER_TAG_PREFIX = '#sticker-';
+
+export const CALENDAR_POPOVER_ID = 'calendar-popover';
+export const EMOJI_POPOVER_ID = 'emoji-popover';
