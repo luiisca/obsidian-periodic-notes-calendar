@@ -123,7 +123,7 @@
 	};
 
 	const onContextMenu = ({ date, event, granularity }: Parameters<TOnContextMenu>[0]): void => {
-		console.log('onContextMenu() 🤯🤯🤯🤯')
+		console.log('onContextMenu() 🤯🤯🤯🤯');
 		const note = getNoteByGranularity({ date, granularity });
 		const dateUID = getDateUID(date, granularity);
 
@@ -156,12 +156,21 @@
 							if (emojiPopoverStore) {
 								const { referenceEl: existingSpReferenceEl } = emojiPopoverStore;
 
+								console.log(
+									'referenceEl:',
+									referenceEl,
+									'existingRefEl: ',
+									existingSpReferenceEl,
+									'are they equal: ⁉️',
+									referenceEl.isEqualNode(existingSpReferenceEl)
+								);
 								if (
 									!referenceEl.isEqualNode(existingSpReferenceEl) &&
 									plugin.popovers[EMOJI_POPOVER_ID]
 								) {
+									console.log('about to destroy emoji popover!!');
 									// destroy existing popover to allow setupPopover create new one with new position
-									plugin.popovers[EMOJI_POPOVER_ID].$destroy;
+									plugin.popovers[EMOJI_POPOVER_ID].$destroy();
 									plugin.popovers[EMOJI_POPOVER_ID] = null;
 								}
 							}

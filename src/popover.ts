@@ -267,6 +267,13 @@ export const setupPopover = ({
 }) => {
 	const plugin = window.plugin as DailyNoteFlexPlugin;
 	// setup View
+	console.log(
+		'setupPopover() > getFloatingEl({id}): ',
+		getFloatingEl({ id }),
+		'popovers',
+		plugin.popovers,
+		plugin.popovers?.[id]
+	);
 	if (!getFloatingEl({ id }) && !plugin.popovers[id]) {
 		plugin.popovers[id] = new view.Component({
 			target: document.body,
