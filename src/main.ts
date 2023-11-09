@@ -120,7 +120,6 @@ export default class DailyNoteFlexPlugin extends Plugin {
 			console.log('openPopoverOnRibbonHover: ', this.settings.openPopoverOnRibbonHover);
 			if (this.settings.openPopoverOnRibbonHover) {
 				console.log('about to setupPopover!');
-				this.popoversCleanups.push(
 					setupPopover({
 						id: CALENDAR_POPOVER_ID,
 						openOnReferenceElHover: true,
@@ -129,7 +128,6 @@ export default class DailyNoteFlexPlugin extends Plugin {
 						},
 						onWindowEvent: popoverOnWindowEvent
 					})
-				);
 			}
 		});
 	}
@@ -174,15 +172,13 @@ export default class DailyNoteFlexPlugin extends Plugin {
 
 					return;
 				} else {
-					this.popoversCleanups.push(
-						setupPopover({
-							id: CALENDAR_POPOVER_ID,
-							view: {
-								Component: View
-							},
-							onWindowEvent: popoverOnWindowEvent
-						})
-					);
+					setupPopover({
+						id: CALENDAR_POPOVER_ID,
+						view: {
+							Component: View
+						},
+						onWindowEvent: popoverOnWindowEvent
+					});
 					togglePopover({ id: CALENDAR_POPOVER_ID });
 
 					return;

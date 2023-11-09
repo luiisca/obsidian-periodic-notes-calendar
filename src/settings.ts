@@ -10,6 +10,7 @@ import localeData from 'dayjs/plugin/localeData';
 import locales from './locales';
 import type { IGranularity } from './calendar-io';
 import { setupPopover } from './popover';
+import { popoverOnWindowEvent } from './utils';
 import { CALENDAR_POPOVER_ID } from './constants';
 import View from './View.svelte';
 
@@ -129,7 +130,8 @@ export class SettingsTab extends PluginSettingTab {
 							openOnReferenceElHover: true,
 							view: {
 								Component: View
-							}
+							},
+							onWindowEvent: popoverOnWindowEvent
 						});
 					}
 
@@ -145,16 +147,20 @@ export class SettingsTab extends PluginSettingTab {
 			el
 				.setValue(this.plugin.settings.openPopoverOnRibbonHover)
 				.onChange(async (openPopoverOnRibbonHover) => {
+					console.log('setting() > popoversCleanups: 🧹🧹🧹 🌬️ ', this.plugin.popoversCleanups)
 					this.plugin.popoversCleanups.length > 0 &&
 						this.plugin.popoversCleanups.forEach((cleanup) => cleanup());
+						this.plugin.popoversCleanups = []
 
+					console.log('setting() > openPopoverOnRibbonHover: ', openPopoverOnRibbonHover);
 					if (openPopoverOnRibbonHover) {
 						setupPopover({
 							id: CALENDAR_POPOVER_ID,
 							openOnReferenceElHover: true,
 							view: {
 								Component: View
-							}
+							},
+							onWindowEvent: popoverOnWindowEvent
 						});
 					}
 

@@ -6933,6 +6933,7 @@ const EMOJI_POPOVER_ID = 'emoji-popover';
 const min = Math.min;
 const max = Math.max;
 const round = Math.round;
+const floor = Math.floor;
 const createCoords = v => ({
   x: v,
   y: v
@@ -7986,6 +7987,157 @@ const platform = {
   isRTL
 };
 
+// https://samthor.au/2021/observing-dom/
+function observeMove(element, onMove) {
+  let io = null;
+  let timeoutId;
+  const root = getDocumentElement(element);
+  function cleanup() {
+    clearTimeout(timeoutId);
+    io && io.disconnect();
+    io = null;
+  }
+  function refresh(skip, threshold) {
+    if (skip === void 0) {
+      skip = false;
+    }
+    if (threshold === void 0) {
+      threshold = 1;
+    }
+    cleanup();
+    const {
+      left,
+      top,
+      width,
+      height
+    } = element.getBoundingClientRect();
+    if (!skip) {
+      onMove();
+    }
+    if (!width || !height) {
+      return;
+    }
+    const insetTop = floor(top);
+    const insetRight = floor(root.clientWidth - (left + width));
+    const insetBottom = floor(root.clientHeight - (top + height));
+    const insetLeft = floor(left);
+    const rootMargin = -insetTop + "px " + -insetRight + "px " + -insetBottom + "px " + -insetLeft + "px";
+    const options = {
+      rootMargin,
+      threshold: max(0, min(1, threshold)) || 1
+    };
+    let isFirstUpdate = true;
+    function handleObserve(entries) {
+      const ratio = entries[0].intersectionRatio;
+      if (ratio !== threshold) {
+        if (!isFirstUpdate) {
+          return refresh();
+        }
+        if (!ratio) {
+          timeoutId = setTimeout(() => {
+            refresh(false, 1e-7);
+          }, 100);
+        } else {
+          refresh(false, ratio);
+        }
+      }
+      isFirstUpdate = false;
+    }
+
+    // Older browsers don't support a `document` as the root and will throw an
+    // error.
+    try {
+      io = new IntersectionObserver(handleObserve, {
+        ...options,
+        // Handle <iframe>s
+        root: root.ownerDocument
+      });
+    } catch (e) {
+      io = new IntersectionObserver(handleObserve, options);
+    }
+    io.observe(element);
+  }
+  refresh(true);
+  return cleanup;
+}
+
+/**
+ * Automatically updates the position of the floating element when necessary.
+ * Should only be called when the floating element is mounted on the DOM or
+ * visible on the screen.
+ * @returns cleanup function that should be invoked when the floating element is
+ * removed from the DOM or hidden from the screen.
+ * @see https://floating-ui.com/docs/autoUpdate
+ */
+function autoUpdate(reference, floating, update, options) {
+  if (options === void 0) {
+    options = {};
+  }
+  const {
+    ancestorScroll = true,
+    ancestorResize = true,
+    elementResize = typeof ResizeObserver === 'function',
+    layoutShift = typeof IntersectionObserver === 'function',
+    animationFrame = false
+  } = options;
+  const referenceEl = unwrapElement(reference);
+  const ancestors = ancestorScroll || ancestorResize ? [...(referenceEl ? getOverflowAncestors(referenceEl) : []), ...getOverflowAncestors(floating)] : [];
+  ancestors.forEach(ancestor => {
+    ancestorScroll && ancestor.addEventListener('scroll', update, {
+      passive: true
+    });
+    ancestorResize && ancestor.addEventListener('resize', update);
+  });
+  const cleanupIo = referenceEl && layoutShift ? observeMove(referenceEl, update) : null;
+  let reobserveFrame = -1;
+  let resizeObserver = null;
+  if (elementResize) {
+    resizeObserver = new ResizeObserver(_ref => {
+      let [firstEntry] = _ref;
+      if (firstEntry && firstEntry.target === referenceEl && resizeObserver) {
+        // Prevent update loops when using the `size` middleware.
+        // https://github.com/floating-ui/floating-ui/issues/1740
+        resizeObserver.unobserve(floating);
+        cancelAnimationFrame(reobserveFrame);
+        reobserveFrame = requestAnimationFrame(() => {
+          resizeObserver && resizeObserver.observe(floating);
+        });
+      }
+      update();
+    });
+    if (referenceEl && !animationFrame) {
+      resizeObserver.observe(referenceEl);
+    }
+    resizeObserver.observe(floating);
+  }
+  let frameId;
+  let prevRefRect = animationFrame ? getBoundingClientRect(reference) : null;
+  if (animationFrame) {
+    frameLoop();
+  }
+  function frameLoop() {
+    const nextRefRect = getBoundingClientRect(reference);
+    if (prevRefRect && (nextRefRect.x !== prevRefRect.x || nextRefRect.y !== prevRefRect.y || nextRefRect.width !== prevRefRect.width || nextRefRect.height !== prevRefRect.height)) {
+      update();
+    }
+    prevRefRect = nextRefRect;
+    frameId = requestAnimationFrame(frameLoop);
+  }
+  update();
+  return () => {
+    ancestors.forEach(ancestor => {
+      ancestorScroll && ancestor.removeEventListener('scroll', update);
+      ancestorResize && ancestor.removeEventListener('resize', update);
+    });
+    cleanupIo && cleanupIo();
+    resizeObserver && resizeObserver.disconnect();
+    resizeObserver = null;
+    if (animationFrame) {
+      cancelAnimationFrame(frameId);
+    }
+  };
+}
+
 /**
  * Computes the `x` and `y` coordinates that will place the floating element
  * next to a reference element when it is given a certain CSS positioning
@@ -8070,7 +8222,6 @@ const openPopover = ({ id }) => {
     // add mutationObserver to look for when any modal is added to the DOM and close popover in response
     if (!get_store_value(mutationObserverCbStore)) {
         const mutationObserverCb = (mutationRecords) => {
-            console.log('mutationobserver() > changes: ', mutationRecords);
             mutationRecords.forEach((record) => {
                 const modalFound = [...record.addedNodes].find((node) => {
                     if (node instanceof HTMLElement) {
@@ -8105,12 +8256,10 @@ const openPopover = ({ id }) => {
                 ...values,
                 [id]: {
                     ...values[id],
-                    opened: true
+                    opened: true,
                     // Trigger Floating UI autoUpdate (open only)
                     // https://floating-ui.com/docs/autoUpdate
-                    // cleanupPopoverAutoUpdate: autoUpdate(referenceEl, floatingEl, () =>
-                    // 	positionFloatingEl({ referenceEl, floatingEl, id })
-                    // )
+                    cleanupPopoverAutoUpdate: autoUpdate(referenceEl, floatingEl, () => positionFloatingEl({ referenceEl, floatingEl, id }))
                 }
             }));
         }
@@ -8156,7 +8305,6 @@ const togglePopover = ({ id }) => {
     }
 };
 // event listeners
-let handlePopoverOnReferenceElHover;
 const onReferenceElHover = ({ id }) => {
     const { opened, handleOnWindowEvent, handleOnWindowKeyDown } = get_store_value(popoversStore)[id];
     if (!opened) {
@@ -8166,8 +8314,7 @@ const onReferenceElHover = ({ id }) => {
     }
 };
 const popoverOnWindowEvent$1 = ({ event, id }) => {
-    console.log('ID: ', id.toUpperCase());
-    console.log('popoverOnWindowEvent() > event.target: ', event.target);
+    console.log('popoverOnWindowEvent()');
     const popoverState = get_store_value(popoversStore)[id];
     if (popoverState) {
         const { referenceEl, floatingEl, onWindowEvent } = popoverState;
@@ -8202,11 +8349,12 @@ const popoverOnWindowKeyDown = ({ event, id }) => {
         }
     }
 };
-const setupPopover = ({ id, referenceEl = getReferenceEl({ id }), openOnReferenceElHover, extraSetup, view, customX, customY, onWindowEvent, addListeners = true }) => {
+const setupPopover = ({ id, referenceEl = getReferenceEl({ id }), openOnReferenceElHover = false, extraSetup, view, customX, customY, onWindowEvent, addListeners = true }) => {
     const plugin = window.plugin;
     // setup View
     console.log('setupPopover() > getFloatingEl({id}): ', getFloatingEl({ id }), 'popovers', plugin.popovers, plugin.popovers?.[id]);
     if (!getFloatingEl({ id }) && !plugin.popovers[id]) {
+        console.log('creating new component! 🧱🧱🧱');
         plugin.popovers[id] = new view.Component({
             target: document.body,
             props: { popover: true, close: () => closePopover({ id }), ...view.props }
@@ -8221,6 +8369,10 @@ const setupPopover = ({ id, referenceEl = getReferenceEl({ id }), openOnReferenc
                 customX,
                 customY,
                 onWindowEvent,
+                handleOnReferenceElHovered: () => {
+                    addListeners && onReferenceElHover({ id });
+                    console.log('ref el hovered 🤯🤯🤯 > id: ', id);
+                },
                 handleOnWindowEvent: (event) => {
                     addListeners && popoverOnWindowEvent$1({ event, id });
                 },
@@ -8230,41 +8382,41 @@ const setupPopover = ({ id, referenceEl = getReferenceEl({ id }), openOnReferenc
             }
         }));
         positionFloatingEl({ referenceEl, floatingEl: getFloatingEl({ id }), id });
+        if (openOnReferenceElHover) {
+            const { referenceEl, handleOnReferenceElHovered } = get_store_value(popoversStore)[id];
+            console.log('❌❌❌setupPopover() adding mouseover event listener to referenceEl 🤯🤯🤯 > referenceEl: ', referenceEl);
+            if (referenceEl && handleOnReferenceElHovered) {
+                referenceEl.addEventListener('mouseover', handleOnReferenceElHovered);
+            }
+        }
+        const cleanup = () => {
+            const { handleOnReferenceElHovered, handleOnWindowEvent, handleOnWindowKeyDown } = get_store_value(popoversStore)[id];
+            popoversStore.update((values) => ({
+                ...values,
+                [id]: {
+                    opened: false,
+                    referenceEl: null,
+                    floatingEl: null,
+                    cleanupPopoverAutoUpdate: () => ({}),
+                    handleOnWindowEvent: () => ({}),
+                    handleOnWindowKeyDown: () => ({})
+                }
+            }));
+            console.log(`cleaning up popover: ${id} > referenceEl: `, referenceEl);
+            referenceEl &&
+                handleOnReferenceElHovered &&
+                referenceEl.removeEventListener('mouseover', handleOnReferenceElHovered);
+            window.removeEventListener('mouseover', handleOnWindowEvent);
+            window.removeEventListener('click', handleOnWindowEvent);
+            window.removeEventListener('keydown', handleOnWindowKeyDown);
+            if (plugin.popovers) {
+                Object.values(plugin.popovers).forEach((popover) => popover?.$destroy());
+                plugin.popovers = {};
+            }
+        };
+        plugin.popoversCleanups.push(cleanup);
     }
     extraSetup?.();
-    handlePopoverOnReferenceElHover = (event) => {
-        // console.log('handlePopoverOnReferenceElHOver() > id: ', id, event);
-        onReferenceElHover({ id });
-    };
-    if (openOnReferenceElHover) {
-        const { referenceEl } = get_store_value(popoversStore)[id];
-        // console.log('setupPopover() > referenceEl: ', referenceEl, !!referenceEl);
-        if (referenceEl) {
-            // console.log('about to event listener to referenceEl! 🚵🏿');
-            referenceEl.addEventListener('mouseover', handlePopoverOnReferenceElHover);
-        }
-    }
-    const cleanupPopover = () => {
-        const { handleOnWindowEvent, handleOnWindowKeyDown } = get_store_value(popoversStore)[id];
-        popoversStore.update((values) => ({
-            ...values,
-            [id]: {
-                opened: false,
-                referenceEl: null,
-                floatingEl: null,
-                cleanupPopoverAutoUpdate: () => ({}),
-                handleOnWindowEvent: () => ({}),
-                handleOnWindowKeyDown: () => ({})
-            }
-        }));
-        referenceEl && referenceEl.removeEventListener('mouseover', handlePopoverOnReferenceElHover);
-        window.removeEventListener('mouseover', handleOnWindowEvent);
-        window.removeEventListener('keydown', handleOnWindowKeyDown);
-        if (plugin.popovers) {
-            Object.values(plugin.popovers).forEach((popover) => popover?.$destroy());
-        }
-    };
-    return cleanupPopover;
 };
 
 async function fetchWithRetry(url, retries = 0) {
@@ -8342,6 +8494,7 @@ const popoverOnWindowEvent = (event) => {
     const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
     const targetOut = !calendarElTouched && !menuElTouched && !emojiElTouched;
     const fileMenu = get_store_value(crrFileMenu);
+    console.log('popoverOnWindowEvent() > evType: ', evType);
     if (calendarElStore?.opened && !emojiElStore?.opened && !menuEl && targetOut) {
         closePopover({ id: CALENDAR_POPOVER_ID });
         // close crr open ctx menu
@@ -8612,7 +8765,8 @@ class SettingsTab extends obsidian.PluginSettingTab {
                     openOnReferenceElHover: true,
                     view: {
                         Component: View$1
-                    }
+                    },
+                    onWindowEvent: popoverOnWindowEvent
                 });
             }
             await this.plugin.saveSettings(() => ({
@@ -8625,15 +8779,19 @@ class SettingsTab extends obsidian.PluginSettingTab {
         new obsidian.Setting(this.containerEl).setName('Open popover on Ribbon hover').addToggle((el) => el
             .setValue(this.plugin.settings.openPopoverOnRibbonHover)
             .onChange(async (openPopoverOnRibbonHover) => {
+            console.log('setting() > popoversCleanups: 🧹🧹🧹 🌬️ ', this.plugin.popoversCleanups);
             this.plugin.popoversCleanups.length > 0 &&
                 this.plugin.popoversCleanups.forEach((cleanup) => cleanup());
+            this.plugin.popoversCleanups = [];
+            console.log('setting() > openPopoverOnRibbonHover: ', openPopoverOnRibbonHover);
             if (openPopoverOnRibbonHover) {
                 setupPopover({
                     id: CALENDAR_POPOVER_ID,
                     openOnReferenceElHover: true,
                     view: {
                         Component: View$1
-                    }
+                    },
+                    onWindowEvent: popoverOnWindowEvent
                 });
             }
             await this.plugin.saveSettings(() => ({
@@ -12289,7 +12447,7 @@ function create_each_block_4(key_1, ctx) {
 }
 
 // (80:1) {#if crrView === 'months'}
-function create_if_block_1$1(ctx) {
+function create_if_block_1(ctx) {
 	let yearnav;
 	let t;
 	let table;
@@ -12809,7 +12967,7 @@ function create_fragment$3(ctx) {
 	}
 
 	let if_block0 = /*crrView*/ ctx[0] === 'days' && create_if_block_3(ctx);
-	let if_block1 = /*crrView*/ ctx[0] === 'months' && create_if_block_1$1(ctx);
+	let if_block1 = /*crrView*/ ctx[0] === 'months' && create_if_block_1(ctx);
 	let if_block2 = /*crrView*/ ctx[0] === 'years' && create_if_block$1(ctx);
 
 	return {
@@ -12904,7 +13062,7 @@ function create_fragment$3(ctx) {
 						transition_in(if_block1, 1);
 					}
 				} else {
-					if_block1 = create_if_block_1$1(ctx);
+					if_block1 = create_if_block_1(ctx);
 					if_block1.c();
 					transition_in(if_block1, 1);
 					if_block1.m(div1, t2);
@@ -55421,7 +55579,7 @@ function add_css$1(target) {
 }
 
 // (153:0) {#if popover}
-function create_if_block_1(ctx) {
+function create_if_block(ctx) {
 	let div3;
 	let div0;
 	let t;
@@ -55485,96 +55643,40 @@ function create_if_block_1(ctx) {
 	};
 }
 
-// (169:0) {#if !popover}
-function create_if_block(ctx) {
-	let calendar;
-	let current;
-	calendar = new Calendar({});
-
-	return {
-		c() {
-			create_component(calendar.$$.fragment);
-		},
-		m(target, anchor) {
-			mount_component(calendar, target, anchor);
-			current = true;
-		},
-		i(local) {
-			if (current) return;
-			transition_in(calendar.$$.fragment, local);
-			current = true;
-		},
-		o(local) {
-			transition_out(calendar.$$.fragment, local);
-			current = false;
-		},
-		d(detaching) {
-			destroy_component(calendar, detaching);
-		}
-	};
-}
-
 function create_fragment$1(ctx) {
-	let t;
-	let if_block1_anchor;
+	let if_block_anchor;
 	let current;
-	let if_block0 = /*popover*/ ctx[0] && create_if_block_1(ctx);
-	let if_block1 = !/*popover*/ ctx[0] && create_if_block();
+	let if_block = /*popover*/ ctx[0] && create_if_block(ctx);
 
 	return {
 		c() {
-			if (if_block0) if_block0.c();
-			t = space();
-			if (if_block1) if_block1.c();
-			if_block1_anchor = empty();
+			if (if_block) if_block.c();
+			if_block_anchor = empty();
 		},
 		m(target, anchor) {
-			if (if_block0) if_block0.m(target, anchor);
-			insert(target, t, anchor);
-			if (if_block1) if_block1.m(target, anchor);
-			insert(target, if_block1_anchor, anchor);
+			if (if_block) if_block.m(target, anchor);
+			insert(target, if_block_anchor, anchor);
 			current = true;
 		},
 		p(ctx, [dirty]) {
 			if (/*popover*/ ctx[0]) {
-				if (if_block0) {
-					if_block0.p(ctx, dirty);
+				if (if_block) {
+					if_block.p(ctx, dirty);
 
 					if (dirty & /*popover*/ 1) {
-						transition_in(if_block0, 1);
+						transition_in(if_block, 1);
 					}
 				} else {
-					if_block0 = create_if_block_1(ctx);
-					if_block0.c();
-					transition_in(if_block0, 1);
-					if_block0.m(t.parentNode, t);
+					if_block = create_if_block(ctx);
+					if_block.c();
+					transition_in(if_block, 1);
+					if_block.m(if_block_anchor.parentNode, if_block_anchor);
 				}
-			} else if (if_block0) {
+			} else if (if_block) {
 				group_outros();
 
-				transition_out(if_block0, 1, 1, () => {
-					if_block0 = null;
-				});
-
-				check_outros();
-			}
-
-			if (!/*popover*/ ctx[0]) {
-				if (if_block1) {
-					if (dirty & /*popover*/ 1) {
-						transition_in(if_block1, 1);
-					}
-				} else {
-					if_block1 = create_if_block();
-					if_block1.c();
-					transition_in(if_block1, 1);
-					if_block1.m(if_block1_anchor.parentNode, if_block1_anchor);
-				}
-			} else if (if_block1) {
-				group_outros();
-
-				transition_out(if_block1, 1, 1, () => {
-					if_block1 = null;
+				transition_out(if_block, 1, 1, () => {
+					if_block = null;
 				});
 
 				check_outros();
@@ -55582,23 +55684,19 @@ function create_fragment$1(ctx) {
 		},
 		i(local) {
 			if (current) return;
-			transition_in(if_block0);
-			transition_in(if_block1);
+			transition_in(if_block);
 			current = true;
 		},
 		o(local) {
-			transition_out(if_block0);
-			transition_out(if_block1);
+			transition_out(if_block);
 			current = false;
 		},
 		d(detaching) {
 			if (detaching) {
-				detach(t);
-				detach(if_block1_anchor);
+				detach(if_block_anchor);
 			}
 
-			if (if_block0) if_block0.d(detaching);
-			if (if_block1) if_block1.d(detaching);
+			if (if_block) if_block.d(detaching);
 		}
 	};
 }
@@ -56488,14 +56586,14 @@ class DailyNoteFlexPlugin extends obsidian.Plugin {
             console.log('openPopoverOnRibbonHover: ', this.settings.openPopoverOnRibbonHover);
             if (this.settings.openPopoverOnRibbonHover) {
                 console.log('about to setupPopover!');
-                this.popoversCleanups.push(setupPopover({
+                setupPopover({
                     id: CALENDAR_POPOVER_ID,
                     openOnReferenceElHover: true,
                     view: {
                         Component: View$1
                     },
                     onWindowEvent: popoverOnWindowEvent
-                }));
+                });
             }
         });
     }
@@ -56534,13 +56632,13 @@ class DailyNoteFlexPlugin extends obsidian.Plugin {
                     return;
                 }
                 else {
-                    this.popoversCleanups.push(setupPopover({
+                    setupPopover({
                         id: CALENDAR_POPOVER_ID,
                         view: {
                             Component: View$1
                         },
                         onWindowEvent: popoverOnWindowEvent
-                    }));
+                    });
                     togglePopover({ id: CALENDAR_POPOVER_ID });
                     return;
                 }

@@ -283,9 +283,6 @@
 		</div>
 	</div>
 {/if}
-{#if !popover}
-	<Calendar />
-{/if}
 
 <style>
 	@tailwind base;

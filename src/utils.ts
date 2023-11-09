@@ -93,6 +93,7 @@ export const popoverOnWindowEvent = (event: MouseEvent) => {
 	const targetOut = !calendarElTouched && !menuElTouched && !emojiElTouched;
 	const fileMenu = get(crrFileMenu);
 
+	console.log('popoverOnWindowEvent() > evType: ', evType);
 	if (calendarElStore?.opened && !emojiElStore?.opened && !menuEl && targetOut) {
 		closePopover({ id: CALENDAR_POPOVER_ID });
 
