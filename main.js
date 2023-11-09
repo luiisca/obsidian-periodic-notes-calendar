@@ -12447,7 +12447,7 @@ function create_each_block_4(key_1, ctx) {
 }
 
 // (80:1) {#if crrView === 'months'}
-function create_if_block_1(ctx) {
+function create_if_block_1$1(ctx) {
 	let yearnav;
 	let t;
 	let table;
@@ -12967,7 +12967,7 @@ function create_fragment$3(ctx) {
 	}
 
 	let if_block0 = /*crrView*/ ctx[0] === 'days' && create_if_block_3(ctx);
-	let if_block1 = /*crrView*/ ctx[0] === 'months' && create_if_block_1(ctx);
+	let if_block1 = /*crrView*/ ctx[0] === 'months' && create_if_block_1$1(ctx);
 	let if_block2 = /*crrView*/ ctx[0] === 'years' && create_if_block$1(ctx);
 
 	return {
@@ -13062,7 +13062,7 @@ function create_fragment$3(ctx) {
 						transition_in(if_block1, 1);
 					}
 				} else {
-					if_block1 = create_if_block_1(ctx);
+					if_block1 = create_if_block_1$1(ctx);
 					if_block1.c();
 					transition_in(if_block1, 1);
 					if_block1.m(div1, t2);
@@ -55579,7 +55579,7 @@ function add_css$1(target) {
 }
 
 // (153:0) {#if popover}
-function create_if_block(ctx) {
+function create_if_block_1(ctx) {
 	let div3;
 	let div0;
 	let t;
@@ -55643,40 +55643,96 @@ function create_if_block(ctx) {
 	};
 }
 
-function create_fragment$1(ctx) {
-	let if_block_anchor;
+// (169:0) {#if !popover}
+function create_if_block(ctx) {
+	let calendar;
 	let current;
-	let if_block = /*popover*/ ctx[0] && create_if_block(ctx);
+	calendar = new Calendar({});
 
 	return {
 		c() {
-			if (if_block) if_block.c();
-			if_block_anchor = empty();
+			create_component(calendar.$$.fragment);
 		},
 		m(target, anchor) {
-			if (if_block) if_block.m(target, anchor);
-			insert(target, if_block_anchor, anchor);
+			mount_component(calendar, target, anchor);
+			current = true;
+		},
+		i(local) {
+			if (current) return;
+			transition_in(calendar.$$.fragment, local);
+			current = true;
+		},
+		o(local) {
+			transition_out(calendar.$$.fragment, local);
+			current = false;
+		},
+		d(detaching) {
+			destroy_component(calendar, detaching);
+		}
+	};
+}
+
+function create_fragment$1(ctx) {
+	let t;
+	let if_block1_anchor;
+	let current;
+	let if_block0 = /*popover*/ ctx[0] && create_if_block_1(ctx);
+	let if_block1 = !/*popover*/ ctx[0] && create_if_block();
+
+	return {
+		c() {
+			if (if_block0) if_block0.c();
+			t = space();
+			if (if_block1) if_block1.c();
+			if_block1_anchor = empty();
+		},
+		m(target, anchor) {
+			if (if_block0) if_block0.m(target, anchor);
+			insert(target, t, anchor);
+			if (if_block1) if_block1.m(target, anchor);
+			insert(target, if_block1_anchor, anchor);
 			current = true;
 		},
 		p(ctx, [dirty]) {
 			if (/*popover*/ ctx[0]) {
-				if (if_block) {
-					if_block.p(ctx, dirty);
+				if (if_block0) {
+					if_block0.p(ctx, dirty);
 
 					if (dirty & /*popover*/ 1) {
-						transition_in(if_block, 1);
+						transition_in(if_block0, 1);
 					}
 				} else {
-					if_block = create_if_block(ctx);
-					if_block.c();
-					transition_in(if_block, 1);
-					if_block.m(if_block_anchor.parentNode, if_block_anchor);
+					if_block0 = create_if_block_1(ctx);
+					if_block0.c();
+					transition_in(if_block0, 1);
+					if_block0.m(t.parentNode, t);
 				}
-			} else if (if_block) {
+			} else if (if_block0) {
 				group_outros();
 
-				transition_out(if_block, 1, 1, () => {
-					if_block = null;
+				transition_out(if_block0, 1, 1, () => {
+					if_block0 = null;
+				});
+
+				check_outros();
+			}
+
+			if (!/*popover*/ ctx[0]) {
+				if (if_block1) {
+					if (dirty & /*popover*/ 1) {
+						transition_in(if_block1, 1);
+					}
+				} else {
+					if_block1 = create_if_block();
+					if_block1.c();
+					transition_in(if_block1, 1);
+					if_block1.m(if_block1_anchor.parentNode, if_block1_anchor);
+				}
+			} else if (if_block1) {
+				group_outros();
+
+				transition_out(if_block1, 1, 1, () => {
+					if_block1 = null;
 				});
 
 				check_outros();
@@ -55684,19 +55740,23 @@ function create_fragment$1(ctx) {
 		},
 		i(local) {
 			if (current) return;
-			transition_in(if_block);
+			transition_in(if_block0);
+			transition_in(if_block1);
 			current = true;
 		},
 		o(local) {
-			transition_out(if_block);
+			transition_out(if_block0);
+			transition_out(if_block1);
 			current = false;
 		},
 		d(detaching) {
 			if (detaching) {
-				detach(if_block_anchor);
+				detach(t);
+				detach(if_block1_anchor);
 			}
 
-			if (if_block) if_block.d(detaching);
+			if (if_block0) if_block0.d(detaching);
+			if (if_block1) if_block1.d(detaching);
 		}
 	};
 }
