@@ -74,7 +74,7 @@
 <div
 	class={clsx(
 		popover &&
-			'bg-red-400 z-20 w-max opacity-0 pointer-events-none absolute top-0 left-0 duration-300'
+			'bg-transparent z-20 w-max opacity-0 pointer-events-none absolute top-0 left-0'
 	)}
 	data-popover={popover}
 	id={EMOJI_POPOVER_ID}

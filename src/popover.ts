@@ -21,7 +21,7 @@ export const popoversStore = writable<Record<string, IPopoverState | undefined>>
 const positionFloatingEl = ({
 	referenceEl,
 	floatingEl,
-	id
+	id,
 }: {
 	referenceEl: HTMLElement;
 	floatingEl: HTMLElement;
@@ -104,7 +104,6 @@ export const openPopover = ({ id }: { id: string }) => {
 		if (referenceEl && floatingEl) {
 			console.log('about to reveal floatingEl > id: ', id);
 
-			positionFloatingEl({ referenceEl, floatingEl, id });
 			revealFloatingEl({ floatingEl });
 			setFloatingElInteractivity({ floatingEl, enabled: true });
 
@@ -115,9 +114,9 @@ export const openPopover = ({ id }: { id: string }) => {
 					opened: true,
 					// Trigger Floating UI autoUpdate (open only)
 					// https://floating-ui.com/docs/autoUpdate
-					cleanupPopoverAutoUpdate: autoUpdate(referenceEl, floatingEl, () =>
-						positionFloatingEl({ referenceEl, floatingEl, id })
-					)
+					// cleanupPopoverAutoUpdate: autoUpdate(referenceEl, floatingEl, () =>
+					// 	positionFloatingEl({ referenceEl, floatingEl, id })
+					// )
 				} as IPopoverState
 			}));
 		}
@@ -251,7 +250,8 @@ export const setupPopover = ({
 	view,
 	customX,
 	customY,
-	onWindowEvent
+	onWindowEvent,
+	callback
 }: {
 	id: string;
 	referenceEl?: HTMLElement;
@@ -264,6 +264,7 @@ export const setupPopover = ({
 	customX?: number;
 	customY?: number;
 	onWindowEvent?: (event: MouseEvent) => void;
+	callback?: () => void;
 }) => {
 	const plugin = window.plugin as DailyNoteFlexPlugin;
 	// setup View
@@ -279,7 +280,6 @@ export const setupPopover = ({
 			target: document.body,
 			props: { popover: true, close: () => closePopover({ id }), ...view.props }
 		});
-		console.log(`⚙⚙️⚙️️⚙️⚙SETTING UP ${id} popover⚙️⚙️⚙️. Plugin popover: `, plugin.popovers);
 
 		popoversStore.update((values) => ({
 			...values,
@@ -299,11 +299,12 @@ export const setupPopover = ({
 				}
 			}
 		}));
+
+		positionFloatingEl({ referenceEl, floatingEl: getFloatingEl({ id }), id});
 	}
 
 	extraSetup?.();
 
-	console.log('after extraSetup(), about to save new handlers');
 	handlePopoverOnReferenceElHover = (event: MouseEvent) => {
 		// console.log('handlePopoverOnReferenceElHOver() > id: ', id, event);
 		onReferenceElHover({ id });

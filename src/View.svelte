@@ -141,7 +141,7 @@
 			item
 				.setTitle('Add Sticker')
 				.setIcon('smile-plus')
-				.onClick(() => {
+				.onClick(async () => {
 					const plugin = window.plugin as DailyNoteFlexPlugin;
 
 					const calendarPopoverStore = get(popoversStore)[CALENDAR_POPOVER_ID];
@@ -156,19 +156,10 @@
 							if (emojiPopoverStore) {
 								const { referenceEl: existingSpReferenceEl } = emojiPopoverStore;
 
-								console.log(
-									'referenceEl:',
-									referenceEl,
-									'existingRefEl: ',
-									existingSpReferenceEl,
-									'are they equal: ⁉️',
-									referenceEl.isEqualNode(existingSpReferenceEl)
-								);
 								if (
 									!referenceEl.isEqualNode(existingSpReferenceEl) &&
 									plugin.popovers[EMOJI_POPOVER_ID]
 								) {
-									console.log('about to destroy emoji popover!!');
 									// destroy existing popover to allow setupPopover create new one with new position
 									plugin.popovers[EMOJI_POPOVER_ID].$destroy();
 									plugin.popovers[EMOJI_POPOVER_ID] = null;
@@ -278,8 +269,7 @@
 {#if popover}
 	<div
 		class={clsx(
-			popover &&
-				'bg-transparent z-10 w-max opacity-0 pointer-events-none absolute top-0 left-0 duration-300'
+			popover && 'bg-transparent z-10 w-max opacity-0 pointer-events-none absolute top-0 left-0'
 		)}
 		data-popover={popover}
 		id={CALENDAR_POPOVER_ID}

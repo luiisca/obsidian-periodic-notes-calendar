@@ -163,7 +163,7 @@ export default class DailyNoteFlexPlugin extends Plugin {
 				this.toggleView();
 
 				const popoverStore = get(popoversStore)[CALENDAR_POPOVER_ID];
-				if (this.settings.openPopoverOnRibbonHover && popoverStore.opened) {
+				if (this.settings.openPopoverOnRibbonHover && popoverStore?.opened) {
 					togglePopover({ id: CALENDAR_POPOVER_ID });
 				}
 
