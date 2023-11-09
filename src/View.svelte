@@ -177,7 +177,8 @@
 									}
 								},
 								customX: event.pageX,
-								customY: event.pageY
+								customY: event.pageY,
+								addListeners: false,
 							});
 
 							openPopover({ id: EMOJI_POPOVER_ID });

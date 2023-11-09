@@ -1,7 +1,7 @@
 import { computePosition, autoUpdate, flip, arrow } from '@floating-ui/dom';
 import { get, writable } from 'svelte/store';
 import type DailyNoteFlexPlugin from './main';
-import { settingsStore } from './stores';
+import { crrFileMenu, settingsStore } from './stores';
 import type { ComponentType } from 'svelte';
 
 export interface IPopoverState {
@@ -17,11 +17,14 @@ export interface IPopoverState {
 	handleOnWindowKeyDown: (event: KeyboardEvent) => void;
 }
 export const popoversStore = writable<Record<string, IPopoverState | undefined>>();
+const mutationObserverCbStore = writable<((mutationRecords: MutationRecord[]) => void) | null>(
+	null
+);
 
 const positionFloatingEl = ({
 	referenceEl,
 	floatingEl,
-	id,
+	id
 }: {
 	referenceEl: HTMLElement;
 	floatingEl: HTMLElement;
@@ -97,6 +100,37 @@ export const openPopover = ({ id }: { id: string }) => {
 
 	const popoverState = get(popoversStore)[id];
 
+	// add mutationObserver to look for when any modal is added to the DOM and close popover in response
+	if (!get(mutationObserverCbStore)) {
+		const mutationObserverCb = (mutationRecords: MutationRecord[]) => {
+			console.log('mutationobserver() > changes: ', mutationRecords);
+			mutationRecords.forEach((record) => {
+				const modalFound = [...record.addedNodes].find((node) => {
+					if (node instanceof HTMLElement) {
+						return node.className.contains('modal');
+					}
+				});
+				if (modalFound) {
+					// close all popovers and context menus
+					const popoversIds = Object.keys(get(popoversStore));
+					popoversIds.forEach((id) => closePopover({ id }));
+
+					get(crrFileMenu)?.close();
+
+					// disconnect observer and reset observer cb store
+					mutationObserver.disconnect();
+					mutationObserverCbStore.set(null);
+				}
+			});
+		};
+		mutationObserverCbStore.set(mutationObserverCb);
+
+		const mutationObserver = new MutationObserver(mutationObserverCb);
+		mutationObserver.observe(document.querySelector('body') as HTMLBodyElement, {
+			childList: true
+		});
+	}
+
 	if (popoverState) {
 		const { referenceEl, floatingEl, handleOnWindowEvent, handleOnWindowKeyDown } = popoverState;
 		const { openPopoverOnRibbonHover } = get(settingsStore);
@@ -111,7 +145,7 @@ export const openPopover = ({ id }: { id: string }) => {
 				...values,
 				[id]: {
 					...values[id],
-					opened: true,
+					opened: true
 					// Trigger Floating UI autoUpdate (open only)
 					// https://floating-ui.com/docs/autoUpdate
 					// cleanupPopoverAutoUpdate: autoUpdate(referenceEl, floatingEl, () =>
@@ -251,7 +285,7 @@ export const setupPopover = ({
 	customX,
 	customY,
 	onWindowEvent,
-	callback
+	addListeners = true
 }: {
 	id: string;
 	referenceEl?: HTMLElement;
@@ -264,7 +298,7 @@ export const setupPopover = ({
 	customX?: number;
 	customY?: number;
 	onWindowEvent?: (event: MouseEvent) => void;
-	callback?: () => void;
+	addListeners?: boolean;
 }) => {
 	const plugin = window.plugin as DailyNoteFlexPlugin;
 	// setup View
@@ -292,15 +326,15 @@ export const setupPopover = ({
 				customY,
 				onWindowEvent,
 				handleOnWindowEvent: (event: MouseEvent) => {
-					popoverOnWindowEvent({ event, id });
+					addListeners && popoverOnWindowEvent({ event, id });
 				},
 				handleOnWindowKeyDown: (event) => {
-					popoverOnWindowKeyDown({ event, id });
+					addListeners && popoverOnWindowKeyDown({ event, id });
 				}
 			}
 		}));
 
-		positionFloatingEl({ referenceEl, floatingEl: getFloatingEl({ id }), id});
+		positionFloatingEl({ referenceEl, floatingEl: getFloatingEl({ id }), id });
 	}
 
 	extraSetup?.();
