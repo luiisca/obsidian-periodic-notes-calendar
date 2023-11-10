@@ -4,7 +4,7 @@ import { getPeriodicityFromGranularity } from './calendar-io/parse';
 import type { Moment } from 'moment';
 import moment from 'moment';
 import { isMetaPressed } from './calendar-ui/utils';
-import { CALENDAR_POPOVER_ID, EMOJI_POPOVER_ID } from './constants';
+import { CALENDAR_POPOVER_ID, STICKER_POPOVER_ID } from './constants';
 import { closePopover, popoversStore, removeWindowEventListeners, togglePopover } from './popover';
 import { crrFileMenu } from './stores';
 import { get } from 'svelte/store';
@@ -81,13 +81,13 @@ export const popoverOnWindowEvent = (event: MouseEvent) => {
 	const evType = ev.type as 'mouseover' | 'click';
 
 	const calendarElStore = get(popoversStore)[CALENDAR_POPOVER_ID];
-	const emojiElStore = get(popoversStore)[EMOJI_POPOVER_ID];
+	const emojiElStore = get(popoversStore)[STICKER_POPOVER_ID];
 	const menuEl = document.querySelector('.menu');
 
 	const calendarElTouched =
 		calendarElStore?.floatingEl?.contains(ev.target) || ev.target?.id.includes(CALENDAR_POPOVER_ID);
 	const emojiElTouched =
-		emojiElStore?.floatingEl?.contains(ev.target) || ev.target?.id.includes(EMOJI_POPOVER_ID);
+		emojiElStore?.floatingEl?.contains(ev.target) || ev.target?.id.includes(STICKER_POPOVER_ID);
 	const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
 
 	const targetOut = !calendarElTouched && !menuElTouched && !emojiElTouched;
@@ -105,7 +105,7 @@ export const popoverOnWindowEvent = (event: MouseEvent) => {
 
 	if (calendarElStore?.opened && emojiElStore?.opened && evType === 'click' && targetOut) {
 		closePopover({ id: CALENDAR_POPOVER_ID });
-		closePopover({ id: EMOJI_POPOVER_ID });
+		closePopover({ id: STICKER_POPOVER_ID });
 
 		// close crr open ctx menu
 		const fileMenu = get(crrFileMenu);

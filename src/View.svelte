@@ -27,8 +27,8 @@
 		type IPopoverState
 	} from './popover';
 	import { get } from 'svelte/store';
-	import StickerModalComponent from './calendar-ui/components/StickerModal.svelte';
-	import { CALENDAR_POPOVER_ID, EMOJI_POPOVER_ID } from './constants';
+	import StickerPopoverComponent from './calendar-ui/components/StickerPopover.svelte';
+	import { CALENDAR_POPOVER_ID, STICKER_POPOVER_ID } from './constants';
 	import { popoverOnWindowEvent } from './utils';
 	import type DailyNoteFlexPlugin from './main';
 
@@ -123,132 +123,122 @@
 	};
 
 	const onContextMenu = ({ date, event, granularity }: Parameters<TOnContextMenu>[0]): void => {
-		console.log('onContextMenu() 🤯🤯🤯🤯');
 		const note = getNoteByGranularity({ date, granularity });
-		const dateUID = getDateUID(date, granularity);
 
 		if (!note) {
 			// TODO: improve wording
 			new Notice('Create a note first');
+		} else {
+			const dateUID = getDateUID(date, granularity);
+			const plugin = window.plugin as DailyNoteFlexPlugin;
+			const referenceEl = event.target as HTMLElement;
 
-			return;
-		}
+			const calendarPopoverStore = get(popoversStore)[CALENDAR_POPOVER_ID];
+			const stickerPopoverStore = get(popoversStore)[STICKER_POPOVER_ID];
 
-		const fileMenu = new Menu();
-		crrFileMenu.set(fileMenu);
+			const destroyCrrStickerPopover = () => {
+				const isNewRefElDifferent = !referenceEl.isEqualNode(
+					stickerPopoverStore?.referenceEl || null
+				);
 
-		fileMenu.addItem((item) =>
-			item
-				.setTitle('Add Sticker')
-				.setIcon('smile-plus')
-				.onClick(async () => {
-					const plugin = window.plugin as DailyNoteFlexPlugin;
+				if (isNewRefElDifferent && plugin.popovers[STICKER_POPOVER_ID]) {
+					plugin.popovers[STICKER_POPOVER_ID]?.$destroy();
+					plugin.popovers[STICKER_POPOVER_ID] = null;
+				}
+			};
 
-					const calendarPopoverStore = get(popoversStore)[CALENDAR_POPOVER_ID];
-					const emojiPopoverStore = get(popoversStore)[EMOJI_POPOVER_ID];
+			const setupStickerPopover = () => {
+				if (calendarPopoverStore?.opened) {
+					destroyCrrStickerPopover();
 
-					if (calendarPopoverStore) {
-						const { opened: cpOpened } = calendarPopoverStore;
-						if (cpOpened) {
-							const referenceEl = event.target as HTMLElement;
-
-							// reset sticker popover when neccesary
-							if (emojiPopoverStore) {
-								const { referenceEl: existingSpReferenceEl } = emojiPopoverStore;
-
-								if (
-									!referenceEl.isEqualNode(existingSpReferenceEl) &&
-									plugin.popovers[EMOJI_POPOVER_ID]
-								) {
-									// destroy existing popover to allow setupPopover create new one with new position
-									plugin.popovers[EMOJI_POPOVER_ID].$destroy();
-									plugin.popovers[EMOJI_POPOVER_ID] = null;
-								}
+					setupPopover({
+						id: STICKER_POPOVER_ID,
+						referenceEl,
+						view: {
+							Component: StickerPopoverComponent,
+							props: {
+								noteStore: notesStores[granularity],
+								noteDateUID: dateUID
 							}
+						},
+						customX: event.pageX,
+						customY: event.pageY,
+						addListeners: false
+					});
 
-							setupPopover({
-								id: EMOJI_POPOVER_ID,
-								referenceEl,
-								view: {
-									Component: StickerModalComponent,
-									props: {
-										noteStore: notesStores[granularity],
-										noteDateUID: dateUID
-									}
-								},
-								customX: event.pageX,
-								customY: event.pageY,
-								addListeners: false,
-							});
+					openPopover({ id: STICKER_POPOVER_ID });
+				}
+			};
 
-							openPopover({ id: EMOJI_POPOVER_ID });
+			(function setupFileMenu() {
+				const fileMenu = new Menu();
+				crrFileMenu.set(fileMenu);
+
+				fileMenu.addItem((item) =>
+					item.setTitle('Add Sticker').setIcon('smile-plus').onClick(setupStickerPopover)
+				);
+				fileMenu.addItem((item) =>
+					item
+						.setTitle('Delete')
+						.setIcon('trash')
+						.onClick(() => {
+							// eslint-disable-next-line @typescript-eslint/no-explicit-any
+							(<any>app).fileManager.promptForFileDeletion(note);
+						})
+				);
+
+				app.workspace.trigger('file-menu', fileMenu, note, 'calendar-context-menu', null);
+				fileMenu.showAtPosition({
+					x: event.pageX,
+					y: event.pageY
+				});
+			})();
+
+			if ($settingsStore.openPopoverOnRibbonHover && calendarPopoverStore) {
+				(function removeCpCloseMechanism() {
+					window.removeEventListener('mouseover', calendarPopoverStore.handleOnWindowEvent);
+				})();
+
+				(function setupGiveCpCloseMechanismBack() {
+					const handleCpMouseoverEv = () => {
+						const calendarPopoverStore = get(popoversStore)[CALENDAR_POPOVER_ID];
+						const stickerPopoverStore = get(popoversStore)[STICKER_POPOVER_ID];
+
+						const isOnlyCPOpen =
+							calendarPopoverStore?.opened &&
+							!stickerPopoverStore?.opened &&
+							!document.querySelector('.menu');
+
+						if (isOnlyCPOpen) {
+							// add window.mouseover ev listener back once CP is hovered
+							window.addEventListener('mouseover', calendarPopoverStore.handleOnWindowEvent);
+
+							calendarPopoverStore.floatingEl?.removeEventListener(
+								'mouseover',
+								handleCpMouseoverEv
+							);
 						}
-					}
-				})
-		);
-		fileMenu.addItem((item) =>
-			item
-				.setTitle('Delete')
-				.setIcon('trash')
-				.onClick(() => {
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					(<any>app).fileManager.promptForFileDeletion(note);
-				})
-		);
+					};
 
-		app.workspace.trigger('file-menu', fileMenu, note, 'calendar-context-menu', null);
-		fileMenu.showAtPosition({
-			x: event.pageX,
-			y: event.pageY
-		});
-
-		if ($settingsStore.openPopoverOnRibbonHover) {
-			const calendarPopoverStore = $popoversStore[CALENDAR_POPOVER_ID];
-
-			if (calendarPopoverStore) {
-				// remove mouseover event to ensure CP doesnt close when any menu action is performed
-				window.removeEventListener('mouseover', calendarPopoverStore.handleOnWindowEvent);
-
-				const addOnWindowEventListenerBack = () => {
-					// add window.mouseover ev listener back once CP is hovered
-					const calendarPopoverStore = $popoversStore[CALENDAR_POPOVER_ID];
-					const emojiElStore = $popoversStore[EMOJI_POPOVER_ID];
-
-					if (
-						calendarPopoverStore?.opened &&
-						!emojiElStore?.opened &&
-						!document.querySelector('.menu')
-					) {
-						window.addEventListener('mouseover', calendarPopoverStore.handleOnWindowEvent);
-
+					// cleanup previous callback
+					if (calendarPopoverStore.handleOnFloatingElEvent) {
 						calendarPopoverStore.floatingEl?.removeEventListener(
 							'mouseover',
-							addOnWindowEventListenerBack
+							calendarPopoverStore.handleOnFloatingElEvent
 						);
 					}
-				};
 
-				// cleanup previous callback
-				if (calendarPopoverStore.handleOnFloatingElEvent) {
-					calendarPopoverStore.floatingEl?.removeEventListener(
-						'mouseover',
-						calendarPopoverStore.handleOnFloatingElEvent
-					);
-				}
+					// store callback to ensure later cleanup points to right place in memory
+					popoversStore.update((values) => ({
+						...values,
+						[CALENDAR_POPOVER_ID]: {
+							...values[CALENDAR_POPOVER_ID],
+							handleOnFloatingElEvent: handleCpMouseoverEv
+						} as IPopoverState
+					}));
 
-				// add new callback
-				popoversStore.update((values) => ({
-					...values,
-					[CALENDAR_POPOVER_ID]: {
-						...values[CALENDAR_POPOVER_ID],
-						handleOnFloatingElEvent: addOnWindowEventListenerBack
-					} as IPopoverState
-				}));
-
-				calendarPopoverStore.floatingEl?.addEventListener(
-					'mouseover',
-					addOnWindowEventListenerBack
-				);
+					calendarPopoverStore.floatingEl?.addEventListener('mouseover', handleCpMouseoverEv);
+				})();
 			}
 		}
 	};

@@ -1,13 +1,10 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import type { StickerModal } from '../modals/sticker-picker';
-	import { pluginClassStore, settingsStore, type TNotesStore } from '@/stores';
+	import { pluginClassStore, type TNotesStore } from '@/stores';
 	import { get, type Writable } from 'svelte/store';
-	import { CALENDAR_POPOVER_ID, EMOJI_POPOVER_ID, STICKER_TAG_PREFIX } from '@/constants';
+	import { STICKER_POPOVER_ID, STICKER_TAG_PREFIX } from '@/constants';
 	import clsx from 'clsx';
 	import pickerData from '@emoji-mart/data';
 	import { Picker } from 'emoji-mart';
-	import { popoversStore } from '@/popover';
 
 	export let close: () => void;
 	export let noteStore: Writable<TNotesStore>;
@@ -72,15 +69,10 @@
 </script>
 
 <div
-	class={clsx(
-		popover &&
-			'bg-transparent z-20 w-max opacity-0 pointer-events-none absolute top-0 left-0'
-	)}
+	class="bg-transparent z-20 w-max opacity-0 pointer-events-none absolute top-0 left-0"
 	data-popover={popover}
-	id={EMOJI_POPOVER_ID}
+	id={STICKER_POPOVER_ID}
 >
-	<div id={`${EMOJI_POPOVER_ID}-arrow`} class="rotate-45 absolute w-2.5 h-2.5 bg-slate-500" />
-
 	<div bind:this={pickerContainerEl} />
 </div>
 

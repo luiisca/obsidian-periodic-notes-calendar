@@ -6928,7 +6928,7 @@ const monthsIndexesInQuarters = [
 const YEARS_RANGE_SIZE = 12;
 const STICKER_TAG_PREFIX = '#sticker-';
 const CALENDAR_POPOVER_ID = 'calendar-popover';
-const EMOJI_POPOVER_ID = 'emoji-popover';
+const STICKER_POPOVER_ID = 'emoji-popover';
 
 const min = Math.min;
 const max = Math.max;
@@ -8487,10 +8487,10 @@ const popoverOnWindowEvent = (event) => {
     const ev = event;
     const evType = ev.type;
     const calendarElStore = get_store_value(popoversStore)[CALENDAR_POPOVER_ID];
-    const emojiElStore = get_store_value(popoversStore)[EMOJI_POPOVER_ID];
+    const emojiElStore = get_store_value(popoversStore)[STICKER_POPOVER_ID];
     const menuEl = document.querySelector('.menu');
     const calendarElTouched = calendarElStore?.floatingEl?.contains(ev.target) || ev.target?.id.includes(CALENDAR_POPOVER_ID);
-    const emojiElTouched = emojiElStore?.floatingEl?.contains(ev.target) || ev.target?.id.includes(EMOJI_POPOVER_ID);
+    const emojiElTouched = emojiElStore?.floatingEl?.contains(ev.target) || ev.target?.id.includes(STICKER_POPOVER_ID);
     const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
     const targetOut = !calendarElTouched && !menuElTouched && !emojiElTouched;
     const fileMenu = get_store_value(crrFileMenu);
@@ -8503,7 +8503,7 @@ const popoverOnWindowEvent = (event) => {
     }
     if (calendarElStore?.opened && emojiElStore?.opened && evType === 'click' && targetOut) {
         closePopover({ id: CALENDAR_POPOVER_ID });
-        closePopover({ id: EMOJI_POPOVER_ID });
+        closePopover({ id: STICKER_POPOVER_ID });
         // close crr open ctx menu
         const fileMenu = get_store_value(crrFileMenu);
         fileMenu?.close();
@@ -55410,56 +55410,42 @@ if (typeof customElements !== "undefined" && !customElements.get("em-emoji-picke
 var $329d53ba9fd7125f$exports = {};
 $329d53ba9fd7125f$exports = ":host {\n  width: min-content;\n  height: 435px;\n  min-height: 230px;\n  border-radius: var(--border-radius);\n  box-shadow: var(--shadow);\n  --border-radius: 10px;\n  --category-icon-size: 18px;\n  --font-family: -apple-system, BlinkMacSystemFont, \"Helvetica Neue\", sans-serif;\n  --font-size: 15px;\n  --preview-placeholder-size: 21px;\n  --preview-title-size: 1.1em;\n  --preview-subtitle-size: .9em;\n  --shadow-color: 0deg 0% 0%;\n  --shadow: .3px .5px 2.7px hsl(var(--shadow-color) / .14), .4px .8px 1px -3.2px hsl(var(--shadow-color) / .14), 1px 2px 2.5px -4.5px hsl(var(--shadow-color) / .14);\n  display: flex;\n}\n\n[data-theme=\"light\"] {\n  --em-rgb-color: var(--rgb-color, 34, 36, 39);\n  --em-rgb-accent: var(--rgb-accent, 34, 102, 237);\n  --em-rgb-background: var(--rgb-background, 255, 255, 255);\n  --em-rgb-input: var(--rgb-input, 255, 255, 255);\n  --em-color-border: var(--color-border, rgba(0, 0, 0, .05));\n  --em-color-border-over: var(--color-border-over, rgba(0, 0, 0, .1));\n}\n\n[data-theme=\"dark\"] {\n  --em-rgb-color: var(--rgb-color, 222, 222, 221);\n  --em-rgb-accent: var(--rgb-accent, 58, 130, 247);\n  --em-rgb-background: var(--rgb-background, 21, 22, 23);\n  --em-rgb-input: var(--rgb-input, 0, 0, 0);\n  --em-color-border: var(--color-border, rgba(255, 255, 255, .1));\n  --em-color-border-over: var(--color-border-over, rgba(255, 255, 255, .2));\n}\n\n#root {\n  --color-a: rgb(var(--em-rgb-color));\n  --color-b: rgba(var(--em-rgb-color), .65);\n  --color-c: rgba(var(--em-rgb-color), .45);\n  --padding: 12px;\n  --padding-small: calc(var(--padding) / 2);\n  --sidebar-width: 16px;\n  --duration: 225ms;\n  --duration-fast: 125ms;\n  --duration-instant: 50ms;\n  --easing: cubic-bezier(.4, 0, .2, 1);\n  width: 100%;\n  text-align: left;\n  border-radius: var(--border-radius);\n  background-color: rgb(var(--em-rgb-background));\n  position: relative;\n}\n\n@media (prefers-reduced-motion) {\n  #root {\n    --duration: 0;\n    --duration-fast: 0;\n    --duration-instant: 0;\n  }\n}\n\n#root[data-menu] button {\n  cursor: auto;\n}\n\n#root[data-menu] .menu button {\n  cursor: pointer;\n}\n\n:host, #root, input, button {\n  color: rgb(var(--em-rgb-color));\n  font-family: var(--font-family);\n  font-size: var(--font-size);\n  -webkit-font-smoothing: antialiased;\n  -moz-osx-font-smoothing: grayscale;\n  line-height: normal;\n}\n\n*, :before, :after {\n  box-sizing: border-box;\n  min-width: 0;\n  margin: 0;\n  padding: 0;\n}\n\n.relative {\n  position: relative;\n}\n\n.flex {\n  display: flex;\n}\n\n.flex-auto {\n  flex: none;\n}\n\n.flex-center {\n  justify-content: center;\n}\n\n.flex-column {\n  flex-direction: column;\n}\n\n.flex-grow {\n  flex: auto;\n}\n\n.flex-middle {\n  align-items: center;\n}\n\n.flex-wrap {\n  flex-wrap: wrap;\n}\n\n.padding {\n  padding: var(--padding);\n}\n\n.padding-t {\n  padding-top: var(--padding);\n}\n\n.padding-lr {\n  padding-left: var(--padding);\n  padding-right: var(--padding);\n}\n\n.padding-r {\n  padding-right: var(--padding);\n}\n\n.padding-small {\n  padding: var(--padding-small);\n}\n\n.padding-small-b {\n  padding-bottom: var(--padding-small);\n}\n\n.padding-small-lr {\n  padding-left: var(--padding-small);\n  padding-right: var(--padding-small);\n}\n\n.margin {\n  margin: var(--padding);\n}\n\n.margin-r {\n  margin-right: var(--padding);\n}\n\n.margin-l {\n  margin-left: var(--padding);\n}\n\n.margin-small-l {\n  margin-left: var(--padding-small);\n}\n\n.margin-small-lr {\n  margin-left: var(--padding-small);\n  margin-right: var(--padding-small);\n}\n\n.align-l {\n  text-align: left;\n}\n\n.align-r {\n  text-align: right;\n}\n\n.color-a {\n  color: var(--color-a);\n}\n\n.color-b {\n  color: var(--color-b);\n}\n\n.color-c {\n  color: var(--color-c);\n}\n\n.ellipsis {\n  white-space: nowrap;\n  max-width: 100%;\n  width: auto;\n  text-overflow: ellipsis;\n  overflow: hidden;\n}\n\n.sr-only {\n  width: 1px;\n  height: 1px;\n  position: absolute;\n  top: auto;\n  left: -10000px;\n  overflow: hidden;\n}\n\na {\n  cursor: pointer;\n  color: rgb(var(--em-rgb-accent));\n}\n\na:hover {\n  text-decoration: underline;\n}\n\n.spacer {\n  height: 10px;\n}\n\n[dir=\"rtl\"] .scroll {\n  padding-left: 0;\n  padding-right: var(--padding);\n}\n\n.scroll {\n  padding-right: 0;\n  overflow-x: hidden;\n  overflow-y: auto;\n}\n\n.scroll::-webkit-scrollbar {\n  width: var(--sidebar-width);\n  height: var(--sidebar-width);\n}\n\n.scroll::-webkit-scrollbar-track {\n  border: 0;\n}\n\n.scroll::-webkit-scrollbar-button {\n  width: 0;\n  height: 0;\n  display: none;\n}\n\n.scroll::-webkit-scrollbar-corner {\n  background-color: rgba(0, 0, 0, 0);\n}\n\n.scroll::-webkit-scrollbar-thumb {\n  min-height: 20%;\n  min-height: 65px;\n  border: 4px solid rgb(var(--em-rgb-background));\n  border-radius: 8px;\n}\n\n.scroll::-webkit-scrollbar-thumb:hover {\n  background-color: var(--em-color-border-over) !important;\n}\n\n.scroll:hover::-webkit-scrollbar-thumb {\n  background-color: var(--em-color-border);\n}\n\n.sticky {\n  z-index: 1;\n  background-color: rgba(var(--em-rgb-background), .9);\n  -webkit-backdrop-filter: blur(4px);\n  backdrop-filter: blur(4px);\n  font-weight: 500;\n  position: sticky;\n  top: -1px;\n}\n\n[dir=\"rtl\"] .search input[type=\"search\"] {\n  padding: 10px 2.2em 10px 2em;\n}\n\n[dir=\"rtl\"] .search .loupe {\n  left: auto;\n  right: .7em;\n}\n\n[dir=\"rtl\"] .search .delete {\n  left: .7em;\n  right: auto;\n}\n\n.search {\n  z-index: 2;\n  position: relative;\n}\n\n.search input, .search button {\n  font-size: calc(var(--font-size)  - 1px);\n}\n\n.search input[type=\"search\"] {\n  width: 100%;\n  background-color: var(--em-color-border);\n  transition-duration: var(--duration);\n  transition-property: background-color, box-shadow;\n  transition-timing-function: var(--easing);\n  border: 0;\n  border-radius: 10px;\n  outline: 0;\n  padding: 10px 2em 10px 2.2em;\n  display: block;\n}\n\n.search input[type=\"search\"]::-ms-input-placeholder {\n  color: inherit;\n  opacity: .6;\n}\n\n.search input[type=\"search\"]::placeholder {\n  color: inherit;\n  opacity: .6;\n}\n\n.search input[type=\"search\"], .search input[type=\"search\"]::-webkit-search-decoration, .search input[type=\"search\"]::-webkit-search-cancel-button, .search input[type=\"search\"]::-webkit-search-results-button, .search input[type=\"search\"]::-webkit-search-results-decoration {\n  -webkit-appearance: none;\n  -ms-appearance: none;\n  appearance: none;\n}\n\n.search input[type=\"search\"]:focus {\n  background-color: rgb(var(--em-rgb-input));\n  box-shadow: inset 0 0 0 1px rgb(var(--em-rgb-accent)), 0 1px 3px rgba(65, 69, 73, .2);\n}\n\n.search .icon {\n  z-index: 1;\n  color: rgba(var(--em-rgb-color), .7);\n  position: absolute;\n  top: 50%;\n  transform: translateY(-50%);\n}\n\n.search .loupe {\n  pointer-events: none;\n  left: .7em;\n}\n\n.search .delete {\n  right: .7em;\n}\n\nsvg {\n  fill: currentColor;\n  width: 1em;\n  height: 1em;\n}\n\nbutton {\n  -webkit-appearance: none;\n  -ms-appearance: none;\n  appearance: none;\n  cursor: pointer;\n  color: currentColor;\n  background-color: rgba(0, 0, 0, 0);\n  border: 0;\n}\n\n#nav {\n  z-index: 2;\n  padding-top: 12px;\n  padding-bottom: 12px;\n  padding-right: var(--sidebar-width);\n  position: relative;\n}\n\n#nav button {\n  color: var(--color-b);\n  transition: color var(--duration) var(--easing);\n}\n\n#nav button:hover {\n  color: var(--color-a);\n}\n\n#nav svg, #nav img {\n  width: var(--category-icon-size);\n  height: var(--category-icon-size);\n}\n\n#nav[dir=\"rtl\"] .bar {\n  left: auto;\n  right: 0;\n}\n\n#nav .bar {\n  width: 100%;\n  height: 3px;\n  background-color: rgb(var(--em-rgb-accent));\n  transition: transform var(--duration) var(--easing);\n  border-radius: 3px 3px 0 0;\n  position: absolute;\n  bottom: -12px;\n  left: 0;\n}\n\n#nav button[aria-selected] {\n  color: rgb(var(--em-rgb-accent));\n}\n\n#preview {\n  z-index: 2;\n  padding: calc(var(--padding)  + 4px) var(--padding);\n  padding-right: var(--sidebar-width);\n  position: relative;\n}\n\n#preview .preview-placeholder {\n  font-size: var(--preview-placeholder-size);\n}\n\n#preview .preview-title {\n  font-size: var(--preview-title-size);\n}\n\n#preview .preview-subtitle {\n  font-size: var(--preview-subtitle-size);\n}\n\n#nav:before, #preview:before {\n  content: \"\";\n  height: 2px;\n  position: absolute;\n  left: 0;\n  right: 0;\n}\n\n#nav[data-position=\"top\"]:before, #preview[data-position=\"top\"]:before {\n  background: linear-gradient(to bottom, var(--em-color-border), transparent);\n  top: 100%;\n}\n\n#nav[data-position=\"bottom\"]:before, #preview[data-position=\"bottom\"]:before {\n  background: linear-gradient(to top, var(--em-color-border), transparent);\n  bottom: 100%;\n}\n\n.category:last-child {\n  min-height: calc(100% + 1px);\n}\n\n.category button {\n  font-family: -apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif;\n  position: relative;\n}\n\n.category button > * {\n  position: relative;\n}\n\n.category button .background {\n  opacity: 0;\n  background-color: var(--em-color-border);\n  transition: opacity var(--duration-fast) var(--easing) var(--duration-instant);\n  position: absolute;\n  top: 0;\n  bottom: 0;\n  left: 0;\n  right: 0;\n}\n\n.category button:hover .background {\n  transition-duration: var(--duration-instant);\n  transition-delay: 0s;\n}\n\n.category button[aria-selected] .background {\n  opacity: 1;\n}\n\n.category button[data-keyboard] .background {\n  transition: none;\n}\n\n.row {\n  width: 100%;\n  position: absolute;\n  top: 0;\n  left: 0;\n}\n\n.skin-tone-button {\n  border: 1px solid rgba(0, 0, 0, 0);\n  border-radius: 100%;\n}\n\n.skin-tone-button:hover {\n  border-color: var(--em-color-border);\n}\n\n.skin-tone-button:active .skin-tone {\n  transform: scale(.85) !important;\n}\n\n.skin-tone-button .skin-tone {\n  transition: transform var(--duration) var(--easing);\n}\n\n.skin-tone-button[aria-selected] {\n  background-color: var(--em-color-border);\n  border-top-color: rgba(0, 0, 0, .05);\n  border-bottom-color: rgba(0, 0, 0, 0);\n  border-left-width: 0;\n  border-right-width: 0;\n}\n\n.skin-tone-button[aria-selected] .skin-tone {\n  transform: scale(.9);\n}\n\n.menu {\n  z-index: 2;\n  white-space: nowrap;\n  border: 1px solid var(--em-color-border);\n  background-color: rgba(var(--em-rgb-background), .9);\n  -webkit-backdrop-filter: blur(4px);\n  backdrop-filter: blur(4px);\n  transition-property: opacity, transform;\n  transition-duration: var(--duration);\n  transition-timing-function: var(--easing);\n  border-radius: 10px;\n  padding: 4px;\n  position: absolute;\n  box-shadow: 1px 1px 5px rgba(0, 0, 0, .05);\n}\n\n.menu.hidden {\n  opacity: 0;\n}\n\n.menu[data-position=\"bottom\"] {\n  transform-origin: 100% 100%;\n}\n\n.menu[data-position=\"bottom\"].hidden {\n  transform: scale(.9)rotate(-3deg)translateY(5%);\n}\n\n.menu[data-position=\"top\"] {\n  transform-origin: 100% 0;\n}\n\n.menu[data-position=\"top\"].hidden {\n  transform: scale(.9)rotate(3deg)translateY(-5%);\n}\n\n.menu input[type=\"radio\"] {\n  clip: rect(0 0 0 0);\n  width: 1px;\n  height: 1px;\n  border: 0;\n  margin: 0;\n  padding: 0;\n  position: absolute;\n  overflow: hidden;\n}\n\n.menu input[type=\"radio\"]:checked + .option {\n  box-shadow: 0 0 0 2px rgb(var(--em-rgb-accent));\n}\n\n.option {\n  width: 100%;\n  border-radius: 6px;\n  padding: 4px 6px;\n}\n\n.option:hover {\n  color: #fff;\n  background-color: rgb(var(--em-rgb-accent));\n}\n\n.skin-tone {\n  width: 16px;\n  height: 16px;\n  border-radius: 100%;\n  display: inline-block;\n  position: relative;\n  overflow: hidden;\n}\n\n.skin-tone:after {\n  content: \"\";\n  mix-blend-mode: overlay;\n  background: linear-gradient(rgba(255, 255, 255, .2), rgba(0, 0, 0, 0));\n  border: 1px solid rgba(0, 0, 0, .8);\n  border-radius: 100%;\n  position: absolute;\n  top: 0;\n  bottom: 0;\n  left: 0;\n  right: 0;\n  box-shadow: inset 0 -2px 3px #000, inset 0 1px 2px #fff;\n}\n\n.skin-tone-1 {\n  background-color: #ffc93a;\n}\n\n.skin-tone-2 {\n  background-color: #ffdab7;\n}\n\n.skin-tone-3 {\n  background-color: #e7b98f;\n}\n\n.skin-tone-4 {\n  background-color: #c88c61;\n}\n\n.skin-tone-5 {\n  background-color: #a46134;\n}\n\n.skin-tone-6 {\n  background-color: #5d4437;\n}\n\n[data-index] {\n  justify-content: space-between;\n}\n\n[data-emoji-set=\"twitter\"] .skin-tone:after {\n  box-shadow: none;\n  border-color: rgba(0, 0, 0, .5);\n}\n\n[data-emoji-set=\"twitter\"] .skin-tone-1 {\n  background-color: #fade72;\n}\n\n[data-emoji-set=\"twitter\"] .skin-tone-2 {\n  background-color: #f3dfd0;\n}\n\n[data-emoji-set=\"twitter\"] .skin-tone-3 {\n  background-color: #eed3a8;\n}\n\n[data-emoji-set=\"twitter\"] .skin-tone-4 {\n  background-color: #cfad8d;\n}\n\n[data-emoji-set=\"twitter\"] .skin-tone-5 {\n  background-color: #a8805d;\n}\n\n[data-emoji-set=\"twitter\"] .skin-tone-6 {\n  background-color: #765542;\n}\n\n[data-emoji-set=\"google\"] .skin-tone:after {\n  box-shadow: inset 0 0 2px 2px rgba(0, 0, 0, .4);\n}\n\n[data-emoji-set=\"google\"] .skin-tone-1 {\n  background-color: #f5c748;\n}\n\n[data-emoji-set=\"google\"] .skin-tone-2 {\n  background-color: #f1d5aa;\n}\n\n[data-emoji-set=\"google\"] .skin-tone-3 {\n  background-color: #d4b48d;\n}\n\n[data-emoji-set=\"google\"] .skin-tone-4 {\n  background-color: #aa876b;\n}\n\n[data-emoji-set=\"google\"] .skin-tone-5 {\n  background-color: #916544;\n}\n\n[data-emoji-set=\"google\"] .skin-tone-6 {\n  background-color: #61493f;\n}\n\n[data-emoji-set=\"facebook\"] .skin-tone:after {\n  border-color: rgba(0, 0, 0, .4);\n  box-shadow: inset 0 -2px 3px #000, inset 0 1px 4px #fff;\n}\n\n[data-emoji-set=\"facebook\"] .skin-tone-1 {\n  background-color: #f5c748;\n}\n\n[data-emoji-set=\"facebook\"] .skin-tone-2 {\n  background-color: #f1d5aa;\n}\n\n[data-emoji-set=\"facebook\"] .skin-tone-3 {\n  background-color: #d4b48d;\n}\n\n[data-emoji-set=\"facebook\"] .skin-tone-4 {\n  background-color: #aa876b;\n}\n\n[data-emoji-set=\"facebook\"] .skin-tone-5 {\n  background-color: #916544;\n}\n\n[data-emoji-set=\"facebook\"] .skin-tone-6 {\n  background-color: #61493f;\n}\n\n";
 
-/* src/calendar-ui/components/StickerModal.svelte generated by Svelte v4.2.0 */
+/* src/calendar-ui/components/StickerPopover.svelte generated by Svelte v4.2.0 */
 
 function add_css$2(target) {
-	append_styles(target, "svelte-10mbo2a", ".container.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{width:100%}@media(min-width: 640px){.container.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{max-width:640px}}@media(min-width: 768px){.container.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{max-width:768px}}@media(min-width: 1024px){.container.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{max-width:1024px}}@media(min-width: 1280px){.container.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{max-width:1280px}}@media(min-width: 1536px){.container.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{max-width:1536px}}.pointer-events-none.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{pointer-events:none}.invisible.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{visibility:hidden}.collapse.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{visibility:collapse}.absolute.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{position:absolute}.relative.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{position:relative}.left-0.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{left:0px}.left-full.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{left:100%}.top-0.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{top:0px}.z-10.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{z-index:10}.z-20.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{z-index:20}.m-0.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{margin:0px}.mx-\\[1px\\].svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{margin-left:1px;margin-right:1px}.ml-\\[5px\\].svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{margin-left:5px}.mt-2.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{margin-top:0.5rem}.mt-3.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{margin-top:0.75rem}.mt-7.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{margin-top:1.75rem}.block.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{display:block}.inline-block.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{display:inline-block}.flex.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{display:flex}.table.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{display:table}.contents.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{display:contents}.h-2.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{height:0.5rem}.h-2\\.5.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{height:0.625rem}.h-3.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{height:0.75rem}.h-\\[6px\\].svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{height:6px}.w-2.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{width:0.5rem}.w-2\\.5.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{width:0.625rem}.w-3.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{width:0.75rem}.w-\\[6px\\].svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{width:6px}.w-full.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{width:100%}.w-max.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{width:-moz-max-content;width:max-content}.border-collapse.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{border-collapse:collapse}.-translate-x-1\\/2.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-y-1\\/2.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-12.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-45.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.transform.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-default.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{cursor:default}.cursor-not-allowed.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{cursor:not-allowed}.cursor-pointer.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{cursor:pointer}.flex-col.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{flex-direction:column}.items-center.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{align-items:center}.justify-between.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{justify-content:space-between}.space-x-1.svelte-10mbo2a>.svelte-10mbo2a:not([hidden])~.svelte-10mbo2a:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(0.25rem * var(--tw-space-x-reverse));margin-left:calc(0.25rem * calc(1 - var(--tw-space-x-reverse)))}.rounded-md.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{border-radius:0.375rem}.rounded-sm.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{border-radius:0.125rem}.border-0.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{border-width:0px}.bg-gray-100.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))}.bg-slate-500.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))}.bg-transparent.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{background-color:transparent}.p-1.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{padding:0.25rem}.p-2.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{padding:0.5rem}.px-4.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{padding-left:1rem;padding-right:1rem}.py-2.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{padding-top:0.5rem;padding-bottom:0.5rem}.pt-4.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{padding-top:1rem}.text-sm.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{font-size:0.875rem;line-height:1.25rem}.text-xs.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{font-size:0.75rem;line-height:1rem}.uppercase.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{text-transform:uppercase}.capitalize.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{text-transform:capitalize}.text-\\[--text-muted\\].svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{color:var(--text-muted)}.text-\\[--text-on-accent\\].svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{color:var(--text-on-accent)}.text-black.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))}.text-white.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))}.opacity-0.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{opacity:0}.opacity-50.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{opacity:0.5}.transition.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.\\[all\\:inherit\\].svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{all:inherit}#emoji-modal.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a{padding:0px;min-width:unset;width:unset !important}.hover\\:cursor-pointer.svelte-10mbo2a.svelte-10mbo2a.svelte-10mbo2a:hover{cursor:pointer}");
+	append_styles(target, "svelte-10mbo2a", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.pointer-events-none.svelte-10mbo2a{pointer-events:none}.absolute.svelte-10mbo2a{position:absolute}.left-0.svelte-10mbo2a{left:0px}.top-0.svelte-10mbo2a{top:0px}.z-20.svelte-10mbo2a{z-index:20}.w-max.svelte-10mbo2a{width:-moz-max-content;width:max-content}.bg-transparent.svelte-10mbo2a{background-color:transparent}.opacity-0.svelte-10mbo2a{opacity:0}#emoji-modal.svelte-10mbo2a{padding:0px;min-width:unset;width:unset !important}");
 }
 
 function create_fragment$2(ctx) {
-	let div2;
-	let div0;
-	let t;
 	let div1;
-	let div2_class_value;
+	let div0;
 
 	return {
 		c() {
-			div2 = element("div");
-			div0 = element("div");
-			t = space();
 			div1 = element("div");
-			attr(div0, "id", `${EMOJI_POPOVER_ID}-arrow`);
-			attr(div0, "class", "rotate-45 absolute w-2.5 h-2.5 bg-slate-500 svelte-10mbo2a");
-			attr(div1, "class", "svelte-10mbo2a");
-			attr(div2, "class", div2_class_value = "" + (null_to_empty(clsx(/*popover*/ ctx[0] && 'bg-transparent z-20 w-max opacity-0 pointer-events-none absolute top-0 left-0')) + " svelte-10mbo2a"));
-			attr(div2, "data-popover", /*popover*/ ctx[0]);
-			attr(div2, "id", EMOJI_POPOVER_ID);
+			div0 = element("div");
+			attr(div1, "class", "bg-transparent z-20 w-max opacity-0 pointer-events-none absolute top-0 left-0 svelte-10mbo2a");
+			attr(div1, "data-popover", /*popover*/ ctx[0]);
+			attr(div1, "id", STICKER_POPOVER_ID);
 		},
 		m(target, anchor) {
-			insert(target, div2, anchor);
-			append(div2, div0);
-			append(div2, t);
-			append(div2, div1);
-			/*div1_binding*/ ctx[5](div1);
+			insert(target, div1, anchor);
+			append(div1, div0);
+			/*div0_binding*/ ctx[5](div0);
 		},
 		p(ctx, [dirty]) {
-			if (dirty & /*popover*/ 1 && div2_class_value !== (div2_class_value = "" + (null_to_empty(clsx(/*popover*/ ctx[0] && 'bg-transparent z-20 w-max opacity-0 pointer-events-none absolute top-0 left-0')) + " svelte-10mbo2a"))) {
-				attr(div2, "class", div2_class_value);
-			}
-
 			if (dirty & /*popover*/ 1) {
-				attr(div2, "data-popover", /*popover*/ ctx[0]);
+				attr(div1, "data-popover", /*popover*/ ctx[0]);
 			}
 		},
 		i: noop,
 		o: noop,
 		d(detaching) {
 			if (detaching) {
-				detach(div2);
+				detach(div1);
 			}
 
-			/*div1_binding*/ ctx[5](null);
+			/*div0_binding*/ ctx[5](null);
 		}
 	};
 }
@@ -55528,7 +55514,7 @@ function instance$2($$self, $$props, $$invalidate) {
 	sheet.replaceSync('section#root {font-family: inherit');
 	emojiMartEl.shadowRoot?.adoptedStyleSheets.push(sheet);
 
-	function div1_binding($$value) {
+	function div0_binding($$value) {
 		binding_callbacks[$$value ? 'unshift' : 'push'](() => {
 			pickerContainerEl = $$value;
 			$$invalidate(1, pickerContainerEl);
@@ -55548,10 +55534,10 @@ function instance$2($$self, $$props, $$invalidate) {
 		}
 	};
 
-	return [popover, pickerContainerEl, close, noteStore, noteDateUID, div1_binding];
+	return [popover, pickerContainerEl, close, noteStore, noteDateUID, div0_binding];
 }
 
-class StickerModal extends SvelteComponent {
+class StickerPopover extends SvelteComponent {
 	constructor(options) {
 		super();
 
@@ -55578,7 +55564,7 @@ function add_css$1(target) {
 	append_styles(target, "svelte-1w2mm9p", ".svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p,.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::before,.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::before,.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::after{--tw-content:''}.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p:-moz-focusring{outline:auto}.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p:-moz-ui-invalid{box-shadow:none}.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::-webkit-inner-spin-button,.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::-webkit-outer-spin-button{height:auto}.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::-webkit-search-decoration{-webkit-appearance:none}.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p:disabled{cursor:default}.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p,.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::before,.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.container.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{width:100%}@media(min-width: 640px){.container.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{max-width:640px}}@media(min-width: 768px){.container.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{max-width:768px}}@media(min-width: 1024px){.container.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{max-width:1024px}}@media(min-width: 1280px){.container.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{max-width:1280px}}@media(min-width: 1536px){.container.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{max-width:1536px}}.pointer-events-none.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{pointer-events:none}.invisible.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{visibility:hidden}.collapse.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{visibility:collapse}.absolute.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{position:absolute}.relative.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{position:relative}.left-0.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{left:0px}.left-full.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{left:100%}.top-0.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{top:0px}.z-10.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{z-index:10}.z-20.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{z-index:20}.m-0.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{margin:0px}.mx-\\[1px\\].svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{margin-left:1px;margin-right:1px}.ml-\\[5px\\].svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{margin-left:5px}.mt-2.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{margin-top:0.5rem}.mt-3.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{margin-top:0.75rem}.mt-7.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{margin-top:1.75rem}.block.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{display:block}.inline-block.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{display:inline-block}.flex.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{display:flex}.table.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{display:table}.contents.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{display:contents}.h-2.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{height:0.5rem}.h-2\\.5.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{height:0.625rem}.h-3.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{height:0.75rem}.h-\\[6px\\].svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{height:6px}.w-2.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{width:0.5rem}.w-2\\.5.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{width:0.625rem}.w-3.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{width:0.75rem}.w-\\[6px\\].svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{width:6px}.w-full.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{width:100%}.w-max.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{width:-moz-max-content;width:max-content}.border-collapse.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{border-collapse:collapse}.-translate-x-1\\/2.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-y-1\\/2.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-12.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-45.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.transform.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-default.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{cursor:default}.cursor-not-allowed.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{cursor:not-allowed}.cursor-pointer.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{cursor:pointer}.flex-col.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{flex-direction:column}.items-center.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{align-items:center}.justify-between.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{justify-content:space-between}.space-x-1.svelte-1w2mm9p>.svelte-1w2mm9p:not([hidden])~.svelte-1w2mm9p:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(0.25rem * var(--tw-space-x-reverse));margin-left:calc(0.25rem * calc(1 - var(--tw-space-x-reverse)))}.rounded-md.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{border-radius:0.375rem}.rounded-sm.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{border-radius:0.125rem}.border-0.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{border-width:0px}.bg-gray-100.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))}.bg-slate-500.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))}.bg-transparent.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{background-color:transparent}.p-1.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{padding:0.25rem}.p-2.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{padding:0.5rem}.px-4.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{padding-left:1rem;padding-right:1rem}.py-2.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{padding-top:0.5rem;padding-bottom:0.5rem}.pt-4.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{padding-top:1rem}.text-sm.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{font-size:0.875rem;line-height:1.25rem}.text-xs.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{font-size:0.75rem;line-height:1rem}.uppercase.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{text-transform:uppercase}.capitalize.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{text-transform:capitalize}.text-\\[--text-muted\\].svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{color:var(--text-muted)}.text-\\[--text-on-accent\\].svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{color:var(--text-on-accent)}.text-black.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))}.text-white.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))}.opacity-0.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{opacity:0}.opacity-50.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{opacity:0.5}.transition.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.\\[all\\:inherit\\].svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{all:inherit}.hover\\:cursor-pointer.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p:hover{cursor:pointer}");
 }
 
-// (153:0) {#if popover}
+// (149:0) {#if popover}
 function create_if_block_1(ctx) {
 	let div3;
 	let div0;
@@ -55643,7 +55629,7 @@ function create_if_block_1(ctx) {
 	};
 }
 
-// (169:0) {#if !popover}
+// (165:0) {#if !popover}
 function create_if_block(ctx) {
 	let calendar;
 	let current;
@@ -55762,12 +55748,10 @@ function create_fragment$1(ctx) {
 }
 
 function instance$1($$self, $$props, $$invalidate) {
-	let $popoversStore;
 	let $settingsStore;
 	let $displayedDateStore;
-	component_subscribe($$self, popoversStore, $$value => $$invalidate(3, $popoversStore = $$value));
-	component_subscribe($$self, settingsStore, $$value => $$invalidate(4, $settingsStore = $$value));
-	component_subscribe($$self, displayedDateStore, $$value => $$invalidate(5, $displayedDateStore = $$value));
+	component_subscribe($$self, settingsStore, $$value => $$invalidate(3, $settingsStore = $$value));
+	component_subscribe($$self, displayedDateStore, $$value => $$invalidate(4, $displayedDateStore = $$value));
 	let { popover = false } = $$props;
 
 	function rerenderCalendar() {
@@ -55813,48 +55797,36 @@ function instance$1($$self, $$props, $$invalidate) {
 	};
 
 	const onContextMenu = ({ date, event, granularity }) => {
-		console.log('onContextMenu() 🤯🤯🤯🤯');
 		const note = getNoteByGranularity({ date, granularity });
-		const dateUID = getDateUID(date, granularity);
 
 		if (!note) {
 			// TODO: improve wording
 			new obsidian.Notice('Create a note first');
-
-			return;
-		}
-
-		const fileMenu = new obsidian.Menu();
-		crrFileMenu.set(fileMenu);
-
-		fileMenu.addItem(item => item.setTitle('Add Sticker').setIcon('smile-plus').onClick(async () => {
+		} else {
+			const dateUID = getDateUID(date, granularity);
 			const plugin = window.plugin;
+			const referenceEl = event.target;
 			const calendarPopoverStore = get_store_value(popoversStore)[CALENDAR_POPOVER_ID];
-			const emojiPopoverStore = get_store_value(popoversStore)[EMOJI_POPOVER_ID];
+			const stickerPopoverStore = get_store_value(popoversStore)[STICKER_POPOVER_ID];
 
-			if (calendarPopoverStore) {
-				const { opened: cpOpened } = calendarPopoverStore;
+			const destroyCrrStickerPopover = () => {
+				const isNewRefElDifferent = !referenceEl.isEqualNode(stickerPopoverStore?.referenceEl || null);
 
-				if (cpOpened) {
-					const referenceEl = event.target;
+				if (isNewRefElDifferent && plugin.popovers[STICKER_POPOVER_ID]) {
+					plugin.popovers[STICKER_POPOVER_ID]?.$destroy();
+					plugin.popovers[STICKER_POPOVER_ID] = null;
+				}
+			};
 
-					// reset sticker popover when neccesary
-					if (emojiPopoverStore) {
-						const { referenceEl: existingSpReferenceEl } = emojiPopoverStore;
-
-						if (!referenceEl.isEqualNode(existingSpReferenceEl) && plugin.popovers[EMOJI_POPOVER_ID]) {
-							// destroy existing popover to allow setupPopover create new one with new position
-							plugin.popovers[EMOJI_POPOVER_ID].$destroy();
-
-							plugin.popovers[EMOJI_POPOVER_ID] = null;
-						}
-					}
+			const setupStickerPopover = () => {
+				if (calendarPopoverStore?.opened) {
+					destroyCrrStickerPopover();
 
 					setupPopover({
-						id: EMOJI_POPOVER_ID,
+						id: STICKER_POPOVER_ID,
 						referenceEl,
 						view: {
-							Component: StickerModal,
+							Component: StickerPopover,
 							props: {
 								noteStore: notesStores[granularity],
 								noteDateUID: dateUID
@@ -55865,53 +55837,59 @@ function instance$1($$self, $$props, $$invalidate) {
 						addListeners: false
 					});
 
-					openPopover({ id: EMOJI_POPOVER_ID });
+					openPopover({ id: STICKER_POPOVER_ID });
 				}
-			}
-		}));
+			};
 
-		fileMenu.addItem(item => item.setTitle('Delete').setIcon('trash').onClick(() => {
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			app.fileManager.promptForFileDeletion(note);
-		}));
+			(function setupFileMenu() {
+				const fileMenu = new obsidian.Menu();
+				crrFileMenu.set(fileMenu);
+				fileMenu.addItem(item => item.setTitle('Add Sticker').setIcon('smile-plus').onClick(setupStickerPopover));
 
-		app.workspace.trigger('file-menu', fileMenu, note, 'calendar-context-menu', null);
-		fileMenu.showAtPosition({ x: event.pageX, y: event.pageY });
-
-		if ($settingsStore.openPopoverOnRibbonHover) {
-			const calendarPopoverStore = $popoversStore[CALENDAR_POPOVER_ID];
-
-			if (calendarPopoverStore) {
-				// remove mouseover event to ensure CP doesnt close when any menu action is performed
-				window.removeEventListener('mouseover', calendarPopoverStore.handleOnWindowEvent);
-
-				const addOnWindowEventListenerBack = () => {
-					// add window.mouseover ev listener back once CP is hovered
-					const calendarPopoverStore = $popoversStore[CALENDAR_POPOVER_ID];
-
-					const emojiElStore = $popoversStore[EMOJI_POPOVER_ID];
-
-					if (calendarPopoverStore?.opened && !emojiElStore?.opened && !document.querySelector('.menu')) {
-						window.addEventListener('mouseover', calendarPopoverStore.handleOnWindowEvent);
-						calendarPopoverStore.floatingEl?.removeEventListener('mouseover', addOnWindowEventListenerBack);
-					}
-				};
-
-				// cleanup previous callback
-				if (calendarPopoverStore.handleOnFloatingElEvent) {
-					calendarPopoverStore.floatingEl?.removeEventListener('mouseover', calendarPopoverStore.handleOnFloatingElEvent);
-				}
-
-				// add new callback
-				popoversStore.update(values => ({
-					...values,
-					[CALENDAR_POPOVER_ID]: {
-						...values[CALENDAR_POPOVER_ID],
-						handleOnFloatingElEvent: addOnWindowEventListenerBack
-					}
+				fileMenu.addItem(item => item.setTitle('Delete').setIcon('trash').onClick(() => {
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					app.fileManager.promptForFileDeletion(note);
 				}));
 
-				calendarPopoverStore.floatingEl?.addEventListener('mouseover', addOnWindowEventListenerBack);
+				app.workspace.trigger('file-menu', fileMenu, note, 'calendar-context-menu', null);
+				fileMenu.showAtPosition({ x: event.pageX, y: event.pageY });
+			})();
+
+			if ($settingsStore.openPopoverOnRibbonHover && calendarPopoverStore) {
+				(function removeCpCloseMechanism() {
+					window.removeEventListener('mouseover', calendarPopoverStore.handleOnWindowEvent);
+				})();
+
+				(function setupGiveCpCloseMechanismBack() {
+					const handleCpMouseoverEv = () => {
+						const calendarPopoverStore = get_store_value(popoversStore)[CALENDAR_POPOVER_ID];
+						const stickerPopoverStore = get_store_value(popoversStore)[STICKER_POPOVER_ID];
+						const isOnlyCPOpen = calendarPopoverStore?.opened && !stickerPopoverStore?.opened && !document.querySelector('.menu');
+
+						if (isOnlyCPOpen) {
+							// add window.mouseover ev listener back once CP is hovered
+							window.addEventListener('mouseover', calendarPopoverStore.handleOnWindowEvent);
+
+							calendarPopoverStore.floatingEl?.removeEventListener('mouseover', handleCpMouseoverEv);
+						}
+					};
+
+					// cleanup previous callback
+					if (calendarPopoverStore.handleOnFloatingElEvent) {
+						calendarPopoverStore.floatingEl?.removeEventListener('mouseover', calendarPopoverStore.handleOnFloatingElEvent);
+					}
+
+					// store callback to ensure later cleanup points to right place in memory
+					popoversStore.update(values => ({
+						...values,
+						[CALENDAR_POPOVER_ID]: {
+							...values[CALENDAR_POPOVER_ID],
+							handleOnFloatingElEvent: handleCpMouseoverEv
+						}
+					}));
+
+					calendarPopoverStore.floatingEl?.addEventListener('mouseover', handleCpMouseoverEv);
+				})();
 			}
 		}
 	};
