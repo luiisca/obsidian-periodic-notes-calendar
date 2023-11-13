@@ -8,7 +8,7 @@ import { tryToCreateNote } from './calendar-io';
 import { getPeriodicityFromGranularity } from './calendar-io/parse';
 import type { IPeriodicites } from './calendar-io/types';
 import { createNldatePickerDialog } from './calendar-ui/modals/nldate-picker';
-import { popoversStore, setupPopover, togglePopover } from './popover';
+import { getFloatingEl, popoversStore, setupPopover, togglePopover } from './popover';
 import { get } from 'svelte/store';
 import type { SvelteComponent } from 'svelte';
 import { popoverOnWindowEvent } from './utils';
@@ -117,17 +117,15 @@ export default class DailyNoteFlexPlugin extends Plugin {
 
 			this.initView({ active: false });
 
-			console.log('openPopoverOnRibbonHover: ', this.settings.openPopoverOnRibbonHover);
 			if (this.settings.openPopoverOnRibbonHover) {
-				console.log('about to setupPopover!');
-					setupPopover({
-						id: CALENDAR_POPOVER_ID,
-						openOnReferenceElHover: true,
-						view: {
-							Component: View
-						},
-						onWindowEvent: popoverOnWindowEvent
-					})
+				setupPopover({
+					id: CALENDAR_POPOVER_ID,
+					openOnReferenceElHover: true,
+					view: {
+						Component: View
+					},
+					onWindowEvent: popoverOnWindowEvent
+				});
 			}
 		});
 	}
@@ -172,16 +170,22 @@ export default class DailyNoteFlexPlugin extends Plugin {
 
 					return;
 				} else {
-					setupPopover({
-						id: CALENDAR_POPOVER_ID,
-						view: {
-							Component: View
-						},
-						onWindowEvent: popoverOnWindowEvent
-					});
-					togglePopover({ id: CALENDAR_POPOVER_ID });
+					const plugin = window.plugin as DailyNoteFlexPlugin;
 
-					return;
+					if (
+						!getFloatingEl({ id: CALENDAR_POPOVER_ID }) &&
+						!plugin.popovers[CALENDAR_POPOVER_ID]
+					) {
+						setupPopover({
+							id: CALENDAR_POPOVER_ID,
+							view: {
+								Component: View
+							},
+							onWindowEvent: popoverOnWindowEvent
+						});
+					} else {
+						togglePopover({ id: CALENDAR_POPOVER_ID });
+					}
 				}
 			}
 		}).id = `${CALENDAR_POPOVER_ID}-reference-el`;

@@ -80,21 +80,23 @@ export const popoverOnWindowEvent = (event: MouseEvent) => {
 	const ev = event as MouseEvent & { target: HTMLElement | null };
 	const evType = ev.type as 'mouseover' | 'click';
 
-	const calendarElStore = get(popoversStore)[CALENDAR_POPOVER_ID];
-	const emojiElStore = get(popoversStore)[STICKER_POPOVER_ID];
+	const calendarPopoverStore = get(popoversStore)[CALENDAR_POPOVER_ID];
+	const stickerPopoverStore = get(popoversStore)[STICKER_POPOVER_ID];
 	const menuEl = document.querySelector('.menu');
 
 	const calendarElTouched =
-		calendarElStore?.floatingEl?.contains(ev.target) || ev.target?.id.includes(CALENDAR_POPOVER_ID);
-	const emojiElTouched =
-		emojiElStore?.floatingEl?.contains(ev.target) || ev.target?.id.includes(STICKER_POPOVER_ID);
+		calendarPopoverStore?.floatingEl?.contains(ev.target) || ev.target?.id.includes(CALENDAR_POPOVER_ID);
+	const stickerElTouched =
+		stickerPopoverStore?.floatingEl?.contains(ev.target) || ev.target?.id.includes(STICKER_POPOVER_ID);
 	const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
 
-	const targetOut = !calendarElTouched && !menuElTouched && !emojiElTouched;
+	const targetOut = !calendarElTouched && !menuElTouched && !stickerElTouched;
 	const fileMenu = get(crrFileMenu);
 
 	console.log('popoverOnWindowEvent() > evType: ', evType);
-	if (calendarElStore?.opened && !emojiElStore?.opened && !menuEl && targetOut) {
+
+	// close CP if only CP opened and user clicked anywhere but it
+	if (calendarPopoverStore?.opened && !stickerPopoverStore?.opened && !menuEl && targetOut) {
 		closePopover({ id: CALENDAR_POPOVER_ID });
 
 		// close crr open ctx menu
@@ -103,12 +105,32 @@ export const popoverOnWindowEvent = (event: MouseEvent) => {
 		return;
 	}
 
-	if (calendarElStore?.opened && emojiElStore?.opened && evType === 'click' && targetOut) {
+	// close SP if user clicks anywher on CP
+	if (
+		calendarPopoverStore?.opened &&
+		stickerPopoverStore?.opened &&
+		evType === 'click' &&
+		calendarElTouched
+	) {
+		closePopover({ id: STICKER_POPOVER_ID });
+
+		// close crr open ctx menu
+		fileMenu?.close();
+
+		return;
+	}
+
+	// close both CP and SP if both CP and SP are opened and user clicked anywhere but them
+	if (
+		calendarPopoverStore?.opened &&
+		stickerPopoverStore?.opened &&
+		evType === 'click' &&
+		targetOut
+	) {
 		closePopover({ id: CALENDAR_POPOVER_ID });
 		closePopover({ id: STICKER_POPOVER_ID });
 
 		// close crr open ctx menu
-		const fileMenu = get(crrFileMenu);
 		fileMenu?.close();
 
 		return;

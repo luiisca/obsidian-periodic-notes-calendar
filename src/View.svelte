@@ -24,7 +24,10 @@
 		popoversStore,
 		setupPopover,
 		togglePopover,
-		type IPopoverState
+		type IPopoverState,
+		closePopover,
+		getFloatingEl,
+		positionFloatingEl
 	} from './popover';
 	import { get } from 'svelte/store';
 	import StickerPopoverComponent from './calendar-ui/components/StickerPopover.svelte';
@@ -130,27 +133,18 @@
 			new Notice('Create a note first');
 		} else {
 			const dateUID = getDateUID(date, granularity);
-			const plugin = window.plugin as DailyNoteFlexPlugin;
 			const referenceEl = event.target as HTMLElement;
 
 			const calendarPopoverStore = get(popoversStore)[CALENDAR_POPOVER_ID];
-			const stickerPopoverStore = get(popoversStore)[STICKER_POPOVER_ID];
-
-			const destroyCrrStickerPopover = () => {
-				const isNewRefElDifferent = !referenceEl.isEqualNode(
-					stickerPopoverStore?.referenceEl || null
-				);
-
-				if (isNewRefElDifferent && plugin.popovers[STICKER_POPOVER_ID]) {
-					plugin.popovers[STICKER_POPOVER_ID]?.$destroy();
-					plugin.popovers[STICKER_POPOVER_ID] = null;
-				}
-			};
 
 			const setupStickerPopover = () => {
-				if (calendarPopoverStore?.opened) {
-					destroyCrrStickerPopover();
+				const plugin = window.plugin as DailyNoteFlexPlugin;
+				const floatingEl = getFloatingEl({ id: STICKER_POPOVER_ID });
 
+				console.log('setupStickerPopover() > floatingEl: ', floatingEl);
+
+				if (!floatingEl && !plugin.popovers[STICKER_POPOVER_ID]) {
+					console.log('😥 sticker popover does not exist. Creating...'.toUpperCase());
 					setupPopover({
 						id: STICKER_POPOVER_ID,
 						referenceEl,
@@ -161,13 +155,28 @@
 								noteDateUID: dateUID
 							}
 						},
-						customX: event.pageX,
-						customY: event.pageY,
 						addListeners: false
 					});
-
-					openPopover({ id: STICKER_POPOVER_ID });
+				} else {
+					console.log('🎉 sticker popover does exist. Recalculating position...'.toUpperCase());
+					// positionFloatingEl({
+					// 	referenceEl,
+					// 	id: STICKER_POPOVER_ID,
+					// 	customX: event.pageX,
+					// 	customY: event.pageY
+					// });
 				}
+
+				console.log('openStickerPOpover(): 🤌');
+				console.log('customX: ', event.pageX);
+				console.log('customY: ', event.pageY);
+
+				openPopover({
+					referenceEl,
+					id: STICKER_POPOVER_ID,
+					customX: event.pageX,
+					customY: event.pageY
+				});
 			};
 
 			(function setupFileMenu() {

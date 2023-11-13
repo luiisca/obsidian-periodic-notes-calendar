@@ -8164,17 +8164,22 @@ const computePosition = (reference, floating, options) => {
 
 const popoversStore = writable();
 const mutationObserverCbStore = writable(null);
-const positionFloatingEl = ({ referenceEl, floatingEl, id }) => {
+const positionFloatingEl = ({ referenceEl, id, customX, customY }) => {
     const arrowEl = document.querySelector(`#${id}-arrow`);
-    const { customX, customY } = get_store_value(popoversStore)[id];
+    const floatingEl = getFloatingEl({ id });
+    console.log('positionFloatingEl(): 🔥');
+    console.log('customX: ', customX);
+    console.log('customY: ', customX);
     computePosition(referenceEl, floatingEl, {
         placement: 'right',
         middleware: [flip(), arrow({ element: arrowEl })]
     }).then(({ x, y, placement, middlewareData }) => {
+        console.log('about to update floatingEl style!!');
         Object.assign(floatingEl.style, {
             left: `${customX || x}px`,
             top: `${customY || y}px`
         });
+        console.log(floatingEl.style);
         // Handle Arrow Placement:
         // https://floating-ui.com/docs/arrow
         if (arrowEl && middlewareData.arrow) {
@@ -8216,7 +8221,7 @@ const setFloatingElInteractivity = ({ enabled, floatingEl }) => {
 };
 const getReferenceEl = ({ id }) => document.querySelector(`[id=${id}-reference-el]`);
 const getFloatingEl = ({ id }) => document.querySelector(`#${id}[data-popover="true"]`);
-const openPopover = ({ id }) => {
+const openPopover = ({ id, referenceEl, customX, customY }) => {
     console.log('openPopover() > id: ✅', id);
     const popoverState = get_store_value(popoversStore)[id];
     // add mutationObserver to look for when any modal is added to the DOM and close popover in response
@@ -8246,10 +8251,13 @@ const openPopover = ({ id }) => {
         });
     }
     if (popoverState) {
-        const { referenceEl, floatingEl, handleOnWindowEvent, handleOnWindowKeyDown } = popoverState;
+        const { handleOnWindowKeyDown } = popoverState;
         const { openPopoverOnRibbonHover } = get_store_value(settingsStore);
-        if (referenceEl && floatingEl) {
+        const floatingEl = getFloatingEl({ id });
+        const crrReferenceEl = referenceEl || getReferenceEl({ id });
+        if (crrReferenceEl && floatingEl) {
             console.log('about to reveal floatingEl > id: ', id);
+            console.log('openPopover() > referenceEl: ', referenceEl);
             revealFloatingEl({ floatingEl });
             setFloatingElInteractivity({ floatingEl, enabled: true });
             popoversStore.update((values) => ({
@@ -8259,7 +8267,7 @@ const openPopover = ({ id }) => {
                     opened: true,
                     // Trigger Floating UI autoUpdate (open only)
                     // https://floating-ui.com/docs/autoUpdate
-                    cleanupPopoverAutoUpdate: autoUpdate(referenceEl, floatingEl, () => positionFloatingEl({ referenceEl, floatingEl, id }))
+                    cleanupPopoverAutoUpdate: autoUpdate(crrReferenceEl, floatingEl, () => positionFloatingEl({ referenceEl: crrReferenceEl, id, customX, customY }))
                 }
             }));
         }
@@ -8352,70 +8360,67 @@ const popoverOnWindowKeyDown = ({ event, id }) => {
 const setupPopover = ({ id, referenceEl = getReferenceEl({ id }), openOnReferenceElHover = false, extraSetup, view, customX, customY, onWindowEvent, addListeners = true }) => {
     const plugin = window.plugin;
     // setup View
-    console.log('setupPopover() > getFloatingEl({id}): ', getFloatingEl({ id }), 'popovers', plugin.popovers, plugin.popovers?.[id]);
-    if (!getFloatingEl({ id }) && !plugin.popovers[id]) {
-        console.log('creating new component! 🧱🧱🧱');
-        plugin.popovers[id] = new view.Component({
-            target: document.body,
-            props: { popover: true, close: () => closePopover({ id }), ...view.props }
-        });
+    console.log('creating new component! 🧱🧱🧱');
+    plugin.popovers[id] = new view.Component({
+        target: document.body,
+        props: { popover: true, close: () => closePopover({ id }), ...view.props }
+    });
+    popoversStore.update((values) => ({
+        ...values,
+        [id]: {
+            opened: false,
+            referenceEl,
+            floatingEl: getFloatingEl({ id }),
+            cleanupPopoverAutoUpdate: () => ({}),
+            customX,
+            customY,
+            onWindowEvent,
+            handleOnReferenceElHovered: () => {
+                addListeners && onReferenceElHover({ id });
+                console.log('ref el hovered 🤯🤯🤯 > id: ', id);
+            },
+            handleOnWindowEvent: (event) => {
+                addListeners && popoverOnWindowEvent$1({ event, id });
+            },
+            handleOnWindowKeyDown: (event) => {
+                addListeners && popoverOnWindowKeyDown({ event, id });
+            }
+        }
+    }));
+    positionFloatingEl({ referenceEl, id });
+    if (openOnReferenceElHover) {
+        const { referenceEl, handleOnReferenceElHovered } = get_store_value(popoversStore)[id];
+        console.log('❌❌❌setupPopover() adding mouseover event listener to referenceEl 🤯🤯🤯 > referenceEl: ', referenceEl);
+        if (referenceEl && handleOnReferenceElHovered) {
+            referenceEl.addEventListener('mouseover', handleOnReferenceElHovered);
+        }
+    }
+    const cleanup = () => {
+        const { handleOnReferenceElHovered, handleOnWindowEvent, handleOnWindowKeyDown } = get_store_value(popoversStore)[id];
         popoversStore.update((values) => ({
             ...values,
             [id]: {
                 opened: false,
-                referenceEl,
-                floatingEl: getFloatingEl({ id }),
+                referenceEl: null,
+                floatingEl: null,
                 cleanupPopoverAutoUpdate: () => ({}),
-                customX,
-                customY,
-                onWindowEvent,
-                handleOnReferenceElHovered: () => {
-                    addListeners && onReferenceElHover({ id });
-                    console.log('ref el hovered 🤯🤯🤯 > id: ', id);
-                },
-                handleOnWindowEvent: (event) => {
-                    addListeners && popoverOnWindowEvent$1({ event, id });
-                },
-                handleOnWindowKeyDown: (event) => {
-                    addListeners && popoverOnWindowKeyDown({ event, id });
-                }
+                handleOnWindowEvent: () => ({}),
+                handleOnWindowKeyDown: () => ({})
             }
         }));
-        positionFloatingEl({ referenceEl, floatingEl: getFloatingEl({ id }), id });
-        if (openOnReferenceElHover) {
-            const { referenceEl, handleOnReferenceElHovered } = get_store_value(popoversStore)[id];
-            console.log('❌❌❌setupPopover() adding mouseover event listener to referenceEl 🤯🤯🤯 > referenceEl: ', referenceEl);
-            if (referenceEl && handleOnReferenceElHovered) {
-                referenceEl.addEventListener('mouseover', handleOnReferenceElHovered);
-            }
+        console.log(`cleaning up popover: ${id} > referenceEl: `, referenceEl);
+        referenceEl &&
+            handleOnReferenceElHovered &&
+            referenceEl.removeEventListener('mouseover', handleOnReferenceElHovered);
+        window.removeEventListener('mouseover', handleOnWindowEvent);
+        window.removeEventListener('click', handleOnWindowEvent);
+        window.removeEventListener('keydown', handleOnWindowKeyDown);
+        if (plugin.popovers) {
+            Object.values(plugin.popovers).forEach((popover) => popover?.$destroy());
+            plugin.popovers = {};
         }
-        const cleanup = () => {
-            const { handleOnReferenceElHovered, handleOnWindowEvent, handleOnWindowKeyDown } = get_store_value(popoversStore)[id];
-            popoversStore.update((values) => ({
-                ...values,
-                [id]: {
-                    opened: false,
-                    referenceEl: null,
-                    floatingEl: null,
-                    cleanupPopoverAutoUpdate: () => ({}),
-                    handleOnWindowEvent: () => ({}),
-                    handleOnWindowKeyDown: () => ({})
-                }
-            }));
-            console.log(`cleaning up popover: ${id} > referenceEl: `, referenceEl);
-            referenceEl &&
-                handleOnReferenceElHovered &&
-                referenceEl.removeEventListener('mouseover', handleOnReferenceElHovered);
-            window.removeEventListener('mouseover', handleOnWindowEvent);
-            window.removeEventListener('click', handleOnWindowEvent);
-            window.removeEventListener('keydown', handleOnWindowKeyDown);
-            if (plugin.popovers) {
-                Object.values(plugin.popovers).forEach((popover) => popover?.$destroy());
-                plugin.popovers = {};
-            }
-        };
-        plugin.popoversCleanups.push(cleanup);
-    }
+    };
+    plugin.popoversCleanups.push(cleanup);
     extraSetup?.();
 };
 
@@ -8486,26 +8491,40 @@ function getOnCreateNoteDialogNoteFromGranularity(granularity) {
 const popoverOnWindowEvent = (event) => {
     const ev = event;
     const evType = ev.type;
-    const calendarElStore = get_store_value(popoversStore)[CALENDAR_POPOVER_ID];
-    const emojiElStore = get_store_value(popoversStore)[STICKER_POPOVER_ID];
+    const calendarPopoverStore = get_store_value(popoversStore)[CALENDAR_POPOVER_ID];
+    const stickerPopoverStore = get_store_value(popoversStore)[STICKER_POPOVER_ID];
     const menuEl = document.querySelector('.menu');
-    const calendarElTouched = calendarElStore?.floatingEl?.contains(ev.target) || ev.target?.id.includes(CALENDAR_POPOVER_ID);
-    const emojiElTouched = emojiElStore?.floatingEl?.contains(ev.target) || ev.target?.id.includes(STICKER_POPOVER_ID);
+    const calendarElTouched = calendarPopoverStore?.floatingEl?.contains(ev.target) || ev.target?.id.includes(CALENDAR_POPOVER_ID);
+    const stickerElTouched = stickerPopoverStore?.floatingEl?.contains(ev.target) || ev.target?.id.includes(STICKER_POPOVER_ID);
     const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
-    const targetOut = !calendarElTouched && !menuElTouched && !emojiElTouched;
+    const targetOut = !calendarElTouched && !menuElTouched && !stickerElTouched;
     const fileMenu = get_store_value(crrFileMenu);
     console.log('popoverOnWindowEvent() > evType: ', evType);
-    if (calendarElStore?.opened && !emojiElStore?.opened && !menuEl && targetOut) {
+    // close CP if only CP opened and user clicked anywhere but it
+    if (calendarPopoverStore?.opened && !stickerPopoverStore?.opened && !menuEl && targetOut) {
         closePopover({ id: CALENDAR_POPOVER_ID });
         // close crr open ctx menu
         fileMenu?.close();
         return;
     }
-    if (calendarElStore?.opened && emojiElStore?.opened && evType === 'click' && targetOut) {
+    // close SP if user clicks anywher on CP
+    if (calendarPopoverStore?.opened &&
+        stickerPopoverStore?.opened &&
+        evType === 'click' &&
+        calendarElTouched) {
+        closePopover({ id: STICKER_POPOVER_ID });
+        // close crr open ctx menu
+        fileMenu?.close();
+        return;
+    }
+    // close both CP and SP if both CP and SP are opened and user clicked anywhere but them
+    if (calendarPopoverStore?.opened &&
+        stickerPopoverStore?.opened &&
+        evType === 'click' &&
+        targetOut) {
         closePopover({ id: CALENDAR_POPOVER_ID });
         closePopover({ id: STICKER_POPOVER_ID });
         // close crr open ctx menu
-        const fileMenu = get_store_value(crrFileMenu);
         fileMenu?.close();
         return;
     }
@@ -55452,12 +55471,24 @@ function create_fragment$2(ctx) {
 
 function instance$2($$self, $$props, $$invalidate) {
 	let $pluginClassStore;
+	let $popoversStore;
 	component_subscribe($$self, pluginClassStore, $$value => $$invalidate(6, $pluginClassStore = $$value));
+	component_subscribe($$self, popoversStore, $$value => $$invalidate(7, $popoversStore = $$value));
 	let { close } = $$props;
 	let { noteStore } = $$props;
 	let { noteDateUID } = $$props;
 	let { popover = false } = $$props;
 	let pickerContainerEl = null;
+
+	// event listeners
+	const handleWindowClickEvent = ev => {
+		const opened = $popoversStore[STICKER_POPOVER_ID]?.opened;
+		const stickerElTouched = pickerContainerEl?.contains(ev.target);
+
+		if (opened && !stickerElTouched) {
+			close();
+		}
+	};
 
 	const theme = $pluginClassStore.app.getTheme() === 'moonstone'
 	? 'light'
@@ -55530,7 +55561,10 @@ function instance$2($$self, $$props, $$invalidate) {
 
 	$$self.$$.update = () => {
 		if ($$self.$$.dirty & /*pickerContainerEl*/ 2) {
-			pickerContainerEl?.appendChild(emojiMartEl);
+			if (pickerContainerEl) {
+				window.addEventListener('click', handleWindowClickEvent);
+				pickerContainerEl.appendChild(emojiMartEl);
+			}
 		}
 	};
 
@@ -55564,7 +55598,7 @@ function add_css$1(target) {
 	append_styles(target, "svelte-1w2mm9p", ".svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p,.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::before,.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::before,.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::after{--tw-content:''}.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p:-moz-focusring{outline:auto}.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p:-moz-ui-invalid{box-shadow:none}.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::-webkit-inner-spin-button,.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::-webkit-outer-spin-button{height:auto}.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::-webkit-search-decoration{-webkit-appearance:none}.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p:disabled{cursor:default}.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p,.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::before,.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.container.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{width:100%}@media(min-width: 640px){.container.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{max-width:640px}}@media(min-width: 768px){.container.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{max-width:768px}}@media(min-width: 1024px){.container.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{max-width:1024px}}@media(min-width: 1280px){.container.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{max-width:1280px}}@media(min-width: 1536px){.container.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{max-width:1536px}}.pointer-events-none.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{pointer-events:none}.invisible.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{visibility:hidden}.collapse.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{visibility:collapse}.absolute.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{position:absolute}.relative.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{position:relative}.left-0.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{left:0px}.left-full.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{left:100%}.top-0.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{top:0px}.z-10.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{z-index:10}.z-20.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{z-index:20}.m-0.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{margin:0px}.mx-\\[1px\\].svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{margin-left:1px;margin-right:1px}.ml-\\[5px\\].svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{margin-left:5px}.mt-2.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{margin-top:0.5rem}.mt-3.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{margin-top:0.75rem}.mt-7.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{margin-top:1.75rem}.block.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{display:block}.inline-block.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{display:inline-block}.flex.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{display:flex}.table.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{display:table}.contents.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{display:contents}.h-2.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{height:0.5rem}.h-2\\.5.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{height:0.625rem}.h-3.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{height:0.75rem}.h-\\[6px\\].svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{height:6px}.w-2.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{width:0.5rem}.w-2\\.5.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{width:0.625rem}.w-3.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{width:0.75rem}.w-\\[6px\\].svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{width:6px}.w-full.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{width:100%}.w-max.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{width:-moz-max-content;width:max-content}.border-collapse.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{border-collapse:collapse}.-translate-x-1\\/2.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-y-1\\/2.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-12.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-45.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.transform.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-default.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{cursor:default}.cursor-not-allowed.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{cursor:not-allowed}.cursor-pointer.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{cursor:pointer}.flex-col.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{flex-direction:column}.items-center.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{align-items:center}.justify-between.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{justify-content:space-between}.space-x-1.svelte-1w2mm9p>.svelte-1w2mm9p:not([hidden])~.svelte-1w2mm9p:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(0.25rem * var(--tw-space-x-reverse));margin-left:calc(0.25rem * calc(1 - var(--tw-space-x-reverse)))}.rounded-md.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{border-radius:0.375rem}.rounded-sm.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{border-radius:0.125rem}.border-0.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{border-width:0px}.bg-gray-100.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))}.bg-slate-500.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))}.bg-transparent.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{background-color:transparent}.p-1.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{padding:0.25rem}.p-2.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{padding:0.5rem}.px-4.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{padding-left:1rem;padding-right:1rem}.py-2.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{padding-top:0.5rem;padding-bottom:0.5rem}.pt-4.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{padding-top:1rem}.text-sm.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{font-size:0.875rem;line-height:1.25rem}.text-xs.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{font-size:0.75rem;line-height:1rem}.uppercase.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{text-transform:uppercase}.capitalize.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{text-transform:capitalize}.text-\\[--text-muted\\].svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{color:var(--text-muted)}.text-\\[--text-on-accent\\].svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{color:var(--text-on-accent)}.text-black.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))}.text-white.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))}.opacity-0.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{opacity:0}.opacity-50.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{opacity:0.5}.transition.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.\\[all\\:inherit\\].svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{all:inherit}.hover\\:cursor-pointer.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p:hover{cursor:pointer}");
 }
 
-// (149:0) {#if popover}
+// (158:0) {#if popover}
 function create_if_block_1(ctx) {
 	let div3;
 	let div0;
@@ -55629,7 +55663,7 @@ function create_if_block_1(ctx) {
 	};
 }
 
-// (165:0) {#if !popover}
+// (174:0) {#if !popover}
 function create_if_block(ctx) {
 	let calendar;
 	let current;
@@ -55804,23 +55838,16 @@ function instance$1($$self, $$props, $$invalidate) {
 			new obsidian.Notice('Create a note first');
 		} else {
 			const dateUID = getDateUID(date, granularity);
-			const plugin = window.plugin;
 			const referenceEl = event.target;
 			const calendarPopoverStore = get_store_value(popoversStore)[CALENDAR_POPOVER_ID];
-			const stickerPopoverStore = get_store_value(popoversStore)[STICKER_POPOVER_ID];
-
-			const destroyCrrStickerPopover = () => {
-				const isNewRefElDifferent = !referenceEl.isEqualNode(stickerPopoverStore?.referenceEl || null);
-
-				if (isNewRefElDifferent && plugin.popovers[STICKER_POPOVER_ID]) {
-					plugin.popovers[STICKER_POPOVER_ID]?.$destroy();
-					plugin.popovers[STICKER_POPOVER_ID] = null;
-				}
-			};
 
 			const setupStickerPopover = () => {
-				if (calendarPopoverStore?.opened) {
-					destroyCrrStickerPopover();
+				const plugin = window.plugin;
+				const floatingEl = getFloatingEl({ id: STICKER_POPOVER_ID });
+				console.log('setupStickerPopover() > floatingEl: ', floatingEl);
+
+				if (!floatingEl && !plugin.popovers[STICKER_POPOVER_ID]) {
+					console.log(('😥 sticker popover does not exist. Creating...').toUpperCase());
 
 					setupPopover({
 						id: STICKER_POPOVER_ID,
@@ -55832,13 +55859,28 @@ function instance$1($$self, $$props, $$invalidate) {
 								noteDateUID: dateUID
 							}
 						},
-						customX: event.pageX,
-						customY: event.pageY,
 						addListeners: false
 					});
+				} else {
+					console.log(('🎉 sticker popover does exist. Recalculating position...').toUpperCase());
+				} // positionFloatingEl({
+				// 	referenceEl,
 
-					openPopover({ id: STICKER_POPOVER_ID });
-				}
+				// 	id: STICKER_POPOVER_ID,
+				// 	customX: event.pageX,
+				// 	customY: event.pageY
+				// });
+				console.log('openStickerPOpover(): 🤌');
+
+				console.log('customX: ', event.pageX);
+				console.log('customY: ', event.pageY);
+
+				openPopover({
+					referenceEl,
+					id: STICKER_POPOVER_ID,
+					customX: event.pageX,
+					customY: event.pageY
+				});
 			};
 
 			(function setupFileMenu() {
@@ -56621,9 +56663,7 @@ class DailyNoteFlexPlugin extends obsidian.Plugin {
         this.app.workspace.onLayoutReady(() => {
             console.log('ON Layout REady 🙌');
             this.initView({ active: false });
-            console.log('openPopoverOnRibbonHover: ', this.settings.openPopoverOnRibbonHover);
             if (this.settings.openPopoverOnRibbonHover) {
-                console.log('about to setupPopover!');
                 setupPopover({
                     id: CALENDAR_POPOVER_ID,
                     openOnReferenceElHover: true,
@@ -56670,15 +56710,20 @@ class DailyNoteFlexPlugin extends obsidian.Plugin {
                     return;
                 }
                 else {
-                    setupPopover({
-                        id: CALENDAR_POPOVER_ID,
-                        view: {
-                            Component: View$1
-                        },
-                        onWindowEvent: popoverOnWindowEvent
-                    });
-                    togglePopover({ id: CALENDAR_POPOVER_ID });
-                    return;
+                    const plugin = window.plugin;
+                    if (!getFloatingEl({ id: CALENDAR_POPOVER_ID }) &&
+                        !plugin.popovers[CALENDAR_POPOVER_ID]) {
+                        setupPopover({
+                            id: CALENDAR_POPOVER_ID,
+                            view: {
+                                Component: View$1
+                            },
+                            onWindowEvent: popoverOnWindowEvent
+                        });
+                    }
+                    else {
+                        togglePopover({ id: CALENDAR_POPOVER_ID });
+                    }
                 }
             }
         }).id = `${CALENDAR_POPOVER_ID}-reference-el`;

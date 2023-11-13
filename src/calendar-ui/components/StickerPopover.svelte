@@ -2,9 +2,9 @@
 	import { pluginClassStore, type TNotesStore } from '@/stores';
 	import { get, type Writable } from 'svelte/store';
 	import { STICKER_POPOVER_ID, STICKER_TAG_PREFIX } from '@/constants';
-	import clsx from 'clsx';
 	import pickerData from '@emoji-mart/data';
 	import { Picker } from 'emoji-mart';
+	import { popoversStore } from '@/popover';
 
 	export let close: () => void;
 	export let noteStore: Writable<TNotesStore>;
@@ -12,6 +12,16 @@
 	export let popover: boolean = false;
 
 	let pickerContainerEl: HTMLDivElement | null = null;
+	// event listeners
+	const handleWindowClickEvent = (ev: MouseEvent) => {
+		const opened = $popoversStore[STICKER_POPOVER_ID]?.opened;
+		const stickerElTouched = pickerContainerEl?.contains(ev.target as Node);
+
+		if (opened && !stickerElTouched) {
+			close();
+			removeEventListener
+		}
+	};
 
 	const theme = $pluginClassStore.app.getTheme() === 'moonstone' ? 'light' : 'dark';
 
@@ -65,7 +75,10 @@
 	sheet.replaceSync('section#root {font-family: inherit');
 	emojiMartEl.shadowRoot?.adoptedStyleSheets.push(sheet);
 
-	$: pickerContainerEl?.appendChild(emojiMartEl);
+	$: if (pickerContainerEl) {
+		window.addEventListener('click', handleWindowClickEvent)
+		pickerContainerEl.appendChild(emojiMartEl)
+	};
 </script>
 
 <div
