@@ -5,7 +5,7 @@ import type { Moment } from 'moment';
 import moment from 'moment';
 import { isMetaPressed } from './calendar-ui/utils';
 import { CALENDAR_POPOVER_ID, STICKER_POPOVER_ID } from './constants';
-import { closePopover, popoversStore, removeWindowEventListeners, togglePopover } from './popover';
+import { closePopover, popoversStore, removeWindowEventListeners, togglePopover } from './calendar-ui/popovers';
 import { crrFileMenu } from './stores';
 import { get } from 'svelte/store';
 
@@ -75,64 +75,3 @@ export function getOnCreateNoteDialogNoteFromGranularity(granularity: IGranulari
 		return 'Note: Missing Periodic Notes plugin! Please install or activate. Defaults will be used for now.';
 	}
 }
-
-export const popoverOnWindowEvent = (event: MouseEvent) => {
-	const ev = event as MouseEvent & { target: HTMLElement | null };
-	const evType = ev.type as 'mouseover' | 'click';
-
-	const calendarPopoverStore = get(popoversStore)[CALENDAR_POPOVER_ID];
-	const stickerPopoverStore = get(popoversStore)[STICKER_POPOVER_ID];
-	const menuEl = document.querySelector('.menu');
-
-	const calendarElTouched =
-		calendarPopoverStore?.floatingEl?.contains(ev.target) || ev.target?.id.includes(CALENDAR_POPOVER_ID);
-	const stickerElTouched =
-		stickerPopoverStore?.floatingEl?.contains(ev.target) || ev.target?.id.includes(STICKER_POPOVER_ID);
-	const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
-
-	const targetOut = !calendarElTouched && !menuElTouched && !stickerElTouched;
-	const fileMenu = get(crrFileMenu);
-
-	console.log('popoverOnWindowEvent() > evType: ', evType);
-
-	// close CP if only CP opened and user clicked anywhere but it
-	if (calendarPopoverStore?.opened && !stickerPopoverStore?.opened && !menuEl && targetOut) {
-		closePopover({ id: CALENDAR_POPOVER_ID });
-
-		// close crr open ctx menu
-		fileMenu?.close();
-
-		return;
-	}
-
-	// close SP if user clicks anywher on CP
-	if (
-		calendarPopoverStore?.opened &&
-		stickerPopoverStore?.opened &&
-		evType === 'click' &&
-		calendarElTouched
-	) {
-		closePopover({ id: STICKER_POPOVER_ID });
-
-		// close crr open ctx menu
-		fileMenu?.close();
-
-		return;
-	}
-
-	// close both CP and SP if both CP and SP are opened and user clicked anywhere but them
-	if (
-		calendarPopoverStore?.opened &&
-		stickerPopoverStore?.opened &&
-		evType === 'click' &&
-		targetOut
-	) {
-		closePopover({ id: CALENDAR_POPOVER_ID });
-		closePopover({ id: STICKER_POPOVER_ID });
-
-		// close crr open ctx menu
-		fileMenu?.close();
-
-		return;
-	}
-};

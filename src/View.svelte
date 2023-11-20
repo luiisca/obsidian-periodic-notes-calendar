@@ -23,16 +23,12 @@
 		openPopover,
 		popoversStore,
 		setupPopover,
-		togglePopover,
-		type IPopoverState,
-		closePopover,
 		getFloatingEl,
-		positionFloatingEl
-	} from './popover';
-	import { get } from 'svelte/store';
+		popovers
+	} from './calendar-ui/popovers';
+	import { get, writable } from 'svelte/store';
 	import StickerPopoverComponent from './calendar-ui/components/StickerPopover.svelte';
 	import { CALENDAR_POPOVER_ID, STICKER_POPOVER_ID } from './constants';
-	import { popoverOnWindowEvent } from './utils';
 	import type DailyNoteFlexPlugin from './main';
 
 	export let popover: boolean = false;
@@ -125,6 +121,7 @@
 		}
 	};
 
+	const cpMouseoverCbStore = writable<((event: MouseEvent) => void) | null>(null);
 	const onContextMenu = ({ date, event, granularity }: Parameters<TOnContextMenu>[0]): void => {
 		const note = getNoteByGranularity({ date, granularity });
 
@@ -135,16 +132,13 @@
 			const dateUID = getDateUID(date, granularity);
 			const referenceEl = event.target as HTMLElement;
 
-			const calendarPopoverStore = get(popoversStore)[CALENDAR_POPOVER_ID];
+			const calendarPopoverStore = get(popoversStore)?.[CALENDAR_POPOVER_ID];
 
 			const setupStickerPopover = () => {
 				const plugin = window.plugin as DailyNoteFlexPlugin;
 				const floatingEl = getFloatingEl({ id: STICKER_POPOVER_ID });
 
-				console.log('setupStickerPopover() > floatingEl: ', floatingEl);
-
 				if (!floatingEl && !plugin.popovers[STICKER_POPOVER_ID]) {
-					console.log('😥 sticker popover does not exist. Creating...'.toUpperCase());
 					setupPopover({
 						id: STICKER_POPOVER_ID,
 						referenceEl,
@@ -154,22 +148,9 @@
 								noteStore: notesStores[granularity],
 								noteDateUID: dateUID
 							}
-						},
-						addListeners: false
+						}
 					});
-				} else {
-					console.log('🎉 sticker popover does exist. Recalculating position...'.toUpperCase());
-					// positionFloatingEl({
-					// 	referenceEl,
-					// 	id: STICKER_POPOVER_ID,
-					// 	customX: event.pageX,
-					// 	customY: event.pageY
-					// });
 				}
-
-				console.log('openStickerPOpover(): 🤌');
-				console.log('customX: ', event.pageX);
-				console.log('customY: ', event.pageY);
 
 				openPopover({
 					referenceEl,
@@ -205,7 +186,10 @@
 
 			if ($settingsStore.openPopoverOnRibbonHover && calendarPopoverStore) {
 				(function removeCpCloseMechanism() {
-					window.removeEventListener('mouseover', calendarPopoverStore.handleOnWindowEvent);
+					window.removeEventListener(
+						'mouseover',
+						popovers[CALENDAR_POPOVER_ID].windowEvents?.mouseover as () => void
+					);
 				})();
 
 				(function setupGiveCpCloseMechanismBack() {
@@ -220,7 +204,10 @@
 
 						if (isOnlyCPOpen) {
 							// add window.mouseover ev listener back once CP is hovered
-							window.addEventListener('mouseover', calendarPopoverStore.handleOnWindowEvent);
+							window.addEventListener(
+								'mouseover',
+								popovers[CALENDAR_POPOVER_ID].windowEvents?.mouseover as () => void
+							);
 
 							calendarPopoverStore.floatingEl?.removeEventListener(
 								'mouseover',
@@ -230,21 +217,12 @@
 					};
 
 					// cleanup previous callback
-					if (calendarPopoverStore.handleOnFloatingElEvent) {
-						calendarPopoverStore.floatingEl?.removeEventListener(
-							'mouseover',
-							calendarPopoverStore.handleOnFloatingElEvent
-						);
+					if ($cpMouseoverCbStore) {
+						calendarPopoverStore.floatingEl?.removeEventListener('mouseover', $cpMouseoverCbStore);
 					}
 
 					// store callback to ensure later cleanup points to right place in memory
-					popoversStore.update((values) => ({
-						...values,
-						[CALENDAR_POPOVER_ID]: {
-							...values[CALENDAR_POPOVER_ID],
-							handleOnFloatingElEvent: handleCpMouseoverEv
-						} as IPopoverState
-					}));
+					cpMouseoverCbStore.set(handleCpMouseoverEv);
 
 					calendarPopoverStore.floatingEl?.addEventListener('mouseover', handleCpMouseoverEv);
 				})();

@@ -4,7 +4,7 @@
 	import { STICKER_POPOVER_ID, STICKER_TAG_PREFIX } from '@/constants';
 	import pickerData from '@emoji-mart/data';
 	import { Picker } from 'emoji-mart';
-	import { popoversStore } from '@/popover';
+	import { popoversStore } from '@/calendar-ui/popovers';
 
 	export let close: () => void;
 	export let noteStore: Writable<TNotesStore>;
@@ -12,16 +12,6 @@
 	export let popover: boolean = false;
 
 	let pickerContainerEl: HTMLDivElement | null = null;
-	// event listeners
-	const handleWindowClickEvent = (ev: MouseEvent) => {
-		const opened = $popoversStore[STICKER_POPOVER_ID]?.opened;
-		const stickerElTouched = pickerContainerEl?.contains(ev.target as Node);
-
-		if (opened && !stickerElTouched) {
-			close();
-			removeEventListener
-		}
-	};
 
 	const theme = $pluginClassStore.app.getTheme() === 'moonstone' ? 'light' : 'dark';
 
@@ -65,7 +55,6 @@
 				}
 			});
 		},
-		autoFocus: true,
 		theme
 	};
 
@@ -76,9 +65,27 @@
 	emojiMartEl.shadowRoot?.adoptedStyleSheets.push(sheet);
 
 	$: if (pickerContainerEl) {
-		window.addEventListener('click', handleWindowClickEvent)
-		pickerContainerEl.appendChild(emojiMartEl)
-	};
+		pickerContainerEl.appendChild(emojiMartEl);
+
+		const shadowRoot = emojiMartEl.shadowRoot;
+
+		const observer = new MutationObserver((mutations) => {
+			mutations.forEach(() => {
+				const input = shadowRoot.querySelector('input') as HTMLElement;
+				console.log('StickerPopover component() > mutation observer > input: ', input);
+
+				if (input) {
+					input.focus();
+
+					// Stop observing once the element is found
+					observer.disconnect();
+				}
+			});
+		});
+
+		// Start observing changes in the shadow DOM
+		observer.observe(shadowRoot, { subtree: true, childList: true });
+	}
 </script>
 
 <div

@@ -9,8 +9,8 @@ import weekday from 'dayjs/plugin/weekday';
 import localeData from 'dayjs/plugin/localeData';
 import locales from './locales';
 import type { IGranularity } from './calendar-io';
-import { setupPopover } from './popover';
-import { popoverOnWindowEvent } from './utils';
+import { setupPopover } from './calendar-ui/popovers';
+import ImageExamplesComponent from './calendar-ui/components/settings/ImgExamples.svelte';
 import { CALENDAR_POPOVER_ID } from './constants';
 import View from './View.svelte';
 
@@ -34,6 +34,12 @@ export interface ISettings {
 		localizedWeekdays: string[];
 		localizedWeekdaysShort: string[];
 	};
+
+	popoversCloseData: {
+		closePopoversOneByOneOnClickOut: boolean;
+		closePopoversOneByOneOnEscKeydown: boolean;
+		searchInputOnEscKeydown: 'close-popover' | 'reset';
+	};
 }
 
 export const DEFAULT_SETTINGS: ISettings = Object.freeze({
@@ -54,6 +60,12 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
 		localeOverride: null,
 		localizedWeekdays: dayjs.weekdays(),
 		localizedWeekdaysShort: dayjs.weekdaysShort()
+	},
+
+	popoversCloseData: {
+		closePopoversOneByOneOnClickOut: false,
+		closePopoversOneByOneOnEscKeydown: true,
+		searchInputOnEscKeydown: 'close-popover' as 'close-popover' | 'reset'
 	}
 });
 
@@ -93,7 +105,7 @@ export class SettingsTab extends PluginSettingTab {
 		this.containerEl.empty();
 
 		this.containerEl.createEl('h3', {
-			text: 'General Settings'
+			text: 'General'
 		});
 
 		this.addPopoverSetting();
@@ -103,10 +115,22 @@ export class SettingsTab extends PluginSettingTab {
 		this.addShowWeeklyNoteSetting();
 
 		this.containerEl.createEl('h3', {
-			text: 'Locale Settings'
+			text: 'Locale'
 		});
 		this.addWeekStartSetting();
 		this.addLocaleOverrideSetting();
+
+		if (!this.settings.viewOpen) {
+			this.containerEl.createEl('h3', {
+				text: 'Popovers close conditions'
+			});
+
+			this.addClosePopoversOneByOneOnClickOutSetting();
+			this.addClosePopoversOneByBoneOnEscKeydownSetting();
+			if (this.settings.popoversCloseData.closePopoversOneByOneOnEscKeydown) {
+				this.addSpSearchInputOnEscKeydownSetting();
+			}
+		}
 	}
 
 	hide() {
@@ -121,23 +145,25 @@ export class SettingsTab extends PluginSettingTab {
 			.setDesc('Show Calendar view when clicking on ribbon icon instead of default popover')
 			.addToggle((viewOpen) =>
 				viewOpen.setValue(this.plugin.settings.viewOpen).onChange(async (viewOpen) => {
-					this.plugin.popoversCleanups.length > 0 &&
+					if (this.plugin.popoversCleanups.length > 0) {
 						this.plugin.popoversCleanups.forEach((cleanup) => cleanup());
+						this.plugin.popoversCleanups = [];
+					}
 
-					if (!viewOpen && this.plugin.settings.openPopoverOnRibbonHover) {
+					if (!viewOpen) {
 						setupPopover({
 							id: CALENDAR_POPOVER_ID,
-							openOnReferenceElHover: true,
 							view: {
 								Component: View
-							},
-							onWindowEvent: popoverOnWindowEvent
+							}
 						});
 					}
 
 					await this.plugin.saveSettings(() => ({
 						viewOpen
 					}));
+
+					this.display(); // hide/show popovers close conditions settings
 				})
 			);
 	}
@@ -147,22 +173,20 @@ export class SettingsTab extends PluginSettingTab {
 			el
 				.setValue(this.plugin.settings.openPopoverOnRibbonHover)
 				.onChange(async (openPopoverOnRibbonHover) => {
-					console.log('setting() > popoversCleanups: 🧹🧹🧹 🌬️ ', this.plugin.popoversCleanups)
-					this.plugin.popoversCleanups.length > 0 &&
+					console.log('setting() > popoversCleanups: 🧹🧹🧹 🌬️ ', this.plugin.popoversCleanups);
+					if (this.plugin.popoversCleanups.length > 0) {
 						this.plugin.popoversCleanups.forEach((cleanup) => cleanup());
-						this.plugin.popoversCleanups = []
+						this.plugin.popoversCleanups = [];
+					}
 
 					console.log('setting() > openPopoverOnRibbonHover: ', openPopoverOnRibbonHover);
-					if (openPopoverOnRibbonHover) {
-						setupPopover({
-							id: CALENDAR_POPOVER_ID,
-							openOnReferenceElHover: true,
-							view: {
-								Component: View
-							},
-							onWindowEvent: popoverOnWindowEvent
-						});
-					}
+
+					setupPopover({
+						id: CALENDAR_POPOVER_ID,
+						view: {
+							Component: View
+						}
+					});
 
 					await this.plugin.saveSettings(() => ({
 						openPopoverOnRibbonHover
@@ -349,6 +373,70 @@ export class SettingsTab extends PluginSettingTab {
 					this.loadLocale(localeKey);
 				});
 			});
+	}
+
+	addClosePopoversOneByOneOnClickOutSetting() {
+		const settingEl = new Setting(this.containerEl)
+			.setName('Close popovers one by one on click outside')
+			.addToggle((toggle) => {
+				toggle.setValue(this.plugin.settings.popoversCloseData.closePopoversOneByOneOnClickOut);
+				toggle.onChange((value) => {
+					this.plugin.saveSettings((settings) => ({
+						popoversCloseData: {
+							...settings.popoversCloseData,
+							closePopoversOneByOneOnClickOut: value
+						}
+					}));
+				});
+			}).settingEl;
+		settingEl.style.flexWrap = 'wrap';
+
+		// TODO: render images
+		// const imgsPath = './static/images/settings/close-pops-one-by-one/';
+		// new ImageExamplesComponent({
+		// 	target: settingEl,
+		// 	props: {
+		// 		srcs: [`${imgsPath}1.png`, `${imgsPath}2.png`, `${imgsPath}3.png`]
+		// 	}
+		// });
+	}
+
+	addClosePopoversOneByBoneOnEscKeydownSetting() {
+		new Setting(this.containerEl)
+			.setName('Close popovers one by one on `Esc` key pressed')
+			.addToggle((toggle) => {
+				toggle.setValue(this.plugin.settings.popoversCloseData.closePopoversOneByOneOnEscKeydown);
+				toggle.onChange((value) => {
+					this.plugin.saveSettings((settings) => ({
+						popoversCloseData: {
+							...settings.popoversCloseData,
+							closePopoversOneByOneOnEscKeydown: value
+						}
+					}));
+
+					this.display();
+				});
+			});
+	}
+	addSpSearchInputOnEscKeydownSetting() {
+		new Setting(this.containerEl)
+			.setName("On sticker popover's search input `Esc` keydown")
+			.setDesc("Decide what to do when `Esc` pressed in sticker popover's search input")
+			.addDropdown((dropdown) => {
+				dropdown.setValue(this.settings.popoversCloseData.searchInputOnEscKeydown);
+				dropdown.addOption('close-popover', 'Close sticker popover');
+				dropdown.addOption('reset', 'Erase search input');
+
+				dropdown.onChange((value) => {
+					const typedValue = value as 'close-popover' | 'reset';
+					this.plugin.saveSettings((settings) => ({
+						popoversCloseData: {
+							...settings.popoversCloseData,
+							searchInputOnEscKeydown: typedValue
+						}
+					}));
+				});
+			})
 	}
 
 	// helpers

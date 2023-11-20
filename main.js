@@ -6928,7 +6928,7 @@ const monthsIndexesInQuarters = [
 const YEARS_RANGE_SIZE = 12;
 const STICKER_TAG_PREFIX = '#sticker-';
 const CALENDAR_POPOVER_ID = 'calendar-popover';
-const STICKER_POPOVER_ID = 'emoji-popover';
+const STICKER_POPOVER_ID = 'sticker-popover';
 
 const min = Math.min;
 const max = Math.max;
@@ -8162,19 +8162,284 @@ const computePosition = (reference, floating, options) => {
   });
 };
 
+const id$1 = CALENDAR_POPOVER_ID;
+const ribbonReferenceElId = `${id$1}-ribbon-ref-el`;
+const getReferenceEl = () => document.querySelector(`[id=${ribbonReferenceElId}]`);
+const handleReferenceElHover = () => {
+    const calendarPopoverStore = get_store_value(popoversStore)[id$1];
+    if (!calendarPopoverStore?.opened) {
+        openPopover({ id: id$1 });
+    }
+};
+const handleWindowMouseover = (event) => {
+    if (get_store_value(settingsStore).openPopoverOnRibbonHover) {
+        const ev = event;
+        const calendarPopoverStore = get_store_value(popoversStore)[id$1];
+        const stickerPopoverStore = get_store_value(popoversStore)[STICKER_POPOVER_ID];
+        const menuEl = document.querySelector('.menu');
+        const calendarElTouched = calendarPopoverStore?.floatingEl?.contains(ev.target) ||
+            ev.target?.id.includes(CALENDAR_POPOVER_ID);
+        const stickerElTouched = stickerPopoverStore?.floatingEl?.contains(ev.target) ||
+            ev.target?.id.includes(STICKER_POPOVER_ID);
+        const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
+        const referenceElTouched = calendarPopoverStore?.referenceEl?.contains(event.target);
+        const targetOut = !calendarElTouched && !menuElTouched && !stickerElTouched;
+        const fileMenu = get_store_value(crrFileMenu);
+        if (referenceElTouched)
+            return;
+        // close CP if only CP opened and user hovered anywhere but it
+        if (calendarPopoverStore?.opened && !stickerPopoverStore?.opened && !menuEl && targetOut) {
+            closePopover({ id: CALENDAR_POPOVER_ID });
+            // close crr open ctx menu
+            fileMenu?.close();
+        }
+    }
+};
+const handleWindowClick$1 = (event) => {
+    const ev = event;
+    const settings = get_store_value(settingsStore);
+    const calendarPopoverStore = get_store_value(popoversStore)[id$1];
+    const stickerPopoverStore = get_store_value(popoversStore)[STICKER_POPOVER_ID];
+    const menuEl = document.querySelector('.menu');
+    const calendarElTouched = calendarPopoverStore?.floatingEl?.contains(ev.target) ||
+        ev.target?.id.includes(CALENDAR_POPOVER_ID);
+    const stickerElTouched = stickerPopoverStore?.floatingEl?.contains(ev.target) ||
+        ev.target?.id.includes(STICKER_POPOVER_ID);
+    const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
+    const targetOut = !calendarElTouched && !menuElTouched && !stickerElTouched;
+    // ensures popovers could be closed one by one
+    if (calendarPopoverStore?.opened && stickerPopoverStore?.opened && settings.popoversCloseData.closePopoversOneByOneOnClickOut) {
+        return;
+    }
+    // close CP if user clicked anywhere but either CP, context menu or SP
+    if (targetOut) {
+        closePopover({ id: CALENDAR_POPOVER_ID });
+    }
+};
+// Accessibility Keyboard Interactions
+const handleWindowKeydown$1 = (event) => {
+    event.preventDefault();
+    const settings = get_store_value(settingsStore);
+    const calendarPopoverStore = get_store_value(popoversStore)[id$1];
+    const stickerPopoverStore = get_store_value(popoversStore)[STICKER_POPOVER_ID];
+    const floatingEl = getFloatingEl({ id: id$1 });
+    const referenceEl = getReferenceEl();
+    const focusableAllowedList = ':is(a[href], button, input, textarea, select, details, [tabindex]):not([tabindex="-1"])';
+    const focusablePopoverElements = Array.from(floatingEl?.querySelectorAll(focusableAllowedList));
+    const referenceElFocused = (calendarPopoverStore?.opened && document.activeElement === referenceEl) || false;
+    // When the user focuses on 'referenceEl' and then presses the Tab or ArrowDown key, the first element inside the view should receive focus.
+    // TODO: make it work!
+    if (referenceElFocused &&
+        (event.key === 'ArrowDown' || event.key === 'Tab') &&
+        focusablePopoverElements.length > 0) {
+        focusablePopoverElements[0].focus();
+        return;
+    }
+    // ensures popovers could be closed one by one
+    if (calendarPopoverStore?.opened && stickerPopoverStore?.opened && settings.popoversCloseData.closePopoversOneByOneOnEscKeydown) {
+        return;
+    }
+    if (event.key === 'Escape') {
+        referenceEl?.focus();
+        closePopover({ id: id$1 });
+        return;
+    }
+};
+const windowEvents$1 = {
+    click: handleWindowClick$1,
+    auxclick: handleWindowClick$1,
+    keydown: handleWindowKeydown$1,
+    mouseover: handleWindowMouseover
+};
+const open$1 = () => {
+    const floatingEl = getFloatingEl({ id: id$1 });
+    const referenceEl = getReferenceEl();
+    revealFloatingEl({ floatingEl });
+    setFloatingElInteractivity({ floatingEl, enabled: true });
+    popoversStore.update((values) => ({
+        ...values,
+        [id$1]: {
+            ...values[id$1],
+            opened: true,
+            floatingEl,
+            referenceEl,
+            // Trigger Floating UI autoUpdate (open only)
+            // https://floating-ui.com/docs/autoUpdate
+            cleanupPopoverAutoUpdate: autoUpdate(referenceEl, floatingEl, () => positionFloatingEl({ referenceEl, id: id$1 }))
+        }
+    }));
+};
+const extraSetup$1 = () => {
+    positionFloatingEl({ referenceEl: getReferenceEl(), id: id$1 });
+    if (get_store_value(settingsStore).openPopoverOnRibbonHover) {
+        getReferenceEl().addEventListener('mouseover', handleReferenceElHover);
+    }
+};
+const cleanup$1 = () => {
+    const plugin = window.plugin;
+    popoversStore.update((values) => ({
+        ...values,
+        [id$1]: {
+            opened: false,
+            referenceEl: null,
+            floatingEl: null,
+            cleanupPopoverAutoUpdate: () => ({})
+        }
+    }));
+    getReferenceEl().removeEventListener('mouseover', handleReferenceElHover);
+    popover$1.removeWindowEvents();
+    if (plugin.popovers) {
+        Object.values(plugin.popovers).forEach((popover) => popover?.$destroy());
+        plugin.popovers = {};
+    }
+};
+const popover$1 = {
+    open: open$1,
+    extraSetup: extraSetup$1,
+    cleanup: cleanup$1,
+    windowEvents: windowEvents$1,
+    addWindowEvents: () => {
+        for (const [evName, cb] of Object.entries(windowEvents$1)) {
+            window.addEventListener(evName, cb);
+        }
+    },
+    removeWindowEvents: () => {
+        for (const [evName, cb] of Object.entries(windowEvents$1)) {
+            window.removeEventListener(evName, cb);
+        }
+    }
+};
+
+const id = STICKER_POPOVER_ID;
+const handleWindowClick = (event) => {
+    const ev = event;
+    const stickerPopoverStore = get_store_value(popoversStore)[STICKER_POPOVER_ID];
+    const menuEl = document.querySelector('.menu');
+    const stickerElTouched = stickerPopoverStore?.floatingEl?.contains(ev.target) ||
+        ev.target?.id.includes(STICKER_POPOVER_ID);
+    const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
+    // close SP if user clicks anywhere but SP
+    // && !menuElTouched is only relevant for first call
+    if (stickerPopoverStore?.opened && !stickerElTouched && !menuElTouched) {
+        closePopover({ id });
+        return;
+    }
+};
+// Accessibility Keyboard Interactions
+const handleWindowKeydown = (event) => {
+    // event.preventDefault();
+    console.log('⌨🎹️ handleWindowKeyDown() !');
+    const settings = get_store_value(settingsStore);
+    const stickerPopoverStore = get_store_value(popoversStore)[id];
+    const floatingEl = getFloatingEl({ id });
+    const focusableAllowedList = ':is(a[href], button, input, textarea, select, details, [tabindex]):not([tabindex="-1"])';
+    const focusablePopoverElements = Array.from(floatingEl?.querySelectorAll(focusableAllowedList));
+    const referenceElFocused = (stickerPopoverStore?.opened && document.activeElement === stickerPopoverStore?.referenceEl) ||
+        false;
+    // When the user focuses on 'referenceEl' and then presses the Tab or ArrowDown key, the first element inside the view should receive focus.
+    // TODO: make it work!
+    if (referenceElFocused &&
+        (event.key === 'ArrowDown' || event.key === 'Tab') &&
+        focusablePopoverElements.length > 0) {
+        focusablePopoverElements[0].focus();
+        return;
+    }
+    if (event.key === 'Escape') {
+        const spInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
+        console.log('handleWindowKeyDown() > spInput: 🔠', spInput);
+        console.log('INPUT focused?', 'document', spInput === document.activeElement, 'method', spInput?.isActiveElement());
+        if (spInput &&
+            spInput.isActiveElement() &&
+            settings.popoversCloseData.searchInputOnEscKeydown) {
+            if (settings.popoversCloseData.searchInputOnEscKeydown === 'close-popover') {
+                spInput.blur();
+                closePopover({ id });
+                return;
+            }
+            if (settings.popoversCloseData.searchInputOnEscKeydown === 'reset') {
+                spInput.value = '';
+                return;
+            }
+        }
+        stickerPopoverStore?.referenceEl?.focus();
+        closePopover({ id });
+        return;
+    }
+};
+const windowEvents = {
+    click: handleWindowClick,
+    auxclick: handleWindowClick,
+    keydown: handleWindowKeydown
+};
+const open = ({ customX, customY }) => {
+    const floatingEl = getFloatingEl({ id });
+    revealFloatingEl({ floatingEl });
+    setFloatingElInteractivity({ floatingEl, enabled: true });
+    const spInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
+    console.log('open() > spInput: ', spInput);
+    spInput?.focus();
+    popoversStore.update((values) => ({
+        ...values,
+        [id]: {
+            ...values[id],
+            opened: true,
+            floatingEl,
+            // Trigger Floating UI autoUpdate (open only)
+            // https://floating-ui.com/docs/autoUpdate
+            cleanupPopoverAutoUpdate: autoUpdate(values[id]?.referenceEl, floatingEl, () => positionFloatingEl({
+                referenceEl: values[id]?.referenceEl,
+                id,
+                customX,
+                customY
+            }))
+        }
+    }));
+};
+const extraSetup = () => {
+    const stickerPopoverStore = get_store_value(popoversStore)[id];
+    positionFloatingEl({ referenceEl: stickerPopoverStore?.referenceEl, id });
+};
+const cleanup = () => {
+    const plugin = window.plugin;
+    popoversStore.update((values) => ({
+        ...values,
+        [id]: {
+            opened: false,
+            referenceEl: null,
+            floatingEl: null,
+            cleanupPopoverAutoUpdate: () => ({})
+        }
+    }));
+    if (plugin.popovers) {
+        Object.values(plugin.popovers).forEach((popover) => popover?.$destroy());
+        plugin.popovers = {};
+    }
+};
+const popover = {
+    open,
+    extraSetup,
+    cleanup,
+    addWindowEvents: () => {
+        for (const [evName, cb] of Object.entries(windowEvents)) {
+            window.addEventListener(evName, cb, get_store_value(settingsStore).popoversCloseData.searchInputOnEscKeydown === 'close-popover');
+        }
+    },
+    removeWindowEvents: () => {
+        for (const [evName, cb] of Object.entries(windowEvents)) {
+            window.removeEventListener(evName, cb, get_store_value(settingsStore).popoversCloseData.searchInputOnEscKeydown === 'close-popover');
+        }
+    }
+};
+
 const popoversStore = writable();
 const mutationObserverCbStore = writable(null);
 const positionFloatingEl = ({ referenceEl, id, customX, customY }) => {
     const arrowEl = document.querySelector(`#${id}-arrow`);
     const floatingEl = getFloatingEl({ id });
-    console.log('positionFloatingEl(): 🔥');
-    console.log('customX: ', customX);
-    console.log('customY: ', customX);
     computePosition(referenceEl, floatingEl, {
         placement: 'right',
         middleware: [flip(), arrow({ element: arrowEl })]
     }).then(({ x, y, placement, middlewareData }) => {
-        console.log('about to update floatingEl style!!');
         Object.assign(floatingEl.style, {
             left: `${customX || x}px`,
             top: `${customY || y}px`
@@ -8219,11 +8484,9 @@ const setFloatingElInteractivity = ({ enabled, floatingEl }) => {
         floatingEl.setAttribute('inert', '');
     }
 };
-const getReferenceEl = ({ id }) => document.querySelector(`[id=${id}-reference-el]`);
 const getFloatingEl = ({ id }) => document.querySelector(`#${id}[data-popover="true"]`);
-const openPopover = ({ id, referenceEl, customX, customY }) => {
+const openPopover = ({ id, referenceEl, customX, customY, addListeners = true }) => {
     console.log('openPopover() > id: ✅', id);
-    const popoverState = get_store_value(popoversStore)[id];
     // add mutationObserver to look for when any modal is added to the DOM and close popover in response
     if (!get_store_value(mutationObserverCbStore)) {
         const mutationObserverCb = (mutationRecords) => {
@@ -8250,37 +8513,14 @@ const openPopover = ({ id, referenceEl, customX, customY }) => {
             childList: true
         });
     }
-    if (popoverState) {
-        const { handleOnWindowKeyDown } = popoverState;
-        const { openPopoverOnRibbonHover } = get_store_value(settingsStore);
-        const floatingEl = getFloatingEl({ id });
-        const crrReferenceEl = referenceEl || getReferenceEl({ id });
-        if (crrReferenceEl && floatingEl) {
-            console.log('about to reveal floatingEl > id: ', id);
-            console.log('openPopover() > referenceEl: ', referenceEl);
-            revealFloatingEl({ floatingEl });
-            setFloatingElInteractivity({ floatingEl, enabled: true });
-            popoversStore.update((values) => ({
-                ...values,
-                [id]: {
-                    ...values[id],
-                    opened: true,
-                    // Trigger Floating UI autoUpdate (open only)
-                    // https://floating-ui.com/docs/autoUpdate
-                    cleanupPopoverAutoUpdate: autoUpdate(crrReferenceEl, floatingEl, () => positionFloatingEl({ referenceEl: crrReferenceEl, id, customX, customY }))
-                }
-            }));
-        }
-        openPopoverOnRibbonHover && window.addEventListener('mouseover', handleOnWindowEvent);
-        window.addEventListener('click', handleOnWindowEvent);
-        window.addEventListener('keydown', handleOnWindowKeyDown);
-    }
+    popovers[id].open({ referenceEl, customX, customY });
+    popovers[id].addWindowEvents();
 };
 const closePopover = ({ id }) => {
     console.log('closePopover() > id: ❌', id);
-    const popoverState = get_store_value(popoversStore)[id];
-    if (popoverState) {
-        const { referenceEl, floatingEl, cleanupPopoverAutoUpdate, handleOnWindowEvent, handleOnWindowKeyDown } = popoverState;
+    const popoverStore = get_store_value(popoversStore)[id];
+    if (popoverStore) {
+        const { referenceEl, floatingEl, cleanupPopoverAutoUpdate } = popoverStore;
         if (referenceEl && floatingEl) {
             hideFloatingEl({ floatingEl });
             setFloatingElInteractivity({ floatingEl, enabled: false });
@@ -8293,15 +8533,13 @@ const closePopover = ({ id }) => {
                 }
             }));
         }
-        window.removeEventListener('mouseover', handleOnWindowEvent);
-        window.removeEventListener('click', handleOnWindowEvent);
-        window.removeEventListener('keydown', handleOnWindowKeyDown);
+        popovers[id].removeWindowEvents();
     }
 };
 const togglePopover = ({ id }) => {
-    const popoverState = get_store_value(popoversStore)[id];
-    if (popoverState) {
-        const { opened } = popoverState;
+    const popoverStore = get_store_value(popoversStore)[id];
+    if (popoverStore) {
+        const { opened } = popoverStore;
         console.log('ID: ', id.toUpperCase());
         console.log('togglePopover() > opened: ', opened);
         if (!opened) {
@@ -8312,52 +8550,7 @@ const togglePopover = ({ id }) => {
         }
     }
 };
-// event listeners
-const onReferenceElHover = ({ id }) => {
-    const { opened, handleOnWindowEvent, handleOnWindowKeyDown } = get_store_value(popoversStore)[id];
-    if (!opened) {
-        openPopover({ id });
-        window.addEventListener('mouseover', handleOnWindowEvent);
-        window.addEventListener('keydown', handleOnWindowKeyDown);
-    }
-};
-const popoverOnWindowEvent$1 = ({ event, id }) => {
-    console.log('popoverOnWindowEvent()');
-    const popoverState = get_store_value(popoversStore)[id];
-    if (popoverState) {
-        const { referenceEl, floatingEl, onWindowEvent } = popoverState;
-        if (referenceEl && floatingEl) {
-            const ev = event;
-            const referenceElTouched = referenceEl.contains(ev.target);
-            if (referenceElTouched)
-                return;
-            onWindowEvent?.(event);
-        }
-    }
-};
-// Accessibility Keyboard Interactions
-const popoverOnWindowKeyDown = ({ event, id }) => {
-    event.preventDefault();
-    const { referenceEl, floatingEl, opened } = get_store_value(popoversStore)[id];
-    if (referenceEl && floatingEl) {
-        const focusableAllowedList = ':is(a[href], button, input, textarea, select, details, [tabindex]):not([tabindex="-1"])';
-        const focusablePopoverElements = Array.from(floatingEl?.querySelectorAll(focusableAllowedList));
-        const referenceElFocused = opened && document.activeElement === referenceEl;
-        // When the user focuses on 'referenceEl' and then presses the Tab or ArrowDown key, the first element inside the view should receive focus.
-        if (referenceElFocused &&
-            (event.key === 'ArrowDown' || event.key === 'Tab') &&
-            focusablePopoverElements.length > 0) {
-            focusablePopoverElements[0].focus();
-            return;
-        }
-        if (event.key === 'Escape') {
-            referenceEl.focus();
-            togglePopover({ id });
-            return;
-        }
-    }
-};
-const setupPopover = ({ id, referenceEl = getReferenceEl({ id }), openOnReferenceElHover = false, extraSetup, view, customX, customY, onWindowEvent, addListeners = true }) => {
+const setupPopover = ({ id, referenceEl, view }) => {
     const plugin = window.plugin;
     // setup View
     console.log('creating new component! 🧱🧱🧱');
@@ -8365,63 +8558,25 @@ const setupPopover = ({ id, referenceEl = getReferenceEl({ id }), openOnReferenc
         target: document.body,
         props: { popover: true, close: () => closePopover({ id }), ...view.props }
     });
+    const emojiPicker = document.querySelector('em-emoji-picker');
+    const shadowRoot = emojiPicker?.shadowRoot;
+    const spInput = shadowRoot?.querySelector('input');
+    console.log('🤯 setupPopover() > sp elements: emojiPicker: ', emojiPicker, 'shadowRoot: ', shadowRoot, 'spInput: ', spInput);
     popoversStore.update((values) => ({
         ...values,
         [id]: {
             opened: false,
             referenceEl,
             floatingEl: getFloatingEl({ id }),
-            cleanupPopoverAutoUpdate: () => ({}),
-            customX,
-            customY,
-            onWindowEvent,
-            handleOnReferenceElHovered: () => {
-                addListeners && onReferenceElHover({ id });
-                console.log('ref el hovered 🤯🤯🤯 > id: ', id);
-            },
-            handleOnWindowEvent: (event) => {
-                addListeners && popoverOnWindowEvent$1({ event, id });
-            },
-            handleOnWindowKeyDown: (event) => {
-                addListeners && popoverOnWindowKeyDown({ event, id });
-            }
+            cleanupPopoverAutoUpdate: () => ({})
         }
     }));
-    positionFloatingEl({ referenceEl, id });
-    if (openOnReferenceElHover) {
-        const { referenceEl, handleOnReferenceElHovered } = get_store_value(popoversStore)[id];
-        console.log('❌❌❌setupPopover() adding mouseover event listener to referenceEl 🤯🤯🤯 > referenceEl: ', referenceEl);
-        if (referenceEl && handleOnReferenceElHovered) {
-            referenceEl.addEventListener('mouseover', handleOnReferenceElHovered);
-        }
-    }
-    const cleanup = () => {
-        const { handleOnReferenceElHovered, handleOnWindowEvent, handleOnWindowKeyDown } = get_store_value(popoversStore)[id];
-        popoversStore.update((values) => ({
-            ...values,
-            [id]: {
-                opened: false,
-                referenceEl: null,
-                floatingEl: null,
-                cleanupPopoverAutoUpdate: () => ({}),
-                handleOnWindowEvent: () => ({}),
-                handleOnWindowKeyDown: () => ({})
-            }
-        }));
-        console.log(`cleaning up popover: ${id} > referenceEl: `, referenceEl);
-        referenceEl &&
-            handleOnReferenceElHovered &&
-            referenceEl.removeEventListener('mouseover', handleOnReferenceElHovered);
-        window.removeEventListener('mouseover', handleOnWindowEvent);
-        window.removeEventListener('click', handleOnWindowEvent);
-        window.removeEventListener('keydown', handleOnWindowKeyDown);
-        if (plugin.popovers) {
-            Object.values(plugin.popovers).forEach((popover) => popover?.$destroy());
-            plugin.popovers = {};
-        }
-    };
-    plugin.popoversCleanups.push(cleanup);
-    extraSetup?.();
+    popovers[id].extraSetup();
+    plugin.popoversCleanups.push(popovers[id].cleanup);
+};
+const popovers = {
+    [CALENDAR_POPOVER_ID]: popover$1,
+    [STICKER_POPOVER_ID]: popover
 };
 
 async function fetchWithRetry(url, retries = 0) {
@@ -8488,47 +8643,6 @@ function getOnCreateNoteDialogNoteFromGranularity(granularity) {
         return 'Note: Missing Periodic Notes plugin! Please install or activate. Defaults will be used for now.';
     }
 }
-const popoverOnWindowEvent = (event) => {
-    const ev = event;
-    const evType = ev.type;
-    const calendarPopoverStore = get_store_value(popoversStore)[CALENDAR_POPOVER_ID];
-    const stickerPopoverStore = get_store_value(popoversStore)[STICKER_POPOVER_ID];
-    const menuEl = document.querySelector('.menu');
-    const calendarElTouched = calendarPopoverStore?.floatingEl?.contains(ev.target) || ev.target?.id.includes(CALENDAR_POPOVER_ID);
-    const stickerElTouched = stickerPopoverStore?.floatingEl?.contains(ev.target) || ev.target?.id.includes(STICKER_POPOVER_ID);
-    const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
-    const targetOut = !calendarElTouched && !menuElTouched && !stickerElTouched;
-    const fileMenu = get_store_value(crrFileMenu);
-    console.log('popoverOnWindowEvent() > evType: ', evType);
-    // close CP if only CP opened and user clicked anywhere but it
-    if (calendarPopoverStore?.opened && !stickerPopoverStore?.opened && !menuEl && targetOut) {
-        closePopover({ id: CALENDAR_POPOVER_ID });
-        // close crr open ctx menu
-        fileMenu?.close();
-        return;
-    }
-    // close SP if user clicks anywher on CP
-    if (calendarPopoverStore?.opened &&
-        stickerPopoverStore?.opened &&
-        evType === 'click' &&
-        calendarElTouched) {
-        closePopover({ id: STICKER_POPOVER_ID });
-        // close crr open ctx menu
-        fileMenu?.close();
-        return;
-    }
-    // close both CP and SP if both CP and SP are opened and user clicked anywhere but them
-    if (calendarPopoverStore?.opened &&
-        stickerPopoverStore?.opened &&
-        evType === 'click' &&
-        targetOut) {
-        closePopover({ id: CALENDAR_POPOVER_ID });
-        closePopover({ id: STICKER_POPOVER_ID });
-        // close crr open ctx menu
-        fileMenu?.close();
-        return;
-    }
-};
 
 var dayjs_min = {exports: {}};
 
@@ -8725,6 +8839,11 @@ const DEFAULT_SETTINGS = Object.freeze({
         localeOverride: null,
         localizedWeekdays: dayjs.weekdays(),
         localizedWeekdaysShort: dayjs.weekdaysShort()
+    },
+    popoversCloseData: {
+        closePopoversOneByOneOnClickOut: false,
+        closePopoversOneByOneOnEscKeydown: true,
+        searchInputOnEscKeydown: 'close-popover'
     }
 });
 class SettingsTab extends obsidian.PluginSettingTab {
@@ -8753,7 +8872,7 @@ class SettingsTab extends obsidian.PluginSettingTab {
         }
         this.containerEl.empty();
         this.containerEl.createEl('h3', {
-            text: 'General Settings'
+            text: 'General'
         });
         this.addPopoverSetting();
         this.addOpenPopoverOnRibbonHoverSetting();
@@ -8761,10 +8880,20 @@ class SettingsTab extends obsidian.PluginSettingTab {
         this.addConfirmAutoHoverPreviewSetting();
         this.addShowWeeklyNoteSetting();
         this.containerEl.createEl('h3', {
-            text: 'Locale Settings'
+            text: 'Locale'
         });
         this.addWeekStartSetting();
         this.addLocaleOverrideSetting();
+        if (!this.settings.viewOpen) {
+            this.containerEl.createEl('h3', {
+                text: 'Popovers close conditions'
+            });
+            this.addClosePopoversOneByOneOnClickOutSetting();
+            this.addClosePopoversOneByBoneOnEscKeydownSetting();
+            if (this.settings.popoversCloseData.closePopoversOneByOneOnEscKeydown) {
+                this.addSpSearchInputOnEscKeydownSetting();
+            }
+        }
     }
     hide() {
         this.unsubscribeSettingsStore();
@@ -8776,21 +8905,22 @@ class SettingsTab extends obsidian.PluginSettingTab {
             .setName('Ribbon icon opens Calendar view')
             .setDesc('Show Calendar view when clicking on ribbon icon instead of default popover')
             .addToggle((viewOpen) => viewOpen.setValue(this.plugin.settings.viewOpen).onChange(async (viewOpen) => {
-            this.plugin.popoversCleanups.length > 0 &&
+            if (this.plugin.popoversCleanups.length > 0) {
                 this.plugin.popoversCleanups.forEach((cleanup) => cleanup());
-            if (!viewOpen && this.plugin.settings.openPopoverOnRibbonHover) {
+                this.plugin.popoversCleanups = [];
+            }
+            if (!viewOpen) {
                 setupPopover({
                     id: CALENDAR_POPOVER_ID,
-                    openOnReferenceElHover: true,
                     view: {
                         Component: View$1
-                    },
-                    onWindowEvent: popoverOnWindowEvent
+                    }
                 });
             }
             await this.plugin.saveSettings(() => ({
                 viewOpen
             }));
+            this.display(); // hide/show popovers close conditions settings
         }));
     }
     addOpenPopoverOnRibbonHoverSetting() {
@@ -8799,20 +8929,17 @@ class SettingsTab extends obsidian.PluginSettingTab {
             .setValue(this.plugin.settings.openPopoverOnRibbonHover)
             .onChange(async (openPopoverOnRibbonHover) => {
             console.log('setting() > popoversCleanups: 🧹🧹🧹 🌬️ ', this.plugin.popoversCleanups);
-            this.plugin.popoversCleanups.length > 0 &&
+            if (this.plugin.popoversCleanups.length > 0) {
                 this.plugin.popoversCleanups.forEach((cleanup) => cleanup());
-            this.plugin.popoversCleanups = [];
-            console.log('setting() > openPopoverOnRibbonHover: ', openPopoverOnRibbonHover);
-            if (openPopoverOnRibbonHover) {
-                setupPopover({
-                    id: CALENDAR_POPOVER_ID,
-                    openOnReferenceElHover: true,
-                    view: {
-                        Component: View$1
-                    },
-                    onWindowEvent: popoverOnWindowEvent
-                });
+                this.plugin.popoversCleanups = [];
             }
+            console.log('setting() > openPopoverOnRibbonHover: ', openPopoverOnRibbonHover);
+            setupPopover({
+                id: CALENDAR_POPOVER_ID,
+                view: {
+                    Component: View$1
+                }
+            });
             await this.plugin.saveSettings(() => ({
                 openPopoverOnRibbonHover
             }));
@@ -8967,6 +9094,65 @@ class SettingsTab extends obsidian.PluginSettingTab {
             ////
             dropdown.onChange(async (localeKey) => {
                 this.loadLocale(localeKey);
+            });
+        });
+    }
+    addClosePopoversOneByOneOnClickOutSetting() {
+        const settingEl = new obsidian.Setting(this.containerEl)
+            .setName('Close popovers one by one on click outside')
+            .addToggle((toggle) => {
+            toggle.setValue(this.plugin.settings.popoversCloseData.closePopoversOneByOneOnClickOut);
+            toggle.onChange((value) => {
+                this.plugin.saveSettings((settings) => ({
+                    popoversCloseData: {
+                        ...settings.popoversCloseData,
+                        closePopoversOneByOneOnClickOut: value
+                    }
+                }));
+            });
+        }).settingEl;
+        settingEl.style.flexWrap = 'wrap';
+        // TODO: render images
+        // const imgsPath = './static/images/settings/close-pops-one-by-one/';
+        // new ImageExamplesComponent({
+        // 	target: settingEl,
+        // 	props: {
+        // 		srcs: [`${imgsPath}1.png`, `${imgsPath}2.png`, `${imgsPath}3.png`]
+        // 	}
+        // });
+    }
+    addClosePopoversOneByBoneOnEscKeydownSetting() {
+        new obsidian.Setting(this.containerEl)
+            .setName('Close popovers one by one on `Esc` key pressed')
+            .addToggle((toggle) => {
+            toggle.setValue(this.plugin.settings.popoversCloseData.closePopoversOneByOneOnEscKeydown);
+            toggle.onChange((value) => {
+                this.plugin.saveSettings((settings) => ({
+                    popoversCloseData: {
+                        ...settings.popoversCloseData,
+                        closePopoversOneByOneOnEscKeydown: value
+                    }
+                }));
+                this.display();
+            });
+        });
+    }
+    addSpSearchInputOnEscKeydownSetting() {
+        new obsidian.Setting(this.containerEl)
+            .setName("On sticker popover's search input `Esc` keydown")
+            .setDesc("Decide what to do when `Esc` pressed in sticker popover's search input")
+            .addDropdown((dropdown) => {
+            dropdown.setValue(this.settings.popoversCloseData.searchInputOnEscKeydown);
+            dropdown.addOption('close-popover', 'Close sticker popover');
+            dropdown.addOption('reset', 'Erase search input');
+            dropdown.onChange((value) => {
+                const typedValue = value;
+                this.plugin.saveSettings((settings) => ({
+                    popoversCloseData: {
+                        ...settings.popoversCloseData,
+                        searchInputOnEscKeydown: typedValue
+                    }
+                }));
             });
         });
     }
@@ -9290,7 +9476,7 @@ async function createYearlyNote(date) {
 /* src/calendar-ui/components/ConfirmationModal.svelte generated by Svelte v4.2.0 */
 
 function add_css$f(target) {
-	append_styles(target, "svelte-mpucnm", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.m-0.svelte-mpucnm{margin:0px\n}.mt-2.svelte-mpucnm{margin-top:0.5rem\n}.mt-3.svelte-mpucnm{margin-top:0.75rem\n}.mt-7.svelte-mpucnm{margin-top:1.75rem\n}.flex.svelte-mpucnm{display:flex\n}.items-center.svelte-mpucnm{align-items:center\n}.text-sm.svelte-mpucnm{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-mpucnm{font-size:0.75rem;line-height:1rem\n}.text-\\[--text-muted\\].svelte-mpucnm{color:var(--text-muted)\n}.hover\\:cursor-pointer.svelte-mpucnm:hover{cursor:pointer\n}");
+	append_styles(target, "svelte-1st9t5s", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.m-0.svelte-1st9t5s{margin:0px\n}.mt-2.svelte-1st9t5s{margin-top:0.5rem\n}.mt-3.svelte-1st9t5s{margin-top:0.75rem\n}.mt-7.svelte-1st9t5s{margin-top:1.75rem\n}.flex.svelte-1st9t5s{display:flex\n}.items-center.svelte-1st9t5s{align-items:center\n}.text-sm.svelte-1st9t5s{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-1st9t5s{font-size:0.75rem;line-height:1rem\n}.text-\\[--text-muted\\].svelte-1st9t5s{color:var(--text-muted)\n}.hover\\:cursor-pointer.svelte-1st9t5s:hover{cursor:pointer\n}");
 }
 
 // (36:1) {#if note}
@@ -9301,7 +9487,7 @@ function create_if_block$8(ctx) {
 		c() {
 			p = element("p");
 			p.textContent = `${/*note*/ ctx[3]}`;
-			attr(p, "class", "m-0 mt-2 text-xs text-[--text-muted] svelte-mpucnm");
+			attr(p, "class", "m-0 mt-2 text-xs text-[--text-muted] svelte-1st9t5s");
 		},
 		m(target, anchor) {
 			insert(target, p, anchor);
@@ -9356,10 +9542,10 @@ function create_fragment$f(ctx) {
 			button1 = element("button");
 			button1.textContent = `${/*cta*/ ctx[4]}`;
 			attr(input, "type", "checkbox");
-			attr(input, "class", "hover:cursor-pointer svelte-mpucnm");
-			attr(label, "class", "flex items-center hover:cursor-pointer text-sm mt-7 svelte-mpucnm");
+			attr(input, "class", "hover:cursor-pointer svelte-1st9t5s");
+			attr(label, "class", "flex items-center hover:cursor-pointer text-sm mt-7 svelte-1st9t5s");
 			attr(button1, "class", "mod-cta");
-			attr(div0, "class", "modal-button-container mt-3 svelte-mpucnm");
+			attr(div0, "class", "modal-button-container mt-3 svelte-1st9t5s");
 		},
 		m(target, anchor) {
 			insert(target, div1, anchor);
@@ -9753,7 +9939,7 @@ const crrFileMenu = writable(null);
 /* src/calendar-ui/components/Dot.svelte generated by Svelte v4.2.0 */
 
 function add_css$e(target) {
-	append_styles(target, "svelte-mpucnm", ".container.svelte-mpucnm{width:100%\n}@media(min-width: 640px){.container.svelte-mpucnm{max-width:640px\n    }}@media(min-width: 768px){.container.svelte-mpucnm{max-width:768px\n    }}@media(min-width: 1024px){.container.svelte-mpucnm{max-width:1024px\n    }}@media(min-width: 1280px){.container.svelte-mpucnm{max-width:1280px\n    }}@media(min-width: 1536px){.container.svelte-mpucnm{max-width:1536px\n    }}.pointer-events-none.svelte-mpucnm{pointer-events:none\n}.invisible.svelte-mpucnm{visibility:hidden\n}.collapse.svelte-mpucnm{visibility:collapse\n}.absolute.svelte-mpucnm{position:absolute\n}.relative.svelte-mpucnm{position:relative\n}.left-0.svelte-mpucnm{left:0px\n}.left-full.svelte-mpucnm{left:100%\n}.top-0.svelte-mpucnm{top:0px\n}.z-10.svelte-mpucnm{z-index:10\n}.z-20.svelte-mpucnm{z-index:20\n}.m-0.svelte-mpucnm{margin:0px\n}.mx-\\[1px\\].svelte-mpucnm{margin-left:1px;margin-right:1px\n}.ml-\\[5px\\].svelte-mpucnm{margin-left:5px\n}.mt-2.svelte-mpucnm{margin-top:0.5rem\n}.mt-3.svelte-mpucnm{margin-top:0.75rem\n}.mt-7.svelte-mpucnm{margin-top:1.75rem\n}.block.svelte-mpucnm{display:block\n}.inline-block.svelte-mpucnm{display:inline-block\n}.flex.svelte-mpucnm{display:flex\n}.table.svelte-mpucnm{display:table\n}.contents.svelte-mpucnm{display:contents\n}.h-2.svelte-mpucnm{height:0.5rem\n}.h-2\\.5.svelte-mpucnm{height:0.625rem\n}.h-3.svelte-mpucnm{height:0.75rem\n}.h-\\[6px\\].svelte-mpucnm{height:6px\n}.w-2.svelte-mpucnm{width:0.5rem\n}.w-2\\.5.svelte-mpucnm{width:0.625rem\n}.w-3.svelte-mpucnm{width:0.75rem\n}.w-\\[6px\\].svelte-mpucnm{width:6px\n}.w-full.svelte-mpucnm{width:100%\n}.w-max.svelte-mpucnm{width:-moz-max-content;width:max-content\n}.border-collapse.svelte-mpucnm{border-collapse:collapse\n}.-translate-x-1\\/2.svelte-mpucnm{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.-translate-y-1\\/2.svelte-mpucnm{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.rotate-12.svelte-mpucnm{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.rotate-45.svelte-mpucnm{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.transform.svelte-mpucnm{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.cursor-default.svelte-mpucnm{cursor:default\n}.cursor-not-allowed.svelte-mpucnm{cursor:not-allowed\n}.cursor-pointer.svelte-mpucnm{cursor:pointer\n}.flex-col.svelte-mpucnm{flex-direction:column\n}.items-center.svelte-mpucnm{align-items:center\n}.justify-between.svelte-mpucnm{justify-content:space-between\n}.rounded-md.svelte-mpucnm{border-radius:0.375rem\n}.rounded-sm.svelte-mpucnm{border-radius:0.125rem\n}.border-0.svelte-mpucnm{border-width:0px\n}.bg-gray-100.svelte-mpucnm{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))\n}.bg-slate-500.svelte-mpucnm{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))\n}.bg-transparent.svelte-mpucnm{background-color:transparent\n}.p-1.svelte-mpucnm{padding:0.25rem\n}.p-2.svelte-mpucnm{padding:0.5rem\n}.px-4.svelte-mpucnm{padding-left:1rem;padding-right:1rem\n}.py-2.svelte-mpucnm{padding-top:0.5rem;padding-bottom:0.5rem\n}.pt-4.svelte-mpucnm{padding-top:1rem\n}.text-sm.svelte-mpucnm{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-mpucnm{font-size:0.75rem;line-height:1rem\n}.uppercase.svelte-mpucnm{text-transform:uppercase\n}.capitalize.svelte-mpucnm{text-transform:capitalize\n}.text-\\[--text-muted\\].svelte-mpucnm{color:var(--text-muted)\n}.text-\\[--text-on-accent\\].svelte-mpucnm{color:var(--text-on-accent)\n}.text-black.svelte-mpucnm{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))\n}.text-white.svelte-mpucnm{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))\n}.opacity-0.svelte-mpucnm{opacity:0\n}.opacity-50.svelte-mpucnm{opacity:0.5\n}.transition.svelte-mpucnm{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms\n}.\\[all\\:inherit\\].svelte-mpucnm{all:inherit\n}.hover\\:cursor-pointer.svelte-mpucnm:hover{cursor:pointer\n}");
+	append_styles(target, "svelte-1st9t5s", ".container.svelte-1st9t5s{width:100%\n}@media(min-width: 640px){.container.svelte-1st9t5s{max-width:640px\n    }}@media(min-width: 768px){.container.svelte-1st9t5s{max-width:768px\n    }}@media(min-width: 1024px){.container.svelte-1st9t5s{max-width:1024px\n    }}@media(min-width: 1280px){.container.svelte-1st9t5s{max-width:1280px\n    }}@media(min-width: 1536px){.container.svelte-1st9t5s{max-width:1536px\n    }}.pointer-events-none.svelte-1st9t5s{pointer-events:none\n}.invisible.svelte-1st9t5s{visibility:hidden\n}.collapse.svelte-1st9t5s{visibility:collapse\n}.absolute.svelte-1st9t5s{position:absolute\n}.relative.svelte-1st9t5s{position:relative\n}.left-0.svelte-1st9t5s{left:0px\n}.left-full.svelte-1st9t5s{left:100%\n}.top-0.svelte-1st9t5s{top:0px\n}.z-10.svelte-1st9t5s{z-index:10\n}.z-20.svelte-1st9t5s{z-index:20\n}.m-0.svelte-1st9t5s{margin:0px\n}.mx-\\[1px\\].svelte-1st9t5s{margin-left:1px;margin-right:1px\n}.ml-\\[5px\\].svelte-1st9t5s{margin-left:5px\n}.mt-2.svelte-1st9t5s{margin-top:0.5rem\n}.mt-3.svelte-1st9t5s{margin-top:0.75rem\n}.mt-7.svelte-1st9t5s{margin-top:1.75rem\n}.block.svelte-1st9t5s{display:block\n}.inline-block.svelte-1st9t5s{display:inline-block\n}.flex.svelte-1st9t5s{display:flex\n}.table.svelte-1st9t5s{display:table\n}.contents.svelte-1st9t5s{display:contents\n}.h-2.svelte-1st9t5s{height:0.5rem\n}.h-2\\.5.svelte-1st9t5s{height:0.625rem\n}.h-3.svelte-1st9t5s{height:0.75rem\n}.h-\\[6px\\].svelte-1st9t5s{height:6px\n}.w-2.svelte-1st9t5s{width:0.5rem\n}.w-2\\.5.svelte-1st9t5s{width:0.625rem\n}.w-3.svelte-1st9t5s{width:0.75rem\n}.w-\\[6px\\].svelte-1st9t5s{width:6px\n}.w-full.svelte-1st9t5s{width:100%\n}.w-max.svelte-1st9t5s{width:-moz-max-content;width:max-content\n}.border-collapse.svelte-1st9t5s{border-collapse:collapse\n}.-translate-x-1\\/2.svelte-1st9t5s{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.-translate-y-1\\/2.svelte-1st9t5s{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.rotate-12.svelte-1st9t5s{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.rotate-45.svelte-1st9t5s{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.transform.svelte-1st9t5s{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.cursor-default.svelte-1st9t5s{cursor:default\n}.cursor-not-allowed.svelte-1st9t5s{cursor:not-allowed\n}.cursor-pointer.svelte-1st9t5s{cursor:pointer\n}.flex-col.svelte-1st9t5s{flex-direction:column\n}.items-center.svelte-1st9t5s{align-items:center\n}.justify-between.svelte-1st9t5s{justify-content:space-between\n}.rounded-md.svelte-1st9t5s{border-radius:0.375rem\n}.rounded-sm.svelte-1st9t5s{border-radius:0.125rem\n}.border-0.svelte-1st9t5s{border-width:0px\n}.bg-gray-100.svelte-1st9t5s{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))\n}.bg-slate-500.svelte-1st9t5s{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))\n}.bg-transparent.svelte-1st9t5s{background-color:transparent\n}.p-1.svelte-1st9t5s{padding:0.25rem\n}.p-2.svelte-1st9t5s{padding:0.5rem\n}.px-4.svelte-1st9t5s{padding-left:1rem;padding-right:1rem\n}.py-2.svelte-1st9t5s{padding-top:0.5rem;padding-bottom:0.5rem\n}.pt-4.svelte-1st9t5s{padding-top:1rem\n}.text-sm.svelte-1st9t5s{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-1st9t5s{font-size:0.75rem;line-height:1rem\n}.uppercase.svelte-1st9t5s{text-transform:uppercase\n}.capitalize.svelte-1st9t5s{text-transform:capitalize\n}.text-\\[--text-muted\\].svelte-1st9t5s{color:var(--text-muted)\n}.text-\\[--text-on-accent\\].svelte-1st9t5s{color:var(--text-on-accent)\n}.text-black.svelte-1st9t5s{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))\n}.text-white.svelte-1st9t5s{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))\n}.opacity-0.svelte-1st9t5s{opacity:0\n}.opacity-50.svelte-1st9t5s{opacity:0.5\n}.shadow.svelte-1st9t5s{--tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)\n}.blur.svelte-1st9t5s{--tw-blur:blur(8px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)\n}.transition.svelte-1st9t5s{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms\n}.\\[all\\:inherit\\].svelte-1st9t5s{all:inherit\n}.hover\\:cursor-pointer.svelte-1st9t5s:hover{cursor:pointer\n}");
 }
 
 function create_fragment$e(ctx) {
@@ -9772,7 +9958,7 @@ function create_fragment$e(ctx) {
 			attr(circle, "cx", "3");
 			attr(circle, "cy", "3");
 			attr(circle, "r", "2");
-			attr(svg, "class", svg_class_value = "" + (null_to_empty(`${/*$$restProps*/ ctx[3].class} inline-block h-[6px] w-[6px] mx-[1px] ${/*isActive*/ ctx[2] ? 'text-[--text-on-accent]' : ''}`) + " svelte-mpucnm"));
+			attr(svg, "class", svg_class_value = "" + (null_to_empty(`${/*$$restProps*/ ctx[3].class} inline-block h-[6px] w-[6px] mx-[1px] ${/*isActive*/ ctx[2] ? 'text-[--text-on-accent]' : ''}`) + " svelte-1st9t5s"));
 			set_style(svg, "color", /*color*/ ctx[0]);
 			attr(svg, "viewBox", "0 0 6 6");
 			attr(svg, "xmlns", "http://www.w3.org/2000/svg");
@@ -9790,7 +9976,7 @@ function create_fragment$e(ctx) {
 				attr(circle, "fill", circle_fill_value);
 			}
 
-			if (dirty & /*$$restProps, isActive*/ 12 && svg_class_value !== (svg_class_value = "" + (null_to_empty(`${/*$$restProps*/ ctx[3].class} inline-block h-[6px] w-[6px] mx-[1px] ${/*isActive*/ ctx[2] ? 'text-[--text-on-accent]' : ''}`) + " svelte-mpucnm"))) {
+			if (dirty & /*$$restProps, isActive*/ 12 && svg_class_value !== (svg_class_value = "" + (null_to_empty(`${/*$$restProps*/ ctx[3].class} inline-block h-[6px] w-[6px] mx-[1px] ${/*isActive*/ ctx[2] ? 'text-[--text-on-accent]' : ''}`) + " svelte-1st9t5s"))) {
 				attr(svg, "class", svg_class_value);
 			}
 
@@ -9838,7 +10024,7 @@ const VIEW = Symbol('view');
 /* src/calendar-ui/components/EmojiSticker.svelte generated by Svelte v4.2.0 */
 
 function add_css$d(target) {
-	append_styles(target, "svelte-1w2mm9p", ".svelte-1w2mm9p,.svelte-1w2mm9p::before,.svelte-1w2mm9p::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-1w2mm9p::before,.svelte-1w2mm9p::after{--tw-content:''}.svelte-1w2mm9p:-moz-focusring{outline:auto}.svelte-1w2mm9p:-moz-ui-invalid{box-shadow:none}.svelte-1w2mm9p::-webkit-inner-spin-button,.svelte-1w2mm9p::-webkit-outer-spin-button{height:auto}.svelte-1w2mm9p::-webkit-search-decoration{-webkit-appearance:none}.svelte-1w2mm9p::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}.svelte-1w2mm9p:disabled{cursor:default}.svelte-1w2mm9p,.svelte-1w2mm9p::before,.svelte-1w2mm9p::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-1w2mm9p::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.absolute.svelte-1w2mm9p{position:absolute}.left-full.svelte-1w2mm9p{left:100%}.top-0.svelte-1w2mm9p{top:0px}.-translate-x-1\\/2.svelte-1w2mm9p{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-y-1\\/2.svelte-1w2mm9p{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-12.svelte-1w2mm9p{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}");
+	append_styles(target, "svelte-6f8090", ".svelte-6f8090,.svelte-6f8090::before,.svelte-6f8090::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-6f8090::before,.svelte-6f8090::after{--tw-content:''}.svelte-6f8090:-moz-focusring{outline:auto}.svelte-6f8090:-moz-ui-invalid{box-shadow:none}.svelte-6f8090::-webkit-inner-spin-button,.svelte-6f8090::-webkit-outer-spin-button{height:auto}.svelte-6f8090::-webkit-search-decoration{-webkit-appearance:none}.svelte-6f8090::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}.svelte-6f8090:disabled{cursor:default}.svelte-6f8090,.svelte-6f8090::before,.svelte-6f8090::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-6f8090::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.absolute.svelte-6f8090{position:absolute}.left-full.svelte-6f8090{left:100%}.top-0.svelte-6f8090{top:0px}.-translate-x-1\\/2.svelte-6f8090{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-y-1\\/2.svelte-6f8090{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-12.svelte-6f8090{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}");
 }
 
 // (4:0) {#if emoji}
@@ -9850,7 +10036,7 @@ function create_if_block$7(ctx) {
 		c() {
 			div = element("div");
 			t = text(/*emoji*/ ctx[0]);
-			attr(div, "class", "rotate-12 absolute top-0 left-full -translate-x-1/2 -translate-y-1/2 svelte-1w2mm9p");
+			attr(div, "class", "rotate-12 absolute top-0 left-full -translate-x-1/2 -translate-y-1/2 svelte-6f8090");
 		},
 		m(target, anchor) {
 			insert(target, div, anchor);
@@ -9926,7 +10112,7 @@ class EmojiSticker extends SvelteComponent {
 /* src/calendar-ui/components/Day.svelte generated by Svelte v4.2.0 */
 
 function add_css$c(target) {
-	append_styles(target, "svelte-18og5j5", ".svelte-18og5j5,.svelte-18og5j5::before,.svelte-18og5j5::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-18og5j5::before,.svelte-18og5j5::after{--tw-content:''}button.svelte-18og5j5{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-18og5j5{text-transform:none}button.svelte-18og5j5{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-18og5j5:-moz-focusring{outline:auto}.svelte-18og5j5:-moz-ui-invalid{box-shadow:none}.svelte-18og5j5::-webkit-inner-spin-button,.svelte-18og5j5::-webkit-outer-spin-button{height:auto}.svelte-18og5j5::-webkit-search-decoration{-webkit-appearance:none}.svelte-18og5j5::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-18og5j5{cursor:pointer}.svelte-18og5j5:disabled{cursor:default}.svelte-18og5j5,.svelte-18og5j5::before,.svelte-18og5j5::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-18og5j5::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-18og5j5{position:relative}.flex.svelte-18og5j5{display:flex}.w-full.svelte-18og5j5{width:100%}.flex-col.svelte-18og5j5{flex-direction:column}.day.svelte-18og5j5{background-color:var(--color-background-day);border-radius:4px;color:var(--color-text-day);cursor:pointer;font-size:0.8em;height:100%;padding:4px;position:relative;text-align:center;transition:background-color 0.1s ease-in, color 0.1s ease-in;vertical-align:baseline}.day.svelte-18og5j5:hover{background-color:var(--interactive-hover)}.day.svelte-18og5j5:active{color:var(--text-on-accent);background-color:var(--interactive-accent)}");
+	append_styles(target, "svelte-pk4qg", ".svelte-pk4qg,.svelte-pk4qg::before,.svelte-pk4qg::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-pk4qg::before,.svelte-pk4qg::after{--tw-content:''}button.svelte-pk4qg{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-pk4qg{text-transform:none}button.svelte-pk4qg{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-pk4qg:-moz-focusring{outline:auto}.svelte-pk4qg:-moz-ui-invalid{box-shadow:none}.svelte-pk4qg::-webkit-inner-spin-button,.svelte-pk4qg::-webkit-outer-spin-button{height:auto}.svelte-pk4qg::-webkit-search-decoration{-webkit-appearance:none}.svelte-pk4qg::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-pk4qg{cursor:pointer}.svelte-pk4qg:disabled{cursor:default}.svelte-pk4qg,.svelte-pk4qg::before,.svelte-pk4qg::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-pk4qg::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-pk4qg{position:relative}.flex.svelte-pk4qg{display:flex}.w-full.svelte-pk4qg{width:100%}.flex-col.svelte-pk4qg{flex-direction:column}.day.svelte-pk4qg{background-color:var(--color-background-day);border-radius:4px;color:var(--color-text-day);cursor:pointer;font-size:0.8em;height:100%;padding:4px;position:relative;text-align:center;transition:background-color 0.1s ease-in, color 0.1s ease-in;vertical-align:baseline}.day.svelte-pk4qg:hover{background-color:var(--interactive-hover)}.day.svelte-pk4qg:active{color:var(--text-on-accent);background-color:var(--interactive-accent)}");
 }
 
 // (54:2) {#if $rerenderStore && getNoteByGranularity({ date, granularity: 'day' })}
@@ -9987,8 +10173,8 @@ function create_fragment$c(ctx) {
 			if (if_block) if_block.c();
 			t2 = space();
 			create_component(emojisticker.$$.fragment);
-			attr(button, "class", "day w-full flex flex-col svelte-18og5j5");
-			attr(td, "class", "relative svelte-18og5j5");
+			attr(button, "class", "day w-full flex flex-col svelte-pk4qg");
+			attr(td, "class", "relative svelte-pk4qg");
 		},
 		m(target, anchor) {
 			insert(target, td, anchor);
@@ -10128,7 +10314,7 @@ class Day extends SvelteComponent {
 /* src/calendar-ui/components/WeekNum.svelte generated by Svelte v4.2.0 */
 
 function add_css$b(target) {
-	append_styles(target, "svelte-1ppf7zj", ".svelte-1ppf7zj,.svelte-1ppf7zj::before,.svelte-1ppf7zj::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-1ppf7zj::before,.svelte-1ppf7zj::after{--tw-content:''}button.svelte-1ppf7zj{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-1ppf7zj{text-transform:none}button.svelte-1ppf7zj{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-1ppf7zj:-moz-focusring{outline:auto}.svelte-1ppf7zj:-moz-ui-invalid{box-shadow:none}.svelte-1ppf7zj::-webkit-inner-spin-button,.svelte-1ppf7zj::-webkit-outer-spin-button{height:auto}.svelte-1ppf7zj::-webkit-search-decoration{-webkit-appearance:none}.svelte-1ppf7zj::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-1ppf7zj{cursor:pointer}.svelte-1ppf7zj:disabled{cursor:default}.svelte-1ppf7zj,.svelte-1ppf7zj::before,.svelte-1ppf7zj::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-1ppf7zj::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-1ppf7zj{position:relative}td.svelte-1ppf7zj{border-right:1px solid var(--background-modifier-border)}");
+	append_styles(target, "svelte-179eria", ".svelte-179eria,.svelte-179eria::before,.svelte-179eria::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-179eria::before,.svelte-179eria::after{--tw-content:''}button.svelte-179eria{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-179eria{text-transform:none}button.svelte-179eria{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-179eria:-moz-focusring{outline:auto}.svelte-179eria:-moz-ui-invalid{box-shadow:none}.svelte-179eria::-webkit-inner-spin-button,.svelte-179eria::-webkit-outer-spin-button{height:auto}.svelte-179eria::-webkit-search-decoration{-webkit-appearance:none}.svelte-179eria::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-179eria{cursor:pointer}.svelte-179eria:disabled{cursor:default}.svelte-179eria,.svelte-179eria::before,.svelte-179eria::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-179eria::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-179eria{position:relative}td.svelte-179eria{border-right:1px solid var(--background-modifier-border)}");
 }
 
 // (58:2) {#if $rerenderStore && getNoteByGranularity( { date: startOfWeekDate, granularity: 'week' } )}
@@ -10188,8 +10374,8 @@ function create_fragment$b(ctx) {
 			if (if_block) if_block.c();
 			t2 = space();
 			create_component(emojisticker.$$.fragment);
-			attr(button, "class", "day svelte-1ppf7zj");
-			attr(td, "class", "relative svelte-1ppf7zj");
+			attr(button, "class", "day svelte-179eria");
+			attr(td, "class", "relative svelte-179eria");
 		},
 		m(target, anchor) {
 			insert(target, td, anchor);
@@ -10336,7 +10522,7 @@ class WeekNum extends SvelteComponent {
 /* src/calendar-ui/components/Arrow.svelte generated by Svelte v4.2.0 */
 
 function add_css$a(target) {
-	append_styles(target, "svelte-1mfp0mh", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.arrow.svelte-1mfp0mh.svelte-1mfp0mh{all:inherit;align-items:center;cursor:pointer;display:flex;justify-content:center;width:24px}.arrow.is-mobile.svelte-1mfp0mh.svelte-1mfp0mh{width:32px}.right.svelte-1mfp0mh.svelte-1mfp0mh{transform:rotate(180deg)}.arrow.svelte-1mfp0mh svg.svelte-1mfp0mh{color:var(--color-arrow);height:16px;width:16px}");
+	append_styles(target, "svelte-7fqqde", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.arrow.svelte-7fqqde.svelte-7fqqde{all:inherit;align-items:center;cursor:pointer;display:flex;justify-content:center;width:24px}.arrow.is-mobile.svelte-7fqqde.svelte-7fqqde{width:32px}.right.svelte-7fqqde.svelte-7fqqde{transform:rotate(180deg)}.arrow.svelte-7fqqde svg.svelte-7fqqde{color:var(--color-arrow);height:16px;width:16px}");
 }
 
 function create_fragment$a(ctx) {
@@ -10357,8 +10543,8 @@ function create_fragment$a(ctx) {
 			attr(svg, "role", "img");
 			attr(svg, "xmlns", "http://www.w3.org/2000/svg");
 			attr(svg, "viewBox", "0 0 320 512");
-			attr(svg, "class", "svelte-1mfp0mh");
-			attr(button, "class", "arrow svelte-1mfp0mh");
+			attr(svg, "class", "svelte-7fqqde");
+			attr(button, "class", "arrow svelte-7fqqde");
 			attr(button, "aria-label", /*tooltip*/ ctx[1]);
 			toggle_class(button, "is-mobile", /*isMobile*/ ctx[3]);
 			toggle_class(button, "right", /*direction*/ ctx[2] === 'right');
@@ -10427,7 +10613,7 @@ class Arrow extends SvelteComponent {
 /* src/calendar-ui/components/MonthNav.svelte generated by Svelte v4.2.0 */
 
 function add_css$9(target) {
-	append_styles(target, "svelte-mpxj7e", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.flex.svelte-mpxj7e{display:flex}.justify-between.svelte-mpxj7e{justify-content:space-between}.\\[all\\:inherit\\].svelte-mpxj7e{all:inherit}.nav.svelte-mpxj7e{align-items:baseline;display:flex;margin:0.6em 0 1em;padding:0 8px;width:100%}.title.svelte-mpxj7e{color:var(--color-text-title);cursor:pointer;display:flex;font-size:1.4em;gap:0.3em;margin:0}.month.svelte-mpxj7e{font-weight:500}.year.svelte-mpxj7e{color:var(--interactive-accent)}.right-nav.svelte-mpxj7e{align-items:center;display:flex;justify-content:center;margin-left:auto}.reset-button.svelte-mpxj7e{all:inherit;cursor:pointer;align-items:center;color:var(--color-arrow);display:flex;opacity:0.4;padding:0.5em}.reset-button.active.svelte-mpxj7e{cursor:pointer;opacity:1}");
+	append_styles(target, "svelte-mm9mul", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.flex.svelte-mm9mul{display:flex}.justify-between.svelte-mm9mul{justify-content:space-between}.\\[all\\:inherit\\].svelte-mm9mul{all:inherit}.nav.svelte-mm9mul{align-items:baseline;display:flex;margin:0.6em 0 1em;padding:0 8px;width:100%}.title.svelte-mm9mul{color:var(--color-text-title);cursor:pointer;display:flex;font-size:1.4em;gap:0.3em;margin:0}.month.svelte-mm9mul{font-weight:500}.year.svelte-mm9mul{color:var(--interactive-accent)}.right-nav.svelte-mm9mul{align-items:center;display:flex;justify-content:center;margin-left:auto}.reset-button.svelte-mm9mul{all:inherit;cursor:pointer;align-items:center;color:var(--color-arrow);display:flex;opacity:0.4;padding:0.5em}.reset-button.active.svelte-mm9mul{cursor:pointer;opacity:1}");
 }
 
 function create_fragment$9(ctx) {
@@ -10495,18 +10681,18 @@ function create_fragment$9(ctx) {
 			create_component(dot.$$.fragment);
 			t5 = space();
 			create_component(arrow1.$$.fragment);
-			attr(button0, "class", "month [all:inherit] svelte-mpxj7e");
-			attr(button1, "class", "year [all:inherit] svelte-mpxj7e");
-			attr(span, "class", "flex justify-between title svelte-mpxj7e");
+			attr(button0, "class", "month [all:inherit] svelte-mm9mul");
+			attr(button1, "class", "year [all:inherit] svelte-mm9mul");
+			attr(span, "class", "flex justify-between title svelte-mm9mul");
 
 			attr(button2, "aria-label", button2_aria_label_value = !/*showingCurrentMonth*/ ctx[1]
 			? 'Reset to current month'
 			: null);
 
-			attr(button2, "class", "reset-button svelte-mpxj7e");
+			attr(button2, "class", "reset-button svelte-mm9mul");
 			toggle_class(button2, "active", /*showingCurrentMonth*/ ctx[1]);
-			attr(div1, "class", "right-nav svelte-mpxj7e");
-			attr(div2, "class", "nav svelte-mpxj7e");
+			attr(div1, "class", "right-nav svelte-mm9mul");
+			attr(div2, "class", "nav svelte-mm9mul");
 		},
 		m(target, anchor) {
 			insert(target, div2, anchor);
@@ -10717,7 +10903,7 @@ class MonthNav extends SvelteComponent {
 /* src/calendar-ui/components/YearNav.svelte generated by Svelte v4.2.0 */
 
 function add_css$8(target) {
-	append_styles(target, "svelte-mpxj7e", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.flex.svelte-mpxj7e{display:flex}.cursor-default.svelte-mpxj7e{cursor:default}.justify-between.svelte-mpxj7e{justify-content:space-between}.\\[all\\:inherit\\].svelte-mpxj7e{all:inherit}.nav.svelte-mpxj7e{align-items:baseline;display:flex;margin:0.6em 0 1em;padding:0 8px;width:100%}.title.svelte-mpxj7e{color:var(--color-text-title);cursor:pointer;display:flex;font-size:1.4em;gap:0.3em;margin:0}.month.svelte-mpxj7e{font-weight:500}.year.svelte-mpxj7e{color:var(--interactive-accent)}.right-nav.svelte-mpxj7e{align-items:center;display:flex;justify-content:center;margin-left:auto}.reset-button.svelte-mpxj7e{all:inherit;cursor:pointer;align-items:center;color:var(--color-arrow);display:flex;opacity:0.4;padding:0.5em}.reset-button.active.svelte-mpxj7e{cursor:pointer;opacity:1}");
+	append_styles(target, "svelte-mm9mul", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.flex.svelte-mm9mul{display:flex}.cursor-default.svelte-mm9mul{cursor:default}.justify-between.svelte-mm9mul{justify-content:space-between}.\\[all\\:inherit\\].svelte-mm9mul{all:inherit}.nav.svelte-mm9mul{align-items:baseline;display:flex;margin:0.6em 0 1em;padding:0 8px;width:100%}.title.svelte-mm9mul{color:var(--color-text-title);cursor:pointer;display:flex;font-size:1.4em;gap:0.3em;margin:0}.month.svelte-mm9mul{font-weight:500}.year.svelte-mm9mul{color:var(--interactive-accent)}.right-nav.svelte-mm9mul{align-items:center;display:flex;justify-content:center;margin-left:auto}.reset-button.svelte-mm9mul{all:inherit;cursor:pointer;align-items:center;color:var(--color-arrow);display:flex;opacity:0.4;padding:0.5em}.reset-button.active.svelte-mm9mul{cursor:pointer;opacity:1}");
 }
 
 function create_fragment$8(ctx) {
@@ -10785,18 +10971,18 @@ function create_fragment$8(ctx) {
 			create_component(dot.$$.fragment);
 			t5 = space();
 			create_component(arrow1.$$.fragment);
-			attr(button0, "class", "month [all:inherit] svelte-mpxj7e");
-			attr(span0, "class", "year cursor-default svelte-mpxj7e");
-			attr(span1, "class", "flex justify-between title svelte-mpxj7e");
+			attr(button0, "class", "month [all:inherit] svelte-mm9mul");
+			attr(span0, "class", "year cursor-default svelte-mm9mul");
+			attr(span1, "class", "flex justify-between title svelte-mm9mul");
 
 			attr(button1, "aria-label", button1_aria_label_value = !/*showingCurrentYear*/ ctx[1]
 			? 'Reset to current year'
 			: null);
 
-			attr(button1, "class", "reset-button svelte-mpxj7e");
+			attr(button1, "class", "reset-button svelte-mm9mul");
 			toggle_class(button1, "active", /*showingCurrentYear*/ ctx[1]);
-			attr(div1, "class", "right-nav svelte-mpxj7e");
-			attr(div2, "class", "nav svelte-mpxj7e");
+			attr(div1, "class", "right-nav svelte-mm9mul");
+			attr(div2, "class", "nav svelte-mm9mul");
 		},
 		m(target, anchor) {
 			insert(target, div2, anchor);
@@ -10988,7 +11174,7 @@ class YearNav extends SvelteComponent {
 /* src/calendar-ui/components/YearsNav.svelte generated by Svelte v4.2.0 */
 
 function add_css$7(target) {
-	append_styles(target, "svelte-iivl5c", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.flex.svelte-iivl5c{display:flex}.justify-between.svelte-iivl5c{justify-content:space-between}.nav.svelte-iivl5c{align-items:baseline;display:flex;margin:0.6em 0 1em;padding:0 8px;width:100%}.title.svelte-iivl5c{color:var(--color-text-title);display:flex;font-size:1.4em;gap:0.3em;margin:0}.month.svelte-iivl5c{font-weight:500}.right-nav.svelte-iivl5c{align-items:center;display:flex;justify-content:center;margin-left:auto}.reset-button.svelte-iivl5c{all:inherit;cursor:pointer;align-items:center;color:var(--color-arrow);display:flex;opacity:0.4;padding:0.5em}.reset-button.active.svelte-iivl5c{cursor:pointer;opacity:1}");
+	append_styles(target, "svelte-177w4en", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.flex.svelte-177w4en{display:flex}.justify-between.svelte-177w4en{justify-content:space-between}.nav.svelte-177w4en{align-items:baseline;display:flex;margin:0.6em 0 1em;padding:0 8px;width:100%}.title.svelte-177w4en{color:var(--color-text-title);display:flex;font-size:1.4em;gap:0.3em;margin:0}.month.svelte-177w4en{font-weight:500}.right-nav.svelte-177w4en{align-items:center;display:flex;justify-content:center;margin-left:auto}.reset-button.svelte-177w4en{all:inherit;cursor:pointer;align-items:center;color:var(--color-arrow);display:flex;opacity:0.4;padding:0.5em}.reset-button.active.svelte-177w4en{cursor:pointer;opacity:1}");
 }
 
 function create_fragment$7(ctx) {
@@ -11049,17 +11235,17 @@ function create_fragment$7(ctx) {
 			create_component(dot.$$.fragment);
 			t3 = space();
 			create_component(arrow1.$$.fragment);
-			attr(span0, "class", "month svelte-iivl5c");
-			attr(span1, "class", "flex justify-between title svelte-iivl5c");
+			attr(span0, "class", "month svelte-177w4en");
+			attr(span1, "class", "flex justify-between title svelte-177w4en");
 
 			attr(button, "aria-label", button_aria_label_value = !/*showingCurrentRange*/ ctx[1]
 			? 'Reset to current year'
 			: null);
 
-			attr(button, "class", "reset-button svelte-iivl5c");
+			attr(button, "class", "reset-button svelte-177w4en");
 			toggle_class(button, "active", /*showingCurrentRange*/ ctx[1]);
-			attr(div1, "class", "right-nav svelte-iivl5c");
-			attr(div2, "class", "nav svelte-iivl5c");
+			attr(div1, "class", "right-nav svelte-177w4en");
+			attr(div2, "class", "nav svelte-177w4en");
 		},
 		m(target, anchor) {
 			insert(target, div2, anchor);
@@ -11188,7 +11374,7 @@ class YearsNav extends SvelteComponent {
 /* src/calendar-ui/components/QuarterNum.svelte generated by Svelte v4.2.0 */
 
 function add_css$6(target) {
-	append_styles(target, "svelte-1w2mm9p", ".svelte-1w2mm9p,.svelte-1w2mm9p::before,.svelte-1w2mm9p::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-1w2mm9p::before,.svelte-1w2mm9p::after{--tw-content:''}button.svelte-1w2mm9p{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-1w2mm9p{text-transform:none}button.svelte-1w2mm9p{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-1w2mm9p:-moz-focusring{outline:auto}.svelte-1w2mm9p:-moz-ui-invalid{box-shadow:none}.svelte-1w2mm9p::-webkit-inner-spin-button,.svelte-1w2mm9p::-webkit-outer-spin-button{height:auto}.svelte-1w2mm9p::-webkit-search-decoration{-webkit-appearance:none}.svelte-1w2mm9p::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-1w2mm9p{cursor:pointer}.svelte-1w2mm9p:disabled{cursor:default}.svelte-1w2mm9p,.svelte-1w2mm9p::before,.svelte-1w2mm9p::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-1w2mm9p::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-1w2mm9p{position:relative}");
+	append_styles(target, "svelte-6f8090", ".svelte-6f8090,.svelte-6f8090::before,.svelte-6f8090::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-6f8090::before,.svelte-6f8090::after{--tw-content:''}button.svelte-6f8090{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-6f8090{text-transform:none}button.svelte-6f8090{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-6f8090:-moz-focusring{outline:auto}.svelte-6f8090:-moz-ui-invalid{box-shadow:none}.svelte-6f8090::-webkit-inner-spin-button,.svelte-6f8090::-webkit-outer-spin-button{height:auto}.svelte-6f8090::-webkit-search-decoration{-webkit-appearance:none}.svelte-6f8090::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-6f8090{cursor:pointer}.svelte-6f8090:disabled{cursor:default}.svelte-6f8090,.svelte-6f8090::before,.svelte-6f8090::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-6f8090::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-6f8090{position:relative}");
 }
 
 // (44:2) {#if $rerenderStore && getNoteByGranularity({ date, granularity: 'quarter' })}
@@ -11250,8 +11436,8 @@ function create_fragment$6(ctx) {
 			if (if_block) if_block.c();
 			t3 = space();
 			create_component(emojisticker.$$.fragment);
-			attr(button, "class", "svelte-1w2mm9p");
-			attr(td, "class", "relative svelte-1w2mm9p");
+			attr(button, "class", "svelte-6f8090");
+			attr(td, "class", "relative svelte-6f8090");
 		},
 		m(target, anchor) {
 			insert(target, td, anchor);
@@ -11404,7 +11590,7 @@ class QuarterNum extends SvelteComponent {
 /* src/calendar-ui/components/Month.svelte generated by Svelte v4.2.0 */
 
 function add_css$5(target) {
-	append_styles(target, "svelte-1w2mm9p", ".svelte-1w2mm9p,.svelte-1w2mm9p::before,.svelte-1w2mm9p::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-1w2mm9p::before,.svelte-1w2mm9p::after{--tw-content:''}button.svelte-1w2mm9p{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-1w2mm9p{text-transform:none}button.svelte-1w2mm9p{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-1w2mm9p:-moz-focusring{outline:auto}.svelte-1w2mm9p:-moz-ui-invalid{box-shadow:none}.svelte-1w2mm9p::-webkit-inner-spin-button,.svelte-1w2mm9p::-webkit-outer-spin-button{height:auto}.svelte-1w2mm9p::-webkit-search-decoration{-webkit-appearance:none}.svelte-1w2mm9p::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-1w2mm9p{cursor:pointer}.svelte-1w2mm9p:disabled{cursor:default}.svelte-1w2mm9p,.svelte-1w2mm9p::before,.svelte-1w2mm9p::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-1w2mm9p::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-1w2mm9p{position:relative}");
+	append_styles(target, "svelte-6f8090", ".svelte-6f8090,.svelte-6f8090::before,.svelte-6f8090::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-6f8090::before,.svelte-6f8090::after{--tw-content:''}button.svelte-6f8090{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-6f8090{text-transform:none}button.svelte-6f8090{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-6f8090:-moz-focusring{outline:auto}.svelte-6f8090:-moz-ui-invalid{box-shadow:none}.svelte-6f8090::-webkit-inner-spin-button,.svelte-6f8090::-webkit-outer-spin-button{height:auto}.svelte-6f8090::-webkit-search-decoration{-webkit-appearance:none}.svelte-6f8090::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-6f8090{cursor:pointer}.svelte-6f8090:disabled{cursor:default}.svelte-6f8090,.svelte-6f8090::before,.svelte-6f8090::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-6f8090::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-6f8090{position:relative}");
 }
 
 // (44:2) {#if $rerenderStore && getNoteByGranularity({ date, granularity: 'month' })}
@@ -11465,8 +11651,8 @@ function create_fragment$5(ctx) {
 			if (if_block) if_block.c();
 			t2 = space();
 			create_component(emojisticker.$$.fragment);
-			attr(button, "class", "svelte-1w2mm9p");
-			attr(td, "class", "relative svelte-1w2mm9p");
+			attr(button, "class", "svelte-6f8090");
+			attr(td, "class", "relative svelte-6f8090");
 		},
 		m(target, anchor) {
 			insert(target, td, anchor);
@@ -11618,7 +11804,7 @@ class Month extends SvelteComponent {
 /* src/calendar-ui/components/Year.svelte generated by Svelte v4.2.0 */
 
 function add_css$4(target) {
-	append_styles(target, "svelte-1w2mm9p", ".svelte-1w2mm9p,.svelte-1w2mm9p::before,.svelte-1w2mm9p::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-1w2mm9p::before,.svelte-1w2mm9p::after{--tw-content:''}button.svelte-1w2mm9p{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-1w2mm9p{text-transform:none}button.svelte-1w2mm9p{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-1w2mm9p:-moz-focusring{outline:auto}.svelte-1w2mm9p:-moz-ui-invalid{box-shadow:none}.svelte-1w2mm9p::-webkit-inner-spin-button,.svelte-1w2mm9p::-webkit-outer-spin-button{height:auto}.svelte-1w2mm9p::-webkit-search-decoration{-webkit-appearance:none}.svelte-1w2mm9p::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-1w2mm9p{cursor:pointer}.svelte-1w2mm9p:disabled{cursor:default}.svelte-1w2mm9p,.svelte-1w2mm9p::before,.svelte-1w2mm9p::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-1w2mm9p::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-1w2mm9p{position:relative}");
+	append_styles(target, "svelte-6f8090", ".svelte-6f8090,.svelte-6f8090::before,.svelte-6f8090::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-6f8090::before,.svelte-6f8090::after{--tw-content:''}button.svelte-6f8090{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-6f8090{text-transform:none}button.svelte-6f8090{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-6f8090:-moz-focusring{outline:auto}.svelte-6f8090:-moz-ui-invalid{box-shadow:none}.svelte-6f8090::-webkit-inner-spin-button,.svelte-6f8090::-webkit-outer-spin-button{height:auto}.svelte-6f8090::-webkit-search-decoration{-webkit-appearance:none}.svelte-6f8090::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-6f8090{cursor:pointer}.svelte-6f8090:disabled{cursor:default}.svelte-6f8090,.svelte-6f8090::before,.svelte-6f8090::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-6f8090::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-6f8090{position:relative}");
 }
 
 // (45:2) {#if $rerenderStore && getNoteByGranularity({ date, granularity: 'year' })}
@@ -11678,8 +11864,8 @@ function create_fragment$4(ctx) {
 			if (if_block) if_block.c();
 			t2 = space();
 			create_component(emojisticker.$$.fragment);
-			attr(button, "class", "svelte-1w2mm9p");
-			attr(td, "class", "relative svelte-1w2mm9p");
+			attr(button, "class", "svelte-6f8090");
+			attr(td, "class", "relative svelte-6f8090");
 		},
 		m(target, anchor) {
 			insert(target, td, anchor);
@@ -11833,7 +12019,7 @@ class Year extends SvelteComponent {
 /* src/calendar-ui/components/Calendar.svelte generated by Svelte v4.2.0 */
 
 function add_css$3(target) {
-	append_styles(target, "svelte-tvljyx", ".svelte-tvljyx.svelte-tvljyx.svelte-tvljyx,.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx::before,.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx::before,.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx::after{--tw-content:''}table.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{text-indent:0;border-color:inherit;border-collapse:collapse}button.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{text-transform:none}button.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx:-moz-focusring{outline:auto}.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx:-moz-ui-invalid{box-shadow:none}.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx::-webkit-inner-spin-button,.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx::-webkit-outer-spin-button{height:auto}.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx::-webkit-search-decoration{-webkit-appearance:none}.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{cursor:pointer}.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx:disabled{cursor:default}.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx,.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx::before,.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.container.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{width:100%}@media(min-width: 640px){.container.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{max-width:640px}}@media(min-width: 768px){.container.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{max-width:768px}}@media(min-width: 1024px){.container.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{max-width:1024px}}@media(min-width: 1280px){.container.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{max-width:1280px}}@media(min-width: 1536px){.container.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{max-width:1536px}}.pointer-events-none.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{pointer-events:none}.invisible.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{visibility:hidden}.collapse.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{visibility:collapse}.absolute.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{position:absolute}.relative.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{position:relative}.left-0.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{left:0px}.left-full.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{left:100%}.top-0.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{top:0px}.z-10.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{z-index:10}.z-20.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{z-index:20}.m-0.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{margin:0px}.mx-\\[1px\\].svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{margin-left:1px;margin-right:1px}.ml-\\[5px\\].svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{margin-left:5px}.mt-2.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{margin-top:0.5rem}.mt-3.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{margin-top:0.75rem}.mt-7.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{margin-top:1.75rem}.block.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{display:block}.inline-block.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{display:inline-block}.flex.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{display:flex}.table.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{display:table}.contents.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{display:contents}.h-2.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{height:0.5rem}.h-2\\.5.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{height:0.625rem}.h-3.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{height:0.75rem}.h-\\[6px\\].svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{height:6px}.w-2.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{width:0.5rem}.w-2\\.5.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{width:0.625rem}.w-3.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{width:0.75rem}.w-\\[6px\\].svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{width:6px}.w-full.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{width:100%}.w-max.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{width:-moz-max-content;width:max-content}.border-collapse.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{border-collapse:collapse}.-translate-x-1\\/2.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-y-1\\/2.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-12.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-45.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.transform.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-default.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{cursor:default}.cursor-not-allowed.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{cursor:not-allowed}.cursor-pointer.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{cursor:pointer}.flex-col.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{flex-direction:column}.items-center.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{align-items:center}.justify-between.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{justify-content:space-between}.space-x-1.svelte-tvljyx>.svelte-tvljyx:not([hidden])~.svelte-tvljyx:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(0.25rem * var(--tw-space-x-reverse));margin-left:calc(0.25rem * calc(1 - var(--tw-space-x-reverse)))}.rounded-md.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{border-radius:0.375rem}.rounded-sm.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{border-radius:0.125rem}.border-0.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{border-width:0px}.bg-gray-100.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))}.bg-slate-500.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))}.bg-transparent.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{background-color:transparent}.p-1.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{padding:0.25rem}.p-2.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{padding:0.5rem}.px-4.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{padding-left:1rem;padding-right:1rem}.py-2.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{padding-top:0.5rem;padding-bottom:0.5rem}.pt-4.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{padding-top:1rem}.text-sm.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{font-size:0.875rem;line-height:1.25rem}.text-xs.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{font-size:0.75rem;line-height:1rem}.uppercase.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{text-transform:uppercase}.capitalize.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{text-transform:capitalize}.text-\\[--text-muted\\].svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{color:var(--text-muted)}.text-\\[--text-on-accent\\].svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{color:var(--text-on-accent)}.text-black.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))}.text-white.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))}.opacity-0.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{opacity:0}.opacity-50.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{opacity:0.5}.transition.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.\\[all\\:inherit\\].svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{all:inherit}.container.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{--color-background-heading:transparent;--color-background-day:transparent;--color-background-weeknum:transparent;--color-background-weekend:transparent;--color-dot:var(--text-muted);--color-arrow:var(--text-muted);--color-button:var(--text-muted);--color-text-title:var(--text-normal);--color-text-heading:var(--text-muted);--color-text-day:var(--text-normal);--color-text-today:var(--interactive-accent);--color-text-weeknum:var(--text-muted);padding:0 8px}.weekend.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{background-color:var(--color-background-weekend)}.calendar.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{border-collapse:collapse;width:100%}th.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx{background-color:var(--color-background-heading);color:var(--color-text-heading);font-size:0.6em;letter-spacing:1px;padding:4px;text-align:center;text-transform:uppercase}.hover\\:cursor-pointer.svelte-tvljyx.svelte-tvljyx.svelte-tvljyx:hover{cursor:pointer}");
+	append_styles(target, "svelte-ctircw", ".svelte-ctircw.svelte-ctircw.svelte-ctircw,.svelte-ctircw.svelte-ctircw.svelte-ctircw::before,.svelte-ctircw.svelte-ctircw.svelte-ctircw::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-ctircw.svelte-ctircw.svelte-ctircw::before,.svelte-ctircw.svelte-ctircw.svelte-ctircw::after{--tw-content:''}table.svelte-ctircw.svelte-ctircw.svelte-ctircw{text-indent:0;border-color:inherit;border-collapse:collapse}button.svelte-ctircw.svelte-ctircw.svelte-ctircw{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-ctircw.svelte-ctircw.svelte-ctircw{text-transform:none}button.svelte-ctircw.svelte-ctircw.svelte-ctircw{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-ctircw.svelte-ctircw.svelte-ctircw:-moz-focusring{outline:auto}.svelte-ctircw.svelte-ctircw.svelte-ctircw:-moz-ui-invalid{box-shadow:none}.svelte-ctircw.svelte-ctircw.svelte-ctircw::-webkit-inner-spin-button,.svelte-ctircw.svelte-ctircw.svelte-ctircw::-webkit-outer-spin-button{height:auto}.svelte-ctircw.svelte-ctircw.svelte-ctircw::-webkit-search-decoration{-webkit-appearance:none}.svelte-ctircw.svelte-ctircw.svelte-ctircw::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-ctircw.svelte-ctircw.svelte-ctircw{cursor:pointer}.svelte-ctircw.svelte-ctircw.svelte-ctircw:disabled{cursor:default}.svelte-ctircw.svelte-ctircw.svelte-ctircw,.svelte-ctircw.svelte-ctircw.svelte-ctircw::before,.svelte-ctircw.svelte-ctircw.svelte-ctircw::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-ctircw.svelte-ctircw.svelte-ctircw::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.container.svelte-ctircw.svelte-ctircw.svelte-ctircw{width:100%}@media(min-width: 640px){.container.svelte-ctircw.svelte-ctircw.svelte-ctircw{max-width:640px}}@media(min-width: 768px){.container.svelte-ctircw.svelte-ctircw.svelte-ctircw{max-width:768px}}@media(min-width: 1024px){.container.svelte-ctircw.svelte-ctircw.svelte-ctircw{max-width:1024px}}@media(min-width: 1280px){.container.svelte-ctircw.svelte-ctircw.svelte-ctircw{max-width:1280px}}@media(min-width: 1536px){.container.svelte-ctircw.svelte-ctircw.svelte-ctircw{max-width:1536px}}.pointer-events-none.svelte-ctircw.svelte-ctircw.svelte-ctircw{pointer-events:none}.invisible.svelte-ctircw.svelte-ctircw.svelte-ctircw{visibility:hidden}.collapse.svelte-ctircw.svelte-ctircw.svelte-ctircw{visibility:collapse}.absolute.svelte-ctircw.svelte-ctircw.svelte-ctircw{position:absolute}.relative.svelte-ctircw.svelte-ctircw.svelte-ctircw{position:relative}.left-0.svelte-ctircw.svelte-ctircw.svelte-ctircw{left:0px}.left-full.svelte-ctircw.svelte-ctircw.svelte-ctircw{left:100%}.top-0.svelte-ctircw.svelte-ctircw.svelte-ctircw{top:0px}.z-10.svelte-ctircw.svelte-ctircw.svelte-ctircw{z-index:10}.z-20.svelte-ctircw.svelte-ctircw.svelte-ctircw{z-index:20}.m-0.svelte-ctircw.svelte-ctircw.svelte-ctircw{margin:0px}.mx-\\[1px\\].svelte-ctircw.svelte-ctircw.svelte-ctircw{margin-left:1px;margin-right:1px}.ml-\\[5px\\].svelte-ctircw.svelte-ctircw.svelte-ctircw{margin-left:5px}.mt-2.svelte-ctircw.svelte-ctircw.svelte-ctircw{margin-top:0.5rem}.mt-3.svelte-ctircw.svelte-ctircw.svelte-ctircw{margin-top:0.75rem}.mt-7.svelte-ctircw.svelte-ctircw.svelte-ctircw{margin-top:1.75rem}.block.svelte-ctircw.svelte-ctircw.svelte-ctircw{display:block}.inline-block.svelte-ctircw.svelte-ctircw.svelte-ctircw{display:inline-block}.flex.svelte-ctircw.svelte-ctircw.svelte-ctircw{display:flex}.table.svelte-ctircw.svelte-ctircw.svelte-ctircw{display:table}.contents.svelte-ctircw.svelte-ctircw.svelte-ctircw{display:contents}.h-2.svelte-ctircw.svelte-ctircw.svelte-ctircw{height:0.5rem}.h-2\\.5.svelte-ctircw.svelte-ctircw.svelte-ctircw{height:0.625rem}.h-3.svelte-ctircw.svelte-ctircw.svelte-ctircw{height:0.75rem}.h-\\[6px\\].svelte-ctircw.svelte-ctircw.svelte-ctircw{height:6px}.w-2.svelte-ctircw.svelte-ctircw.svelte-ctircw{width:0.5rem}.w-2\\.5.svelte-ctircw.svelte-ctircw.svelte-ctircw{width:0.625rem}.w-3.svelte-ctircw.svelte-ctircw.svelte-ctircw{width:0.75rem}.w-\\[6px\\].svelte-ctircw.svelte-ctircw.svelte-ctircw{width:6px}.w-full.svelte-ctircw.svelte-ctircw.svelte-ctircw{width:100%}.w-max.svelte-ctircw.svelte-ctircw.svelte-ctircw{width:-moz-max-content;width:max-content}.border-collapse.svelte-ctircw.svelte-ctircw.svelte-ctircw{border-collapse:collapse}.-translate-x-1\\/2.svelte-ctircw.svelte-ctircw.svelte-ctircw{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-y-1\\/2.svelte-ctircw.svelte-ctircw.svelte-ctircw{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-12.svelte-ctircw.svelte-ctircw.svelte-ctircw{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-45.svelte-ctircw.svelte-ctircw.svelte-ctircw{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.transform.svelte-ctircw.svelte-ctircw.svelte-ctircw{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-default.svelte-ctircw.svelte-ctircw.svelte-ctircw{cursor:default}.cursor-not-allowed.svelte-ctircw.svelte-ctircw.svelte-ctircw{cursor:not-allowed}.cursor-pointer.svelte-ctircw.svelte-ctircw.svelte-ctircw{cursor:pointer}.flex-col.svelte-ctircw.svelte-ctircw.svelte-ctircw{flex-direction:column}.items-center.svelte-ctircw.svelte-ctircw.svelte-ctircw{align-items:center}.justify-between.svelte-ctircw.svelte-ctircw.svelte-ctircw{justify-content:space-between}.space-x-1.svelte-ctircw>.svelte-ctircw:not([hidden])~.svelte-ctircw:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(0.25rem * var(--tw-space-x-reverse));margin-left:calc(0.25rem * calc(1 - var(--tw-space-x-reverse)))}.rounded-md.svelte-ctircw.svelte-ctircw.svelte-ctircw{border-radius:0.375rem}.rounded-sm.svelte-ctircw.svelte-ctircw.svelte-ctircw{border-radius:0.125rem}.border-0.svelte-ctircw.svelte-ctircw.svelte-ctircw{border-width:0px}.bg-gray-100.svelte-ctircw.svelte-ctircw.svelte-ctircw{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))}.bg-slate-500.svelte-ctircw.svelte-ctircw.svelte-ctircw{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))}.bg-transparent.svelte-ctircw.svelte-ctircw.svelte-ctircw{background-color:transparent}.p-1.svelte-ctircw.svelte-ctircw.svelte-ctircw{padding:0.25rem}.p-2.svelte-ctircw.svelte-ctircw.svelte-ctircw{padding:0.5rem}.px-4.svelte-ctircw.svelte-ctircw.svelte-ctircw{padding-left:1rem;padding-right:1rem}.py-2.svelte-ctircw.svelte-ctircw.svelte-ctircw{padding-top:0.5rem;padding-bottom:0.5rem}.pt-4.svelte-ctircw.svelte-ctircw.svelte-ctircw{padding-top:1rem}.text-sm.svelte-ctircw.svelte-ctircw.svelte-ctircw{font-size:0.875rem;line-height:1.25rem}.text-xs.svelte-ctircw.svelte-ctircw.svelte-ctircw{font-size:0.75rem;line-height:1rem}.uppercase.svelte-ctircw.svelte-ctircw.svelte-ctircw{text-transform:uppercase}.capitalize.svelte-ctircw.svelte-ctircw.svelte-ctircw{text-transform:capitalize}.text-\\[--text-muted\\].svelte-ctircw.svelte-ctircw.svelte-ctircw{color:var(--text-muted)}.text-\\[--text-on-accent\\].svelte-ctircw.svelte-ctircw.svelte-ctircw{color:var(--text-on-accent)}.text-black.svelte-ctircw.svelte-ctircw.svelte-ctircw{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))}.text-white.svelte-ctircw.svelte-ctircw.svelte-ctircw{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))}.opacity-0.svelte-ctircw.svelte-ctircw.svelte-ctircw{opacity:0}.opacity-50.svelte-ctircw.svelte-ctircw.svelte-ctircw{opacity:0.5}.shadow.svelte-ctircw.svelte-ctircw.svelte-ctircw{--tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.blur.svelte-ctircw.svelte-ctircw.svelte-ctircw{--tw-blur:blur(8px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.transition.svelte-ctircw.svelte-ctircw.svelte-ctircw{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.\\[all\\:inherit\\].svelte-ctircw.svelte-ctircw.svelte-ctircw{all:inherit}.container.svelte-ctircw.svelte-ctircw.svelte-ctircw{--color-background-heading:transparent;--color-background-day:transparent;--color-background-weeknum:transparent;--color-background-weekend:transparent;--color-dot:var(--text-muted);--color-arrow:var(--text-muted);--color-button:var(--text-muted);--color-text-title:var(--text-normal);--color-text-heading:var(--text-muted);--color-text-day:var(--text-normal);--color-text-today:var(--interactive-accent);--color-text-weeknum:var(--text-muted);padding:0 8px}.weekend.svelte-ctircw.svelte-ctircw.svelte-ctircw{background-color:var(--color-background-weekend)}.calendar.svelte-ctircw.svelte-ctircw.svelte-ctircw{border-collapse:collapse;width:100%}th.svelte-ctircw.svelte-ctircw.svelte-ctircw{background-color:var(--color-background-heading);color:var(--color-text-heading);font-size:0.6em;letter-spacing:1px;padding:4px;text-align:center;text-transform:uppercase}.hover\\:cursor-pointer.svelte-ctircw.svelte-ctircw.svelte-ctircw:hover{cursor:pointer}");
 }
 
 function get_each_context$1(ctx, list, i) {
@@ -11911,7 +12097,7 @@ function create_each_block_8(ctx) {
 
 			attr(button, "class", button_class_value = "" + (null_to_empty(`w-full cursor-pointer rounded-md px-4 py-2 text-black ${/*crrView*/ ctx[0] === /*period*/ ctx[32]
 			? 'bg-gray-100'
-			: 'text-white'}`) + " svelte-tvljyx"));
+			: 'text-white'}`) + " svelte-ctircw"));
 		},
 		m(target, anchor) {
 			insert(target, button, anchor);
@@ -11927,7 +12113,7 @@ function create_each_block_8(ctx) {
 
 			if (dirty[0] & /*crrView*/ 1 && button_class_value !== (button_class_value = "" + (null_to_empty(`w-full cursor-pointer rounded-md px-4 py-2 text-black ${/*crrView*/ ctx[0] === /*period*/ ctx[32]
 			? 'bg-gray-100'
-			: 'text-white'}`) + " svelte-tvljyx"))) {
+			: 'text-white'}`) + " svelte-ctircw"))) {
 				attr(button, "class", button_class_value);
 			}
 		},
@@ -12014,11 +12200,11 @@ function create_if_block_3(ctx) {
 				each_blocks[i].c();
 			}
 
-			attr(colgroup, "class", "svelte-tvljyx");
-			attr(tr, "class", "svelte-tvljyx");
-			attr(thead, "class", "svelte-tvljyx");
-			attr(tbody, "class", "svelte-tvljyx");
-			attr(table, "class", "calendar svelte-tvljyx");
+			attr(colgroup, "class", "svelte-ctircw");
+			attr(tr, "class", "svelte-ctircw");
+			attr(thead, "class", "svelte-ctircw");
+			attr(tbody, "class", "svelte-ctircw");
+			attr(table, "class", "calendar svelte-ctircw");
 		},
 		m(target, anchor) {
 			mount_component(monthnav, target, anchor);
@@ -12178,7 +12364,7 @@ function create_if_block_6(ctx) {
 	return {
 		c() {
 			col = element("col");
-			attr(col, "class", "svelte-tvljyx");
+			attr(col, "class", "svelte-ctircw");
 		},
 		m(target, anchor) {
 			insert(target, col, anchor);
@@ -12198,7 +12384,7 @@ function create_each_block_7(ctx) {
 	return {
 		c() {
 			col = element("col");
-			attr(col, "class", "svelte-tvljyx");
+			attr(col, "class", "svelte-ctircw");
 			toggle_class(col, "weekend", isWeekend(/*date*/ ctx[29]));
 		},
 		m(target, anchor) {
@@ -12225,7 +12411,7 @@ function create_if_block_5(ctx) {
 		c() {
 			th = element("th");
 			th.textContent = "W";
-			attr(th, "class", "svelte-tvljyx");
+			attr(th, "class", "svelte-ctircw");
 		},
 		m(target, anchor) {
 			insert(target, th, anchor);
@@ -12248,7 +12434,7 @@ function create_each_block_6(ctx) {
 		c() {
 			th = element("th");
 			t = text(t_value);
-			attr(th, "class", "svelte-tvljyx");
+			attr(th, "class", "svelte-ctircw");
 		},
 		m(target, anchor) {
 			insert(target, th, anchor);
@@ -12382,7 +12568,7 @@ function create_each_block_4(key_1, ctx) {
 			}
 
 			t1 = space();
-			attr(tr, "class", "svelte-tvljyx");
+			attr(tr, "class", "svelte-ctircw");
 			this.first = tr;
 		},
 		m(target, anchor) {
@@ -12495,8 +12681,8 @@ function create_if_block_1$1(ctx) {
 				each_blocks[i].c();
 			}
 
-			attr(tbody, "class", "svelte-tvljyx");
-			attr(table, "class", "calendar svelte-tvljyx");
+			attr(tbody, "class", "svelte-ctircw");
+			attr(table, "class", "calendar svelte-ctircw");
 		},
 		m(target, anchor) {
 			mount_component(yearnav, target, anchor);
@@ -12659,7 +12845,7 @@ function create_each_block_2(ctx) {
 			}
 
 			t1 = space();
-			attr(tr, "class", "svelte-tvljyx");
+			attr(tr, "class", "svelte-ctircw");
 		},
 		m(target, anchor) {
 			insert(target, tr, anchor);
@@ -12762,8 +12948,8 @@ function create_if_block$1(ctx) {
 				each_blocks[i].c();
 			}
 
-			attr(tbody, "class", "svelte-tvljyx");
-			attr(table, "class", "calendar svelte-tvljyx");
+			attr(tbody, "class", "svelte-ctircw");
+			attr(table, "class", "calendar svelte-ctircw");
 		},
 		m(target, anchor) {
 			mount_component(yearsnav, target, anchor);
@@ -12901,7 +13087,7 @@ function create_each_block$1(ctx) {
 			}
 
 			t = space();
-			attr(tr, "class", "svelte-tvljyx");
+			attr(tr, "class", "svelte-ctircw");
 		},
 		m(target, anchor) {
 			insert(target, tr, anchor);
@@ -13004,9 +13190,9 @@ function create_fragment$3(ctx) {
 			if (if_block1) if_block1.c();
 			t2 = space();
 			if (if_block2) if_block2.c();
-			attr(div0, "class", "flex rounded-md space-x-1 p-1 w-full svelte-tvljyx");
+			attr(div0, "class", "flex rounded-md space-x-1 p-1 w-full svelte-ctircw");
 			attr(div1, "id", "calendar-container");
-			attr(div1, "class", "container svelte-tvljyx");
+			attr(div1, "class", "container svelte-ctircw");
 		},
 		m(target, anchor) {
 			insert(target, div1, anchor);
@@ -55432,7 +55618,7 @@ $329d53ba9fd7125f$exports = ":host {\n  width: min-content;\n  height: 435px;\n 
 /* src/calendar-ui/components/StickerPopover.svelte generated by Svelte v4.2.0 */
 
 function add_css$2(target) {
-	append_styles(target, "svelte-10mbo2a", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.pointer-events-none.svelte-10mbo2a{pointer-events:none}.absolute.svelte-10mbo2a{position:absolute}.left-0.svelte-10mbo2a{left:0px}.top-0.svelte-10mbo2a{top:0px}.z-20.svelte-10mbo2a{z-index:20}.w-max.svelte-10mbo2a{width:-moz-max-content;width:max-content}.bg-transparent.svelte-10mbo2a{background-color:transparent}.opacity-0.svelte-10mbo2a{opacity:0}#emoji-modal.svelte-10mbo2a{padding:0px;min-width:unset;width:unset !important}");
+	append_styles(target, "svelte-t7ujhl", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.pointer-events-none.svelte-t7ujhl{pointer-events:none}.absolute.svelte-t7ujhl{position:absolute}.left-0.svelte-t7ujhl{left:0px}.top-0.svelte-t7ujhl{top:0px}.z-20.svelte-t7ujhl{z-index:20}.w-max.svelte-t7ujhl{width:-moz-max-content;width:max-content}.bg-transparent.svelte-t7ujhl{background-color:transparent}.opacity-0.svelte-t7ujhl{opacity:0}#emoji-modal.svelte-t7ujhl{padding:0px;min-width:unset;width:unset !important}");
 }
 
 function create_fragment$2(ctx) {
@@ -55443,7 +55629,7 @@ function create_fragment$2(ctx) {
 		c() {
 			div1 = element("div");
 			div0 = element("div");
-			attr(div1, "class", "bg-transparent z-20 w-max opacity-0 pointer-events-none absolute top-0 left-0 svelte-10mbo2a");
+			attr(div1, "class", "bg-transparent z-20 w-max opacity-0 pointer-events-none absolute top-0 left-0 svelte-t7ujhl");
 			attr(div1, "data-popover", /*popover*/ ctx[0]);
 			attr(div1, "id", STICKER_POPOVER_ID);
 		},
@@ -55471,24 +55657,12 @@ function create_fragment$2(ctx) {
 
 function instance$2($$self, $$props, $$invalidate) {
 	let $pluginClassStore;
-	let $popoversStore;
 	component_subscribe($$self, pluginClassStore, $$value => $$invalidate(6, $pluginClassStore = $$value));
-	component_subscribe($$self, popoversStore, $$value => $$invalidate(7, $popoversStore = $$value));
 	let { close } = $$props;
 	let { noteStore } = $$props;
 	let { noteDateUID } = $$props;
 	let { popover = false } = $$props;
 	let pickerContainerEl = null;
-
-	// event listeners
-	const handleWindowClickEvent = ev => {
-		const opened = $popoversStore[STICKER_POPOVER_ID]?.opened;
-		const stickerElTouched = pickerContainerEl?.contains(ev.target);
-
-		if (opened && !stickerElTouched) {
-			close();
-		}
-	};
 
 	const theme = $pluginClassStore.app.getTheme() === 'moonstone'
 	? 'light'
@@ -55533,7 +55707,6 @@ function instance$2($$self, $$props, $$invalidate) {
 				}
 			});
 		},
-		autoFocus: true,
 		theme
 	};
 
@@ -55562,8 +55735,25 @@ function instance$2($$self, $$props, $$invalidate) {
 	$$self.$$.update = () => {
 		if ($$self.$$.dirty & /*pickerContainerEl*/ 2) {
 			if (pickerContainerEl) {
-				window.addEventListener('click', handleWindowClickEvent);
 				pickerContainerEl.appendChild(emojiMartEl);
+				const shadowRoot = emojiMartEl.shadowRoot;
+
+				const observer = new MutationObserver(mutations => {
+						mutations.forEach(() => {
+							const input = shadowRoot.querySelector('input');
+							console.log('StickerPopover component() > mutation observer > input: ', input);
+
+							if (input) {
+								input.focus();
+
+								// Stop observing once the element is found
+								observer.disconnect();
+							}
+						});
+					});
+
+				// Start observing changes in the shadow DOM
+				observer.observe(shadowRoot, { subtree: true, childList: true });
 			}
 		}
 	};
@@ -55595,10 +55785,10 @@ class StickerPopover extends SvelteComponent {
 /* src/View.svelte generated by Svelte v4.2.0 */
 
 function add_css$1(target) {
-	append_styles(target, "svelte-1w2mm9p", ".svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p,.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::before,.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::before,.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::after{--tw-content:''}.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p:-moz-focusring{outline:auto}.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p:-moz-ui-invalid{box-shadow:none}.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::-webkit-inner-spin-button,.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::-webkit-outer-spin-button{height:auto}.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::-webkit-search-decoration{-webkit-appearance:none}.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p:disabled{cursor:default}.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p,.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::before,.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.container.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{width:100%}@media(min-width: 640px){.container.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{max-width:640px}}@media(min-width: 768px){.container.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{max-width:768px}}@media(min-width: 1024px){.container.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{max-width:1024px}}@media(min-width: 1280px){.container.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{max-width:1280px}}@media(min-width: 1536px){.container.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{max-width:1536px}}.pointer-events-none.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{pointer-events:none}.invisible.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{visibility:hidden}.collapse.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{visibility:collapse}.absolute.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{position:absolute}.relative.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{position:relative}.left-0.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{left:0px}.left-full.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{left:100%}.top-0.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{top:0px}.z-10.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{z-index:10}.z-20.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{z-index:20}.m-0.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{margin:0px}.mx-\\[1px\\].svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{margin-left:1px;margin-right:1px}.ml-\\[5px\\].svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{margin-left:5px}.mt-2.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{margin-top:0.5rem}.mt-3.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{margin-top:0.75rem}.mt-7.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{margin-top:1.75rem}.block.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{display:block}.inline-block.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{display:inline-block}.flex.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{display:flex}.table.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{display:table}.contents.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{display:contents}.h-2.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{height:0.5rem}.h-2\\.5.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{height:0.625rem}.h-3.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{height:0.75rem}.h-\\[6px\\].svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{height:6px}.w-2.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{width:0.5rem}.w-2\\.5.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{width:0.625rem}.w-3.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{width:0.75rem}.w-\\[6px\\].svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{width:6px}.w-full.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{width:100%}.w-max.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{width:-moz-max-content;width:max-content}.border-collapse.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{border-collapse:collapse}.-translate-x-1\\/2.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-y-1\\/2.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-12.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-45.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.transform.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-default.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{cursor:default}.cursor-not-allowed.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{cursor:not-allowed}.cursor-pointer.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{cursor:pointer}.flex-col.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{flex-direction:column}.items-center.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{align-items:center}.justify-between.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{justify-content:space-between}.space-x-1.svelte-1w2mm9p>.svelte-1w2mm9p:not([hidden])~.svelte-1w2mm9p:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(0.25rem * var(--tw-space-x-reverse));margin-left:calc(0.25rem * calc(1 - var(--tw-space-x-reverse)))}.rounded-md.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{border-radius:0.375rem}.rounded-sm.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{border-radius:0.125rem}.border-0.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{border-width:0px}.bg-gray-100.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))}.bg-slate-500.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))}.bg-transparent.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{background-color:transparent}.p-1.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{padding:0.25rem}.p-2.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{padding:0.5rem}.px-4.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{padding-left:1rem;padding-right:1rem}.py-2.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{padding-top:0.5rem;padding-bottom:0.5rem}.pt-4.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{padding-top:1rem}.text-sm.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{font-size:0.875rem;line-height:1.25rem}.text-xs.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{font-size:0.75rem;line-height:1rem}.uppercase.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{text-transform:uppercase}.capitalize.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{text-transform:capitalize}.text-\\[--text-muted\\].svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{color:var(--text-muted)}.text-\\[--text-on-accent\\].svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{color:var(--text-on-accent)}.text-black.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))}.text-white.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))}.opacity-0.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{opacity:0}.opacity-50.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{opacity:0.5}.transition.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.\\[all\\:inherit\\].svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p{all:inherit}.hover\\:cursor-pointer.svelte-1w2mm9p.svelte-1w2mm9p.svelte-1w2mm9p:hover{cursor:pointer}");
+	append_styles(target, "svelte-6f8090", ".svelte-6f8090.svelte-6f8090.svelte-6f8090,.svelte-6f8090.svelte-6f8090.svelte-6f8090::before,.svelte-6f8090.svelte-6f8090.svelte-6f8090::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-6f8090.svelte-6f8090.svelte-6f8090::before,.svelte-6f8090.svelte-6f8090.svelte-6f8090::after{--tw-content:''}.svelte-6f8090.svelte-6f8090.svelte-6f8090:-moz-focusring{outline:auto}.svelte-6f8090.svelte-6f8090.svelte-6f8090:-moz-ui-invalid{box-shadow:none}.svelte-6f8090.svelte-6f8090.svelte-6f8090::-webkit-inner-spin-button,.svelte-6f8090.svelte-6f8090.svelte-6f8090::-webkit-outer-spin-button{height:auto}.svelte-6f8090.svelte-6f8090.svelte-6f8090::-webkit-search-decoration{-webkit-appearance:none}.svelte-6f8090.svelte-6f8090.svelte-6f8090::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}.svelte-6f8090.svelte-6f8090.svelte-6f8090:disabled{cursor:default}.svelte-6f8090.svelte-6f8090.svelte-6f8090,.svelte-6f8090.svelte-6f8090.svelte-6f8090::before,.svelte-6f8090.svelte-6f8090.svelte-6f8090::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-6f8090.svelte-6f8090.svelte-6f8090::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.container.svelte-6f8090.svelte-6f8090.svelte-6f8090{width:100%}@media(min-width: 640px){.container.svelte-6f8090.svelte-6f8090.svelte-6f8090{max-width:640px}}@media(min-width: 768px){.container.svelte-6f8090.svelte-6f8090.svelte-6f8090{max-width:768px}}@media(min-width: 1024px){.container.svelte-6f8090.svelte-6f8090.svelte-6f8090{max-width:1024px}}@media(min-width: 1280px){.container.svelte-6f8090.svelte-6f8090.svelte-6f8090{max-width:1280px}}@media(min-width: 1536px){.container.svelte-6f8090.svelte-6f8090.svelte-6f8090{max-width:1536px}}.pointer-events-none.svelte-6f8090.svelte-6f8090.svelte-6f8090{pointer-events:none}.invisible.svelte-6f8090.svelte-6f8090.svelte-6f8090{visibility:hidden}.collapse.svelte-6f8090.svelte-6f8090.svelte-6f8090{visibility:collapse}.absolute.svelte-6f8090.svelte-6f8090.svelte-6f8090{position:absolute}.relative.svelte-6f8090.svelte-6f8090.svelte-6f8090{position:relative}.left-0.svelte-6f8090.svelte-6f8090.svelte-6f8090{left:0px}.left-full.svelte-6f8090.svelte-6f8090.svelte-6f8090{left:100%}.top-0.svelte-6f8090.svelte-6f8090.svelte-6f8090{top:0px}.z-10.svelte-6f8090.svelte-6f8090.svelte-6f8090{z-index:10}.z-20.svelte-6f8090.svelte-6f8090.svelte-6f8090{z-index:20}.m-0.svelte-6f8090.svelte-6f8090.svelte-6f8090{margin:0px}.mx-\\[1px\\].svelte-6f8090.svelte-6f8090.svelte-6f8090{margin-left:1px;margin-right:1px}.ml-\\[5px\\].svelte-6f8090.svelte-6f8090.svelte-6f8090{margin-left:5px}.mt-2.svelte-6f8090.svelte-6f8090.svelte-6f8090{margin-top:0.5rem}.mt-3.svelte-6f8090.svelte-6f8090.svelte-6f8090{margin-top:0.75rem}.mt-7.svelte-6f8090.svelte-6f8090.svelte-6f8090{margin-top:1.75rem}.block.svelte-6f8090.svelte-6f8090.svelte-6f8090{display:block}.inline-block.svelte-6f8090.svelte-6f8090.svelte-6f8090{display:inline-block}.flex.svelte-6f8090.svelte-6f8090.svelte-6f8090{display:flex}.table.svelte-6f8090.svelte-6f8090.svelte-6f8090{display:table}.contents.svelte-6f8090.svelte-6f8090.svelte-6f8090{display:contents}.h-2.svelte-6f8090.svelte-6f8090.svelte-6f8090{height:0.5rem}.h-2\\.5.svelte-6f8090.svelte-6f8090.svelte-6f8090{height:0.625rem}.h-3.svelte-6f8090.svelte-6f8090.svelte-6f8090{height:0.75rem}.h-\\[6px\\].svelte-6f8090.svelte-6f8090.svelte-6f8090{height:6px}.w-2.svelte-6f8090.svelte-6f8090.svelte-6f8090{width:0.5rem}.w-2\\.5.svelte-6f8090.svelte-6f8090.svelte-6f8090{width:0.625rem}.w-3.svelte-6f8090.svelte-6f8090.svelte-6f8090{width:0.75rem}.w-\\[6px\\].svelte-6f8090.svelte-6f8090.svelte-6f8090{width:6px}.w-full.svelte-6f8090.svelte-6f8090.svelte-6f8090{width:100%}.w-max.svelte-6f8090.svelte-6f8090.svelte-6f8090{width:-moz-max-content;width:max-content}.border-collapse.svelte-6f8090.svelte-6f8090.svelte-6f8090{border-collapse:collapse}.-translate-x-1\\/2.svelte-6f8090.svelte-6f8090.svelte-6f8090{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-y-1\\/2.svelte-6f8090.svelte-6f8090.svelte-6f8090{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-12.svelte-6f8090.svelte-6f8090.svelte-6f8090{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-45.svelte-6f8090.svelte-6f8090.svelte-6f8090{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.transform.svelte-6f8090.svelte-6f8090.svelte-6f8090{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-default.svelte-6f8090.svelte-6f8090.svelte-6f8090{cursor:default}.cursor-not-allowed.svelte-6f8090.svelte-6f8090.svelte-6f8090{cursor:not-allowed}.cursor-pointer.svelte-6f8090.svelte-6f8090.svelte-6f8090{cursor:pointer}.flex-col.svelte-6f8090.svelte-6f8090.svelte-6f8090{flex-direction:column}.items-center.svelte-6f8090.svelte-6f8090.svelte-6f8090{align-items:center}.justify-between.svelte-6f8090.svelte-6f8090.svelte-6f8090{justify-content:space-between}.space-x-1.svelte-6f8090>.svelte-6f8090:not([hidden])~.svelte-6f8090:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(0.25rem * var(--tw-space-x-reverse));margin-left:calc(0.25rem * calc(1 - var(--tw-space-x-reverse)))}.space-x-2.svelte-6f8090>.svelte-6f8090:not([hidden])~.svelte-6f8090:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(0.5rem * var(--tw-space-x-reverse));margin-left:calc(0.5rem * calc(1 - var(--tw-space-x-reverse)))}.rounded-md.svelte-6f8090.svelte-6f8090.svelte-6f8090{border-radius:0.375rem}.rounded-sm.svelte-6f8090.svelte-6f8090.svelte-6f8090{border-radius:0.125rem}.border-0.svelte-6f8090.svelte-6f8090.svelte-6f8090{border-width:0px}.bg-gray-100.svelte-6f8090.svelte-6f8090.svelte-6f8090{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))}.bg-slate-500.svelte-6f8090.svelte-6f8090.svelte-6f8090{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))}.bg-transparent.svelte-6f8090.svelte-6f8090.svelte-6f8090{background-color:transparent}.p-1.svelte-6f8090.svelte-6f8090.svelte-6f8090{padding:0.25rem}.p-2.svelte-6f8090.svelte-6f8090.svelte-6f8090{padding:0.5rem}.px-4.svelte-6f8090.svelte-6f8090.svelte-6f8090{padding-left:1rem;padding-right:1rem}.py-2.svelte-6f8090.svelte-6f8090.svelte-6f8090{padding-top:0.5rem;padding-bottom:0.5rem}.pt-4.svelte-6f8090.svelte-6f8090.svelte-6f8090{padding-top:1rem}.text-sm.svelte-6f8090.svelte-6f8090.svelte-6f8090{font-size:0.875rem;line-height:1.25rem}.text-xs.svelte-6f8090.svelte-6f8090.svelte-6f8090{font-size:0.75rem;line-height:1rem}.uppercase.svelte-6f8090.svelte-6f8090.svelte-6f8090{text-transform:uppercase}.capitalize.svelte-6f8090.svelte-6f8090.svelte-6f8090{text-transform:capitalize}.text-\\[--text-muted\\].svelte-6f8090.svelte-6f8090.svelte-6f8090{color:var(--text-muted)}.text-\\[--text-on-accent\\].svelte-6f8090.svelte-6f8090.svelte-6f8090{color:var(--text-on-accent)}.text-black.svelte-6f8090.svelte-6f8090.svelte-6f8090{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))}.text-white.svelte-6f8090.svelte-6f8090.svelte-6f8090{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))}.opacity-0.svelte-6f8090.svelte-6f8090.svelte-6f8090{opacity:0}.opacity-50.svelte-6f8090.svelte-6f8090.svelte-6f8090{opacity:0.5}.shadow.svelte-6f8090.svelte-6f8090.svelte-6f8090{--tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.blur.svelte-6f8090.svelte-6f8090.svelte-6f8090{--tw-blur:blur(8px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.transition.svelte-6f8090.svelte-6f8090.svelte-6f8090{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.\\[all\\:inherit\\].svelte-6f8090.svelte-6f8090.svelte-6f8090{all:inherit}.hover\\:cursor-pointer.svelte-6f8090.svelte-6f8090.svelte-6f8090:hover{cursor:pointer}");
 }
 
-// (158:0) {#if popover}
+// (137:0) {#if popover}
 function create_if_block_1(ctx) {
 	let div3;
 	let div0;
@@ -55619,10 +55809,10 @@ function create_if_block_1(ctx) {
 			div1 = element("div");
 			create_component(calendar.$$.fragment);
 			attr(div0, "id", `${CALENDAR_POPOVER_ID}-arrow`);
-			attr(div0, "class", "rotate-45 absolute w-2.5 h-2.5 bg-slate-500 svelte-1w2mm9p");
-			attr(div1, "class", "bg-slate-500 rounded-sm svelte-1w2mm9p");
-			attr(div2, "class", "ml-[5px] p-2 svelte-1w2mm9p");
-			attr(div3, "class", div3_class_value = "" + (null_to_empty(clsx(/*popover*/ ctx[0] && 'bg-transparent z-10 w-max opacity-0 pointer-events-none absolute top-0 left-0')) + " svelte-1w2mm9p"));
+			attr(div0, "class", "rotate-45 absolute w-2.5 h-2.5 bg-slate-500 svelte-6f8090");
+			attr(div1, "class", "bg-slate-500 rounded-sm svelte-6f8090");
+			attr(div2, "class", "ml-[5px] p-2 svelte-6f8090");
+			attr(div3, "class", div3_class_value = "" + (null_to_empty(clsx(/*popover*/ ctx[0] && 'bg-transparent z-10 w-max opacity-0 pointer-events-none absolute top-0 left-0')) + " svelte-6f8090"));
 			attr(div3, "data-popover", /*popover*/ ctx[0]);
 			attr(div3, "id", CALENDAR_POPOVER_ID);
 		},
@@ -55636,7 +55826,7 @@ function create_if_block_1(ctx) {
 			current = true;
 		},
 		p(ctx, dirty) {
-			if (!current || dirty & /*popover*/ 1 && div3_class_value !== (div3_class_value = "" + (null_to_empty(clsx(/*popover*/ ctx[0] && 'bg-transparent z-10 w-max opacity-0 pointer-events-none absolute top-0 left-0')) + " svelte-1w2mm9p"))) {
+			if (!current || dirty & /*popover*/ 1 && div3_class_value !== (div3_class_value = "" + (null_to_empty(clsx(/*popover*/ ctx[0] && 'bg-transparent z-10 w-max opacity-0 pointer-events-none absolute top-0 left-0')) + " svelte-6f8090"))) {
 				attr(div3, "class", div3_class_value);
 			}
 
@@ -55663,7 +55853,7 @@ function create_if_block_1(ctx) {
 	};
 }
 
-// (174:0) {#if !popover}
+// (153:0) {#if !popover}
 function create_if_block(ctx) {
 	let calendar;
 	let current;
@@ -55782,10 +55972,11 @@ function create_fragment$1(ctx) {
 }
 
 function instance$1($$self, $$props, $$invalidate) {
+	let $cpMouseoverCbStore;
 	let $settingsStore;
 	let $displayedDateStore;
-	component_subscribe($$self, settingsStore, $$value => $$invalidate(3, $settingsStore = $$value));
-	component_subscribe($$self, displayedDateStore, $$value => $$invalidate(4, $displayedDateStore = $$value));
+	component_subscribe($$self, settingsStore, $$value => $$invalidate(5, $settingsStore = $$value));
+	component_subscribe($$self, displayedDateStore, $$value => $$invalidate(6, $displayedDateStore = $$value));
 	let { popover = false } = $$props;
 
 	function rerenderCalendar() {
@@ -55830,6 +56021,9 @@ function instance$1($$self, $$props, $$invalidate) {
 		}
 	};
 
+	const cpMouseoverCbStore = writable(null);
+	component_subscribe($$self, cpMouseoverCbStore, value => $$invalidate(4, $cpMouseoverCbStore = value));
+
 	const onContextMenu = ({ date, event, granularity }) => {
 		const note = getNoteByGranularity({ date, granularity });
 
@@ -55839,16 +56033,13 @@ function instance$1($$self, $$props, $$invalidate) {
 		} else {
 			const dateUID = getDateUID(date, granularity);
 			const referenceEl = event.target;
-			const calendarPopoverStore = get_store_value(popoversStore)[CALENDAR_POPOVER_ID];
+			const calendarPopoverStore = get_store_value(popoversStore)?.[CALENDAR_POPOVER_ID];
 
 			const setupStickerPopover = () => {
 				const plugin = window.plugin;
 				const floatingEl = getFloatingEl({ id: STICKER_POPOVER_ID });
-				console.log('setupStickerPopover() > floatingEl: ', floatingEl);
 
 				if (!floatingEl && !plugin.popovers[STICKER_POPOVER_ID]) {
-					console.log(('😥 sticker popover does not exist. Creating...').toUpperCase());
-
 					setupPopover({
 						id: STICKER_POPOVER_ID,
 						referenceEl,
@@ -55858,22 +56049,9 @@ function instance$1($$self, $$props, $$invalidate) {
 								noteStore: notesStores[granularity],
 								noteDateUID: dateUID
 							}
-						},
-						addListeners: false
+						}
 					});
-				} else {
-					console.log(('🎉 sticker popover does exist. Recalculating position...').toUpperCase());
-				} // positionFloatingEl({
-				// 	referenceEl,
-
-				// 	id: STICKER_POPOVER_ID,
-				// 	customX: event.pageX,
-				// 	customY: event.pageY
-				// });
-				console.log('openStickerPOpover(): 🤌');
-
-				console.log('customX: ', event.pageX);
-				console.log('customY: ', event.pageY);
+				}
 
 				openPopover({
 					referenceEl,
@@ -55899,7 +56077,7 @@ function instance$1($$self, $$props, $$invalidate) {
 
 			if ($settingsStore.openPopoverOnRibbonHover && calendarPopoverStore) {
 				(function removeCpCloseMechanism() {
-					window.removeEventListener('mouseover', calendarPopoverStore.handleOnWindowEvent);
+					window.removeEventListener('mouseover', popovers[CALENDAR_POPOVER_ID].windowEvents?.mouseover);
 				})();
 
 				(function setupGiveCpCloseMechanismBack() {
@@ -55910,25 +56088,19 @@ function instance$1($$self, $$props, $$invalidate) {
 
 						if (isOnlyCPOpen) {
 							// add window.mouseover ev listener back once CP is hovered
-							window.addEventListener('mouseover', calendarPopoverStore.handleOnWindowEvent);
+							window.addEventListener('mouseover', popovers[CALENDAR_POPOVER_ID].windowEvents?.mouseover);
 
 							calendarPopoverStore.floatingEl?.removeEventListener('mouseover', handleCpMouseoverEv);
 						}
 					};
 
 					// cleanup previous callback
-					if (calendarPopoverStore.handleOnFloatingElEvent) {
-						calendarPopoverStore.floatingEl?.removeEventListener('mouseover', calendarPopoverStore.handleOnFloatingElEvent);
+					if ($cpMouseoverCbStore) {
+						calendarPopoverStore.floatingEl?.removeEventListener('mouseover', $cpMouseoverCbStore);
 					}
 
 					// store callback to ensure later cleanup points to right place in memory
-					popoversStore.update(values => ({
-						...values,
-						[CALENDAR_POPOVER_ID]: {
-							...values[CALENDAR_POPOVER_ID],
-							handleOnFloatingElEvent: handleCpMouseoverEv
-						}
-					}));
+					cpMouseoverCbStore.set(handleCpMouseoverEv);
 
 					calendarPopoverStore.floatingEl?.addEventListener('mouseover', handleCpMouseoverEv);
 				})();
@@ -55949,17 +56121,17 @@ function instance$1($$self, $$props, $$invalidate) {
 		if ('popover' in $$props) $$invalidate(0, popover = $$props.popover);
 	};
 
-	return [popover, rerenderCalendar];
+	return [popover, cpMouseoverCbStore, rerenderCalendar];
 }
 
 class View extends SvelteComponent {
 	constructor(options) {
 		super();
-		init(this, options, instance$1, create_fragment$1, safe_not_equal, { popover: 0, rerenderCalendar: 1 }, add_css$1);
+		init(this, options, instance$1, create_fragment$1, safe_not_equal, { popover: 0, rerenderCalendar: 2 }, add_css$1);
 	}
 
 	get rerenderCalendar() {
-		return this.$$.ctx[1];
+		return this.$$.ctx[2];
 	}
 }
 
@@ -56201,7 +56373,7 @@ class CalendarView extends obsidian.ItemView {
 /* src/calendar-ui/components/Nldatepicker.svelte generated by Svelte v4.2.0 */
 
 function add_css(target) {
-	append_styles(target, "svelte-mpucnm", ".container.svelte-mpucnm{width:100%\n}@media(min-width: 640px){.container.svelte-mpucnm{max-width:640px\n    }}@media(min-width: 768px){.container.svelte-mpucnm{max-width:768px\n    }}@media(min-width: 1024px){.container.svelte-mpucnm{max-width:1024px\n    }}@media(min-width: 1280px){.container.svelte-mpucnm{max-width:1280px\n    }}@media(min-width: 1536px){.container.svelte-mpucnm{max-width:1536px\n    }}.pointer-events-none.svelte-mpucnm{pointer-events:none\n}.invisible.svelte-mpucnm{visibility:hidden\n}.collapse.svelte-mpucnm{visibility:collapse\n}.absolute.svelte-mpucnm{position:absolute\n}.relative.svelte-mpucnm{position:relative\n}.left-0.svelte-mpucnm{left:0px\n}.left-full.svelte-mpucnm{left:100%\n}.top-0.svelte-mpucnm{top:0px\n}.z-10.svelte-mpucnm{z-index:10\n}.z-20.svelte-mpucnm{z-index:20\n}.m-0.svelte-mpucnm{margin:0px\n}.mx-\\[1px\\].svelte-mpucnm{margin-left:1px;margin-right:1px\n}.ml-\\[5px\\].svelte-mpucnm{margin-left:5px\n}.mt-2.svelte-mpucnm{margin-top:0.5rem\n}.mt-3.svelte-mpucnm{margin-top:0.75rem\n}.mt-7.svelte-mpucnm{margin-top:1.75rem\n}.block.svelte-mpucnm{display:block\n}.inline-block.svelte-mpucnm{display:inline-block\n}.flex.svelte-mpucnm{display:flex\n}.table.svelte-mpucnm{display:table\n}.contents.svelte-mpucnm{display:contents\n}.h-2.svelte-mpucnm{height:0.5rem\n}.h-2\\.5.svelte-mpucnm{height:0.625rem\n}.h-3.svelte-mpucnm{height:0.75rem\n}.h-\\[6px\\].svelte-mpucnm{height:6px\n}.w-2.svelte-mpucnm{width:0.5rem\n}.w-2\\.5.svelte-mpucnm{width:0.625rem\n}.w-3.svelte-mpucnm{width:0.75rem\n}.w-\\[6px\\].svelte-mpucnm{width:6px\n}.w-full.svelte-mpucnm{width:100%\n}.w-max.svelte-mpucnm{width:-moz-max-content;width:max-content\n}.border-collapse.svelte-mpucnm{border-collapse:collapse\n}.-translate-x-1\\/2.svelte-mpucnm{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.-translate-y-1\\/2.svelte-mpucnm{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.rotate-12.svelte-mpucnm{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.rotate-45.svelte-mpucnm{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.transform.svelte-mpucnm{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.cursor-default.svelte-mpucnm{cursor:default\n}.cursor-not-allowed.svelte-mpucnm{cursor:not-allowed\n}.cursor-pointer.svelte-mpucnm{cursor:pointer\n}.flex-col.svelte-mpucnm{flex-direction:column\n}.items-center.svelte-mpucnm{align-items:center\n}.justify-between.svelte-mpucnm{justify-content:space-between\n}.rounded-md.svelte-mpucnm{border-radius:0.375rem\n}.rounded-sm.svelte-mpucnm{border-radius:0.125rem\n}.border-0.svelte-mpucnm{border-width:0px\n}.bg-gray-100.svelte-mpucnm{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))\n}.bg-slate-500.svelte-mpucnm{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))\n}.bg-transparent.svelte-mpucnm{background-color:transparent\n}.p-1.svelte-mpucnm{padding:0.25rem\n}.p-2.svelte-mpucnm{padding:0.5rem\n}.px-4.svelte-mpucnm{padding-left:1rem;padding-right:1rem\n}.py-2.svelte-mpucnm{padding-top:0.5rem;padding-bottom:0.5rem\n}.pt-4.svelte-mpucnm{padding-top:1rem\n}.text-sm.svelte-mpucnm{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-mpucnm{font-size:0.75rem;line-height:1rem\n}.uppercase.svelte-mpucnm{text-transform:uppercase\n}.capitalize.svelte-mpucnm{text-transform:capitalize\n}.text-\\[--text-muted\\].svelte-mpucnm{color:var(--text-muted)\n}.text-\\[--text-on-accent\\].svelte-mpucnm{color:var(--text-on-accent)\n}.text-black.svelte-mpucnm{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))\n}.text-white.svelte-mpucnm{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))\n}.opacity-0.svelte-mpucnm{opacity:0\n}.opacity-50.svelte-mpucnm{opacity:0.5\n}.transition.svelte-mpucnm{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms\n}.\\[all\\:inherit\\].svelte-mpucnm{all:inherit\n}.hover\\:cursor-pointer.svelte-mpucnm:hover{cursor:pointer\n}");
+	append_styles(target, "svelte-1st9t5s", ".container.svelte-1st9t5s{width:100%\n}@media(min-width: 640px){.container.svelte-1st9t5s{max-width:640px\n    }}@media(min-width: 768px){.container.svelte-1st9t5s{max-width:768px\n    }}@media(min-width: 1024px){.container.svelte-1st9t5s{max-width:1024px\n    }}@media(min-width: 1280px){.container.svelte-1st9t5s{max-width:1280px\n    }}@media(min-width: 1536px){.container.svelte-1st9t5s{max-width:1536px\n    }}.pointer-events-none.svelte-1st9t5s{pointer-events:none\n}.invisible.svelte-1st9t5s{visibility:hidden\n}.collapse.svelte-1st9t5s{visibility:collapse\n}.absolute.svelte-1st9t5s{position:absolute\n}.relative.svelte-1st9t5s{position:relative\n}.left-0.svelte-1st9t5s{left:0px\n}.left-full.svelte-1st9t5s{left:100%\n}.top-0.svelte-1st9t5s{top:0px\n}.z-10.svelte-1st9t5s{z-index:10\n}.z-20.svelte-1st9t5s{z-index:20\n}.m-0.svelte-1st9t5s{margin:0px\n}.mx-\\[1px\\].svelte-1st9t5s{margin-left:1px;margin-right:1px\n}.ml-\\[5px\\].svelte-1st9t5s{margin-left:5px\n}.mt-2.svelte-1st9t5s{margin-top:0.5rem\n}.mt-3.svelte-1st9t5s{margin-top:0.75rem\n}.mt-7.svelte-1st9t5s{margin-top:1.75rem\n}.block.svelte-1st9t5s{display:block\n}.inline-block.svelte-1st9t5s{display:inline-block\n}.flex.svelte-1st9t5s{display:flex\n}.table.svelte-1st9t5s{display:table\n}.contents.svelte-1st9t5s{display:contents\n}.h-2.svelte-1st9t5s{height:0.5rem\n}.h-2\\.5.svelte-1st9t5s{height:0.625rem\n}.h-3.svelte-1st9t5s{height:0.75rem\n}.h-\\[6px\\].svelte-1st9t5s{height:6px\n}.w-2.svelte-1st9t5s{width:0.5rem\n}.w-2\\.5.svelte-1st9t5s{width:0.625rem\n}.w-3.svelte-1st9t5s{width:0.75rem\n}.w-\\[6px\\].svelte-1st9t5s{width:6px\n}.w-full.svelte-1st9t5s{width:100%\n}.w-max.svelte-1st9t5s{width:-moz-max-content;width:max-content\n}.border-collapse.svelte-1st9t5s{border-collapse:collapse\n}.-translate-x-1\\/2.svelte-1st9t5s{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.-translate-y-1\\/2.svelte-1st9t5s{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.rotate-12.svelte-1st9t5s{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.rotate-45.svelte-1st9t5s{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.transform.svelte-1st9t5s{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.cursor-default.svelte-1st9t5s{cursor:default\n}.cursor-not-allowed.svelte-1st9t5s{cursor:not-allowed\n}.cursor-pointer.svelte-1st9t5s{cursor:pointer\n}.flex-col.svelte-1st9t5s{flex-direction:column\n}.items-center.svelte-1st9t5s{align-items:center\n}.justify-between.svelte-1st9t5s{justify-content:space-between\n}.rounded-md.svelte-1st9t5s{border-radius:0.375rem\n}.rounded-sm.svelte-1st9t5s{border-radius:0.125rem\n}.border-0.svelte-1st9t5s{border-width:0px\n}.bg-gray-100.svelte-1st9t5s{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))\n}.bg-slate-500.svelte-1st9t5s{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))\n}.bg-transparent.svelte-1st9t5s{background-color:transparent\n}.p-1.svelte-1st9t5s{padding:0.25rem\n}.p-2.svelte-1st9t5s{padding:0.5rem\n}.px-4.svelte-1st9t5s{padding-left:1rem;padding-right:1rem\n}.py-2.svelte-1st9t5s{padding-top:0.5rem;padding-bottom:0.5rem\n}.pt-4.svelte-1st9t5s{padding-top:1rem\n}.text-sm.svelte-1st9t5s{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-1st9t5s{font-size:0.75rem;line-height:1rem\n}.uppercase.svelte-1st9t5s{text-transform:uppercase\n}.capitalize.svelte-1st9t5s{text-transform:capitalize\n}.text-\\[--text-muted\\].svelte-1st9t5s{color:var(--text-muted)\n}.text-\\[--text-on-accent\\].svelte-1st9t5s{color:var(--text-on-accent)\n}.text-black.svelte-1st9t5s{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))\n}.text-white.svelte-1st9t5s{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))\n}.opacity-0.svelte-1st9t5s{opacity:0\n}.opacity-50.svelte-1st9t5s{opacity:0.5\n}.shadow.svelte-1st9t5s{--tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)\n}.blur.svelte-1st9t5s{--tw-blur:blur(8px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)\n}.transition.svelte-1st9t5s{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms\n}.\\[all\\:inherit\\].svelte-1st9t5s{all:inherit\n}.hover\\:cursor-pointer.svelte-1st9t5s:hover{cursor:pointer\n}");
 }
 
 function get_each_context(ctx, list, i) {
@@ -56320,7 +56492,7 @@ function create_fragment(ctx) {
 			attr(input0, "spellcheck", "false");
 			attr(input0, "placeholder", "Today");
 			attr(div3, "class", "setting-item-control");
-			attr(div4, "class", "setting-item border-0 svelte-mpucnm");
+			attr(div4, "class", "setting-item border-0 svelte-1st9t5s");
 			attr(div7, "class", "setting-item-info");
 			attr(input1, "type", "text");
 			attr(input1, "spellcheck", "false");
@@ -56332,16 +56504,16 @@ function create_fragment(ctx) {
 			if (/*granularity*/ ctx[3] === void 0) add_render_callback(() => /*select_change_handler*/ ctx[11].call(select));
 			attr(div13, "class", "setting-item-control");
 			attr(div14, "class", "setting-item");
-			attr(button0, "class", "cursor-pointer svelte-mpucnm");
+			attr(button0, "class", "cursor-pointer svelte-1st9t5s");
 
 			attr(button1, "class", button1_class_value = "" + (null_to_empty(`mod-cta ${/*parsedDate*/ ctx[4]
 			? 'cursor-pointer'
-			: 'cursor-not-allowed opacity-50'}`) + " svelte-mpucnm"));
+			: 'cursor-not-allowed opacity-50'}`) + " svelte-1st9t5s"));
 
 			attr(button1, "aria-disabled", button1_aria_disabled_value = !Boolean(/*parsedDate*/ ctx[4]));
 			button1.disabled = button1_disabled_value = !Boolean(/*parsedDate*/ ctx[4]);
-			attr(div15, "class", "modal-button-container mt-3 svelte-mpucnm");
-			attr(div16, "class", "pt-4 svelte-mpucnm");
+			attr(div15, "class", "modal-button-container mt-3 svelte-1st9t5s");
+			attr(div16, "class", "pt-4 svelte-1st9t5s");
 		},
 		m(target, anchor) {
 			insert(target, div16, anchor);
@@ -56413,7 +56585,7 @@ function create_fragment(ctx) {
 
 			if (dirty & /*parsedDate*/ 16 && button1_class_value !== (button1_class_value = "" + (null_to_empty(`mod-cta ${/*parsedDate*/ ctx[4]
 			? 'cursor-pointer'
-			: 'cursor-not-allowed opacity-50'}`) + " svelte-mpucnm"))) {
+			: 'cursor-not-allowed opacity-50'}`) + " svelte-1st9t5s"))) {
 				attr(button1, "class", button1_class_value);
 			}
 
@@ -56666,11 +56838,9 @@ class DailyNoteFlexPlugin extends obsidian.Plugin {
             if (this.settings.openPopoverOnRibbonHover) {
                 setupPopover({
                     id: CALENDAR_POPOVER_ID,
-                    openOnReferenceElHover: true,
                     view: {
                         Component: View$1
                     },
-                    onWindowEvent: popoverOnWindowEvent
                 });
             }
         });
@@ -56700,7 +56870,7 @@ class DailyNoteFlexPlugin extends obsidian.Plugin {
                 this.toggleView();
                 const popoverStore = get_store_value(popoversStore)[CALENDAR_POPOVER_ID];
                 if (this.settings.openPopoverOnRibbonHover && popoverStore?.opened) {
-                    togglePopover({ id: CALENDAR_POPOVER_ID });
+                    closePopover({ id: CALENDAR_POPOVER_ID });
                 }
                 return;
             }
@@ -56718,15 +56888,15 @@ class DailyNoteFlexPlugin extends obsidian.Plugin {
                             view: {
                                 Component: View$1
                             },
-                            onWindowEvent: popoverOnWindowEvent
                         });
+                        openPopover({ id: CALENDAR_POPOVER_ID });
                     }
                     else {
                         togglePopover({ id: CALENDAR_POPOVER_ID });
                     }
                 }
             }
-        }).id = `${CALENDAR_POPOVER_ID}-reference-el`;
+        }).id = ribbonReferenceElId;
     }
     async initView({ active } = { active: true }) {
         this.app.workspace.detachLeavesOfType(VIEW_TYPE_CALENDAR);

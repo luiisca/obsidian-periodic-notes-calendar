@@ -8,10 +8,10 @@ import { tryToCreateNote } from './calendar-io';
 import { getPeriodicityFromGranularity } from './calendar-io/parse';
 import type { IPeriodicites } from './calendar-io/types';
 import { createNldatePickerDialog } from './calendar-ui/modals/nldate-picker';
-import { getFloatingEl, popoversStore, setupPopover, togglePopover } from './popover';
+import { closePopover, getFloatingEl, openPopover, popoversStore, setupPopover, togglePopover } from './calendar-ui/popovers';
 import { get } from 'svelte/store';
 import type { SvelteComponent } from 'svelte';
-import { popoverOnWindowEvent } from './utils';
+import { ribbonReferenceElId } from './calendar-ui/popovers/calendar';
 
 export default class DailyNoteFlexPlugin extends Plugin {
 	public settings: ISettings;
@@ -120,11 +120,9 @@ export default class DailyNoteFlexPlugin extends Plugin {
 			if (this.settings.openPopoverOnRibbonHover) {
 				setupPopover({
 					id: CALENDAR_POPOVER_ID,
-					openOnReferenceElHover: true,
 					view: {
 						Component: View
 					},
-					onWindowEvent: popoverOnWindowEvent
 				});
 			}
 		});
@@ -160,7 +158,7 @@ export default class DailyNoteFlexPlugin extends Plugin {
 
 				const popoverStore = get(popoversStore)[CALENDAR_POPOVER_ID];
 				if (this.settings.openPopoverOnRibbonHover && popoverStore?.opened) {
-					togglePopover({ id: CALENDAR_POPOVER_ID });
+					closePopover({ id: CALENDAR_POPOVER_ID });
 				}
 
 				return;
@@ -181,14 +179,14 @@ export default class DailyNoteFlexPlugin extends Plugin {
 							view: {
 								Component: View
 							},
-							onWindowEvent: popoverOnWindowEvent
 						});
+						openPopover({id: CALENDAR_POPOVER_ID});
 					} else {
 						togglePopover({ id: CALENDAR_POPOVER_ID });
 					}
 				}
 			}
-		}).id = `${CALENDAR_POPOVER_ID}-reference-el`;
+		}).id = ribbonReferenceElId;
 	}
 
 	async initView({ active }: { active: boolean } = { active: true }) {
