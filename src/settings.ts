@@ -2,7 +2,7 @@ import { App, DropdownComponent, Notice, PluginSettingTab, Setting } from 'obsid
 
 import type DailyNoteFlexPlugin from '@/main';
 import { settingsStore } from '@/stores';
-import type { Unsubscriber } from 'svelte/store';
+import { get, type Unsubscriber } from 'svelte/store';
 import { fetchWithRetry } from './utils';
 import dayjs from 'dayjs';
 import weekday from 'dayjs/plugin/weekday';
@@ -10,7 +10,6 @@ import localeData from 'dayjs/plugin/localeData';
 import locales from './locales';
 import type { IGranularity } from './calendar-io';
 import { setupPopover } from './calendar-ui/popovers';
-import ImageExamplesComponent from './calendar-ui/components/settings/ImgExamples.svelte';
 import { CALENDAR_POPOVER_ID } from './constants';
 import View from './View.svelte';
 
@@ -120,16 +119,16 @@ export class SettingsTab extends PluginSettingTab {
 		this.addWeekStartSetting();
 		this.addLocaleOverrideSetting();
 
-		if (!this.settings.viewOpen) {
+		if (!get(settingsStore).viewOpen) {
 			this.containerEl.createEl('h3', {
 				text: 'Popovers close conditions'
 			});
 
 			this.addClosePopoversOneByOneOnClickOutSetting();
 			this.addClosePopoversOneByBoneOnEscKeydownSetting();
-			if (this.settings.popoversCloseData.closePopoversOneByOneOnEscKeydown) {
+			if (get(settingsStore).popoversCloseData.closePopoversOneByOneOnEscKeydown) {
 				this.addSpSearchInputOnEscKeydownSetting();
-			}
+			} 
 		}
 	}
 
@@ -379,7 +378,7 @@ export class SettingsTab extends PluginSettingTab {
 		const settingEl = new Setting(this.containerEl)
 			.setName('Close popovers one by one on click outside')
 			.addToggle((toggle) => {
-				toggle.setValue(this.plugin.settings.popoversCloseData.closePopoversOneByOneOnClickOut);
+				toggle.setValue(get(settingsStore).popoversCloseData.closePopoversOneByOneOnClickOut);
 				toggle.onChange((value) => {
 					this.plugin.saveSettings((settings) => ({
 						popoversCloseData: {
@@ -390,22 +389,13 @@ export class SettingsTab extends PluginSettingTab {
 				});
 			}).settingEl;
 		settingEl.style.flexWrap = 'wrap';
-
-		// TODO: render images
-		// const imgsPath = './static/images/settings/close-pops-one-by-one/';
-		// new ImageExamplesComponent({
-		// 	target: settingEl,
-		// 	props: {
-		// 		srcs: [`${imgsPath}1.png`, `${imgsPath}2.png`, `${imgsPath}3.png`]
-		// 	}
-		// });
 	}
 
 	addClosePopoversOneByBoneOnEscKeydownSetting() {
 		new Setting(this.containerEl)
 			.setName('Close popovers one by one on `Esc` key pressed')
 			.addToggle((toggle) => {
-				toggle.setValue(this.plugin.settings.popoversCloseData.closePopoversOneByOneOnEscKeydown);
+				toggle.setValue(get(settingsStore).popoversCloseData.closePopoversOneByOneOnEscKeydown);
 				toggle.onChange((value) => {
 					this.plugin.saveSettings((settings) => ({
 						popoversCloseData: {
@@ -419,15 +409,23 @@ export class SettingsTab extends PluginSettingTab {
 			});
 	}
 	addSpSearchInputOnEscKeydownSetting() {
+		console.log('👟 RUNNING addSpSearchInputOnEscKeydownSetting()');
+
 		new Setting(this.containerEl)
 			.setName("On sticker popover's search input `Esc` keydown")
 			.setDesc("Decide what to do when `Esc` pressed in sticker popover's search input")
 			.addDropdown((dropdown) => {
-				dropdown.setValue(this.settings.popoversCloseData.searchInputOnEscKeydown);
+				console.log(
+					'value in store: ',
+					get(settingsStore).popoversCloseData.searchInputOnEscKeydown
+				);
+				// dropdown.setValue(get(settingsStore).popoversCloseData.searchInputOnEscKeydown);
 				dropdown.addOption('close-popover', 'Close sticker popover');
 				dropdown.addOption('reset', 'Erase search input');
+				dropdown.setValue(get(settingsStore).popoversCloseData.searchInputOnEscKeydown);
 
 				dropdown.onChange((value) => {
+					console.log('from addSpSearchInputONEscKeydownSetting(), value: ', value);
 					const typedValue = value as 'close-popover' | 'reset';
 					this.plugin.saveSettings((settings) => ({
 						popoversCloseData: {
@@ -436,7 +434,7 @@ export class SettingsTab extends PluginSettingTab {
 						}
 					}));
 				});
-			})
+			});
 	}
 
 	// helpers

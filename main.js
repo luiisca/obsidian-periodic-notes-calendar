@@ -8218,7 +8218,6 @@ const handleWindowClick$1 = (event) => {
 };
 // Accessibility Keyboard Interactions
 const handleWindowKeydown$1 = (event) => {
-    event.preventDefault();
     const settings = get_store_value(settingsStore);
     const calendarPopoverStore = get_store_value(popoversStore)[id$1];
     const stickerPopoverStore = get_store_value(popoversStore)[STICKER_POPOVER_ID];
@@ -8311,6 +8310,33 @@ const popover$1 = {
 };
 
 const id = STICKER_POPOVER_ID;
+const spInputKeydownHandlerStore = writable((ev) => {
+    const spInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
+    const settings = get_store_value(settingsStore);
+    const searchInputOnEscKeydown = settings.popoversCloseData.searchInputOnEscKeydown;
+    if (ev.key === 'Escape') {
+        if (settings.popoversCloseData.closePopoversOneByOneOnEscKeydown) {
+            if (searchInputOnEscKeydown === 'close-popover') {
+                closePopover({ id });
+                return;
+            }
+            if (spInput && searchInputOnEscKeydown === 'reset') {
+                if (spInput.value.trim().length > 0) {
+                    // reset input
+                    spInput.value = '';
+                }
+                else {
+                    closePopover({ id });
+                }
+            }
+        }
+        else {
+            // close all popover from capturing-phase-added search input event handler as it stops propagation and window event handlers will not be triggered
+            closePopover({ id });
+            closePopover({ id: CALENDAR_POPOVER_ID });
+        }
+    }
+});
 const handleWindowClick = (event) => {
     const ev = event;
     const stickerPopoverStore = get_store_value(popoversStore)[STICKER_POPOVER_ID];
@@ -8327,8 +8353,6 @@ const handleWindowClick = (event) => {
 };
 // Accessibility Keyboard Interactions
 const handleWindowKeydown = (event) => {
-    // event.preventDefault();
-    console.log('⌨🎹️ handleWindowKeyDown() !');
     const settings = get_store_value(settingsStore);
     const stickerPopoverStore = get_store_value(popoversStore)[id];
     const floatingEl = getFloatingEl({ id });
@@ -8346,8 +8370,6 @@ const handleWindowKeydown = (event) => {
     }
     if (event.key === 'Escape') {
         const spInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
-        console.log('handleWindowKeyDown() > spInput: 🔠', spInput);
-        console.log('INPUT focused?', 'document', spInput === document.activeElement, 'method', spInput?.isActiveElement());
         if (spInput &&
             spInput.isActiveElement() &&
             settings.popoversCloseData.searchInputOnEscKeydown) {
@@ -8376,8 +8398,9 @@ const open = ({ customX, customY }) => {
     revealFloatingEl({ floatingEl });
     setFloatingElInteractivity({ floatingEl, enabled: true });
     const spInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
-    console.log('open() > spInput: ', spInput);
     spInput?.focus();
+    // ensure event is fired in the capturing phase
+    spInput?.addEventListener('keydown', get_store_value(spInputKeydownHandlerStore), true);
     popoversStore.update((values) => ({
         ...values,
         [id]: {
@@ -8394,6 +8417,12 @@ const open = ({ customX, customY }) => {
             }))
         }
     }));
+};
+const close = () => {
+    // remove spInput keydown event handler
+    const spInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
+    spInput?.blur();
+    spInput?.removeEventListener('keydown', get_store_value(spInputKeydownHandlerStore), true);
 };
 const extraSetup = () => {
     const stickerPopoverStore = get_store_value(popoversStore)[id];
@@ -8417,16 +8446,17 @@ const cleanup = () => {
 };
 const popover = {
     open,
+    close,
     extraSetup,
     cleanup,
     addWindowEvents: () => {
         for (const [evName, cb] of Object.entries(windowEvents)) {
-            window.addEventListener(evName, cb, get_store_value(settingsStore).popoversCloseData.searchInputOnEscKeydown === 'close-popover');
+            window.addEventListener(evName, cb);
         }
     },
     removeWindowEvents: () => {
         for (const [evName, cb] of Object.entries(windowEvents)) {
-            window.removeEventListener(evName, cb, get_store_value(settingsStore).popoversCloseData.searchInputOnEscKeydown === 'close-popover');
+            window.removeEventListener(evName, cb);
         }
     }
 };
@@ -8444,7 +8474,6 @@ const positionFloatingEl = ({ referenceEl, id, customX, customY }) => {
             left: `${customX || x}px`,
             top: `${customY || y}px`
         });
-        console.log(floatingEl.style);
         // Handle Arrow Placement:
         // https://floating-ui.com/docs/arrow
         if (arrowEl && middlewareData.arrow) {
@@ -8485,7 +8514,7 @@ const setFloatingElInteractivity = ({ enabled, floatingEl }) => {
     }
 };
 const getFloatingEl = ({ id }) => document.querySelector(`#${id}[data-popover="true"]`);
-const openPopover = ({ id, referenceEl, customX, customY, addListeners = true }) => {
+const openPopover = ({ id, referenceEl, customX, customY }) => {
     console.log('openPopover() > id: ✅', id);
     // add mutationObserver to look for when any modal is added to the DOM and close popover in response
     if (!get_store_value(mutationObserverCbStore)) {
@@ -8533,15 +8562,14 @@ const closePopover = ({ id }) => {
                 }
             }));
         }
-        popovers[id].removeWindowEvents();
     }
+    popovers[id].close?.();
+    popovers[id].removeWindowEvents();
 };
 const togglePopover = ({ id }) => {
     const popoverStore = get_store_value(popoversStore)[id];
     if (popoverStore) {
         const { opened } = popoverStore;
-        console.log('ID: ', id.toUpperCase());
-        console.log('togglePopover() > opened: ', opened);
         if (!opened) {
             openPopover({ id });
         }
@@ -8553,15 +8581,12 @@ const togglePopover = ({ id }) => {
 const setupPopover = ({ id, referenceEl, view }) => {
     const plugin = window.plugin;
     // setup View
-    console.log('creating new component! 🧱🧱🧱');
     plugin.popovers[id] = new view.Component({
         target: document.body,
         props: { popover: true, close: () => closePopover({ id }), ...view.props }
     });
     const emojiPicker = document.querySelector('em-emoji-picker');
-    const shadowRoot = emojiPicker?.shadowRoot;
-    const spInput = shadowRoot?.querySelector('input');
-    console.log('🤯 setupPopover() > sp elements: emojiPicker: ', emojiPicker, 'shadowRoot: ', shadowRoot, 'spInput: ', spInput);
+    emojiPicker?.shadowRoot;
     popoversStore.update((values) => ({
         ...values,
         [id]: {
@@ -8884,13 +8909,13 @@ class SettingsTab extends obsidian.PluginSettingTab {
         });
         this.addWeekStartSetting();
         this.addLocaleOverrideSetting();
-        if (!this.settings.viewOpen) {
+        if (!get_store_value(settingsStore).viewOpen) {
             this.containerEl.createEl('h3', {
                 text: 'Popovers close conditions'
             });
             this.addClosePopoversOneByOneOnClickOutSetting();
             this.addClosePopoversOneByBoneOnEscKeydownSetting();
-            if (this.settings.popoversCloseData.closePopoversOneByOneOnEscKeydown) {
+            if (get_store_value(settingsStore).popoversCloseData.closePopoversOneByOneOnEscKeydown) {
                 this.addSpSearchInputOnEscKeydownSetting();
             }
         }
@@ -9101,7 +9126,7 @@ class SettingsTab extends obsidian.PluginSettingTab {
         const settingEl = new obsidian.Setting(this.containerEl)
             .setName('Close popovers one by one on click outside')
             .addToggle((toggle) => {
-            toggle.setValue(this.plugin.settings.popoversCloseData.closePopoversOneByOneOnClickOut);
+            toggle.setValue(get_store_value(settingsStore).popoversCloseData.closePopoversOneByOneOnClickOut);
             toggle.onChange((value) => {
                 this.plugin.saveSettings((settings) => ({
                     popoversCloseData: {
@@ -9112,20 +9137,12 @@ class SettingsTab extends obsidian.PluginSettingTab {
             });
         }).settingEl;
         settingEl.style.flexWrap = 'wrap';
-        // TODO: render images
-        // const imgsPath = './static/images/settings/close-pops-one-by-one/';
-        // new ImageExamplesComponent({
-        // 	target: settingEl,
-        // 	props: {
-        // 		srcs: [`${imgsPath}1.png`, `${imgsPath}2.png`, `${imgsPath}3.png`]
-        // 	}
-        // });
     }
     addClosePopoversOneByBoneOnEscKeydownSetting() {
         new obsidian.Setting(this.containerEl)
             .setName('Close popovers one by one on `Esc` key pressed')
             .addToggle((toggle) => {
-            toggle.setValue(this.plugin.settings.popoversCloseData.closePopoversOneByOneOnEscKeydown);
+            toggle.setValue(get_store_value(settingsStore).popoversCloseData.closePopoversOneByOneOnEscKeydown);
             toggle.onChange((value) => {
                 this.plugin.saveSettings((settings) => ({
                     popoversCloseData: {
@@ -9138,14 +9155,18 @@ class SettingsTab extends obsidian.PluginSettingTab {
         });
     }
     addSpSearchInputOnEscKeydownSetting() {
+        console.log('👟 RUNNING addSpSearchInputOnEscKeydownSetting()');
         new obsidian.Setting(this.containerEl)
             .setName("On sticker popover's search input `Esc` keydown")
             .setDesc("Decide what to do when `Esc` pressed in sticker popover's search input")
             .addDropdown((dropdown) => {
-            dropdown.setValue(this.settings.popoversCloseData.searchInputOnEscKeydown);
+            console.log('value in store: ', get_store_value(settingsStore).popoversCloseData.searchInputOnEscKeydown);
+            // dropdown.setValue(get(settingsStore).popoversCloseData.searchInputOnEscKeydown);
             dropdown.addOption('close-popover', 'Close sticker popover');
             dropdown.addOption('reset', 'Erase search input');
+            dropdown.setValue(get_store_value(settingsStore).popoversCloseData.searchInputOnEscKeydown);
             dropdown.onChange((value) => {
+                console.log('from addSpSearchInputONEscKeydownSetting(), value: ', value);
                 const typedValue = value;
                 this.plugin.saveSettings((settings) => ({
                     popoversCloseData: {
@@ -55745,6 +55766,7 @@ function instance$2($$self, $$props, $$invalidate) {
 
 							if (input) {
 								input.focus();
+								input.addEventListener('keydown', get_store_value(spInputKeydownHandlerStore), true);
 
 								// Stop observing once the element is found
 								observer.disconnect();

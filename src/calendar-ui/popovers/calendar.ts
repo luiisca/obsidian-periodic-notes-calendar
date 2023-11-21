@@ -91,8 +91,6 @@ const handleWindowClick = (event: MouseEvent) => {
 
 // Accessibility Keyboard Interactions
 const handleWindowKeydown = (event: KeyboardEvent) => {
-	event.preventDefault();
-
 	const settings = get(settingsStore);
 	const calendarPopoverStore = get(popoversStore)[id];
 	const stickerPopoverStore = get(popoversStore)[STICKER_POPOVER_ID];

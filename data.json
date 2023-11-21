@@ -32,7 +32,7 @@
   },
   "popoversCloseData": {
     "closePopoversOneByOneOnClickOut": true,
-    "closePopoversOneByOneOnEscKeydown": true,
-    "searchInputOnEscKeydown": "reset"
+    "closePopoversOneByOneOnEscKeydown": false,
+    "searchInputOnEscKeydown": "close-popover"
   }
 }

@@ -5,6 +5,7 @@
 	import pickerData from '@emoji-mart/data';
 	import { Picker } from 'emoji-mart';
 	import { popoversStore } from '@/calendar-ui/popovers';
+	import { spInputKeydownHandlerStore } from '../popovers/sticker';
 
 	export let close: () => void;
 	export let noteStore: Writable<TNotesStore>;
@@ -76,6 +77,7 @@
 
 				if (input) {
 					input.focus();
+					input.addEventListener('keydown', get(spInputKeydownHandlerStore), true);
 
 					// Stop observing once the element is found
 					observer.disconnect();

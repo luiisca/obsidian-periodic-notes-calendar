@@ -31,6 +31,7 @@ export interface IPopoverUtils {
 		customX?: number;
 		customY?: number;
 	}) => void;
+	close?: () => void;
 	extraSetup: () => void;
 	cleanup: () => void;
 	windowEvents?: TWindowEvents;
@@ -66,7 +67,6 @@ export const positionFloatingEl = ({
 			left: `${customX || x}px`,
 			top: `${customY || y}px`
 		});
-		console.log(floatingEl.style);
 		// Handle Arrow Placement:
 		// https://floating-ui.com/docs/arrow
 		if (arrowEl && middlewareData.arrow) {
@@ -123,14 +123,12 @@ export const openPopover = ({
 	id,
 	referenceEl,
 	customX,
-	customY,
-	addListeners = true
+	customY
 }: {
 	id: TPopovers;
 	referenceEl?: HTMLElement;
 	customX?: number;
 	customY?: number;
-	addListeners?: boolean;
 }) => {
 	console.log('openPopover() > id: ✅', id);
 
@@ -188,17 +186,15 @@ export const closePopover = ({ id }: { id: TPopovers }) => {
 				} as IpopoverStore
 			}));
 		}
-
-		popovers[id].removeWindowEvents();
 	}
+
+	popovers[id].close?.();
+	popovers[id].removeWindowEvents();
 };
 export const togglePopover = ({ id }: { id: TPopovers }) => {
 	const popoverStore = get(popoversStore)[id];
 	if (popoverStore) {
 		const { opened } = popoverStore;
-
-		console.log('ID: ', id.toUpperCase());
-		console.log('togglePopover() > opened: ', opened);
 
 		if (!opened) {
 			openPopover({ id });
@@ -222,24 +218,13 @@ export const setupPopover = ({
 }) => {
 	const plugin = window.plugin as DailyNoteFlexPlugin;
 	// setup View
-	console.log('creating new component! 🧱🧱🧱');
 	plugin.popovers[id] = new view.Component({
 		target: document.body,
 		props: { popover: true, close: () => closePopover({ id }), ...view.props }
 	});
 
-		const emojiPicker = document.querySelector('em-emoji-picker');
-		const shadowRoot = emojiPicker?.shadowRoot;
-		const spInput = shadowRoot?.querySelector('input');
-
-		console.log(
-			'🤯 setupPopover() > sp elements: emojiPicker: ',
-			emojiPicker,
-			'shadowRoot: ',
-			shadowRoot,
-			'spInput: ',
-			spInput
-		);
+	const emojiPicker = document.querySelector('em-emoji-picker');
+	const shadowRoot = emojiPicker?.shadowRoot;
 
 	popoversStore.update((values) => ({
 		...values,

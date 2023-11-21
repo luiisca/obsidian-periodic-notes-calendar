@@ -1,4 +1,4 @@
-import { STICKER_POPOVER_ID } from '@/constants';
+import { CALENDAR_POPOVER_ID, STICKER_POPOVER_ID } from '@/constants';
 import {
 	closePopover,
 	getFloatingEl,
@@ -10,12 +10,40 @@ import {
 	type TPopovers,
 	type TWindowEvents
 } from '.';
-import { get } from 'svelte/store';
+import { get, writable } from 'svelte/store';
 import type DailyNoteFlexPlugin from '@/main';
 import { autoUpdate } from '@floating-ui/dom';
 import { settingsStore } from '@/stores';
 
 const id: TPopovers = STICKER_POPOVER_ID;
+export const spInputKeydownHandlerStore = writable((ev: KeyboardEvent) => {
+	const spInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
+	const settings = get(settingsStore);
+	const searchInputOnEscKeydown = settings.popoversCloseData.searchInputOnEscKeydown;
+
+	if (ev.key === 'Escape') {
+		if (settings.popoversCloseData.closePopoversOneByOneOnEscKeydown) {
+			if (searchInputOnEscKeydown === 'close-popover') {
+				closePopover({ id });
+
+				return;
+			}
+
+			if (spInput && searchInputOnEscKeydown === 'reset') {
+				if (spInput.value.trim().length > 0) {
+					// reset input
+					spInput.value = '';
+				} else {
+					closePopover({ id });
+				}
+			}
+		} else {
+			// close all popover from capturing-phase-added search input event handler as it stops propagation and window event handlers will not be triggered
+			closePopover({ id });
+			closePopover({ id: CALENDAR_POPOVER_ID });
+		}
+	}
+});
 
 const handleWindowClick = (event: MouseEvent) => {
 	const ev = event as MouseEvent & { target: HTMLElement | null };
@@ -39,8 +67,6 @@ const handleWindowClick = (event: MouseEvent) => {
 
 // Accessibility Keyboard Interactions
 const handleWindowKeydown = (event: KeyboardEvent) => {
-	// event.preventDefault();
-	console.log('⌨🎹️ handleWindowKeyDown() !');
 	const settings = get(settingsStore);
 	const stickerPopoverStore = get(popoversStore)[id];
 	const floatingEl = getFloatingEl({ id });
@@ -70,15 +96,6 @@ const handleWindowKeydown = (event: KeyboardEvent) => {
 	if (event.key === 'Escape') {
 		const spInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
 
-		console.log('handleWindowKeyDown() > spInput: 🔠', spInput);
-		console.log(
-			'INPUT focused?',
-			'document',
-			spInput === document.activeElement,
-			'method',
-			spInput?.isActiveElement()
-		);
-
 		if (
 			spInput &&
 			spInput.isActiveElement() &&
@@ -104,6 +121,7 @@ const handleWindowKeydown = (event: KeyboardEvent) => {
 		return;
 	}
 };
+
 const windowEvents: TWindowEvents = {
 	click: handleWindowClick,
 	auxclick: handleWindowClick,
@@ -117,8 +135,9 @@ export const open = ({ customX, customY }: { customX?: number; customY?: number 
 	setFloatingElInteractivity({ floatingEl, enabled: true });
 
 	const spInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
-	console.log('open() > spInput: ', spInput);
 	spInput?.focus();
+	// ensure event is fired in the capturing phase
+	spInput?.addEventListener('keydown', get(spInputKeydownHandlerStore), true);
 
 	popoversStore.update((values) => ({
 		...values,
@@ -138,6 +157,13 @@ export const open = ({ customX, customY }: { customX?: number; customY?: number 
 			)
 		}
 	}));
+};
+const close = () => {
+	// remove spInput keydown event handler
+	const spInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
+
+	spInput?.blur();
+	spInput?.removeEventListener('keydown', get(spInputKeydownHandlerStore), true);
 };
 export const extraSetup = () => {
 	const stickerPopoverStore = get(popoversStore)[id];
@@ -164,24 +190,17 @@ export const cleanup = () => {
 
 const popover: IPopoverUtils = {
 	open,
+	close,
 	extraSetup,
 	cleanup,
 	addWindowEvents: () => {
 		for (const [evName, cb] of Object.entries(windowEvents)) {
-			window.addEventListener(
-				evName,
-				cb,
-				get(settingsStore).popoversCloseData.searchInputOnEscKeydown === 'close-popover'
-			);
+			window.addEventListener(evName, cb);
 		}
 	},
 	removeWindowEvents: () => {
 		for (const [evName, cb] of Object.entries(windowEvents)) {
-			window.removeEventListener(
-				evName,
-				cb,
-				get(settingsStore).popoversCloseData.searchInputOnEscKeydown === 'close-popover'
-			);
+			window.removeEventListener(evName, cb);
 		}
 	}
 };
