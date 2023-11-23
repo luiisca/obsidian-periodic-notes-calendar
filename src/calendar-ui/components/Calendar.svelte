@@ -23,7 +23,7 @@
 	import Year from './Year.svelte';
 
 	$: ({
-		localeData: { showWeekNums, localizedWeekdaysShort }
+		localeData: { showWeekNums, weekdaysShort }
 	} = $settingsStore);
 	$: month = getMonth($displayedDateStore);
 	// $: $settingsStore, reindexNotes();
@@ -66,7 +66,7 @@
 					{#if showWeekNums}
 						<th>W</th>
 					{/if}
-					{#each localizedWeekdaysShort as dayOfWeek}
+					{#each weekdaysShort as dayOfWeek}
 						<th>{dayOfWeek}</th>
 					{/each}
 				</tr>

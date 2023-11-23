@@ -28,10 +28,10 @@ export interface ISettings {
 		loading: boolean;
 		weekStart: string;
 		showWeekNums: boolean;
-		sysLocale: string;
+		sysLocaleKey: string;
 		localeOverride: string | null;
-		localizedWeekdays: string[];
-		localizedWeekdaysShort: string[];
+		weekdays: string[];
+		weekdaysShort: string[];
 	};
 
 	popoversCloseData: {
@@ -53,12 +53,12 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
 		loading: false,
 		weekStart: dayjs.weekdays()[dayjs().weekday(0).day()],
 		showWeekNums: false,
-		sysLocale:
+		sysLocaleKey:
 			navigator.languages.find((locale) => locales.has(locale.toLocaleLowerCase())) ||
 			navigator.languages[0],
 		localeOverride: null,
-		localizedWeekdays: dayjs.weekdays(),
-		localizedWeekdaysShort: dayjs.weekdaysShort()
+		weekdays: dayjs.weekdays(),
+		weekdaysShort: dayjs.weekdaysShort()
 	},
 
 	popoversCloseData: {
@@ -73,7 +73,6 @@ export class SettingsTab extends PluginSettingTab {
 	private unsubscribeSettingsStore: Unsubscriber;
 	private locales = locales;
 	private localesUpdated = false;
-	private settings: ISettings = DEFAULT_SETTINGS;
 	private firstRender = true;
 
 	constructor(app: App, plugin: DailyNoteFlexPlugin) {
@@ -85,21 +84,6 @@ export class SettingsTab extends PluginSettingTab {
 
 	display() {
 		console.log('Displaying setttings ⚙️');
-
-		if (!this.unsubscribeSettingsStore) {
-			this.unsubscribeSettingsStore = settingsStore.subscribe((settings) => {
-				console.log('Subscribed to store!');
-				this.settings = settings;
-			});
-		}
-
-		if (this.firstRender) {
-			this.firstRender = false;
-
-			this.loadLocale(
-				this.settings.localeData.localeOverride || this.settings.localeData.sysLocale
-			);
-		}
 
 		this.containerEl.empty();
 
@@ -116,8 +100,8 @@ export class SettingsTab extends PluginSettingTab {
 		this.containerEl.createEl('h3', {
 			text: 'Locale'
 		});
-		this.addWeekStartSetting();
 		this.addLocaleOverrideSetting();
+		this.addWeekStartSetting();
 
 		if (!get(settingsStore).viewOpen) {
 			this.containerEl.createEl('h3', {
@@ -128,13 +112,8 @@ export class SettingsTab extends PluginSettingTab {
 			this.addClosePopoversOneByBoneOnEscKeydownSetting();
 			if (get(settingsStore).popoversCloseData.closePopoversOneByOneOnEscKeydown) {
 				this.addSpSearchInputOnEscKeydownSetting();
-			} 
+			}
 		}
-	}
-
-	hide() {
-		this.unsubscribeSettingsStore();
-		console.log('HIding settings 🏵️');
 	}
 
 	addPopoverSetting() {
@@ -241,8 +220,7 @@ export class SettingsTab extends PluginSettingTab {
 	}
 
 	addWeekStartSetting() {
-		console.log('running addWEekStart setting 🙌');
-
+		// clean dropdown to allow different options when rerendered
 		const removeAllOptions = (dropdown: DropdownComponent) => {
 			const selectNode = dropdown.selectEl;
 			while (selectNode.firstChild) {
@@ -250,10 +228,9 @@ export class SettingsTab extends PluginSettingTab {
 			}
 		};
 
-		const weekStart = this.settings.localeData.weekStart;
-		const localizedWeekdays = this.settings.localeData.localizedWeekdays;
-		const loading = this.settings.localeData.loading;
+		const localeData = get(settingsStore).localeData;
 
+		// TODO: improve wording
 		new Setting(this.containerEl)
 			.setName('Start week on:')
 			.setDesc(
@@ -262,14 +239,15 @@ export class SettingsTab extends PluginSettingTab {
 			.addDropdown((dropdown) => {
 				removeAllOptions(dropdown);
 
-				if (weekStart && localizedWeekdays && !loading) {
-					dropdown.addOption(weekStart, `Locale default - ${weekStart}`);
+				if (!localeData.loading) {
+					// default value
+					dropdown.setValue(localeData.weekStart);
 
-					localizedWeekdays.forEach((day) => {
+					// options
+					dropdown.addOption(localeData.weekStart, `Locale default - ${localeData.weekStart}`);
+					localeData.weekdays.forEach((day) => {
 						dropdown.addOption(day, day);
 					});
-
-					dropdown.setValue(weekStart);
 
 					dropdown.onChange(async (value) => {
 						this.plugin.saveSettings((settings) => ({
@@ -292,31 +270,26 @@ export class SettingsTab extends PluginSettingTab {
 	}
 
 	addLocaleOverrideSetting() {
-		const navLocales = navigator.languages;
-		const sysLocale = this.settings.localeData.sysLocale;
-		const localeOverride = this.settings.localeData.localeOverride;
+		const localeData = get(settingsStore).localeData;
+		if (this.firstRender) {
+			this.firstRender = false;
+
+			this.loadLocale(localeData.localeOverride || localeData.sysLocaleKey);
+		}
 
 		new Setting(this.containerEl)
 			.setName('Override locale:')
 			.setDesc('Set this if you want to use a locale different from the default')
 			.addDropdown(async (dropdown) => {
-				console.log('Running locale override dropdown 👟');
+				dropdown.setValue(localeData.localeOverride || localeData.sysLocaleKey);
 
-				//// Load default locale based on local locales file
-				const fetchableSysLocaleValue = this.locales.get(sysLocale) || navLocales[0];
+				const sysLocaleName = this.locales.get(localeData.sysLocaleKey) || localeData.sysLocaleKey;
 
-				// add default option even if system locale is not fetchable
-				dropdown.addOption(sysLocale, `Same as system - ${fetchableSysLocaleValue}`);
-
-				// set temporary default value
-				dropdown.setValue(localeOverride || sysLocale);
-				//
+				dropdown.addOption(localeData.sysLocaleKey, `Same as system - ${sysLocaleName}`);
 
 				//// Request locales list from the internet if connection available and locales are not updated already, otherwise load from local file
 				if (navigator.onLine) {
 					if (!this.localesUpdated) {
-						console.log('Requesting locales 🤲');
-
 						// add invisible option to ensure <select /> doesn't break
 						dropdown.addOption('invisible', '.'.repeat(60));
 						dropdown.selectEl.options[1].disabled = true;
@@ -327,46 +300,42 @@ export class SettingsTab extends PluginSettingTab {
 						dropdown.selectEl.options[2].disabled = true;
 
 						try {
-							const localesArr = await fetchWithRetry<{ key: string; name: string }[]>(
+							const localesArrRes = await fetchWithRetry<{ key: string; name: string }[]>(
 								'https://cdn.jsdelivr.net/npm/dayjs@1/locale.json'
 							);
 
-							if (!localesArr) {
+							if (!localesArrRes) {
 								this.locales = locales;
 							} else {
 								const localesMap = new Map() as Map<string, string>;
-								localesArr.forEach((obj) => {
+								localesArrRes.forEach((obj) => {
 									localesMap.set(obj.key, obj.name);
 								});
 
 								this.locales = localesMap;
 								this.localesUpdated = true;
-
-								new Notice('Locales loaded');
 							}
 
 							// remove loading option
 							dropdown.selectEl.remove(2);
 						} catch (error) {
 							console.error(error);
+							this.locales = locales;
 
 							new Notice(error as string);
 						}
 					}
 				} else {
-					console.log('Offline 😥');
 					this.locales = locales;
 				}
 
-				////
 				// Add options once locales loaded from the internet or local file
 				this.locales.forEach((value, key) => {
 					dropdown.addOption(key, value);
 				});
 
-				// update dropdown value to avoid reset after locale list loading
-				dropdown.setValue(localeOverride || sysLocale);
-				////
+				// update dropdown value to avoid reset after new locale loaded
+				dropdown.setValue(localeData.localeOverride || localeData.sysLocaleKey);
 
 				dropdown.onChange(async (localeKey) => {
 					this.loadLocale(localeKey);
@@ -438,7 +407,7 @@ export class SettingsTab extends PluginSettingTab {
 	}
 
 	// helpers
-	loadLocale(localeKey: string) {
+	loadLocale(localeKey = 'en') {
 		const loadLocaleWithRetry = (locale: string, retries = 0): Promise<string> => {
 			return new Promise((resolve, reject) => {
 				// resolve if locale already loaded
@@ -478,17 +447,15 @@ export class SettingsTab extends PluginSettingTab {
 		};
 
 		const defaultToEnglish = () => {
-			console.log('Defaulting to English 🏴󠁧󠁢!');
-			const { dayjs } = window;
-			dayjs.locale('en');
+			window.dayjs.locale('en');
 
 			this.plugin.saveSettings((settings) => ({
 				localeData: {
 					...settings.localeData,
-					weekStart: dayjs.weekdays()[dayjs().weekday(0).day()],
+					weekStart: window.dayjs.weekdays()[window.dayjs().weekday(0).day()],
 					localeOverride: 'en',
-					localizedWeekdays: dayjs.weekdays(),
-					localizedWeekdaysShort: dayjs.weekdaysShort()
+					weekdays: window.dayjs.weekdays(),
+					weekdaysShort: window.dayjs.weekdaysShort()
 				}
 			}));
 
@@ -497,10 +464,11 @@ export class SettingsTab extends PluginSettingTab {
 
 		(async () => {
 			try {
-				if (!localeKey || localeKey === 'en') {
+				if (localeKey === 'en') {
 					defaultToEnglish();
 				} else {
-					if (!this.settings.localeData.loading) {
+					// loading
+					if (!get(settingsStore).localeData.loading) {
 						this.plugin.saveSettings((settings) => ({
 							localeData: {
 								...settings.localeData,
@@ -510,22 +478,24 @@ export class SettingsTab extends PluginSettingTab {
 
 						this.display();
 					}
+
+					// request
 					const selectedLocale = await loadLocaleWithRetry(localeKey);
 
 					if (selectedLocale === 'en') {
 						defaultToEnglish();
 					} else {
-						const { dayjs } = window;
-						dayjs.locale(selectedLocale);
+						// set new locale
+						window.dayjs.locale(selectedLocale);
 
 						this.plugin.saveSettings((settings) => ({
 							localeData: {
 								...settings.localeData,
-								loading: false,
-								weekStart: dayjs.weekdays()[dayjs().weekday(0).day()],
+								weekStart: window.dayjs.weekdays()[window.dayjs().weekday(0).day()],
 								localeOverride: localeKey,
-								localizedWeekdays: dayjs.weekdays(),
-								localizedWeekdaysShort: dayjs.weekdaysShort()
+								weekdays: window.dayjs.weekdays(),
+								weekdaysShort: window.dayjs.weekdaysShort(),
+								loading: false
 							}
 						}));
 

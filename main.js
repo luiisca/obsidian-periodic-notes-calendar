@@ -8859,11 +8859,11 @@ const DEFAULT_SETTINGS = Object.freeze({
         loading: false,
         weekStart: dayjs.weekdays()[dayjs().weekday(0).day()],
         showWeekNums: false,
-        sysLocale: navigator.languages.find((locale) => localesMap.has(locale.toLocaleLowerCase())) ||
+        sysLocaleKey: navigator.languages.find((locale) => localesMap.has(locale.toLocaleLowerCase())) ||
             navigator.languages[0],
         localeOverride: null,
-        localizedWeekdays: dayjs.weekdays(),
-        localizedWeekdaysShort: dayjs.weekdaysShort()
+        weekdays: dayjs.weekdays(),
+        weekdaysShort: dayjs.weekdaysShort()
     },
     popoversCloseData: {
         closePopoversOneByOneOnClickOut: false,
@@ -8876,7 +8876,6 @@ class SettingsTab extends obsidian.PluginSettingTab {
     unsubscribeSettingsStore;
     locales = localesMap;
     localesUpdated = false;
-    settings = DEFAULT_SETTINGS;
     firstRender = true;
     constructor(app, plugin) {
         super(app, plugin);
@@ -8885,16 +8884,6 @@ class SettingsTab extends obsidian.PluginSettingTab {
     }
     display() {
         console.log('Displaying setttings ⚙️');
-        if (!this.unsubscribeSettingsStore) {
-            this.unsubscribeSettingsStore = settingsStore.subscribe((settings) => {
-                console.log('Subscribed to store!');
-                this.settings = settings;
-            });
-        }
-        if (this.firstRender) {
-            this.firstRender = false;
-            this.loadLocale(this.settings.localeData.localeOverride || this.settings.localeData.sysLocale);
-        }
         this.containerEl.empty();
         this.containerEl.createEl('h3', {
             text: 'General'
@@ -8907,8 +8896,8 @@ class SettingsTab extends obsidian.PluginSettingTab {
         this.containerEl.createEl('h3', {
             text: 'Locale'
         });
-        this.addWeekStartSetting();
         this.addLocaleOverrideSetting();
+        this.addWeekStartSetting();
         if (!get_store_value(settingsStore).viewOpen) {
             this.containerEl.createEl('h3', {
                 text: 'Popovers close conditions'
@@ -8919,10 +8908,6 @@ class SettingsTab extends obsidian.PluginSettingTab {
                 this.addSpSearchInputOnEscKeydownSetting();
             }
         }
-    }
-    hide() {
-        this.unsubscribeSettingsStore();
-        console.log('HIding settings 🏵️');
     }
     addPopoverSetting() {
         // TODO: improve wording
@@ -9015,27 +9000,28 @@ class SettingsTab extends obsidian.PluginSettingTab {
         });
     }
     addWeekStartSetting() {
-        console.log('running addWEekStart setting 🙌');
+        // clean dropdown to allow different options when rerendered
         const removeAllOptions = (dropdown) => {
             const selectNode = dropdown.selectEl;
             while (selectNode.firstChild) {
                 selectNode.removeChild(selectNode.firstChild);
             }
         };
-        const weekStart = this.settings.localeData.weekStart;
-        const localizedWeekdays = this.settings.localeData.localizedWeekdays;
-        const loading = this.settings.localeData.loading;
+        const localeData = get_store_value(settingsStore).localeData;
+        // TODO: improve wording
         new obsidian.Setting(this.containerEl)
             .setName('Start week on:')
             .setDesc("Choose what day of the week to start. Select 'Locale default' to use the default specified by day.js")
             .addDropdown((dropdown) => {
             removeAllOptions(dropdown);
-            if (weekStart && localizedWeekdays && !loading) {
-                dropdown.addOption(weekStart, `Locale default - ${weekStart}`);
-                localizedWeekdays.forEach((day) => {
+            if (!localeData.loading) {
+                // default value
+                dropdown.setValue(localeData.weekStart);
+                // options
+                dropdown.addOption(localeData.weekStart, `Locale default - ${localeData.weekStart}`);
+                localeData.weekdays.forEach((day) => {
                     dropdown.addOption(day, day);
                 });
-                dropdown.setValue(weekStart);
                 dropdown.onChange(async (value) => {
                     this.plugin.saveSettings((settings) => ({
                         localeData: {
@@ -9056,25 +9042,21 @@ class SettingsTab extends obsidian.PluginSettingTab {
         });
     }
     addLocaleOverrideSetting() {
-        const navLocales = navigator.languages;
-        const sysLocale = this.settings.localeData.sysLocale;
-        const localeOverride = this.settings.localeData.localeOverride;
+        const localeData = get_store_value(settingsStore).localeData;
+        if (this.firstRender) {
+            this.firstRender = false;
+            this.loadLocale(localeData.localeOverride || localeData.sysLocaleKey);
+        }
         new obsidian.Setting(this.containerEl)
             .setName('Override locale:')
             .setDesc('Set this if you want to use a locale different from the default')
             .addDropdown(async (dropdown) => {
-            console.log('Running locale override dropdown 👟');
-            //// Load default locale based on local locales file
-            const fetchableSysLocaleValue = this.locales.get(sysLocale) || navLocales[0];
-            // add default option even if system locale is not fetchable
-            dropdown.addOption(sysLocale, `Same as system - ${fetchableSysLocaleValue}`);
-            // set temporary default value
-            dropdown.setValue(localeOverride || sysLocale);
-            //
+            dropdown.setValue(localeData.localeOverride || localeData.sysLocaleKey);
+            const sysLocaleName = this.locales.get(localeData.sysLocaleKey) || localeData.sysLocaleKey;
+            dropdown.addOption(localeData.sysLocaleKey, `Same as system - ${sysLocaleName}`);
             //// Request locales list from the internet if connection available and locales are not updated already, otherwise load from local file
             if (navigator.onLine) {
                 if (!this.localesUpdated) {
-                    console.log('Requesting locales 🤲');
                     // add invisible option to ensure <select /> doesn't break
                     dropdown.addOption('invisible', '.'.repeat(60));
                     dropdown.selectEl.options[1].disabled = true;
@@ -9083,40 +9065,37 @@ class SettingsTab extends obsidian.PluginSettingTab {
                     dropdown.addOption('loading', 'Loading...');
                     dropdown.selectEl.options[2].disabled = true;
                     try {
-                        const localesArr = await fetchWithRetry('https://cdn.jsdelivr.net/npm/dayjs@1/locale.json');
-                        if (!localesArr) {
+                        const localesArrRes = await fetchWithRetry('https://cdn.jsdelivr.net/npm/dayjs@1/locale.json');
+                        if (!localesArrRes) {
                             this.locales = localesMap;
                         }
                         else {
                             const localesMap = new Map();
-                            localesArr.forEach((obj) => {
+                            localesArrRes.forEach((obj) => {
                                 localesMap.set(obj.key, obj.name);
                             });
                             this.locales = localesMap;
                             this.localesUpdated = true;
-                            new obsidian.Notice('Locales loaded');
                         }
                         // remove loading option
                         dropdown.selectEl.remove(2);
                     }
                     catch (error) {
                         console.error(error);
+                        this.locales = localesMap;
                         new obsidian.Notice(error);
                     }
                 }
             }
             else {
-                console.log('Offline 😥');
                 this.locales = localesMap;
             }
-            ////
             // Add options once locales loaded from the internet or local file
             this.locales.forEach((value, key) => {
                 dropdown.addOption(key, value);
             });
-            // update dropdown value to avoid reset after locale list loading
-            dropdown.setValue(localeOverride || sysLocale);
-            ////
+            // update dropdown value to avoid reset after new locale loaded
+            dropdown.setValue(localeData.localeOverride || localeData.sysLocaleKey);
             dropdown.onChange(async (localeKey) => {
                 this.loadLocale(localeKey);
             });
@@ -9178,7 +9157,7 @@ class SettingsTab extends obsidian.PluginSettingTab {
         });
     }
     // helpers
-    loadLocale(localeKey) {
+    loadLocale(localeKey = 'en') {
         const loadLocaleWithRetry = (locale, retries = 0) => {
             return new Promise((resolve, reject) => {
                 // resolve if locale already loaded
@@ -9209,27 +9188,26 @@ class SettingsTab extends obsidian.PluginSettingTab {
             });
         };
         const defaultToEnglish = () => {
-            console.log('Defaulting to English 🏴󠁧󠁢!');
-            const { dayjs } = window;
-            dayjs.locale('en');
+            window.dayjs.locale('en');
             this.plugin.saveSettings((settings) => ({
                 localeData: {
                     ...settings.localeData,
-                    weekStart: dayjs.weekdays()[dayjs().weekday(0).day()],
+                    weekStart: window.dayjs.weekdays()[window.dayjs().weekday(0).day()],
                     localeOverride: 'en',
-                    localizedWeekdays: dayjs.weekdays(),
-                    localizedWeekdaysShort: dayjs.weekdaysShort()
+                    weekdays: window.dayjs.weekdays(),
+                    weekdaysShort: window.dayjs.weekdaysShort()
                 }
             }));
             this.display();
         };
         (async () => {
             try {
-                if (!localeKey || localeKey === 'en') {
+                if (localeKey === 'en') {
                     defaultToEnglish();
                 }
                 else {
-                    if (!this.settings.localeData.loading) {
+                    // loading
+                    if (!get_store_value(settingsStore).localeData.loading) {
                         this.plugin.saveSettings((settings) => ({
                             localeData: {
                                 ...settings.localeData,
@@ -9238,21 +9216,22 @@ class SettingsTab extends obsidian.PluginSettingTab {
                         }));
                         this.display();
                     }
+                    // request
                     const selectedLocale = await loadLocaleWithRetry(localeKey);
                     if (selectedLocale === 'en') {
                         defaultToEnglish();
                     }
                     else {
-                        const { dayjs } = window;
-                        dayjs.locale(selectedLocale);
+                        // set new locale
+                        window.dayjs.locale(selectedLocale);
                         this.plugin.saveSettings((settings) => ({
                             localeData: {
                                 ...settings.localeData,
-                                loading: false,
-                                weekStart: dayjs.weekdays()[dayjs().weekday(0).day()],
+                                weekStart: window.dayjs.weekdays()[window.dayjs().weekday(0).day()],
                                 localeOverride: localeKey,
-                                localizedWeekdays: dayjs.weekdays(),
-                                localizedWeekdaysShort: dayjs.weekdaysShort()
+                                weekdays: window.dayjs.weekdays(),
+                                weekdaysShort: window.dayjs.weekdaysShort(),
+                                loading: false
                             }
                         }));
                         this.display();
@@ -12175,7 +12154,7 @@ function create_if_block_3(ctx) {
 	}
 
 	let if_block1 = /*showWeekNums*/ ctx[3] && create_if_block_5();
-	let each_value_6 = ensure_array_like(/*localizedWeekdaysShort*/ ctx[2]);
+	let each_value_6 = ensure_array_like(/*weekdaysShort*/ ctx[2]);
 	let each_blocks_1 = [];
 
 	for (let i = 0; i < each_value_6.length; i += 1) {
@@ -12310,8 +12289,8 @@ function create_if_block_3(ctx) {
 				if_block1 = null;
 			}
 
-			if (dirty[0] & /*localizedWeekdaysShort*/ 4) {
-				each_value_6 = ensure_array_like(/*localizedWeekdaysShort*/ ctx[2]);
+			if (dirty[0] & /*weekdaysShort*/ 4) {
+				each_value_6 = ensure_array_like(/*weekdaysShort*/ ctx[2]);
 				let i;
 
 				for (i = 0; i < each_value_6.length; i += 1) {
@@ -12445,7 +12424,7 @@ function create_if_block_5(ctx) {
 	};
 }
 
-// (59:5) {#each localizedWeekdaysShort as dayOfWeek}
+// (59:5) {#each weekdaysShort as dayOfWeek}
 function create_each_block_6(ctx) {
 	let th;
 	let t_value = /*dayOfWeek*/ ctx[26] + "";
@@ -12462,7 +12441,7 @@ function create_each_block_6(ctx) {
 			append(th, t);
 		},
 		p(ctx, dirty) {
-			if (dirty[0] & /*localizedWeekdaysShort*/ 4 && t_value !== (t_value = /*dayOfWeek*/ ctx[26] + "")) set_data(t, t_value);
+			if (dirty[0] & /*weekdaysShort*/ 4 && t_value !== (t_value = /*dayOfWeek*/ ctx[26] + "")) set_data(t, t_value);
 		},
 		d(detaching) {
 			if (detaching) {
@@ -13354,7 +13333,7 @@ function create_fragment$3(ctx) {
 
 function instance$3($$self, $$props, $$invalidate) {
 	let showWeekNums;
-	let localizedWeekdaysShort;
+	let weekdaysShort;
 	let month;
 	let $displayedDateStore;
 	let $settingsStore;
@@ -13372,7 +13351,7 @@ function instance$3($$self, $$props, $$invalidate) {
 
 	$$self.$$.update = () => {
 		if ($$self.$$.dirty[0] & /*$settingsStore*/ 64) {
-			$$invalidate(3, { localeData: { showWeekNums, localizedWeekdaysShort } } = $settingsStore, showWeekNums, ($$invalidate(2, localizedWeekdaysShort), $$invalidate(6, $settingsStore)));
+			$$invalidate(3, { localeData: { showWeekNums, weekdaysShort } } = $settingsStore, showWeekNums, ($$invalidate(2, weekdaysShort), $$invalidate(6, $settingsStore)));
 		}
 
 		if ($$self.$$.dirty[0] & /*$displayedDateStore*/ 32) {
@@ -13383,7 +13362,7 @@ function instance$3($$self, $$props, $$invalidate) {
 	return [
 		crrView,
 		month,
-		localizedWeekdaysShort,
+		weekdaysShort,
 		showWeekNums,
 		$yearsRanges,
 		$displayedDateStore,

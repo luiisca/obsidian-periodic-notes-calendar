@@ -1,6 +1,6 @@
 import { get, writable, type Writable } from 'svelte/store';
 import { DEFAULT_SETTINGS, type ISettings } from './settings';
-import { Menu, type TFile } from 'obsidian';
+import type { Menu, TFile } from 'obsidian';
 import { getAllNotesByGranularity, type IGranularity } from './calendar-io';
 import { YEARS_RANGE_SIZE, granularities } from './constants';
 import type { Moment } from 'moment';
