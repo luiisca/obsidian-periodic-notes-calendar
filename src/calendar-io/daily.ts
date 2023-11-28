@@ -36,15 +36,15 @@ export async function createDailyNote(date: Moment): Promise<TFile | undefined> 
 				.replace(/{{\s*title\s*}}/gi, filename)
 				.replace(
 					/{{\s*(date|time)\s*(([+-]\d+)([yqmwdhs]))?\s*(:.+?)?}}/gi,
-					(_, _timeOrDate, calc, timeDelta, unit, dayjsFormat) => {
-						let currentDate = window.dayjs();
+					(_, _timeOrDate, calc, timeDelta, unit, momentFormat) => {
+						let currentDate = window.moment();
 
 						if (calc) {
 							currentDate = currentDate.add(parseInt(timeDelta, 10), unit);
 						}
 
-						if (dayjsFormat) {
-							return currentDate.format(dayjsFormat.substring(1).trim());
+						if (momentFormat) {
+							return currentDate.format(momentFormat.substring(1).trim());
 						}
 						return currentDate.format(format);
 					}

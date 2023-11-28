@@ -64,7 +64,7 @@ export function getAllNotesByGranularity(
 			// console.log(`getAllNotesByGranularity() > Vault.recurseChildren(${notesFolder}) > note: `, note)
 
 			if (note instanceof TFile) {
-				// if file name maps to a valid dayjs date, it is saved in store.
+				// if file name maps to a valid moment date, it is saved in store.
 				const date = getDateFromFile(note, granularity);
 
 				if (date) {

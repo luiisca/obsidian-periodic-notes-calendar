@@ -1,13 +1,8 @@
 <script lang="ts">
-	import weekOfYear from 'dayjs/plugin/weekOfYear';
-	import isoWeek from 'dayjs/plugin/isoWeek';
-
-	window.dayjs.extend(weekOfYear);
-	window.dayjs.extend(isoWeek);
-
 	import { getMonth, getStartOfWeek, getYears, isMetaPressed, isWeekend } from '../utils';
 	import {
 		displayedDateStore,
+		localeDataStore,
 		settingsStore,
 		yearsRanges
 	} from '@/stores';
@@ -23,19 +18,14 @@
 	import Year from './Year.svelte';
 
 	$: ({
-		localeData: { showWeekNums, weekdaysShort }
+		localeSettings: { showWeekNums}
 	} = $settingsStore);
+	$: ({
+		weekdaysShort
+	} = $localeDataStore)
 	$: month = getMonth($displayedDateStore);
-	// $: $settingsStore, reindexNotes();
 
 	let crrView: (typeof togglePeriods)[number] = 'days';
-
-	// TODO: move reindex to either a vault event or view.ts
-	// const reindexNotes = () => {
-	// 	granularities.forEach((granularity) => {
-	// 		notesStores[granularity].reindex();
-	// 	});
-	// };
 </script>
 
 <div id="calendar-container" class="container">

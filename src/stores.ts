@@ -5,6 +5,7 @@ import { getAllNotesByGranularity, type IGranularity } from './calendar-io';
 import { YEARS_RANGE_SIZE, granularities } from './constants';
 import type { Moment } from 'moment';
 import type DailyNoteFlexPlugin from './main';
+import { defaultWeekdays, defaultWeekdaysShort } from './localization';
 
 export type TNotesStore = Record<string, { file: TFile; sticker: string | null }>;
 function createNotesStore(granularity: IGranularity) {
@@ -203,8 +204,6 @@ function createYearsRangesStore() {
 	};
 }
 
-export const settingsStore = writable<ISettings>(DEFAULT_SETTINGS);
-
 function createSelectedFileStore() {
 	const store = writable<string | null>(null);
 
@@ -217,6 +216,15 @@ function createSelectedFileStore() {
 	};
 }
 
+export const settingsStore = writable<ISettings>(DEFAULT_SETTINGS);
+type TLocaleData = {
+	weekdays: string[];
+	weekdaysShort: string[];
+};
+export const localeDataStore = writable<TLocaleData>({
+	weekdays: defaultWeekdays,
+	weekdaysShort: defaultWeekdaysShort
+});
 export const displayedDateStore = writable<Moment>(window.moment());
 export const activeFile = createSelectedFileStore();
 export const yearsRanges = createYearsRangesStore();
@@ -232,4 +240,4 @@ granularities.forEach((granularity) => {
 	notesStores[granularity] = notesExtStore;
 });
 
-export const crrFileMenu = writable<Menu | null>(null)
+export const crrFileMenu = writable<Menu | null>(null);

@@ -6,9 +6,9 @@
 	import Arrow from './Arrow.svelte';
 	import { VIEW } from '../context';
 	import Dot from './Dot.svelte';
-	import type { ICalendarViewCtx } from '@/view';
 	import { isMetaPressed } from '../utils';
 	import { displayedDateStore, yearsRanges } from '@/stores';
+	import type { ICalendarViewCtx } from '@/types/view';
 
 	let today: Moment;
 	$: $displayedDateStore, (today = window.moment());

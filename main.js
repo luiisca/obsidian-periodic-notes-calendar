@@ -912,80 +912,6 @@ if (typeof window !== 'undefined')
 
 function r(e){var t,f,n="";if("string"==typeof e||"number"==typeof e)n+=e;else if("object"==typeof e)if(Array.isArray(e))for(t=0;t<e.length;t++)e[t]&&(f=r(e[t]))&&(n&&(n+=" "),n+=f);else for(t in e)e[t]&&(n&&(n+=" "),n+=t);return n}function clsx(){for(var e,t,f=0,n="";f<arguments.length;)(e=arguments[f++])&&(t=r(e))&&(n&&(n+=" "),n+=t);return n}
 
-var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
-
-function getDefaultExportFromCjs (x) {
-	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
-}
-
-var weekOfYear$1 = {exports: {}};
-
-(function (module, exports) {
-	!function(e,t){module.exports=t();}(commonjsGlobal,(function(){var e="week",t="year";return function(i,n,r){var f=n.prototype;f.week=function(i){if(void 0===i&&(i=null),null!==i)return this.add(7*(i-this.week()),"day");var n=this.$locale().yearStart||1;if(11===this.month()&&this.date()>25){var f=r(this).startOf(t).add(1,t).date(n),s=r(this).endOf(e);if(f.isBefore(s))return 1}var a=r(this).startOf(t).date(n).startOf(e).subtract(1,"millisecond"),o=this.diff(a,e,!0);return o<0?r(this).startOf("week").week():Math.ceil(o)},f.weeks=function(e){return void 0===e&&(e=null),this.week(e)};}})); 
-} (weekOfYear$1));
-
-var weekOfYearExports = weekOfYear$1.exports;
-var weekOfYear = /*@__PURE__*/getDefaultExportFromCjs(weekOfYearExports);
-
-var isoWeek$1 = {exports: {}};
-
-(function (module, exports) {
-	!function(e,t){module.exports=t();}(commonjsGlobal,(function(){var e="day";return function(t,i,s){var a=function(t){return t.add(4-t.isoWeekday(),e)},d=i.prototype;d.isoWeekYear=function(){return a(this).year()},d.isoWeek=function(t){if(!this.$utils().u(t))return this.add(7*(t-this.isoWeek()),e);var i,d,n,o,r=a(this),u=(i=this.isoWeekYear(),d=this.$u,n=(d?s.utc:s)().year(i).startOf("year"),o=4-n.isoWeekday(),n.isoWeekday()>4&&(o+=7),n.add(o,e));return r.diff(u,"week")+1},d.isoWeekday=function(e){return this.$utils().u(e)?this.day()||7:this.day(this.day()%7?e:e-7)};var n=d.startOf;d.startOf=function(e,t){var i=this.$utils(),s=!!i.u(t)||t;return "isoweek"===i.p(e)?s?this.date(this.date()-(this.isoWeekday()-1)).startOf("day"):this.date(this.date()-1-(this.isoWeekday()-1)+7).endOf("day"):n.bind(this)(e,t)};}})); 
-} (isoWeek$1));
-
-var isoWeekExports = isoWeek$1.exports;
-var isoWeek = /*@__PURE__*/getDefaultExportFromCjs(isoWeekExports);
-
-function isMacOS() {
-    return navigator.appVersion.indexOf('Mac') !== -1;
-}
-function isMetaPressed(e) {
-    return isMacOS() ? e.metaKey : e.ctrlKey;
-}
-function isWeekend(date) {
-    return date.isoWeekday() === 6 || date.isoWeekday() === 7;
-}
-function getStartOfWeek(days) {
-    return days[0].weekday(0);
-}
-/**
- * Generate a 2D array of daily information to power
- * the calendar view.
- */
-function getMonth(displayedDate) {
-    const locale = window.moment().locale();
-    const month = [];
-    let week = { days: [], weekNum: 0 };
-    const startOfMonth = displayedDate.clone().locale(locale).date(1);
-    const startOffset = startOfMonth.weekday();
-    let date = startOfMonth.clone().subtract(startOffset, 'days');
-    for (let _day = 0; _day < 42; _day++) {
-        if (_day % 7 === 0) {
-            week = {
-                days: [],
-                weekNum: date.week()
-            };
-            month.push(week);
-        }
-        week.days.push(date);
-        date = date.clone().add(1, 'days');
-    }
-    return month;
-}
-function getYears({ startRangeYear }) {
-    let crrRangeYear = startRangeYear;
-    const COLUMNS = 3;
-    const ROWS = 4;
-    const years = Array.from({ length: ROWS }, () => Array(COLUMNS).fill(0));
-    for (let rowIndex = 0; rowIndex < ROWS; rowIndex++) {
-        for (let colIndex = 0; colIndex < COLUMNS; colIndex++) {
-            years[rowIndex][colIndex] = crrRangeYear;
-            crrRangeYear++;
-        }
-    }
-    return years;
-}
-
 const subscriber_queue = [];
 
 /**
@@ -1055,6 +981,2153 @@ function writable(value, start = noop) {
 		};
 	}
 	return { set, update, subscribe };
+}
+
+const localesMap = new Map();
+const locales = [
+    { key: 'af', name: 'Afrikaans' },
+    { key: 'am', name: 'Amharic' },
+    { key: 'ar-dz', name: 'Arabic (Algeria)' },
+    { key: 'ar-iq', name: ' Arabic (Iraq)' },
+    { key: 'ar-kw', name: 'Arabic (Kuwait)' },
+    { key: 'ar-ly', name: 'Arabic (Lybia)' },
+    { key: 'ar-ma', name: 'Arabic (Morocco)' },
+    { key: 'ar-sa', name: 'Arabic (Saudi Arabia)' },
+    { key: 'ar-tn', name: ' Arabic (Tunisia)' },
+    { key: 'ar', name: 'Arabic' },
+    { key: 'az', name: 'Azerbaijani' },
+    { key: 'be', name: 'Belarusian' },
+    { key: 'bg', name: 'Bulgarian' },
+    { key: 'bi', name: 'Bislama' },
+    { key: 'bm', name: 'Bambara' },
+    { key: 'bn-bd', name: 'Bengali (Bangladesh)' },
+    { key: 'bn', name: 'Bengali' },
+    { key: 'bo', name: 'Tibetan' },
+    { key: 'br', name: 'Breton' },
+    { key: 'bs', name: 'Bosnian' },
+    { key: 'ca', name: 'Catalan' },
+    { key: 'cs', name: 'Czech' },
+    { key: 'cv', name: 'Chuvash' },
+    { key: 'cy', name: 'Welsh' },
+    { key: 'da', name: 'Danish' },
+    { key: 'de-at', name: 'German (Austria)' },
+    { key: 'de-ch', name: 'German (Switzerland)' },
+    { key: 'de', name: 'German' },
+    { key: 'dv', name: 'Maldivian' },
+    { key: 'el', name: 'Greek' },
+    { key: 'en-au', name: 'English (Australia)' },
+    { key: 'en-ca', name: 'English (Canada)' },
+    { key: 'en-gb', name: 'English (United Kingdom)' },
+    { key: 'en-ie', name: 'English (Ireland)' },
+    { key: 'en-il', name: 'English (Israel)' },
+    { key: 'en-in', name: 'English (India)' },
+    { key: 'en-nz', name: 'English (New Zealand)' },
+    { key: 'en-sg', name: 'English (Singapore)' },
+    { key: 'en-tt', name: 'English (Trinidad & Tobago)' },
+    { key: 'en', name: 'English' },
+    { key: 'eo', name: 'Esperanto' },
+    { key: 'es-do', name: 'Spanish (Dominican Republic)' },
+    { key: 'es-mx', name: 'Spanish (Mexico)' },
+    { key: 'es-pr', name: 'Spanish (Puerto Rico)' },
+    { key: 'es-us', name: 'Spanish (United States)' },
+    { key: 'es', name: 'Spanish' },
+    { key: 'et', name: 'Estonian' },
+    { key: 'eu', name: 'Basque' },
+    { key: 'fa', name: 'Persian' },
+    { key: 'fi', name: 'Finnish' },
+    { key: 'fo', name: 'Faroese' },
+    { key: 'fr-ca', name: 'French (Canada)' },
+    { key: 'fr-ch', name: 'French (Switzerland)' },
+    { key: 'fr', name: 'French' },
+    { key: 'fy', name: 'Frisian' },
+    { key: 'ga', name: 'Irish or Irish Gaelic' },
+    { key: 'gd', name: 'Scottish Gaelic' },
+    { key: 'gl', name: 'Galician' },
+    { key: 'gom-latn', name: 'Konkani Latin script' },
+    { key: 'gu', name: 'Gujarati' },
+    { key: 'he', name: 'Hebrew' },
+    { key: 'hi', name: 'Hindi' },
+    { key: 'hr', name: 'Croatian' },
+    { key: 'ht', name: 'Haitian Creole (Haiti)' },
+    { key: 'hu', name: 'Hungarian' },
+    { key: 'hy-am', name: 'Armenian' },
+    { key: 'id', name: 'Indonesian' },
+    { key: 'is', name: 'Icelandic' },
+    { key: 'it-ch', name: 'Italian (Switzerland)' },
+    { key: 'it', name: 'Italian' },
+    { key: 'ja', name: 'Japanese' },
+    { key: 'jv', name: 'Javanese' },
+    { key: 'ka', name: 'Georgian' },
+    { key: 'kk', name: 'Kazakh' },
+    { key: 'km', name: 'Cambodian' },
+    { key: 'kn', name: 'Kannada' },
+    { key: 'ko', name: 'Korean' },
+    { key: 'ku', name: 'Kurdish' },
+    { key: 'ky', name: 'Kyrgyz' },
+    { key: 'lb', name: 'Luxembourgish' },
+    { key: 'lo', name: 'Lao' },
+    { key: 'lt', name: 'Lithuanian' },
+    { key: 'lv', name: 'Latvian' },
+    { key: 'me', name: 'Montenegrin' },
+    { key: 'mi', name: 'Maori' },
+    { key: 'mk', name: 'Macedonian' },
+    { key: 'ml', name: 'Malayalam' },
+    { key: 'mn', name: 'Mongolian' },
+    { key: 'mr', name: 'Marathi' },
+    { key: 'ms-my', name: 'Malay' },
+    { key: 'ms', name: 'Malay' },
+    { key: 'mt', name: 'Maltese (Malta)' },
+    { key: 'my', name: 'Burmese' },
+    { key: 'nb', name: 'Norwegian Bokmål' },
+    { key: 'ne', name: 'Nepalese' },
+    { key: 'nl-be', name: 'Dutch (Belgium)' },
+    { key: 'nl', name: 'Dutch' },
+    { key: 'nn', name: 'Nynorsk' },
+    { key: 'oc-lnc', name: 'Occitan, lengadocian dialecte' },
+    { key: 'pa-in', name: 'Punjabi (India)' },
+    { key: 'pl', name: 'Polish' },
+    { key: 'pt-br', name: 'Portuguese (Brazil)' },
+    { key: 'pt', name: 'Portuguese' },
+    { key: 'rn', name: 'Kirundi' },
+    { key: 'sd', name: 'Sindhi' },
+    { key: 'se', name: 'Northern Sami' },
+    { key: 'si', name: 'Sinhalese' },
+    { key: 'sk', name: 'Slovak' },
+    { key: 'sl', name: 'Slovenian' },
+    { key: 'sq', name: 'Albanian' },
+    { key: 'sr-cyrl', name: 'Serbian Cyrillic' },
+    { key: 'sr', name: 'Serbian' },
+    { key: 'ss', name: 'siSwati' },
+    { key: 'sv-fi', name: 'Finland Swedish' },
+    { key: 'sv', name: 'Swedish' },
+    { key: 'sw', name: 'Swahili' },
+    { key: 'ta', name: 'Tamil' },
+    { key: 'te', name: 'Telugu' },
+    { key: 'tet', name: 'Tetun Dili (East Timor)' },
+    { key: 'tg', name: 'Tajik' },
+    { key: 'th', name: 'Thai' },
+    { key: 'tk', name: 'Turkmen' },
+    { key: 'tl-ph', name: 'Tagalog (Philippines)' },
+    { key: 'tlh', name: 'Klingon' },
+    { key: 'tr', name: 'Turkish' },
+    { key: 'tzl', name: 'Talossan' },
+    { key: 'tzm-latn', name: 'Central Atlas Tamazight Latin' },
+    { key: 'tzm', name: 'Central Atlas Tamazight' },
+    { key: 'ug-cn', name: 'Uyghur (China)' },
+    { key: 'uk', name: 'Ukrainian' },
+    { key: 'ur', name: 'Urdu' },
+    { key: 'uz-latn', name: 'Uzbek Latin' },
+    { key: 'uz', name: 'Uzbek' },
+    { key: 'vi', name: 'Vietnamese' },
+    { key: 'x-pseudo', name: 'Pseudo' },
+    { key: 'yo', name: 'Yoruba Nigeria' },
+    { key: 'zh-cn', name: 'Chinese (China)' },
+    { key: 'zh-hk', name: 'Chinese (Hong Kong)' },
+    { key: 'zh-tw', name: 'Chinese (Taiwan)' },
+    { key: 'zh', name: 'Chinese' },
+    { key: 'rw', name: 'Kinyarwanda (Rwanda)' },
+    { key: 'ru', name: 'Russian' },
+    { key: 'ro', name: 'Romanian' }
+];
+locales.forEach((obj) => {
+    localesMap.set(obj.key, obj.name);
+});
+
+const min = Math.min;
+const max = Math.max;
+const round = Math.round;
+const floor = Math.floor;
+const createCoords = v => ({
+  x: v,
+  y: v
+});
+const oppositeSideMap = {
+  left: 'right',
+  right: 'left',
+  bottom: 'top',
+  top: 'bottom'
+};
+const oppositeAlignmentMap = {
+  start: 'end',
+  end: 'start'
+};
+function clamp(start, value, end) {
+  return max(start, min(value, end));
+}
+function evaluate(value, param) {
+  return typeof value === 'function' ? value(param) : value;
+}
+function getSide(placement) {
+  return placement.split('-')[0];
+}
+function getAlignment(placement) {
+  return placement.split('-')[1];
+}
+function getOppositeAxis(axis) {
+  return axis === 'x' ? 'y' : 'x';
+}
+function getAxisLength(axis) {
+  return axis === 'y' ? 'height' : 'width';
+}
+function getSideAxis(placement) {
+  return ['top', 'bottom'].includes(getSide(placement)) ? 'y' : 'x';
+}
+function getAlignmentAxis(placement) {
+  return getOppositeAxis(getSideAxis(placement));
+}
+function getAlignmentSides(placement, rects, rtl) {
+  if (rtl === void 0) {
+    rtl = false;
+  }
+  const alignment = getAlignment(placement);
+  const alignmentAxis = getAlignmentAxis(placement);
+  const length = getAxisLength(alignmentAxis);
+  let mainAlignmentSide = alignmentAxis === 'x' ? alignment === (rtl ? 'end' : 'start') ? 'right' : 'left' : alignment === 'start' ? 'bottom' : 'top';
+  if (rects.reference[length] > rects.floating[length]) {
+    mainAlignmentSide = getOppositePlacement(mainAlignmentSide);
+  }
+  return [mainAlignmentSide, getOppositePlacement(mainAlignmentSide)];
+}
+function getExpandedPlacements(placement) {
+  const oppositePlacement = getOppositePlacement(placement);
+  return [getOppositeAlignmentPlacement(placement), oppositePlacement, getOppositeAlignmentPlacement(oppositePlacement)];
+}
+function getOppositeAlignmentPlacement(placement) {
+  return placement.replace(/start|end/g, alignment => oppositeAlignmentMap[alignment]);
+}
+function getSideList(side, isStart, rtl) {
+  const lr = ['left', 'right'];
+  const rl = ['right', 'left'];
+  const tb = ['top', 'bottom'];
+  const bt = ['bottom', 'top'];
+  switch (side) {
+    case 'top':
+    case 'bottom':
+      if (rtl) return isStart ? rl : lr;
+      return isStart ? lr : rl;
+    case 'left':
+    case 'right':
+      return isStart ? tb : bt;
+    default:
+      return [];
+  }
+}
+function getOppositeAxisPlacements(placement, flipAlignment, direction, rtl) {
+  const alignment = getAlignment(placement);
+  let list = getSideList(getSide(placement), direction === 'start', rtl);
+  if (alignment) {
+    list = list.map(side => side + "-" + alignment);
+    if (flipAlignment) {
+      list = list.concat(list.map(getOppositeAlignmentPlacement));
+    }
+  }
+  return list;
+}
+function getOppositePlacement(placement) {
+  return placement.replace(/left|right|bottom|top/g, side => oppositeSideMap[side]);
+}
+function expandPaddingObject(padding) {
+  return {
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    ...padding
+  };
+}
+function getPaddingObject(padding) {
+  return typeof padding !== 'number' ? expandPaddingObject(padding) : {
+    top: padding,
+    right: padding,
+    bottom: padding,
+    left: padding
+  };
+}
+function rectToClientRect(rect) {
+  return {
+    ...rect,
+    top: rect.y,
+    left: rect.x,
+    right: rect.x + rect.width,
+    bottom: rect.y + rect.height
+  };
+}
+
+function computeCoordsFromPlacement(_ref, placement, rtl) {
+  let {
+    reference,
+    floating
+  } = _ref;
+  const sideAxis = getSideAxis(placement);
+  const alignmentAxis = getAlignmentAxis(placement);
+  const alignLength = getAxisLength(alignmentAxis);
+  const side = getSide(placement);
+  const isVertical = sideAxis === 'y';
+  const commonX = reference.x + reference.width / 2 - floating.width / 2;
+  const commonY = reference.y + reference.height / 2 - floating.height / 2;
+  const commonAlign = reference[alignLength] / 2 - floating[alignLength] / 2;
+  let coords;
+  switch (side) {
+    case 'top':
+      coords = {
+        x: commonX,
+        y: reference.y - floating.height
+      };
+      break;
+    case 'bottom':
+      coords = {
+        x: commonX,
+        y: reference.y + reference.height
+      };
+      break;
+    case 'right':
+      coords = {
+        x: reference.x + reference.width,
+        y: commonY
+      };
+      break;
+    case 'left':
+      coords = {
+        x: reference.x - floating.width,
+        y: commonY
+      };
+      break;
+    default:
+      coords = {
+        x: reference.x,
+        y: reference.y
+      };
+  }
+  switch (getAlignment(placement)) {
+    case 'start':
+      coords[alignmentAxis] -= commonAlign * (rtl && isVertical ? -1 : 1);
+      break;
+    case 'end':
+      coords[alignmentAxis] += commonAlign * (rtl && isVertical ? -1 : 1);
+      break;
+  }
+  return coords;
+}
+
+/**
+ * Computes the `x` and `y` coordinates that will place the floating element
+ * next to a reference element when it is given a certain positioning strategy.
+ *
+ * This export does not have any `platform` interface logic. You will need to
+ * write one for the platform you are using Floating UI with.
+ */
+const computePosition$1 = async (reference, floating, config) => {
+  const {
+    placement = 'bottom',
+    strategy = 'absolute',
+    middleware = [],
+    platform
+  } = config;
+  const validMiddleware = middleware.filter(Boolean);
+  const rtl = await (platform.isRTL == null ? void 0 : platform.isRTL(floating));
+  let rects = await platform.getElementRects({
+    reference,
+    floating,
+    strategy
+  });
+  let {
+    x,
+    y
+  } = computeCoordsFromPlacement(rects, placement, rtl);
+  let statefulPlacement = placement;
+  let middlewareData = {};
+  let resetCount = 0;
+  for (let i = 0; i < validMiddleware.length; i++) {
+    const {
+      name,
+      fn
+    } = validMiddleware[i];
+    const {
+      x: nextX,
+      y: nextY,
+      data,
+      reset
+    } = await fn({
+      x,
+      y,
+      initialPlacement: placement,
+      placement: statefulPlacement,
+      strategy,
+      middlewareData,
+      rects,
+      platform,
+      elements: {
+        reference,
+        floating
+      }
+    });
+    x = nextX != null ? nextX : x;
+    y = nextY != null ? nextY : y;
+    middlewareData = {
+      ...middlewareData,
+      [name]: {
+        ...middlewareData[name],
+        ...data
+      }
+    };
+    if (reset && resetCount <= 50) {
+      resetCount++;
+      if (typeof reset === 'object') {
+        if (reset.placement) {
+          statefulPlacement = reset.placement;
+        }
+        if (reset.rects) {
+          rects = reset.rects === true ? await platform.getElementRects({
+            reference,
+            floating,
+            strategy
+          }) : reset.rects;
+        }
+        ({
+          x,
+          y
+        } = computeCoordsFromPlacement(rects, statefulPlacement, rtl));
+      }
+      i = -1;
+      continue;
+    }
+  }
+  return {
+    x,
+    y,
+    placement: statefulPlacement,
+    strategy,
+    middlewareData
+  };
+};
+
+/**
+ * Resolves with an object of overflow side offsets that determine how much the
+ * element is overflowing a given clipping boundary on each side.
+ * - positive = overflowing the boundary by that number of pixels
+ * - negative = how many pixels left before it will overflow
+ * - 0 = lies flush with the boundary
+ * @see https://floating-ui.com/docs/detectOverflow
+ */
+async function detectOverflow(state, options) {
+  var _await$platform$isEle;
+  if (options === void 0) {
+    options = {};
+  }
+  const {
+    x,
+    y,
+    platform,
+    rects,
+    elements,
+    strategy
+  } = state;
+  const {
+    boundary = 'clippingAncestors',
+    rootBoundary = 'viewport',
+    elementContext = 'floating',
+    altBoundary = false,
+    padding = 0
+  } = evaluate(options, state);
+  const paddingObject = getPaddingObject(padding);
+  const altContext = elementContext === 'floating' ? 'reference' : 'floating';
+  const element = elements[altBoundary ? altContext : elementContext];
+  const clippingClientRect = rectToClientRect(await platform.getClippingRect({
+    element: ((_await$platform$isEle = await (platform.isElement == null ? void 0 : platform.isElement(element))) != null ? _await$platform$isEle : true) ? element : element.contextElement || (await (platform.getDocumentElement == null ? void 0 : platform.getDocumentElement(elements.floating))),
+    boundary,
+    rootBoundary,
+    strategy
+  }));
+  const rect = elementContext === 'floating' ? {
+    ...rects.floating,
+    x,
+    y
+  } : rects.reference;
+  const offsetParent = await (platform.getOffsetParent == null ? void 0 : platform.getOffsetParent(elements.floating));
+  const offsetScale = (await (platform.isElement == null ? void 0 : platform.isElement(offsetParent))) ? (await (platform.getScale == null ? void 0 : platform.getScale(offsetParent))) || {
+    x: 1,
+    y: 1
+  } : {
+    x: 1,
+    y: 1
+  };
+  const elementClientRect = rectToClientRect(platform.convertOffsetParentRelativeRectToViewportRelativeRect ? await platform.convertOffsetParentRelativeRectToViewportRelativeRect({
+    rect,
+    offsetParent,
+    strategy
+  }) : rect);
+  return {
+    top: (clippingClientRect.top - elementClientRect.top + paddingObject.top) / offsetScale.y,
+    bottom: (elementClientRect.bottom - clippingClientRect.bottom + paddingObject.bottom) / offsetScale.y,
+    left: (clippingClientRect.left - elementClientRect.left + paddingObject.left) / offsetScale.x,
+    right: (elementClientRect.right - clippingClientRect.right + paddingObject.right) / offsetScale.x
+  };
+}
+
+/**
+ * Provides data to position an inner element of the floating element so that it
+ * appears centered to the reference element.
+ * @see https://floating-ui.com/docs/arrow
+ */
+const arrow = options => ({
+  name: 'arrow',
+  options,
+  async fn(state) {
+    const {
+      x,
+      y,
+      placement,
+      rects,
+      platform,
+      elements
+    } = state;
+    // Since `element` is required, we don't Partial<> the type.
+    const {
+      element,
+      padding = 0
+    } = evaluate(options, state) || {};
+    if (element == null) {
+      return {};
+    }
+    const paddingObject = getPaddingObject(padding);
+    const coords = {
+      x,
+      y
+    };
+    const axis = getAlignmentAxis(placement);
+    const length = getAxisLength(axis);
+    const arrowDimensions = await platform.getDimensions(element);
+    const isYAxis = axis === 'y';
+    const minProp = isYAxis ? 'top' : 'left';
+    const maxProp = isYAxis ? 'bottom' : 'right';
+    const clientProp = isYAxis ? 'clientHeight' : 'clientWidth';
+    const endDiff = rects.reference[length] + rects.reference[axis] - coords[axis] - rects.floating[length];
+    const startDiff = coords[axis] - rects.reference[axis];
+    const arrowOffsetParent = await (platform.getOffsetParent == null ? void 0 : platform.getOffsetParent(element));
+    let clientSize = arrowOffsetParent ? arrowOffsetParent[clientProp] : 0;
+
+    // DOM platform can return `window` as the `offsetParent`.
+    if (!clientSize || !(await (platform.isElement == null ? void 0 : platform.isElement(arrowOffsetParent)))) {
+      clientSize = elements.floating[clientProp] || rects.floating[length];
+    }
+    const centerToReference = endDiff / 2 - startDiff / 2;
+
+    // If the padding is large enough that it causes the arrow to no longer be
+    // centered, modify the padding so that it is centered.
+    const largestPossiblePadding = clientSize / 2 - arrowDimensions[length] / 2 - 1;
+    const minPadding = min(paddingObject[minProp], largestPossiblePadding);
+    const maxPadding = min(paddingObject[maxProp], largestPossiblePadding);
+
+    // Make sure the arrow doesn't overflow the floating element if the center
+    // point is outside the floating element's bounds.
+    const min$1 = minPadding;
+    const max = clientSize - arrowDimensions[length] - maxPadding;
+    const center = clientSize / 2 - arrowDimensions[length] / 2 + centerToReference;
+    const offset = clamp(min$1, center, max);
+
+    // If the reference is small enough that the arrow's padding causes it to
+    // to point to nothing for an aligned placement, adjust the offset of the
+    // floating element itself. This stops `shift()` from taking action, but can
+    // be worked around by calling it again after the `arrow()` if desired.
+    const shouldAddOffset = getAlignment(placement) != null && center != offset && rects.reference[length] / 2 - (center < min$1 ? minPadding : maxPadding) - arrowDimensions[length] / 2 < 0;
+    const alignmentOffset = shouldAddOffset ? center < min$1 ? min$1 - center : max - center : 0;
+    return {
+      [axis]: coords[axis] - alignmentOffset,
+      data: {
+        [axis]: offset,
+        centerOffset: center - offset + alignmentOffset
+      }
+    };
+  }
+});
+
+/**
+ * Optimizes the visibility of the floating element by flipping the `placement`
+ * in order to keep it in view when the preferred placement(s) will overflow the
+ * clipping boundary. Alternative to `autoPlacement`.
+ * @see https://floating-ui.com/docs/flip
+ */
+const flip = function (options) {
+  if (options === void 0) {
+    options = {};
+  }
+  return {
+    name: 'flip',
+    options,
+    async fn(state) {
+      var _middlewareData$flip;
+      const {
+        placement,
+        middlewareData,
+        rects,
+        initialPlacement,
+        platform,
+        elements
+      } = state;
+      const {
+        mainAxis: checkMainAxis = true,
+        crossAxis: checkCrossAxis = true,
+        fallbackPlacements: specifiedFallbackPlacements,
+        fallbackStrategy = 'bestFit',
+        fallbackAxisSideDirection = 'none',
+        flipAlignment = true,
+        ...detectOverflowOptions
+      } = evaluate(options, state);
+      const side = getSide(placement);
+      const isBasePlacement = getSide(initialPlacement) === initialPlacement;
+      const rtl = await (platform.isRTL == null ? void 0 : platform.isRTL(elements.floating));
+      const fallbackPlacements = specifiedFallbackPlacements || (isBasePlacement || !flipAlignment ? [getOppositePlacement(initialPlacement)] : getExpandedPlacements(initialPlacement));
+      if (!specifiedFallbackPlacements && fallbackAxisSideDirection !== 'none') {
+        fallbackPlacements.push(...getOppositeAxisPlacements(initialPlacement, flipAlignment, fallbackAxisSideDirection, rtl));
+      }
+      const placements = [initialPlacement, ...fallbackPlacements];
+      const overflow = await detectOverflow(state, detectOverflowOptions);
+      const overflows = [];
+      let overflowsData = ((_middlewareData$flip = middlewareData.flip) == null ? void 0 : _middlewareData$flip.overflows) || [];
+      if (checkMainAxis) {
+        overflows.push(overflow[side]);
+      }
+      if (checkCrossAxis) {
+        const sides = getAlignmentSides(placement, rects, rtl);
+        overflows.push(overflow[sides[0]], overflow[sides[1]]);
+      }
+      overflowsData = [...overflowsData, {
+        placement,
+        overflows
+      }];
+
+      // One or more sides is overflowing.
+      if (!overflows.every(side => side <= 0)) {
+        var _middlewareData$flip2, _overflowsData$filter;
+        const nextIndex = (((_middlewareData$flip2 = middlewareData.flip) == null ? void 0 : _middlewareData$flip2.index) || 0) + 1;
+        const nextPlacement = placements[nextIndex];
+        if (nextPlacement) {
+          // Try next placement and re-run the lifecycle.
+          return {
+            data: {
+              index: nextIndex,
+              overflows: overflowsData
+            },
+            reset: {
+              placement: nextPlacement
+            }
+          };
+        }
+
+        // First, find the candidates that fit on the mainAxis side of overflow,
+        // then find the placement that fits the best on the main crossAxis side.
+        let resetPlacement = (_overflowsData$filter = overflowsData.filter(d => d.overflows[0] <= 0).sort((a, b) => a.overflows[1] - b.overflows[1])[0]) == null ? void 0 : _overflowsData$filter.placement;
+
+        // Otherwise fallback.
+        if (!resetPlacement) {
+          switch (fallbackStrategy) {
+            case 'bestFit':
+              {
+                var _overflowsData$map$so;
+                const placement = (_overflowsData$map$so = overflowsData.map(d => [d.placement, d.overflows.filter(overflow => overflow > 0).reduce((acc, overflow) => acc + overflow, 0)]).sort((a, b) => a[1] - b[1])[0]) == null ? void 0 : _overflowsData$map$so[0];
+                if (placement) {
+                  resetPlacement = placement;
+                }
+                break;
+              }
+            case 'initialPlacement':
+              resetPlacement = initialPlacement;
+              break;
+          }
+        }
+        if (placement !== resetPlacement) {
+          return {
+            reset: {
+              placement: resetPlacement
+            }
+          };
+        }
+      }
+      return {};
+    }
+  };
+};
+
+function getNodeName(node) {
+  if (isNode(node)) {
+    return (node.nodeName || '').toLowerCase();
+  }
+  // Mocked nodes in testing environments may not be instances of Node. By
+  // returning `#document` an infinite loop won't occur.
+  // https://github.com/floating-ui/floating-ui/issues/2317
+  return '#document';
+}
+function getWindow(node) {
+  var _node$ownerDocument;
+  return (node == null ? void 0 : (_node$ownerDocument = node.ownerDocument) == null ? void 0 : _node$ownerDocument.defaultView) || window;
+}
+function getDocumentElement(node) {
+  var _ref;
+  return (_ref = (isNode(node) ? node.ownerDocument : node.document) || window.document) == null ? void 0 : _ref.documentElement;
+}
+function isNode(value) {
+  return value instanceof Node || value instanceof getWindow(value).Node;
+}
+function isElement(value) {
+  return value instanceof Element || value instanceof getWindow(value).Element;
+}
+function isHTMLElement(value) {
+  return value instanceof HTMLElement || value instanceof getWindow(value).HTMLElement;
+}
+function isShadowRoot(value) {
+  // Browsers without `ShadowRoot` support.
+  if (typeof ShadowRoot === 'undefined') {
+    return false;
+  }
+  return value instanceof ShadowRoot || value instanceof getWindow(value).ShadowRoot;
+}
+function isOverflowElement(element) {
+  const {
+    overflow,
+    overflowX,
+    overflowY,
+    display
+  } = getComputedStyle(element);
+  return /auto|scroll|overlay|hidden|clip/.test(overflow + overflowY + overflowX) && !['inline', 'contents'].includes(display);
+}
+function isTableElement(element) {
+  return ['table', 'td', 'th'].includes(getNodeName(element));
+}
+function isContainingBlock(element) {
+  const webkit = isWebKit();
+  const css = getComputedStyle(element);
+
+  // https://developer.mozilla.org/en-US/docs/Web/CSS/Containing_block#identifying_the_containing_block
+  return css.transform !== 'none' || css.perspective !== 'none' || (css.containerType ? css.containerType !== 'normal' : false) || !webkit && (css.backdropFilter ? css.backdropFilter !== 'none' : false) || !webkit && (css.filter ? css.filter !== 'none' : false) || ['transform', 'perspective', 'filter'].some(value => (css.willChange || '').includes(value)) || ['paint', 'layout', 'strict', 'content'].some(value => (css.contain || '').includes(value));
+}
+function getContainingBlock(element) {
+  let currentNode = getParentNode(element);
+  while (isHTMLElement(currentNode) && !isLastTraversableNode(currentNode)) {
+    if (isContainingBlock(currentNode)) {
+      return currentNode;
+    } else {
+      currentNode = getParentNode(currentNode);
+    }
+  }
+  return null;
+}
+function isWebKit() {
+  if (typeof CSS === 'undefined' || !CSS.supports) return false;
+  return CSS.supports('-webkit-backdrop-filter', 'none');
+}
+function isLastTraversableNode(node) {
+  return ['html', 'body', '#document'].includes(getNodeName(node));
+}
+function getComputedStyle(element) {
+  return getWindow(element).getComputedStyle(element);
+}
+function getNodeScroll(element) {
+  if (isElement(element)) {
+    return {
+      scrollLeft: element.scrollLeft,
+      scrollTop: element.scrollTop
+    };
+  }
+  return {
+    scrollLeft: element.pageXOffset,
+    scrollTop: element.pageYOffset
+  };
+}
+function getParentNode(node) {
+  if (getNodeName(node) === 'html') {
+    return node;
+  }
+  const result =
+  // Step into the shadow DOM of the parent of a slotted node.
+  node.assignedSlot ||
+  // DOM Element detected.
+  node.parentNode ||
+  // ShadowRoot detected.
+  isShadowRoot(node) && node.host ||
+  // Fallback.
+  getDocumentElement(node);
+  return isShadowRoot(result) ? result.host : result;
+}
+function getNearestOverflowAncestor(node) {
+  const parentNode = getParentNode(node);
+  if (isLastTraversableNode(parentNode)) {
+    return node.ownerDocument ? node.ownerDocument.body : node.body;
+  }
+  if (isHTMLElement(parentNode) && isOverflowElement(parentNode)) {
+    return parentNode;
+  }
+  return getNearestOverflowAncestor(parentNode);
+}
+function getOverflowAncestors(node, list) {
+  var _node$ownerDocument2;
+  if (list === void 0) {
+    list = [];
+  }
+  const scrollableAncestor = getNearestOverflowAncestor(node);
+  const isBody = scrollableAncestor === ((_node$ownerDocument2 = node.ownerDocument) == null ? void 0 : _node$ownerDocument2.body);
+  const win = getWindow(scrollableAncestor);
+  if (isBody) {
+    return list.concat(win, win.visualViewport || [], isOverflowElement(scrollableAncestor) ? scrollableAncestor : []);
+  }
+  return list.concat(scrollableAncestor, getOverflowAncestors(scrollableAncestor));
+}
+
+function getCssDimensions(element) {
+  const css = getComputedStyle(element);
+  // In testing environments, the `width` and `height` properties are empty
+  // strings for SVG elements, returning NaN. Fallback to `0` in this case.
+  let width = parseFloat(css.width) || 0;
+  let height = parseFloat(css.height) || 0;
+  const hasOffset = isHTMLElement(element);
+  const offsetWidth = hasOffset ? element.offsetWidth : width;
+  const offsetHeight = hasOffset ? element.offsetHeight : height;
+  const shouldFallback = round(width) !== offsetWidth || round(height) !== offsetHeight;
+  if (shouldFallback) {
+    width = offsetWidth;
+    height = offsetHeight;
+  }
+  return {
+    width,
+    height,
+    $: shouldFallback
+  };
+}
+
+function unwrapElement(element) {
+  return !isElement(element) ? element.contextElement : element;
+}
+
+function getScale(element) {
+  const domElement = unwrapElement(element);
+  if (!isHTMLElement(domElement)) {
+    return createCoords(1);
+  }
+  const rect = domElement.getBoundingClientRect();
+  const {
+    width,
+    height,
+    $
+  } = getCssDimensions(domElement);
+  let x = ($ ? round(rect.width) : rect.width) / width;
+  let y = ($ ? round(rect.height) : rect.height) / height;
+
+  // 0, NaN, or Infinity should always fallback to 1.
+
+  if (!x || !Number.isFinite(x)) {
+    x = 1;
+  }
+  if (!y || !Number.isFinite(y)) {
+    y = 1;
+  }
+  return {
+    x,
+    y
+  };
+}
+
+const noOffsets = /*#__PURE__*/createCoords(0);
+function getVisualOffsets(element) {
+  const win = getWindow(element);
+  if (!isWebKit() || !win.visualViewport) {
+    return noOffsets;
+  }
+  return {
+    x: win.visualViewport.offsetLeft,
+    y: win.visualViewport.offsetTop
+  };
+}
+function shouldAddVisualOffsets(element, isFixed, floatingOffsetParent) {
+  if (isFixed === void 0) {
+    isFixed = false;
+  }
+  if (!floatingOffsetParent || isFixed && floatingOffsetParent !== getWindow(element)) {
+    return false;
+  }
+  return isFixed;
+}
+
+function getBoundingClientRect(element, includeScale, isFixedStrategy, offsetParent) {
+  if (includeScale === void 0) {
+    includeScale = false;
+  }
+  if (isFixedStrategy === void 0) {
+    isFixedStrategy = false;
+  }
+  const clientRect = element.getBoundingClientRect();
+  const domElement = unwrapElement(element);
+  let scale = createCoords(1);
+  if (includeScale) {
+    if (offsetParent) {
+      if (isElement(offsetParent)) {
+        scale = getScale(offsetParent);
+      }
+    } else {
+      scale = getScale(element);
+    }
+  }
+  const visualOffsets = shouldAddVisualOffsets(domElement, isFixedStrategy, offsetParent) ? getVisualOffsets(domElement) : createCoords(0);
+  let x = (clientRect.left + visualOffsets.x) / scale.x;
+  let y = (clientRect.top + visualOffsets.y) / scale.y;
+  let width = clientRect.width / scale.x;
+  let height = clientRect.height / scale.y;
+  if (domElement) {
+    const win = getWindow(domElement);
+    const offsetWin = offsetParent && isElement(offsetParent) ? getWindow(offsetParent) : offsetParent;
+    let currentIFrame = win.frameElement;
+    while (currentIFrame && offsetParent && offsetWin !== win) {
+      const iframeScale = getScale(currentIFrame);
+      const iframeRect = currentIFrame.getBoundingClientRect();
+      const css = getComputedStyle(currentIFrame);
+      const left = iframeRect.left + (currentIFrame.clientLeft + parseFloat(css.paddingLeft)) * iframeScale.x;
+      const top = iframeRect.top + (currentIFrame.clientTop + parseFloat(css.paddingTop)) * iframeScale.y;
+      x *= iframeScale.x;
+      y *= iframeScale.y;
+      width *= iframeScale.x;
+      height *= iframeScale.y;
+      x += left;
+      y += top;
+      currentIFrame = getWindow(currentIFrame).frameElement;
+    }
+  }
+  return rectToClientRect({
+    width,
+    height,
+    x,
+    y
+  });
+}
+
+function convertOffsetParentRelativeRectToViewportRelativeRect(_ref) {
+  let {
+    rect,
+    offsetParent,
+    strategy
+  } = _ref;
+  const isOffsetParentAnElement = isHTMLElement(offsetParent);
+  const documentElement = getDocumentElement(offsetParent);
+  if (offsetParent === documentElement) {
+    return rect;
+  }
+  let scroll = {
+    scrollLeft: 0,
+    scrollTop: 0
+  };
+  let scale = createCoords(1);
+  const offsets = createCoords(0);
+  if (isOffsetParentAnElement || !isOffsetParentAnElement && strategy !== 'fixed') {
+    if (getNodeName(offsetParent) !== 'body' || isOverflowElement(documentElement)) {
+      scroll = getNodeScroll(offsetParent);
+    }
+    if (isHTMLElement(offsetParent)) {
+      const offsetRect = getBoundingClientRect(offsetParent);
+      scale = getScale(offsetParent);
+      offsets.x = offsetRect.x + offsetParent.clientLeft;
+      offsets.y = offsetRect.y + offsetParent.clientTop;
+    }
+  }
+  return {
+    width: rect.width * scale.x,
+    height: rect.height * scale.y,
+    x: rect.x * scale.x - scroll.scrollLeft * scale.x + offsets.x,
+    y: rect.y * scale.y - scroll.scrollTop * scale.y + offsets.y
+  };
+}
+
+function getClientRects(element) {
+  return Array.from(element.getClientRects());
+}
+
+function getWindowScrollBarX(element) {
+  // If <html> has a CSS width greater than the viewport, then this will be
+  // incorrect for RTL.
+  return getBoundingClientRect(getDocumentElement(element)).left + getNodeScroll(element).scrollLeft;
+}
+
+// Gets the entire size of the scrollable document area, even extending outside
+// of the `<html>` and `<body>` rect bounds if horizontally scrollable.
+function getDocumentRect(element) {
+  const html = getDocumentElement(element);
+  const scroll = getNodeScroll(element);
+  const body = element.ownerDocument.body;
+  const width = max(html.scrollWidth, html.clientWidth, body.scrollWidth, body.clientWidth);
+  const height = max(html.scrollHeight, html.clientHeight, body.scrollHeight, body.clientHeight);
+  let x = -scroll.scrollLeft + getWindowScrollBarX(element);
+  const y = -scroll.scrollTop;
+  if (getComputedStyle(body).direction === 'rtl') {
+    x += max(html.clientWidth, body.clientWidth) - width;
+  }
+  return {
+    width,
+    height,
+    x,
+    y
+  };
+}
+
+function getViewportRect(element, strategy) {
+  const win = getWindow(element);
+  const html = getDocumentElement(element);
+  const visualViewport = win.visualViewport;
+  let width = html.clientWidth;
+  let height = html.clientHeight;
+  let x = 0;
+  let y = 0;
+  if (visualViewport) {
+    width = visualViewport.width;
+    height = visualViewport.height;
+    const visualViewportBased = isWebKit();
+    if (!visualViewportBased || visualViewportBased && strategy === 'fixed') {
+      x = visualViewport.offsetLeft;
+      y = visualViewport.offsetTop;
+    }
+  }
+  return {
+    width,
+    height,
+    x,
+    y
+  };
+}
+
+// Returns the inner client rect, subtracting scrollbars if present.
+function getInnerBoundingClientRect(element, strategy) {
+  const clientRect = getBoundingClientRect(element, true, strategy === 'fixed');
+  const top = clientRect.top + element.clientTop;
+  const left = clientRect.left + element.clientLeft;
+  const scale = isHTMLElement(element) ? getScale(element) : createCoords(1);
+  const width = element.clientWidth * scale.x;
+  const height = element.clientHeight * scale.y;
+  const x = left * scale.x;
+  const y = top * scale.y;
+  return {
+    width,
+    height,
+    x,
+    y
+  };
+}
+function getClientRectFromClippingAncestor(element, clippingAncestor, strategy) {
+  let rect;
+  if (clippingAncestor === 'viewport') {
+    rect = getViewportRect(element, strategy);
+  } else if (clippingAncestor === 'document') {
+    rect = getDocumentRect(getDocumentElement(element));
+  } else if (isElement(clippingAncestor)) {
+    rect = getInnerBoundingClientRect(clippingAncestor, strategy);
+  } else {
+    const visualOffsets = getVisualOffsets(element);
+    rect = {
+      ...clippingAncestor,
+      x: clippingAncestor.x - visualOffsets.x,
+      y: clippingAncestor.y - visualOffsets.y
+    };
+  }
+  return rectToClientRect(rect);
+}
+function hasFixedPositionAncestor(element, stopNode) {
+  const parentNode = getParentNode(element);
+  if (parentNode === stopNode || !isElement(parentNode) || isLastTraversableNode(parentNode)) {
+    return false;
+  }
+  return getComputedStyle(parentNode).position === 'fixed' || hasFixedPositionAncestor(parentNode, stopNode);
+}
+
+// A "clipping ancestor" is an `overflow` element with the characteristic of
+// clipping (or hiding) child elements. This returns all clipping ancestors
+// of the given element up the tree.
+function getClippingElementAncestors(element, cache) {
+  const cachedResult = cache.get(element);
+  if (cachedResult) {
+    return cachedResult;
+  }
+  let result = getOverflowAncestors(element).filter(el => isElement(el) && getNodeName(el) !== 'body');
+  let currentContainingBlockComputedStyle = null;
+  const elementIsFixed = getComputedStyle(element).position === 'fixed';
+  let currentNode = elementIsFixed ? getParentNode(element) : element;
+
+  // https://developer.mozilla.org/en-US/docs/Web/CSS/Containing_block#identifying_the_containing_block
+  while (isElement(currentNode) && !isLastTraversableNode(currentNode)) {
+    const computedStyle = getComputedStyle(currentNode);
+    const currentNodeIsContaining = isContainingBlock(currentNode);
+    if (!currentNodeIsContaining && computedStyle.position === 'fixed') {
+      currentContainingBlockComputedStyle = null;
+    }
+    const shouldDropCurrentNode = elementIsFixed ? !currentNodeIsContaining && !currentContainingBlockComputedStyle : !currentNodeIsContaining && computedStyle.position === 'static' && !!currentContainingBlockComputedStyle && ['absolute', 'fixed'].includes(currentContainingBlockComputedStyle.position) || isOverflowElement(currentNode) && !currentNodeIsContaining && hasFixedPositionAncestor(element, currentNode);
+    if (shouldDropCurrentNode) {
+      // Drop non-containing blocks.
+      result = result.filter(ancestor => ancestor !== currentNode);
+    } else {
+      // Record last containing block for next iteration.
+      currentContainingBlockComputedStyle = computedStyle;
+    }
+    currentNode = getParentNode(currentNode);
+  }
+  cache.set(element, result);
+  return result;
+}
+
+// Gets the maximum area that the element is visible in due to any number of
+// clipping ancestors.
+function getClippingRect(_ref) {
+  let {
+    element,
+    boundary,
+    rootBoundary,
+    strategy
+  } = _ref;
+  const elementClippingAncestors = boundary === 'clippingAncestors' ? getClippingElementAncestors(element, this._c) : [].concat(boundary);
+  const clippingAncestors = [...elementClippingAncestors, rootBoundary];
+  const firstClippingAncestor = clippingAncestors[0];
+  const clippingRect = clippingAncestors.reduce((accRect, clippingAncestor) => {
+    const rect = getClientRectFromClippingAncestor(element, clippingAncestor, strategy);
+    accRect.top = max(rect.top, accRect.top);
+    accRect.right = min(rect.right, accRect.right);
+    accRect.bottom = min(rect.bottom, accRect.bottom);
+    accRect.left = max(rect.left, accRect.left);
+    return accRect;
+  }, getClientRectFromClippingAncestor(element, firstClippingAncestor, strategy));
+  return {
+    width: clippingRect.right - clippingRect.left,
+    height: clippingRect.bottom - clippingRect.top,
+    x: clippingRect.left,
+    y: clippingRect.top
+  };
+}
+
+function getDimensions(element) {
+  return getCssDimensions(element);
+}
+
+function getRectRelativeToOffsetParent(element, offsetParent, strategy) {
+  const isOffsetParentAnElement = isHTMLElement(offsetParent);
+  const documentElement = getDocumentElement(offsetParent);
+  const isFixed = strategy === 'fixed';
+  const rect = getBoundingClientRect(element, true, isFixed, offsetParent);
+  let scroll = {
+    scrollLeft: 0,
+    scrollTop: 0
+  };
+  const offsets = createCoords(0);
+  if (isOffsetParentAnElement || !isOffsetParentAnElement && !isFixed) {
+    if (getNodeName(offsetParent) !== 'body' || isOverflowElement(documentElement)) {
+      scroll = getNodeScroll(offsetParent);
+    }
+    if (isOffsetParentAnElement) {
+      const offsetRect = getBoundingClientRect(offsetParent, true, isFixed, offsetParent);
+      offsets.x = offsetRect.x + offsetParent.clientLeft;
+      offsets.y = offsetRect.y + offsetParent.clientTop;
+    } else if (documentElement) {
+      offsets.x = getWindowScrollBarX(documentElement);
+    }
+  }
+  return {
+    x: rect.left + scroll.scrollLeft - offsets.x,
+    y: rect.top + scroll.scrollTop - offsets.y,
+    width: rect.width,
+    height: rect.height
+  };
+}
+
+function getTrueOffsetParent(element, polyfill) {
+  if (!isHTMLElement(element) || getComputedStyle(element).position === 'fixed') {
+    return null;
+  }
+  if (polyfill) {
+    return polyfill(element);
+  }
+  return element.offsetParent;
+}
+
+// Gets the closest ancestor positioned element. Handles some edge cases,
+// such as table ancestors and cross browser bugs.
+function getOffsetParent(element, polyfill) {
+  const window = getWindow(element);
+  if (!isHTMLElement(element)) {
+    return window;
+  }
+  let offsetParent = getTrueOffsetParent(element, polyfill);
+  while (offsetParent && isTableElement(offsetParent) && getComputedStyle(offsetParent).position === 'static') {
+    offsetParent = getTrueOffsetParent(offsetParent, polyfill);
+  }
+  if (offsetParent && (getNodeName(offsetParent) === 'html' || getNodeName(offsetParent) === 'body' && getComputedStyle(offsetParent).position === 'static' && !isContainingBlock(offsetParent))) {
+    return window;
+  }
+  return offsetParent || getContainingBlock(element) || window;
+}
+
+const getElementRects = async function (_ref) {
+  let {
+    reference,
+    floating,
+    strategy
+  } = _ref;
+  const getOffsetParentFn = this.getOffsetParent || getOffsetParent;
+  const getDimensionsFn = this.getDimensions;
+  return {
+    reference: getRectRelativeToOffsetParent(reference, await getOffsetParentFn(floating), strategy),
+    floating: {
+      x: 0,
+      y: 0,
+      ...(await getDimensionsFn(floating))
+    }
+  };
+};
+
+function isRTL(element) {
+  return getComputedStyle(element).direction === 'rtl';
+}
+
+const platform = {
+  convertOffsetParentRelativeRectToViewportRelativeRect,
+  getDocumentElement,
+  getClippingRect,
+  getOffsetParent,
+  getElementRects,
+  getClientRects,
+  getDimensions,
+  getScale,
+  isElement,
+  isRTL
+};
+
+// https://samthor.au/2021/observing-dom/
+function observeMove(element, onMove) {
+  let io = null;
+  let timeoutId;
+  const root = getDocumentElement(element);
+  function cleanup() {
+    clearTimeout(timeoutId);
+    io && io.disconnect();
+    io = null;
+  }
+  function refresh(skip, threshold) {
+    if (skip === void 0) {
+      skip = false;
+    }
+    if (threshold === void 0) {
+      threshold = 1;
+    }
+    cleanup();
+    const {
+      left,
+      top,
+      width,
+      height
+    } = element.getBoundingClientRect();
+    if (!skip) {
+      onMove();
+    }
+    if (!width || !height) {
+      return;
+    }
+    const insetTop = floor(top);
+    const insetRight = floor(root.clientWidth - (left + width));
+    const insetBottom = floor(root.clientHeight - (top + height));
+    const insetLeft = floor(left);
+    const rootMargin = -insetTop + "px " + -insetRight + "px " + -insetBottom + "px " + -insetLeft + "px";
+    const options = {
+      rootMargin,
+      threshold: max(0, min(1, threshold)) || 1
+    };
+    let isFirstUpdate = true;
+    function handleObserve(entries) {
+      const ratio = entries[0].intersectionRatio;
+      if (ratio !== threshold) {
+        if (!isFirstUpdate) {
+          return refresh();
+        }
+        if (!ratio) {
+          timeoutId = setTimeout(() => {
+            refresh(false, 1e-7);
+          }, 100);
+        } else {
+          refresh(false, ratio);
+        }
+      }
+      isFirstUpdate = false;
+    }
+
+    // Older browsers don't support a `document` as the root and will throw an
+    // error.
+    try {
+      io = new IntersectionObserver(handleObserve, {
+        ...options,
+        // Handle <iframe>s
+        root: root.ownerDocument
+      });
+    } catch (e) {
+      io = new IntersectionObserver(handleObserve, options);
+    }
+    io.observe(element);
+  }
+  refresh(true);
+  return cleanup;
+}
+
+/**
+ * Automatically updates the position of the floating element when necessary.
+ * Should only be called when the floating element is mounted on the DOM or
+ * visible on the screen.
+ * @returns cleanup function that should be invoked when the floating element is
+ * removed from the DOM or hidden from the screen.
+ * @see https://floating-ui.com/docs/autoUpdate
+ */
+function autoUpdate(reference, floating, update, options) {
+  if (options === void 0) {
+    options = {};
+  }
+  const {
+    ancestorScroll = true,
+    ancestorResize = true,
+    elementResize = typeof ResizeObserver === 'function',
+    layoutShift = typeof IntersectionObserver === 'function',
+    animationFrame = false
+  } = options;
+  const referenceEl = unwrapElement(reference);
+  const ancestors = ancestorScroll || ancestorResize ? [...(referenceEl ? getOverflowAncestors(referenceEl) : []), ...getOverflowAncestors(floating)] : [];
+  ancestors.forEach(ancestor => {
+    ancestorScroll && ancestor.addEventListener('scroll', update, {
+      passive: true
+    });
+    ancestorResize && ancestor.addEventListener('resize', update);
+  });
+  const cleanupIo = referenceEl && layoutShift ? observeMove(referenceEl, update) : null;
+  let reobserveFrame = -1;
+  let resizeObserver = null;
+  if (elementResize) {
+    resizeObserver = new ResizeObserver(_ref => {
+      let [firstEntry] = _ref;
+      if (firstEntry && firstEntry.target === referenceEl && resizeObserver) {
+        // Prevent update loops when using the `size` middleware.
+        // https://github.com/floating-ui/floating-ui/issues/1740
+        resizeObserver.unobserve(floating);
+        cancelAnimationFrame(reobserveFrame);
+        reobserveFrame = requestAnimationFrame(() => {
+          resizeObserver && resizeObserver.observe(floating);
+        });
+      }
+      update();
+    });
+    if (referenceEl && !animationFrame) {
+      resizeObserver.observe(referenceEl);
+    }
+    resizeObserver.observe(floating);
+  }
+  let frameId;
+  let prevRefRect = animationFrame ? getBoundingClientRect(reference) : null;
+  if (animationFrame) {
+    frameLoop();
+  }
+  function frameLoop() {
+    const nextRefRect = getBoundingClientRect(reference);
+    if (prevRefRect && (nextRefRect.x !== prevRefRect.x || nextRefRect.y !== prevRefRect.y || nextRefRect.width !== prevRefRect.width || nextRefRect.height !== prevRefRect.height)) {
+      update();
+    }
+    prevRefRect = nextRefRect;
+    frameId = requestAnimationFrame(frameLoop);
+  }
+  update();
+  return () => {
+    ancestors.forEach(ancestor => {
+      ancestorScroll && ancestor.removeEventListener('scroll', update);
+      ancestorResize && ancestor.removeEventListener('resize', update);
+    });
+    cleanupIo && cleanupIo();
+    resizeObserver && resizeObserver.disconnect();
+    resizeObserver = null;
+    if (animationFrame) {
+      cancelAnimationFrame(frameId);
+    }
+  };
+}
+
+/**
+ * Computes the `x` and `y` coordinates that will place the floating element
+ * next to a reference element when it is given a certain CSS positioning
+ * strategy.
+ */
+const computePosition = (reference, floating, options) => {
+  // This caches the expensive `getClippingElementAncestors` function so that
+  // multiple lifecycle resets re-use the same result. It only lives for a
+  // single call. If other functions become expensive, we can add them as well.
+  const cache = new Map();
+  const mergedOptions = {
+    platform,
+    ...options
+  };
+  const platformWithCache = {
+    ...mergedOptions.platform,
+    _c: cache
+  };
+  return computePosition$1(reference, floating, {
+    ...mergedOptions,
+    platform: platformWithCache
+  });
+};
+
+const granularities = ['day', 'week', 'month', 'quarter', 'year'];
+const togglePeriods = ['days', 'months', 'years'];
+const monthsIndexesInQuarters = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [9, 10, 11]
+];
+const YEARS_RANGE_SIZE = 12;
+const STICKER_TAG_PREFIX = '#sticker-';
+const CALENDAR_POPOVER_ID = 'calendar-popover';
+const STICKER_POPOVER_ID = 'sticker-popover';
+
+const id$1 = CALENDAR_POPOVER_ID;
+const ribbonReferenceElId = `${id$1}-ribbon-ref-el`;
+const getReferenceEl = () => document.querySelector(`[id=${ribbonReferenceElId}]`);
+const handleReferenceElHover = () => {
+    const calendarPopoverStore = get_store_value(popoversStore)[id$1];
+    if (!calendarPopoverStore?.opened) {
+        openPopover({ id: id$1 });
+    }
+};
+const handleWindowMouseover = (event) => {
+    if (get_store_value(settingsStore).openPopoverOnRibbonHover) {
+        const ev = event;
+        const calendarPopoverStore = get_store_value(popoversStore)[id$1];
+        const stickerPopoverStore = get_store_value(popoversStore)[STICKER_POPOVER_ID];
+        const menuEl = document.querySelector('.menu');
+        const calendarElTouched = calendarPopoverStore?.floatingEl?.contains(ev.target) ||
+            ev.target?.id.includes(CALENDAR_POPOVER_ID);
+        const stickerElTouched = stickerPopoverStore?.floatingEl?.contains(ev.target) ||
+            ev.target?.id.includes(STICKER_POPOVER_ID);
+        const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
+        const referenceElTouched = calendarPopoverStore?.referenceEl?.contains(event.target);
+        const targetOut = !calendarElTouched && !menuElTouched && !stickerElTouched;
+        const fileMenu = get_store_value(crrFileMenu);
+        if (referenceElTouched)
+            return;
+        // close CP if only CP opened and user hovered anywhere but it
+        if (calendarPopoverStore?.opened && !stickerPopoverStore?.opened && !menuEl && targetOut) {
+            closePopover({ id: CALENDAR_POPOVER_ID });
+            // close crr open ctx menu
+            fileMenu?.close();
+        }
+    }
+};
+const handleWindowClick$1 = (event) => {
+    const ev = event;
+    const settings = get_store_value(settingsStore);
+    const calendarPopoverStore = get_store_value(popoversStore)[id$1];
+    const stickerPopoverStore = get_store_value(popoversStore)[STICKER_POPOVER_ID];
+    const menuEl = document.querySelector('.menu');
+    const calendarElTouched = calendarPopoverStore?.floatingEl?.contains(ev.target) ||
+        ev.target?.id.includes(CALENDAR_POPOVER_ID);
+    const stickerElTouched = stickerPopoverStore?.floatingEl?.contains(ev.target) ||
+        ev.target?.id.includes(STICKER_POPOVER_ID);
+    const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
+    const targetOut = !calendarElTouched && !menuElTouched && !stickerElTouched;
+    // ensures popovers could be closed one by one
+    if (calendarPopoverStore?.opened && stickerPopoverStore?.opened && settings.popoversCloseData.closePopoversOneByOneOnClickOut) {
+        return;
+    }
+    // close CP if user clicked anywhere but either CP, context menu or SP
+    if (targetOut) {
+        closePopover({ id: CALENDAR_POPOVER_ID });
+    }
+};
+// Accessibility Keyboard Interactions
+const handleWindowKeydown$1 = (event) => {
+    const settings = get_store_value(settingsStore);
+    const calendarPopoverStore = get_store_value(popoversStore)[id$1];
+    const stickerPopoverStore = get_store_value(popoversStore)[STICKER_POPOVER_ID];
+    const floatingEl = getFloatingEl({ id: id$1 });
+    const referenceEl = getReferenceEl();
+    const focusableAllowedList = ':is(a[href], button, input, textarea, select, details, [tabindex]):not([tabindex="-1"])';
+    const focusablePopoverElements = Array.from(floatingEl?.querySelectorAll(focusableAllowedList));
+    const referenceElFocused = (calendarPopoverStore?.opened && document.activeElement === referenceEl) || false;
+    // When the user focuses on 'referenceEl' and then presses the Tab or ArrowDown key, the first element inside the view should receive focus.
+    // TODO: make it work!
+    if (referenceElFocused &&
+        (event.key === 'ArrowDown' || event.key === 'Tab') &&
+        focusablePopoverElements.length > 0) {
+        focusablePopoverElements[0].focus();
+        return;
+    }
+    // ensures popovers could be closed one by one
+    if (calendarPopoverStore?.opened && stickerPopoverStore?.opened && settings.popoversCloseData.closePopoversOneByOneOnEscKeydown) {
+        return;
+    }
+    if (event.key === 'Escape') {
+        referenceEl?.focus();
+        closePopover({ id: id$1 });
+        return;
+    }
+};
+const windowEvents$1 = {
+    click: handleWindowClick$1,
+    auxclick: handleWindowClick$1,
+    keydown: handleWindowKeydown$1,
+    mouseover: handleWindowMouseover
+};
+const open$1 = () => {
+    const floatingEl = getFloatingEl({ id: id$1 });
+    const referenceEl = getReferenceEl();
+    revealFloatingEl({ floatingEl });
+    setFloatingElInteractivity({ floatingEl, enabled: true });
+    popoversStore.update((values) => ({
+        ...values,
+        [id$1]: {
+            ...values[id$1],
+            opened: true,
+            floatingEl,
+            referenceEl,
+            // Trigger Floating UI autoUpdate (open only)
+            // https://floating-ui.com/docs/autoUpdate
+            cleanupPopoverAutoUpdate: autoUpdate(referenceEl, floatingEl, () => positionFloatingEl({ referenceEl, id: id$1 }))
+        }
+    }));
+};
+const extraSetup$1 = () => {
+    positionFloatingEl({ referenceEl: getReferenceEl(), id: id$1 });
+    if (get_store_value(settingsStore).openPopoverOnRibbonHover) {
+        getReferenceEl().addEventListener('mouseover', handleReferenceElHover);
+    }
+};
+const cleanup$1 = () => {
+    const plugin = window.plugin;
+    popoversStore.update((values) => ({
+        ...values,
+        [id$1]: {
+            opened: false,
+            referenceEl: null,
+            floatingEl: null,
+            cleanupPopoverAutoUpdate: () => ({})
+        }
+    }));
+    getReferenceEl().removeEventListener('mouseover', handleReferenceElHover);
+    popover$1.removeWindowEvents();
+    if (plugin.popovers) {
+        Object.values(plugin.popovers).forEach((popover) => popover?.$destroy());
+        plugin.popovers = {};
+    }
+};
+const popover$1 = {
+    open: open$1,
+    extraSetup: extraSetup$1,
+    cleanup: cleanup$1,
+    windowEvents: windowEvents$1,
+    addWindowEvents: () => {
+        for (const [evName, cb] of Object.entries(windowEvents$1)) {
+            window.addEventListener(evName, cb);
+        }
+    },
+    removeWindowEvents: () => {
+        for (const [evName, cb] of Object.entries(windowEvents$1)) {
+            window.removeEventListener(evName, cb);
+        }
+    }
+};
+
+const id = STICKER_POPOVER_ID;
+const spInputKeydownHandlerStore = writable((ev) => {
+    const spInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
+    const settings = get_store_value(settingsStore);
+    const searchInputOnEscKeydown = settings.popoversCloseData.searchInputOnEscKeydown;
+    if (ev.key === 'Escape') {
+        if (settings.popoversCloseData.closePopoversOneByOneOnEscKeydown) {
+            if (searchInputOnEscKeydown === 'close-popover') {
+                closePopover({ id });
+                return;
+            }
+            if (spInput && searchInputOnEscKeydown === 'reset') {
+                if (spInput.value.trim().length > 0) {
+                    // reset input
+                    spInput.value = '';
+                }
+                else {
+                    closePopover({ id });
+                }
+            }
+        }
+        else {
+            // close all popover from capturing-phase-added search input event handler as it stops propagation and window event handlers will not be triggered
+            closePopover({ id });
+            closePopover({ id: CALENDAR_POPOVER_ID });
+        }
+    }
+});
+const handleWindowClick = (event) => {
+    const ev = event;
+    const stickerPopoverStore = get_store_value(popoversStore)[STICKER_POPOVER_ID];
+    const menuEl = document.querySelector('.menu');
+    const stickerElTouched = stickerPopoverStore?.floatingEl?.contains(ev.target) ||
+        ev.target?.id.includes(STICKER_POPOVER_ID);
+    const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
+    // close SP if user clicks anywhere but SP
+    // && !menuElTouched is only relevant for first call
+    if (stickerPopoverStore?.opened && !stickerElTouched && !menuElTouched) {
+        closePopover({ id });
+        return;
+    }
+};
+// Accessibility Keyboard Interactions
+const handleWindowKeydown = (event) => {
+    const settings = get_store_value(settingsStore);
+    const stickerPopoverStore = get_store_value(popoversStore)[id];
+    const floatingEl = getFloatingEl({ id });
+    const focusableAllowedList = ':is(a[href], button, input, textarea, select, details, [tabindex]):not([tabindex="-1"])';
+    const focusablePopoverElements = Array.from(floatingEl?.querySelectorAll(focusableAllowedList));
+    const referenceElFocused = (stickerPopoverStore?.opened && document.activeElement === stickerPopoverStore?.referenceEl) ||
+        false;
+    // When the user focuses on 'referenceEl' and then presses the Tab or ArrowDown key, the first element inside the view should receive focus.
+    // TODO: make it work!
+    if (referenceElFocused &&
+        (event.key === 'ArrowDown' || event.key === 'Tab') &&
+        focusablePopoverElements.length > 0) {
+        focusablePopoverElements[0].focus();
+        return;
+    }
+    if (event.key === 'Escape') {
+        const spInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
+        if (spInput &&
+            spInput.isActiveElement() &&
+            settings.popoversCloseData.searchInputOnEscKeydown) {
+            if (settings.popoversCloseData.searchInputOnEscKeydown === 'close-popover') {
+                spInput.blur();
+                closePopover({ id });
+                return;
+            }
+            if (settings.popoversCloseData.searchInputOnEscKeydown === 'reset') {
+                spInput.value = '';
+                return;
+            }
+        }
+        stickerPopoverStore?.referenceEl?.focus();
+        closePopover({ id });
+        return;
+    }
+};
+const windowEvents = {
+    click: handleWindowClick,
+    auxclick: handleWindowClick,
+    keydown: handleWindowKeydown
+};
+const open = ({ customX, customY }) => {
+    const floatingEl = getFloatingEl({ id });
+    revealFloatingEl({ floatingEl });
+    setFloatingElInteractivity({ floatingEl, enabled: true });
+    const spInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
+    spInput?.focus();
+    // ensure event is fired in the capturing phase
+    spInput?.addEventListener('keydown', get_store_value(spInputKeydownHandlerStore), true);
+    popoversStore.update((values) => ({
+        ...values,
+        [id]: {
+            ...values[id],
+            opened: true,
+            floatingEl,
+            // Trigger Floating UI autoUpdate (open only)
+            // https://floating-ui.com/docs/autoUpdate
+            cleanupPopoverAutoUpdate: autoUpdate(values[id]?.referenceEl, floatingEl, () => positionFloatingEl({
+                referenceEl: values[id]?.referenceEl,
+                id,
+                customX,
+                customY
+            }))
+        }
+    }));
+};
+const close = () => {
+    // remove spInput keydown event handler
+    const spInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
+    spInput?.blur();
+    spInput?.removeEventListener('keydown', get_store_value(spInputKeydownHandlerStore), true);
+};
+const extraSetup = () => {
+    const stickerPopoverStore = get_store_value(popoversStore)[id];
+    positionFloatingEl({ referenceEl: stickerPopoverStore?.referenceEl, id });
+};
+const cleanup = () => {
+    const plugin = window.plugin;
+    popoversStore.update((values) => ({
+        ...values,
+        [id]: {
+            opened: false,
+            referenceEl: null,
+            floatingEl: null,
+            cleanupPopoverAutoUpdate: () => ({})
+        }
+    }));
+    if (plugin.popovers) {
+        Object.values(plugin.popovers).forEach((popover) => popover?.$destroy());
+        plugin.popovers = {};
+    }
+};
+const popover = {
+    open,
+    close,
+    extraSetup,
+    cleanup,
+    addWindowEvents: () => {
+        for (const [evName, cb] of Object.entries(windowEvents)) {
+            window.addEventListener(evName, cb);
+        }
+    },
+    removeWindowEvents: () => {
+        for (const [evName, cb] of Object.entries(windowEvents)) {
+            window.removeEventListener(evName, cb);
+        }
+    }
+};
+
+const popoversStore = writable();
+const mutationObserverCbStore = writable(null);
+const positionFloatingEl = ({ referenceEl, id, customX, customY }) => {
+    const arrowEl = document.querySelector(`#${id}-arrow`);
+    const floatingEl = getFloatingEl({ id });
+    computePosition(referenceEl, floatingEl, {
+        placement: 'right',
+        middleware: [flip(), arrow({ element: arrowEl })]
+    }).then(({ x, y, placement, middlewareData }) => {
+        Object.assign(floatingEl.style, {
+            left: `${customX || x}px`,
+            top: `${customY || y}px`
+        });
+        // Handle Arrow Placement:
+        // https://floating-ui.com/docs/arrow
+        if (arrowEl && middlewareData.arrow) {
+            const { x: arrowX, y: arrowY } = middlewareData.arrow;
+            const staticSide = {
+                top: 'bottom',
+                right: 'left',
+                bottom: 'top',
+                left: 'right'
+            }[placement.split('-')[0]];
+            staticSide &&
+                Object.assign(arrowEl.style, {
+                    left: arrowX != null ? `${arrowX}px` : '',
+                    top: arrowY != null ? `${arrowY}px` : '',
+                    right: '',
+                    bottom: '',
+                    [staticSide]: '9px'
+                });
+        }
+    });
+};
+const revealFloatingEl = ({ floatingEl }) => {
+    floatingEl.style.display = 'block';
+    floatingEl.style.opacity = '1';
+    floatingEl.style.pointerEvents = 'auto';
+    console.log('🙌 revealFloatingEl() > opacity: ', floatingEl.style.opacity);
+};
+const hideFloatingEl = ({ floatingEl }) => {
+    floatingEl.style.opacity = '0';
+    console.log('🙌 hideFloatingEl() > opacity: ', floatingEl.style.opacity);
+};
+const setFloatingElInteractivity = ({ enabled, floatingEl }) => {
+    if (enabled) {
+        floatingEl.removeAttribute('inert');
+    }
+    else {
+        floatingEl.setAttribute('inert', '');
+    }
+};
+const getFloatingEl = ({ id }) => document.querySelector(`#${id}[data-popover="true"]`);
+const openPopover = ({ id, referenceEl, customX, customY }) => {
+    console.log('openPopover() > id: ✅', id);
+    // add mutationObserver to look for when any modal is added to the DOM and close popover in response
+    if (!get_store_value(mutationObserverCbStore)) {
+        const mutationObserverCb = (mutationRecords) => {
+            mutationRecords.forEach((record) => {
+                const modalFound = [...record.addedNodes].find((node) => {
+                    if (node instanceof HTMLElement) {
+                        return node.className.contains('modal');
+                    }
+                });
+                if (modalFound) {
+                    // close all popovers and context menus
+                    const popoversIds = Object.keys(get_store_value(popoversStore));
+                    popoversIds.forEach((id) => closePopover({ id }));
+                    get_store_value(crrFileMenu)?.close();
+                    // disconnect observer and reset observer cb store
+                    mutationObserver.disconnect();
+                    mutationObserverCbStore.set(null);
+                }
+            });
+        };
+        mutationObserverCbStore.set(mutationObserverCb);
+        const mutationObserver = new MutationObserver(mutationObserverCb);
+        mutationObserver.observe(document.querySelector('body'), {
+            childList: true
+        });
+    }
+    popovers[id].open({ referenceEl, customX, customY });
+    popovers[id].addWindowEvents();
+};
+const closePopover = ({ id }) => {
+    console.log('closePopover() > id: ❌', id);
+    const popoverStore = get_store_value(popoversStore)[id];
+    if (popoverStore) {
+        const { referenceEl, floatingEl, cleanupPopoverAutoUpdate } = popoverStore;
+        if (referenceEl && floatingEl) {
+            hideFloatingEl({ floatingEl });
+            setFloatingElInteractivity({ floatingEl, enabled: false });
+            cleanupPopoverAutoUpdate();
+            popoversStore.update((values) => ({
+                ...values,
+                [id]: {
+                    ...values[id],
+                    opened: false
+                }
+            }));
+        }
+    }
+    popovers[id].close?.();
+    popovers[id].removeWindowEvents();
+};
+const togglePopover = ({ id }) => {
+    const popoverStore = get_store_value(popoversStore)[id];
+    if (popoverStore) {
+        const { opened } = popoverStore;
+        if (!opened) {
+            openPopover({ id });
+        }
+        else {
+            closePopover({ id });
+        }
+    }
+};
+const setupPopover = ({ id, referenceEl, view }) => {
+    const plugin = window.plugin;
+    // setup View
+    plugin.popovers[id] = new view.Component({
+        target: document.body,
+        props: { popover: true, close: () => closePopover({ id }), ...view.props }
+    });
+    const emojiPicker = document.querySelector('em-emoji-picker');
+    emojiPicker?.shadowRoot;
+    popoversStore.update((values) => ({
+        ...values,
+        [id]: {
+            opened: false,
+            referenceEl,
+            floatingEl: getFloatingEl({ id }),
+            cleanupPopoverAutoUpdate: () => ({})
+        }
+    }));
+    popovers[id].extraSetup();
+    plugin.popoversCleanups.push(popovers[id].cleanup);
+};
+const popovers = {
+    [CALENDAR_POPOVER_ID]: popover$1,
+    [STICKER_POPOVER_ID]: popover
+};
+
+const defaultWeekdays = [
+    'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday'
+];
+const defaultWeekdaysShort = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+const sysLocaleKey = navigator.languages.find((locale) => localesMap.has(locale.toLocaleLowerCase())) ||
+    navigator.languages[0];
+const sysLocaleMoment = window.moment().clone().locale(sysLocaleKey);
+const sysWeekStartId = sysLocaleMoment.localeData().firstDayOfWeek();
+defaultWeekdays[sysWeekStartId];
+
+const DEFAULT_SETTINGS = Object.freeze({
+    viewOpen: false,
+    shouldConfirmBeforeCreate: true,
+    yearsRangesStart: 2020,
+    autoHoverPreview: false,
+    openPopoverOnRibbonHover: false,
+    crrNldModalGranularity: 'day',
+    localeSettings: {
+        showWeekNums: false,
+        localeOverride: sysLocaleKey,
+        weekStartId: sysWeekStartId
+    },
+    popoversCloseData: {
+        closePopoversOneByOneOnClickOut: false,
+        closePopoversOneByOneOnEscKeydown: true,
+        searchInputOnEscKeydown: 'close-popover'
+    }
+});
+class SettingsTab extends obsidian.PluginSettingTab {
+    plugin;
+    constructor(app, plugin) {
+        super(app, plugin);
+        this.plugin = plugin;
+        this.setupLocale();
+    }
+    display() {
+        console.log('Displaying setttings ⚙️');
+        this.containerEl.empty();
+        this.containerEl.createEl('h3', {
+            text: 'General'
+        });
+        this.addPopoverSetting();
+        this.addOpenPopoverOnRibbonHoverSetting();
+        this.addConfirmCreateSetting();
+        this.addConfirmAutoHoverPreviewSetting();
+        this.addShowWeeklyNoteSetting();
+        this.containerEl.createEl('h3', {
+            text: 'Locale'
+        });
+        this.addLocaleOverrideSetting();
+        this.addWeekStartSetting();
+        if (!get_store_value(settingsStore).viewOpen) {
+            this.containerEl.createEl('h3', {
+                text: 'Popovers close conditions'
+            });
+            this.addClosePopoversOneByOneOnClickOutSetting();
+            this.addClosePopoversOneByBoneOnEscKeydownSetting();
+            if (get_store_value(settingsStore).popoversCloseData.closePopoversOneByOneOnEscKeydown) {
+                this.addSpSearchInputOnEscKeydownSetting();
+            }
+        }
+    }
+    addPopoverSetting() {
+        // TODO: improve wording
+        new obsidian.Setting(this.containerEl)
+            .setName('Ribbon icon opens Calendar view')
+            .setDesc('Show Calendar view when clicking on ribbon icon instead of default popover')
+            .addToggle((viewOpen) => viewOpen.setValue(get_store_value(settingsStore).viewOpen).onChange(async (viewOpen) => {
+            if (this.plugin.popoversCleanups.length > 0) {
+                this.plugin.popoversCleanups.forEach((cleanup) => cleanup());
+                this.plugin.popoversCleanups = [];
+            }
+            if (!viewOpen) {
+                setupPopover({
+                    id: CALENDAR_POPOVER_ID,
+                    view: {
+                        Component: View$1
+                    }
+                });
+            }
+            await this.plugin.saveSettings(() => ({
+                viewOpen
+            }));
+            this.display(); // hide/show popovers close conditions settings
+        }));
+    }
+    addOpenPopoverOnRibbonHoverSetting() {
+        // TODO: improve wording
+        new obsidian.Setting(this.containerEl).setName('Open popover on Ribbon hover').addToggle((el) => el
+            .setValue(get_store_value(settingsStore).openPopoverOnRibbonHover)
+            .onChange(async (openPopoverOnRibbonHover) => {
+            console.log('setting() > popoversCleanups: 🧹🧹🧹 🌬️ ', this.plugin.popoversCleanups);
+            if (this.plugin.popoversCleanups.length > 0) {
+                this.plugin.popoversCleanups.forEach((cleanup) => cleanup());
+                this.plugin.popoversCleanups = [];
+            }
+            console.log('setting() > openPopoverOnRibbonHover: ', openPopoverOnRibbonHover);
+            setupPopover({
+                id: CALENDAR_POPOVER_ID,
+                view: {
+                    Component: View$1
+                }
+            });
+            await this.plugin.saveSettings(() => ({
+                openPopoverOnRibbonHover
+            }));
+        }));
+    }
+    addConfirmCreateSetting() {
+        new obsidian.Setting(this.containerEl)
+            .setName('Confirm before creating new note')
+            .setDesc('Display a confirmation dialog before creating a new note')
+            .addToggle((toggle) => {
+            toggle.setValue(get_store_value(settingsStore).shouldConfirmBeforeCreate);
+            toggle.onChange(async (value) => {
+                this.plugin.saveSettings(() => ({
+                    shouldConfirmBeforeCreate: value
+                }));
+            });
+        });
+    }
+    addConfirmAutoHoverPreviewSetting() {
+        // TODO: improve wording
+        new obsidian.Setting(this.containerEl)
+            .setName('Automatically preview note on hover')
+            .setDesc('Require special key combination (Shift + mouse hover) to preview note')
+            .addToggle((toggle) => {
+            toggle.setValue(get_store_value(settingsStore).autoHoverPreview);
+            toggle.onChange(async (value) => {
+                this.plugin.saveSettings(() => ({
+                    autoHoverPreview: value
+                }));
+            });
+        });
+    }
+    addShowWeeklyNoteSetting() {
+        new obsidian.Setting(this.containerEl)
+            .setName('Show week number')
+            .setDesc('Enable this to add a column with the week number')
+            .addToggle((toggle) => {
+            toggle.setValue(get_store_value(settingsStore).localeSettings.showWeekNums);
+            toggle.onChange(async (value) => {
+                this.plugin.saveSettings((settings) => ({
+                    localeSettings: {
+                        ...settings.localeSettings,
+                        showWeekNums: value
+                    }
+                }));
+            });
+        });
+    }
+    addLocaleOverrideSetting() {
+        const localeSettings = get_store_value(settingsStore).localeSettings;
+        new obsidian.Setting(this.containerEl)
+            .setName('Override locale:')
+            .setDesc('Set this if you want to use a locale different from the default')
+            .addDropdown((dropdown) => {
+            dropdown.addOption(sysLocaleKey, `Same as system - ${localesMap.get(sysLocaleKey) || sysLocaleKey}`);
+            window.moment.locales().forEach((momentLocale) => {
+                // use a name like "English" when available in static locales file otherwise use localeKey
+                dropdown.addOption(momentLocale, localesMap.get(momentLocale) || momentLocale);
+            });
+            dropdown.setValue(localeSettings.localeOverride);
+            dropdown.onChange((localeKey) => {
+                this.updateLocale(localeKey);
+                this.updateWeekStart();
+                this.updateWeekdays();
+                this.display();
+            });
+        });
+    }
+    addWeekStartSetting() {
+        const { localeSettings } = get_store_value(settingsStore);
+        console.log('addWeekStartSetting() > localeSettings: ', localeSettings);
+        // TODO: improve wording
+        new obsidian.Setting(this.containerEl)
+            .setName('Start week on:')
+            .setDesc("Choose what day of the week to start. Select 'Locale default' to use the default specified by moment.js")
+            .addDropdown((dropdown) => {
+            dropdown.addOption(defaultWeekdays[window.moment.localeData().firstDayOfWeek()], `Locale default - ${window.moment.localeData().weekdays()[window.moment.localeData().firstDayOfWeek()]}`);
+            console.log('addWeekStartSetting() > locale weekdays: ', window.moment.localeData().weekdays());
+            window.moment
+                .localeData()
+                .weekdays()
+                .forEach((localizedDay, i) => {
+                dropdown.addOption(defaultWeekdays[i], localizedDay);
+            });
+            console.log('addWeekStartSetting() > weekStartId: ', localeSettings.weekStartId);
+            console.log('addWeekStartSetting() > defaultWeekdays: ', defaultWeekdays);
+            console.log('addWeekStartSetting() > defaultWeekdays[weekStartId]: ', defaultWeekdays[localeSettings.weekStartId]);
+            dropdown.setValue(defaultWeekdays[localeSettings.weekStartId]);
+            dropdown.onChange((weekday) => {
+                const newWeekStartId = defaultWeekdays.indexOf(weekday);
+                console.log('setting() > newWeekStartId: ', newWeekStartId);
+                this.updateWeekStart(newWeekStartId);
+                this.updateWeekdays();
+            });
+        });
+    }
+    addClosePopoversOneByOneOnClickOutSetting() {
+        const settingEl = new obsidian.Setting(this.containerEl)
+            .setName('Close popovers one by one on click outside')
+            .addToggle((toggle) => {
+            toggle.setValue(get_store_value(settingsStore).popoversCloseData.closePopoversOneByOneOnClickOut);
+            toggle.onChange((value) => {
+                this.plugin.saveSettings((settings) => ({
+                    popoversCloseData: {
+                        ...settings.popoversCloseData,
+                        closePopoversOneByOneOnClickOut: value
+                    }
+                }));
+            });
+        }).settingEl;
+        settingEl.style.flexWrap = 'wrap';
+    }
+    addClosePopoversOneByBoneOnEscKeydownSetting() {
+        new obsidian.Setting(this.containerEl)
+            .setName('Close popovers one by one on `Esc` key pressed')
+            .addToggle((toggle) => {
+            toggle.setValue(get_store_value(settingsStore).popoversCloseData.closePopoversOneByOneOnEscKeydown);
+            toggle.onChange((value) => {
+                this.plugin.saveSettings((settings) => ({
+                    popoversCloseData: {
+                        ...settings.popoversCloseData,
+                        closePopoversOneByOneOnEscKeydown: value
+                    }
+                }));
+                this.display();
+            });
+        });
+    }
+    addSpSearchInputOnEscKeydownSetting() {
+        console.log('👟 RUNNING addSpSearchInputOnEscKeydownSetting()');
+        new obsidian.Setting(this.containerEl)
+            .setName("On sticker popover's search input `Esc` keydown")
+            .setDesc("Decide what to do when `Esc` pressed in sticker popover's search input")
+            .addDropdown((dropdown) => {
+            console.log('value in store: ', get_store_value(settingsStore).popoversCloseData.searchInputOnEscKeydown);
+            // dropdown.setValue(get(settingsStore).popoversCloseData.searchInputOnEscKeydown);
+            dropdown.addOption('close-popover', 'Close sticker popover');
+            dropdown.addOption('reset', 'Erase search input');
+            dropdown.setValue(get_store_value(settingsStore).popoversCloseData.searchInputOnEscKeydown);
+            dropdown.onChange((value) => {
+                console.log('from addSpSearchInputONEscKeydownSetting(), value: ', value);
+                const typedValue = value;
+                this.plugin.saveSettings((settings) => ({
+                    popoversCloseData: {
+                        ...settings.popoversCloseData,
+                        searchInputOnEscKeydown: typedValue
+                    }
+                }));
+            });
+        });
+    }
+    // helpers
+    updateLocale(localeKey) {
+        window.moment.locale(localeKey);
+        // update settings
+        this.plugin.saveSettings((settings) => ({
+            localeSettings: {
+                ...settings.localeSettings,
+                localeOverride: localeKey
+            }
+        }));
+        // update UI
+        displayedDateStore.set(window.moment());
+    }
+    updateWeekStart(weekStartId = window.moment.localeData().firstDayOfWeek()) {
+        // update settings
+        this.plugin.saveSettings((settings) => ({
+            localeSettings: {
+                ...settings.localeSettings,
+                weekStartId
+            }
+        }));
+        // update UI
+        displayedDateStore.set(window.moment());
+    }
+    updateWeekdays() {
+        const weekStartId = get_store_value(settingsStore).localeSettings.weekStartId;
+        const localizedWeekdays = window.moment.localeData().weekdays();
+        const localizedWeekdaysShort = window.moment.localeData().weekdaysMin();
+        const weekdays = [
+            ...localizedWeekdays.slice(weekStartId),
+            ...localizedWeekdays.slice(0, weekStartId)
+        ];
+        const weekdaysShort = [
+            ...localizedWeekdaysShort.slice(weekStartId),
+            ...localizedWeekdaysShort.slice(0, weekStartId)
+        ];
+        // update UI
+        localeDataStore.update((data) => ({
+            ...data,
+            weekdays,
+            weekdaysShort
+        }));
+        displayedDateStore.set(window.moment());
+    }
+    setupLocale() {
+        window.moment.locale(get_store_value(settingsStore).localeSettings.localeOverride);
+        this.updateWeekdays();
+    }
 }
 
 // Credit: @creationix/path.js
@@ -1135,53 +3208,6 @@ const NOTE_FORMATS = {
     YEARLY: 'YYYY',
 };
 
-function shouldUsePeriodicNotesSettings(periodicity) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const periodicNotes = window.app.plugins.getPlugin('periodic-notes');
-    return periodicNotes && periodicNotes.settings?.[periodicity]?.enabled;
-}
-/**
- * Read the user settings for the `${granularity}-notes` plugin
- * to keep behavior of creating a new note in-sync.
- */
-function getNoteSettingsByGranularity(granularity) {
-    const periodicity = getPeriodicityFromGranularity(granularity);
-    const defaultNoteFormat = NOTE_FORMATS[periodicity.toUpperCase()];
-    try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { internalPlugins, plugins } = window.app;
-        if (shouldUsePeriodicNotesSettings(periodicity)) {
-            const { format, folder, template } = plugins.getPlugin('periodic-notes')?.settings?.[periodicity] || {};
-            return {
-                format: format || defaultNoteFormat,
-                folder: folder?.trim() || '/',
-                template: template?.trim() || ''
-            };
-        }
-        if (periodicity === 'daily') {
-            const { folder, format, template } = internalPlugins.getPluginById('daily-notes')?.instance?.options || {};
-            return {
-                format: format || defaultNoteFormat,
-                folder: folder?.trim() || '/',
-                template: template?.trim() || ''
-            };
-        }
-        return {
-            format: defaultNoteFormat,
-            folder: '/',
-            template: ''
-        };
-    }
-    catch (err) {
-        console.info('No custom daily note settings found! Ensure the plugin is active.', err);
-        return {
-            format: defaultNoteFormat,
-            folder: '/',
-            template: ''
-        };
-    }
-}
-
 /**
  * dateUID is a way of weekly identifying daily/weekly/monthly notes.
  * They are prefixed with the granularity to avoid ambiguity.
@@ -1231,6 +3257,283 @@ function getDateFromFilename(filename, granularity) {
 function getPeriodicityFromGranularity(granularity) {
     return granularity === 'day' ? 'daily' : `${granularity}ly`;
 }
+
+function shouldUsePeriodicNotesSettings(periodicity) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const periodicNotes = window.app.plugins.getPlugin('periodic-notes');
+    return periodicNotes && periodicNotes.settings?.[periodicity]?.enabled;
+}
+/**
+ * Read the user settings for the `${granularity}-notes` plugin
+ * to keep behavior of creating a new note in-sync.
+ */
+function getNoteSettingsByGranularity(granularity) {
+    const periodicity = getPeriodicityFromGranularity(granularity);
+    const defaultNoteFormat = NOTE_FORMATS[periodicity.toUpperCase()];
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { internalPlugins, plugins } = window.app;
+        if (shouldUsePeriodicNotesSettings(periodicity)) {
+            const { format, folder, template } = plugins.getPlugin('periodic-notes')?.settings?.[periodicity] || {};
+            return {
+                format: format || defaultNoteFormat,
+                folder: folder?.trim() || '/',
+                template: template?.trim() || ''
+            };
+        }
+        if (periodicity === 'daily') {
+            const { folder, format, template } = internalPlugins.getPluginById('daily-notes')?.instance?.options || {};
+            return {
+                format: format || defaultNoteFormat,
+                folder: folder?.trim() || '/',
+                template: template?.trim() || ''
+            };
+        }
+        return {
+            format: defaultNoteFormat,
+            folder: '/',
+            template: ''
+        };
+    }
+    catch (err) {
+        console.info('No custom daily note settings found! Ensure the plugin is active.', err);
+        return {
+            format: defaultNoteFormat,
+            folder: '/',
+            template: ''
+        };
+    }
+}
+
+/**
+ * This function mimics the behavior of the daily-notes plugin
+ * so it will replace {{date}}, {{title}}, and {{time}} with the
+ * formatted timestamp.
+ *
+ * Note: it has an added bonus that it's not 'today' specific.
+ */
+async function createDailyNote(date) {
+    const app = window.app;
+    const { vault } = app;
+    const { template, folder, format } = getNoteSettingsByGranularity('day');
+    // TODO: Find out what IFoldInfo is used for (think it is for keeping track of openned folders)
+    const [templateContents, IFoldInfo] = await getTemplateInfo(template);
+    const filename = date.format(format);
+    const normalizedPath = await getNotePath(folder, filename);
+    // console.table(getNoteSettingsByGranularity('day'));
+    // console.log('getTemplateInfo:', templateContents, IFoldInfo);
+    // console.log("onClickDay() > createDailyNote > filename, format: ", filename, format)
+    // console.log('NOrmalized path', normalizedPath);
+    try {
+        const createdFile = await vault.create(normalizedPath, templateContents
+            .replace(/{{\s*date\s*}}/gi, filename)
+            .replace(/{{\s*time\s*}}/gi, date.format('HH:mm'))
+            .replace(/{{\s*title\s*}}/gi, filename)
+            .replace(/{{\s*(date|time)\s*(([+-]\d+)([yqmwdhs]))?\s*(:.+?)?}}/gi, (_, _timeOrDate, calc, timeDelta, unit, momentFormat) => {
+            let currentDate = window.moment();
+            if (calc) {
+                currentDate = currentDate.add(parseInt(timeDelta, 10), unit);
+            }
+            if (momentFormat) {
+                return currentDate.format(momentFormat.substring(1).trim());
+            }
+            return currentDate.format(format);
+        })
+            .replace(/{{\s*yesterday\s*}}/gi, date.subtract(1, 'd').format(format))
+            .replace(/{{\s*tomorrow\s*}}/gi, date.add(1, 'd').format(format)));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        app.foldManager.save(createdFile, IFoldInfo);
+        return createdFile;
+    }
+    catch (err) {
+        console.error(`Failed to create file: '${normalizedPath}'`, err);
+        new obsidian.Notice(`Failed to create file: '${normalizedPath}'`);
+    }
+}
+
+function getDaysOfWeek() {
+    const { moment } = window;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let weekStart = moment.localeData()._week.dow;
+    const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    while (weekStart) {
+        daysOfWeek.push(daysOfWeek.shift());
+        weekStart--;
+    }
+    return daysOfWeek;
+}
+function getDayOfWeekNumericalValue(dayOfWeekName) {
+    return getDaysOfWeek().indexOf(dayOfWeekName.toLowerCase());
+}
+async function createWeeklyNote(date) {
+    const { vault } = window.app;
+    const { template, format, folder } = getNoteSettingsByGranularity('week');
+    const [templateContents, IFoldInfo] = await getTemplateInfo(template);
+    const filename = date.format(format);
+    const normalizedPath = await getNotePath(folder, filename);
+    try {
+        const createdFile = await vault.create(normalizedPath, templateContents
+            .replace(/{{\s*(date|time)\s*(([+-]\d+)([yqmwdhs]))?\s*(:.+?)?}}/gi, (_, _timeOrDate, calc, timeDelta, unit, momentFormat) => {
+            const now = window.moment();
+            const currentDate = date.clone().set({
+                hour: now.get('hour'),
+                minute: now.get('minute'),
+                second: now.get('second')
+            });
+            if (calc) {
+                currentDate.add(parseInt(timeDelta, 10), unit);
+            }
+            if (momentFormat) {
+                return currentDate.format(momentFormat.substring(1).trim());
+            }
+            return currentDate.format(format);
+        })
+            .replace(/{{\s*title\s*}}/gi, filename)
+            .replace(/{{\s*time\s*}}/gi, window.moment().format('HH:mm'))
+            .replace(/{{\s*(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\s*:(.*?)}}/gi, (_, dayOfWeek, momentFormat) => {
+            const day = getDayOfWeekNumericalValue(dayOfWeek);
+            return date.weekday(day).format(momentFormat.trim());
+        }));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        window.app.foldManager.save(createdFile, IFoldInfo);
+        return createdFile;
+    }
+    catch (err) {
+        console.error(`Failed to create file: '${normalizedPath}'`, err);
+        new obsidian.Notice(`Failed to create file: '${normalizedPath}'`);
+    }
+}
+
+/**
+ * This function mimics the behavior of the daily-notes plugin
+ * so it will replace {{date}}, {{title}}, and {{time}} with the
+ * formatted timestamp.
+ *
+ * Note: it has an added bonus that it's not 'today' specific.
+ */
+async function createMonthlyNote(date) {
+    const { vault } = window.app;
+    const { template, format, folder } = getNoteSettingsByGranularity('month');
+    const [templateContents, IFoldInfo] = await getTemplateInfo(template);
+    const filename = date.format(format);
+    const normalizedPath = await getNotePath(folder, filename);
+    try {
+        const createdFile = await vault.create(normalizedPath, templateContents
+            .replace(/{{\s*(date|time)\s*(([+-]\d+)([yqmwdhs]))?\s*(:.+?)?}}/gi, (_, _timeOrDate, calc, timeDelta, unit, momentFormat) => {
+            const now = window.moment();
+            const currentDate = date.clone().set({
+                hour: now.get('hour'),
+                minute: now.get('minute'),
+                second: now.get('second')
+            });
+            if (calc) {
+                currentDate.add(parseInt(timeDelta, 10), unit);
+            }
+            if (momentFormat) {
+                return currentDate.format(momentFormat.substring(1).trim());
+            }
+            return currentDate.format(format);
+        })
+            .replace(/{{\s*date\s*}}/gi, filename)
+            .replace(/{{\s*time\s*}}/gi, window.moment().format('HH:mm'))
+            .replace(/{{\s*title\s*}}/gi, filename));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        window.app.foldManager.save(createdFile, IFoldInfo);
+        return createdFile;
+    }
+    catch (err) {
+        console.error(`Failed to create file: '${normalizedPath}'`, err);
+        new obsidian.Notice(`Failed to create file: '${normalizedPath}'`);
+    }
+}
+
+/**
+ * This function mimics the behavior of the daily-notes plugin
+ * so it will replace {{date}}, {{title}}, and {{time}} with the
+ * formatted timestamp.
+ *
+ * Note: it has an added bonus that it's not 'today' specific.
+ */
+async function createQuarterlyNote(date) {
+    const { vault } = window.app;
+    const { template, format, folder } = getNoteSettingsByGranularity('quarter');
+    const [templateContents, IFoldInfo] = await getTemplateInfo(template);
+    const filename = date.format(format);
+    const normalizedPath = await getNotePath(folder, filename);
+    try {
+        const createdFile = await vault.create(normalizedPath, templateContents
+            .replace(/{{\s*(date|time)\s*(([+-]\d+)([yqmwdhs]))?\s*(:.+?)?}}/gi, (_, _timeOrDate, calc, timeDelta, unit, momentFormat) => {
+            const now = window.moment();
+            const currentDate = date.clone().set({
+                hour: now.get('hour'),
+                minute: now.get('minute'),
+                second: now.get('second')
+            });
+            if (calc) {
+                currentDate.add(parseInt(timeDelta, 10), unit);
+            }
+            if (momentFormat) {
+                return currentDate.format(momentFormat.substring(1).trim());
+            }
+            return currentDate.format(format);
+        })
+            .replace(/{{\s*date\s*}}/gi, filename)
+            .replace(/{{\s*time\s*}}/gi, window.moment().format('HH:mm'))
+            .replace(/{{\s*title\s*}}/gi, filename));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        window.app.foldManager.save(createdFile, IFoldInfo);
+        return createdFile;
+    }
+    catch (err) {
+        console.error(`Failed to create file: '${normalizedPath}'`, err);
+        new obsidian.Notice(`Failed to create file: '${normalizedPath}'`);
+    }
+}
+
+/**
+ * This function mimics the behavior of the daily-notes plugin
+ * so it will replace {{date}}, {{title}}, and {{time}} with the
+ * formatted timestamp.
+ *
+ * Note: it has an added bonus that it's not 'today' specific.
+ */
+async function createYearlyNote(date) {
+    const { vault } = window.app;
+    const { template, format, folder } = getNoteSettingsByGranularity('year');
+    const [templateContents, IFoldInfo] = await getTemplateInfo(template);
+    const filename = date.format(format);
+    const normalizedPath = await getNotePath(folder, filename);
+    try {
+        const createdFile = await vault.create(normalizedPath, templateContents
+            .replace(/{{\s*(date|time)\s*(([+-]\d+)([yqmwdhs]))?\s*(:.+?)?}}/gi, (_, _timeOrDate, calc, timeDelta, unit, momentFormat) => {
+            const now = window.moment();
+            const currentDate = date.clone().set({
+                hour: now.get("hour"),
+                minute: now.get("minute"),
+                second: now.get("second"),
+            });
+            if (calc) {
+                currentDate.add(parseInt(timeDelta, 10), unit);
+            }
+            if (momentFormat) {
+                return currentDate.format(momentFormat.substring(1).trim());
+            }
+            return currentDate.format(format);
+        })
+            .replace(/{{\s*date\s*}}/gi, filename)
+            .replace(/{{\s*time\s*}}/gi, window.moment().format("HH:mm"))
+            .replace(/{{\s*title\s*}}/gi, filename));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        window.app.foldManager.save(createdFile, IFoldInfo);
+        return createdFile;
+    }
+    catch (err) {
+        console.error(`Failed to create file: '${normalizedPath}'`, err);
+        new obsidian.Notice(`Failed to create file: '${normalizedPath}'`);
+    }
+}
+
+var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
 function commonjsRequire(path) {
 	throw new Error('Could not dynamically require "' + path + '". Please configure the dynamicRequireTargets or/and ignoreDynamicRequires option of @rollup/plugin-commonjs appropriately for this require call to work.');
@@ -6917,1712 +9220,6 @@ var moment = {exports: {}};
 	}))); 
 } (moment));
 
-const granularities = ['day', 'week', 'month', 'quarter', 'year'];
-const togglePeriods = ['days', 'months', 'years'];
-const monthsIndexesInQuarters = [
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8],
-    [9, 10, 11]
-];
-const YEARS_RANGE_SIZE = 12;
-const STICKER_TAG_PREFIX = '#sticker-';
-const CALENDAR_POPOVER_ID = 'calendar-popover';
-const STICKER_POPOVER_ID = 'sticker-popover';
-
-const min = Math.min;
-const max = Math.max;
-const round = Math.round;
-const floor = Math.floor;
-const createCoords = v => ({
-  x: v,
-  y: v
-});
-const oppositeSideMap = {
-  left: 'right',
-  right: 'left',
-  bottom: 'top',
-  top: 'bottom'
-};
-const oppositeAlignmentMap = {
-  start: 'end',
-  end: 'start'
-};
-function clamp(start, value, end) {
-  return max(start, min(value, end));
-}
-function evaluate(value, param) {
-  return typeof value === 'function' ? value(param) : value;
-}
-function getSide(placement) {
-  return placement.split('-')[0];
-}
-function getAlignment(placement) {
-  return placement.split('-')[1];
-}
-function getOppositeAxis(axis) {
-  return axis === 'x' ? 'y' : 'x';
-}
-function getAxisLength(axis) {
-  return axis === 'y' ? 'height' : 'width';
-}
-function getSideAxis(placement) {
-  return ['top', 'bottom'].includes(getSide(placement)) ? 'y' : 'x';
-}
-function getAlignmentAxis(placement) {
-  return getOppositeAxis(getSideAxis(placement));
-}
-function getAlignmentSides(placement, rects, rtl) {
-  if (rtl === void 0) {
-    rtl = false;
-  }
-  const alignment = getAlignment(placement);
-  const alignmentAxis = getAlignmentAxis(placement);
-  const length = getAxisLength(alignmentAxis);
-  let mainAlignmentSide = alignmentAxis === 'x' ? alignment === (rtl ? 'end' : 'start') ? 'right' : 'left' : alignment === 'start' ? 'bottom' : 'top';
-  if (rects.reference[length] > rects.floating[length]) {
-    mainAlignmentSide = getOppositePlacement(mainAlignmentSide);
-  }
-  return [mainAlignmentSide, getOppositePlacement(mainAlignmentSide)];
-}
-function getExpandedPlacements(placement) {
-  const oppositePlacement = getOppositePlacement(placement);
-  return [getOppositeAlignmentPlacement(placement), oppositePlacement, getOppositeAlignmentPlacement(oppositePlacement)];
-}
-function getOppositeAlignmentPlacement(placement) {
-  return placement.replace(/start|end/g, alignment => oppositeAlignmentMap[alignment]);
-}
-function getSideList(side, isStart, rtl) {
-  const lr = ['left', 'right'];
-  const rl = ['right', 'left'];
-  const tb = ['top', 'bottom'];
-  const bt = ['bottom', 'top'];
-  switch (side) {
-    case 'top':
-    case 'bottom':
-      if (rtl) return isStart ? rl : lr;
-      return isStart ? lr : rl;
-    case 'left':
-    case 'right':
-      return isStart ? tb : bt;
-    default:
-      return [];
-  }
-}
-function getOppositeAxisPlacements(placement, flipAlignment, direction, rtl) {
-  const alignment = getAlignment(placement);
-  let list = getSideList(getSide(placement), direction === 'start', rtl);
-  if (alignment) {
-    list = list.map(side => side + "-" + alignment);
-    if (flipAlignment) {
-      list = list.concat(list.map(getOppositeAlignmentPlacement));
-    }
-  }
-  return list;
-}
-function getOppositePlacement(placement) {
-  return placement.replace(/left|right|bottom|top/g, side => oppositeSideMap[side]);
-}
-function expandPaddingObject(padding) {
-  return {
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    ...padding
-  };
-}
-function getPaddingObject(padding) {
-  return typeof padding !== 'number' ? expandPaddingObject(padding) : {
-    top: padding,
-    right: padding,
-    bottom: padding,
-    left: padding
-  };
-}
-function rectToClientRect(rect) {
-  return {
-    ...rect,
-    top: rect.y,
-    left: rect.x,
-    right: rect.x + rect.width,
-    bottom: rect.y + rect.height
-  };
-}
-
-function computeCoordsFromPlacement(_ref, placement, rtl) {
-  let {
-    reference,
-    floating
-  } = _ref;
-  const sideAxis = getSideAxis(placement);
-  const alignmentAxis = getAlignmentAxis(placement);
-  const alignLength = getAxisLength(alignmentAxis);
-  const side = getSide(placement);
-  const isVertical = sideAxis === 'y';
-  const commonX = reference.x + reference.width / 2 - floating.width / 2;
-  const commonY = reference.y + reference.height / 2 - floating.height / 2;
-  const commonAlign = reference[alignLength] / 2 - floating[alignLength] / 2;
-  let coords;
-  switch (side) {
-    case 'top':
-      coords = {
-        x: commonX,
-        y: reference.y - floating.height
-      };
-      break;
-    case 'bottom':
-      coords = {
-        x: commonX,
-        y: reference.y + reference.height
-      };
-      break;
-    case 'right':
-      coords = {
-        x: reference.x + reference.width,
-        y: commonY
-      };
-      break;
-    case 'left':
-      coords = {
-        x: reference.x - floating.width,
-        y: commonY
-      };
-      break;
-    default:
-      coords = {
-        x: reference.x,
-        y: reference.y
-      };
-  }
-  switch (getAlignment(placement)) {
-    case 'start':
-      coords[alignmentAxis] -= commonAlign * (rtl && isVertical ? -1 : 1);
-      break;
-    case 'end':
-      coords[alignmentAxis] += commonAlign * (rtl && isVertical ? -1 : 1);
-      break;
-  }
-  return coords;
-}
-
-/**
- * Computes the `x` and `y` coordinates that will place the floating element
- * next to a reference element when it is given a certain positioning strategy.
- *
- * This export does not have any `platform` interface logic. You will need to
- * write one for the platform you are using Floating UI with.
- */
-const computePosition$1 = async (reference, floating, config) => {
-  const {
-    placement = 'bottom',
-    strategy = 'absolute',
-    middleware = [],
-    platform
-  } = config;
-  const validMiddleware = middleware.filter(Boolean);
-  const rtl = await (platform.isRTL == null ? void 0 : platform.isRTL(floating));
-  let rects = await platform.getElementRects({
-    reference,
-    floating,
-    strategy
-  });
-  let {
-    x,
-    y
-  } = computeCoordsFromPlacement(rects, placement, rtl);
-  let statefulPlacement = placement;
-  let middlewareData = {};
-  let resetCount = 0;
-  for (let i = 0; i < validMiddleware.length; i++) {
-    const {
-      name,
-      fn
-    } = validMiddleware[i];
-    const {
-      x: nextX,
-      y: nextY,
-      data,
-      reset
-    } = await fn({
-      x,
-      y,
-      initialPlacement: placement,
-      placement: statefulPlacement,
-      strategy,
-      middlewareData,
-      rects,
-      platform,
-      elements: {
-        reference,
-        floating
-      }
-    });
-    x = nextX != null ? nextX : x;
-    y = nextY != null ? nextY : y;
-    middlewareData = {
-      ...middlewareData,
-      [name]: {
-        ...middlewareData[name],
-        ...data
-      }
-    };
-    if (reset && resetCount <= 50) {
-      resetCount++;
-      if (typeof reset === 'object') {
-        if (reset.placement) {
-          statefulPlacement = reset.placement;
-        }
-        if (reset.rects) {
-          rects = reset.rects === true ? await platform.getElementRects({
-            reference,
-            floating,
-            strategy
-          }) : reset.rects;
-        }
-        ({
-          x,
-          y
-        } = computeCoordsFromPlacement(rects, statefulPlacement, rtl));
-      }
-      i = -1;
-      continue;
-    }
-  }
-  return {
-    x,
-    y,
-    placement: statefulPlacement,
-    strategy,
-    middlewareData
-  };
-};
-
-/**
- * Resolves with an object of overflow side offsets that determine how much the
- * element is overflowing a given clipping boundary on each side.
- * - positive = overflowing the boundary by that number of pixels
- * - negative = how many pixels left before it will overflow
- * - 0 = lies flush with the boundary
- * @see https://floating-ui.com/docs/detectOverflow
- */
-async function detectOverflow(state, options) {
-  var _await$platform$isEle;
-  if (options === void 0) {
-    options = {};
-  }
-  const {
-    x,
-    y,
-    platform,
-    rects,
-    elements,
-    strategy
-  } = state;
-  const {
-    boundary = 'clippingAncestors',
-    rootBoundary = 'viewport',
-    elementContext = 'floating',
-    altBoundary = false,
-    padding = 0
-  } = evaluate(options, state);
-  const paddingObject = getPaddingObject(padding);
-  const altContext = elementContext === 'floating' ? 'reference' : 'floating';
-  const element = elements[altBoundary ? altContext : elementContext];
-  const clippingClientRect = rectToClientRect(await platform.getClippingRect({
-    element: ((_await$platform$isEle = await (platform.isElement == null ? void 0 : platform.isElement(element))) != null ? _await$platform$isEle : true) ? element : element.contextElement || (await (platform.getDocumentElement == null ? void 0 : platform.getDocumentElement(elements.floating))),
-    boundary,
-    rootBoundary,
-    strategy
-  }));
-  const rect = elementContext === 'floating' ? {
-    ...rects.floating,
-    x,
-    y
-  } : rects.reference;
-  const offsetParent = await (platform.getOffsetParent == null ? void 0 : platform.getOffsetParent(elements.floating));
-  const offsetScale = (await (platform.isElement == null ? void 0 : platform.isElement(offsetParent))) ? (await (platform.getScale == null ? void 0 : platform.getScale(offsetParent))) || {
-    x: 1,
-    y: 1
-  } : {
-    x: 1,
-    y: 1
-  };
-  const elementClientRect = rectToClientRect(platform.convertOffsetParentRelativeRectToViewportRelativeRect ? await platform.convertOffsetParentRelativeRectToViewportRelativeRect({
-    rect,
-    offsetParent,
-    strategy
-  }) : rect);
-  return {
-    top: (clippingClientRect.top - elementClientRect.top + paddingObject.top) / offsetScale.y,
-    bottom: (elementClientRect.bottom - clippingClientRect.bottom + paddingObject.bottom) / offsetScale.y,
-    left: (clippingClientRect.left - elementClientRect.left + paddingObject.left) / offsetScale.x,
-    right: (elementClientRect.right - clippingClientRect.right + paddingObject.right) / offsetScale.x
-  };
-}
-
-/**
- * Provides data to position an inner element of the floating element so that it
- * appears centered to the reference element.
- * @see https://floating-ui.com/docs/arrow
- */
-const arrow = options => ({
-  name: 'arrow',
-  options,
-  async fn(state) {
-    const {
-      x,
-      y,
-      placement,
-      rects,
-      platform,
-      elements
-    } = state;
-    // Since `element` is required, we don't Partial<> the type.
-    const {
-      element,
-      padding = 0
-    } = evaluate(options, state) || {};
-    if (element == null) {
-      return {};
-    }
-    const paddingObject = getPaddingObject(padding);
-    const coords = {
-      x,
-      y
-    };
-    const axis = getAlignmentAxis(placement);
-    const length = getAxisLength(axis);
-    const arrowDimensions = await platform.getDimensions(element);
-    const isYAxis = axis === 'y';
-    const minProp = isYAxis ? 'top' : 'left';
-    const maxProp = isYAxis ? 'bottom' : 'right';
-    const clientProp = isYAxis ? 'clientHeight' : 'clientWidth';
-    const endDiff = rects.reference[length] + rects.reference[axis] - coords[axis] - rects.floating[length];
-    const startDiff = coords[axis] - rects.reference[axis];
-    const arrowOffsetParent = await (platform.getOffsetParent == null ? void 0 : platform.getOffsetParent(element));
-    let clientSize = arrowOffsetParent ? arrowOffsetParent[clientProp] : 0;
-
-    // DOM platform can return `window` as the `offsetParent`.
-    if (!clientSize || !(await (platform.isElement == null ? void 0 : platform.isElement(arrowOffsetParent)))) {
-      clientSize = elements.floating[clientProp] || rects.floating[length];
-    }
-    const centerToReference = endDiff / 2 - startDiff / 2;
-
-    // If the padding is large enough that it causes the arrow to no longer be
-    // centered, modify the padding so that it is centered.
-    const largestPossiblePadding = clientSize / 2 - arrowDimensions[length] / 2 - 1;
-    const minPadding = min(paddingObject[minProp], largestPossiblePadding);
-    const maxPadding = min(paddingObject[maxProp], largestPossiblePadding);
-
-    // Make sure the arrow doesn't overflow the floating element if the center
-    // point is outside the floating element's bounds.
-    const min$1 = minPadding;
-    const max = clientSize - arrowDimensions[length] - maxPadding;
-    const center = clientSize / 2 - arrowDimensions[length] / 2 + centerToReference;
-    const offset = clamp(min$1, center, max);
-
-    // If the reference is small enough that the arrow's padding causes it to
-    // to point to nothing for an aligned placement, adjust the offset of the
-    // floating element itself. This stops `shift()` from taking action, but can
-    // be worked around by calling it again after the `arrow()` if desired.
-    const shouldAddOffset = getAlignment(placement) != null && center != offset && rects.reference[length] / 2 - (center < min$1 ? minPadding : maxPadding) - arrowDimensions[length] / 2 < 0;
-    const alignmentOffset = shouldAddOffset ? center < min$1 ? min$1 - center : max - center : 0;
-    return {
-      [axis]: coords[axis] - alignmentOffset,
-      data: {
-        [axis]: offset,
-        centerOffset: center - offset + alignmentOffset
-      }
-    };
-  }
-});
-
-/**
- * Optimizes the visibility of the floating element by flipping the `placement`
- * in order to keep it in view when the preferred placement(s) will overflow the
- * clipping boundary. Alternative to `autoPlacement`.
- * @see https://floating-ui.com/docs/flip
- */
-const flip = function (options) {
-  if (options === void 0) {
-    options = {};
-  }
-  return {
-    name: 'flip',
-    options,
-    async fn(state) {
-      var _middlewareData$flip;
-      const {
-        placement,
-        middlewareData,
-        rects,
-        initialPlacement,
-        platform,
-        elements
-      } = state;
-      const {
-        mainAxis: checkMainAxis = true,
-        crossAxis: checkCrossAxis = true,
-        fallbackPlacements: specifiedFallbackPlacements,
-        fallbackStrategy = 'bestFit',
-        fallbackAxisSideDirection = 'none',
-        flipAlignment = true,
-        ...detectOverflowOptions
-      } = evaluate(options, state);
-      const side = getSide(placement);
-      const isBasePlacement = getSide(initialPlacement) === initialPlacement;
-      const rtl = await (platform.isRTL == null ? void 0 : platform.isRTL(elements.floating));
-      const fallbackPlacements = specifiedFallbackPlacements || (isBasePlacement || !flipAlignment ? [getOppositePlacement(initialPlacement)] : getExpandedPlacements(initialPlacement));
-      if (!specifiedFallbackPlacements && fallbackAxisSideDirection !== 'none') {
-        fallbackPlacements.push(...getOppositeAxisPlacements(initialPlacement, flipAlignment, fallbackAxisSideDirection, rtl));
-      }
-      const placements = [initialPlacement, ...fallbackPlacements];
-      const overflow = await detectOverflow(state, detectOverflowOptions);
-      const overflows = [];
-      let overflowsData = ((_middlewareData$flip = middlewareData.flip) == null ? void 0 : _middlewareData$flip.overflows) || [];
-      if (checkMainAxis) {
-        overflows.push(overflow[side]);
-      }
-      if (checkCrossAxis) {
-        const sides = getAlignmentSides(placement, rects, rtl);
-        overflows.push(overflow[sides[0]], overflow[sides[1]]);
-      }
-      overflowsData = [...overflowsData, {
-        placement,
-        overflows
-      }];
-
-      // One or more sides is overflowing.
-      if (!overflows.every(side => side <= 0)) {
-        var _middlewareData$flip2, _overflowsData$filter;
-        const nextIndex = (((_middlewareData$flip2 = middlewareData.flip) == null ? void 0 : _middlewareData$flip2.index) || 0) + 1;
-        const nextPlacement = placements[nextIndex];
-        if (nextPlacement) {
-          // Try next placement and re-run the lifecycle.
-          return {
-            data: {
-              index: nextIndex,
-              overflows: overflowsData
-            },
-            reset: {
-              placement: nextPlacement
-            }
-          };
-        }
-
-        // First, find the candidates that fit on the mainAxis side of overflow,
-        // then find the placement that fits the best on the main crossAxis side.
-        let resetPlacement = (_overflowsData$filter = overflowsData.filter(d => d.overflows[0] <= 0).sort((a, b) => a.overflows[1] - b.overflows[1])[0]) == null ? void 0 : _overflowsData$filter.placement;
-
-        // Otherwise fallback.
-        if (!resetPlacement) {
-          switch (fallbackStrategy) {
-            case 'bestFit':
-              {
-                var _overflowsData$map$so;
-                const placement = (_overflowsData$map$so = overflowsData.map(d => [d.placement, d.overflows.filter(overflow => overflow > 0).reduce((acc, overflow) => acc + overflow, 0)]).sort((a, b) => a[1] - b[1])[0]) == null ? void 0 : _overflowsData$map$so[0];
-                if (placement) {
-                  resetPlacement = placement;
-                }
-                break;
-              }
-            case 'initialPlacement':
-              resetPlacement = initialPlacement;
-              break;
-          }
-        }
-        if (placement !== resetPlacement) {
-          return {
-            reset: {
-              placement: resetPlacement
-            }
-          };
-        }
-      }
-      return {};
-    }
-  };
-};
-
-function getNodeName(node) {
-  if (isNode(node)) {
-    return (node.nodeName || '').toLowerCase();
-  }
-  // Mocked nodes in testing environments may not be instances of Node. By
-  // returning `#document` an infinite loop won't occur.
-  // https://github.com/floating-ui/floating-ui/issues/2317
-  return '#document';
-}
-function getWindow(node) {
-  var _node$ownerDocument;
-  return (node == null ? void 0 : (_node$ownerDocument = node.ownerDocument) == null ? void 0 : _node$ownerDocument.defaultView) || window;
-}
-function getDocumentElement(node) {
-  var _ref;
-  return (_ref = (isNode(node) ? node.ownerDocument : node.document) || window.document) == null ? void 0 : _ref.documentElement;
-}
-function isNode(value) {
-  return value instanceof Node || value instanceof getWindow(value).Node;
-}
-function isElement(value) {
-  return value instanceof Element || value instanceof getWindow(value).Element;
-}
-function isHTMLElement(value) {
-  return value instanceof HTMLElement || value instanceof getWindow(value).HTMLElement;
-}
-function isShadowRoot(value) {
-  // Browsers without `ShadowRoot` support.
-  if (typeof ShadowRoot === 'undefined') {
-    return false;
-  }
-  return value instanceof ShadowRoot || value instanceof getWindow(value).ShadowRoot;
-}
-function isOverflowElement(element) {
-  const {
-    overflow,
-    overflowX,
-    overflowY,
-    display
-  } = getComputedStyle(element);
-  return /auto|scroll|overlay|hidden|clip/.test(overflow + overflowY + overflowX) && !['inline', 'contents'].includes(display);
-}
-function isTableElement(element) {
-  return ['table', 'td', 'th'].includes(getNodeName(element));
-}
-function isContainingBlock(element) {
-  const webkit = isWebKit();
-  const css = getComputedStyle(element);
-
-  // https://developer.mozilla.org/en-US/docs/Web/CSS/Containing_block#identifying_the_containing_block
-  return css.transform !== 'none' || css.perspective !== 'none' || (css.containerType ? css.containerType !== 'normal' : false) || !webkit && (css.backdropFilter ? css.backdropFilter !== 'none' : false) || !webkit && (css.filter ? css.filter !== 'none' : false) || ['transform', 'perspective', 'filter'].some(value => (css.willChange || '').includes(value)) || ['paint', 'layout', 'strict', 'content'].some(value => (css.contain || '').includes(value));
-}
-function getContainingBlock(element) {
-  let currentNode = getParentNode(element);
-  while (isHTMLElement(currentNode) && !isLastTraversableNode(currentNode)) {
-    if (isContainingBlock(currentNode)) {
-      return currentNode;
-    } else {
-      currentNode = getParentNode(currentNode);
-    }
-  }
-  return null;
-}
-function isWebKit() {
-  if (typeof CSS === 'undefined' || !CSS.supports) return false;
-  return CSS.supports('-webkit-backdrop-filter', 'none');
-}
-function isLastTraversableNode(node) {
-  return ['html', 'body', '#document'].includes(getNodeName(node));
-}
-function getComputedStyle(element) {
-  return getWindow(element).getComputedStyle(element);
-}
-function getNodeScroll(element) {
-  if (isElement(element)) {
-    return {
-      scrollLeft: element.scrollLeft,
-      scrollTop: element.scrollTop
-    };
-  }
-  return {
-    scrollLeft: element.pageXOffset,
-    scrollTop: element.pageYOffset
-  };
-}
-function getParentNode(node) {
-  if (getNodeName(node) === 'html') {
-    return node;
-  }
-  const result =
-  // Step into the shadow DOM of the parent of a slotted node.
-  node.assignedSlot ||
-  // DOM Element detected.
-  node.parentNode ||
-  // ShadowRoot detected.
-  isShadowRoot(node) && node.host ||
-  // Fallback.
-  getDocumentElement(node);
-  return isShadowRoot(result) ? result.host : result;
-}
-function getNearestOverflowAncestor(node) {
-  const parentNode = getParentNode(node);
-  if (isLastTraversableNode(parentNode)) {
-    return node.ownerDocument ? node.ownerDocument.body : node.body;
-  }
-  if (isHTMLElement(parentNode) && isOverflowElement(parentNode)) {
-    return parentNode;
-  }
-  return getNearestOverflowAncestor(parentNode);
-}
-function getOverflowAncestors(node, list) {
-  var _node$ownerDocument2;
-  if (list === void 0) {
-    list = [];
-  }
-  const scrollableAncestor = getNearestOverflowAncestor(node);
-  const isBody = scrollableAncestor === ((_node$ownerDocument2 = node.ownerDocument) == null ? void 0 : _node$ownerDocument2.body);
-  const win = getWindow(scrollableAncestor);
-  if (isBody) {
-    return list.concat(win, win.visualViewport || [], isOverflowElement(scrollableAncestor) ? scrollableAncestor : []);
-  }
-  return list.concat(scrollableAncestor, getOverflowAncestors(scrollableAncestor));
-}
-
-function getCssDimensions(element) {
-  const css = getComputedStyle(element);
-  // In testing environments, the `width` and `height` properties are empty
-  // strings for SVG elements, returning NaN. Fallback to `0` in this case.
-  let width = parseFloat(css.width) || 0;
-  let height = parseFloat(css.height) || 0;
-  const hasOffset = isHTMLElement(element);
-  const offsetWidth = hasOffset ? element.offsetWidth : width;
-  const offsetHeight = hasOffset ? element.offsetHeight : height;
-  const shouldFallback = round(width) !== offsetWidth || round(height) !== offsetHeight;
-  if (shouldFallback) {
-    width = offsetWidth;
-    height = offsetHeight;
-  }
-  return {
-    width,
-    height,
-    $: shouldFallback
-  };
-}
-
-function unwrapElement(element) {
-  return !isElement(element) ? element.contextElement : element;
-}
-
-function getScale(element) {
-  const domElement = unwrapElement(element);
-  if (!isHTMLElement(domElement)) {
-    return createCoords(1);
-  }
-  const rect = domElement.getBoundingClientRect();
-  const {
-    width,
-    height,
-    $
-  } = getCssDimensions(domElement);
-  let x = ($ ? round(rect.width) : rect.width) / width;
-  let y = ($ ? round(rect.height) : rect.height) / height;
-
-  // 0, NaN, or Infinity should always fallback to 1.
-
-  if (!x || !Number.isFinite(x)) {
-    x = 1;
-  }
-  if (!y || !Number.isFinite(y)) {
-    y = 1;
-  }
-  return {
-    x,
-    y
-  };
-}
-
-const noOffsets = /*#__PURE__*/createCoords(0);
-function getVisualOffsets(element) {
-  const win = getWindow(element);
-  if (!isWebKit() || !win.visualViewport) {
-    return noOffsets;
-  }
-  return {
-    x: win.visualViewport.offsetLeft,
-    y: win.visualViewport.offsetTop
-  };
-}
-function shouldAddVisualOffsets(element, isFixed, floatingOffsetParent) {
-  if (isFixed === void 0) {
-    isFixed = false;
-  }
-  if (!floatingOffsetParent || isFixed && floatingOffsetParent !== getWindow(element)) {
-    return false;
-  }
-  return isFixed;
-}
-
-function getBoundingClientRect(element, includeScale, isFixedStrategy, offsetParent) {
-  if (includeScale === void 0) {
-    includeScale = false;
-  }
-  if (isFixedStrategy === void 0) {
-    isFixedStrategy = false;
-  }
-  const clientRect = element.getBoundingClientRect();
-  const domElement = unwrapElement(element);
-  let scale = createCoords(1);
-  if (includeScale) {
-    if (offsetParent) {
-      if (isElement(offsetParent)) {
-        scale = getScale(offsetParent);
-      }
-    } else {
-      scale = getScale(element);
-    }
-  }
-  const visualOffsets = shouldAddVisualOffsets(domElement, isFixedStrategy, offsetParent) ? getVisualOffsets(domElement) : createCoords(0);
-  let x = (clientRect.left + visualOffsets.x) / scale.x;
-  let y = (clientRect.top + visualOffsets.y) / scale.y;
-  let width = clientRect.width / scale.x;
-  let height = clientRect.height / scale.y;
-  if (domElement) {
-    const win = getWindow(domElement);
-    const offsetWin = offsetParent && isElement(offsetParent) ? getWindow(offsetParent) : offsetParent;
-    let currentIFrame = win.frameElement;
-    while (currentIFrame && offsetParent && offsetWin !== win) {
-      const iframeScale = getScale(currentIFrame);
-      const iframeRect = currentIFrame.getBoundingClientRect();
-      const css = getComputedStyle(currentIFrame);
-      const left = iframeRect.left + (currentIFrame.clientLeft + parseFloat(css.paddingLeft)) * iframeScale.x;
-      const top = iframeRect.top + (currentIFrame.clientTop + parseFloat(css.paddingTop)) * iframeScale.y;
-      x *= iframeScale.x;
-      y *= iframeScale.y;
-      width *= iframeScale.x;
-      height *= iframeScale.y;
-      x += left;
-      y += top;
-      currentIFrame = getWindow(currentIFrame).frameElement;
-    }
-  }
-  return rectToClientRect({
-    width,
-    height,
-    x,
-    y
-  });
-}
-
-function convertOffsetParentRelativeRectToViewportRelativeRect(_ref) {
-  let {
-    rect,
-    offsetParent,
-    strategy
-  } = _ref;
-  const isOffsetParentAnElement = isHTMLElement(offsetParent);
-  const documentElement = getDocumentElement(offsetParent);
-  if (offsetParent === documentElement) {
-    return rect;
-  }
-  let scroll = {
-    scrollLeft: 0,
-    scrollTop: 0
-  };
-  let scale = createCoords(1);
-  const offsets = createCoords(0);
-  if (isOffsetParentAnElement || !isOffsetParentAnElement && strategy !== 'fixed') {
-    if (getNodeName(offsetParent) !== 'body' || isOverflowElement(documentElement)) {
-      scroll = getNodeScroll(offsetParent);
-    }
-    if (isHTMLElement(offsetParent)) {
-      const offsetRect = getBoundingClientRect(offsetParent);
-      scale = getScale(offsetParent);
-      offsets.x = offsetRect.x + offsetParent.clientLeft;
-      offsets.y = offsetRect.y + offsetParent.clientTop;
-    }
-  }
-  return {
-    width: rect.width * scale.x,
-    height: rect.height * scale.y,
-    x: rect.x * scale.x - scroll.scrollLeft * scale.x + offsets.x,
-    y: rect.y * scale.y - scroll.scrollTop * scale.y + offsets.y
-  };
-}
-
-function getClientRects(element) {
-  return Array.from(element.getClientRects());
-}
-
-function getWindowScrollBarX(element) {
-  // If <html> has a CSS width greater than the viewport, then this will be
-  // incorrect for RTL.
-  return getBoundingClientRect(getDocumentElement(element)).left + getNodeScroll(element).scrollLeft;
-}
-
-// Gets the entire size of the scrollable document area, even extending outside
-// of the `<html>` and `<body>` rect bounds if horizontally scrollable.
-function getDocumentRect(element) {
-  const html = getDocumentElement(element);
-  const scroll = getNodeScroll(element);
-  const body = element.ownerDocument.body;
-  const width = max(html.scrollWidth, html.clientWidth, body.scrollWidth, body.clientWidth);
-  const height = max(html.scrollHeight, html.clientHeight, body.scrollHeight, body.clientHeight);
-  let x = -scroll.scrollLeft + getWindowScrollBarX(element);
-  const y = -scroll.scrollTop;
-  if (getComputedStyle(body).direction === 'rtl') {
-    x += max(html.clientWidth, body.clientWidth) - width;
-  }
-  return {
-    width,
-    height,
-    x,
-    y
-  };
-}
-
-function getViewportRect(element, strategy) {
-  const win = getWindow(element);
-  const html = getDocumentElement(element);
-  const visualViewport = win.visualViewport;
-  let width = html.clientWidth;
-  let height = html.clientHeight;
-  let x = 0;
-  let y = 0;
-  if (visualViewport) {
-    width = visualViewport.width;
-    height = visualViewport.height;
-    const visualViewportBased = isWebKit();
-    if (!visualViewportBased || visualViewportBased && strategy === 'fixed') {
-      x = visualViewport.offsetLeft;
-      y = visualViewport.offsetTop;
-    }
-  }
-  return {
-    width,
-    height,
-    x,
-    y
-  };
-}
-
-// Returns the inner client rect, subtracting scrollbars if present.
-function getInnerBoundingClientRect(element, strategy) {
-  const clientRect = getBoundingClientRect(element, true, strategy === 'fixed');
-  const top = clientRect.top + element.clientTop;
-  const left = clientRect.left + element.clientLeft;
-  const scale = isHTMLElement(element) ? getScale(element) : createCoords(1);
-  const width = element.clientWidth * scale.x;
-  const height = element.clientHeight * scale.y;
-  const x = left * scale.x;
-  const y = top * scale.y;
-  return {
-    width,
-    height,
-    x,
-    y
-  };
-}
-function getClientRectFromClippingAncestor(element, clippingAncestor, strategy) {
-  let rect;
-  if (clippingAncestor === 'viewport') {
-    rect = getViewportRect(element, strategy);
-  } else if (clippingAncestor === 'document') {
-    rect = getDocumentRect(getDocumentElement(element));
-  } else if (isElement(clippingAncestor)) {
-    rect = getInnerBoundingClientRect(clippingAncestor, strategy);
-  } else {
-    const visualOffsets = getVisualOffsets(element);
-    rect = {
-      ...clippingAncestor,
-      x: clippingAncestor.x - visualOffsets.x,
-      y: clippingAncestor.y - visualOffsets.y
-    };
-  }
-  return rectToClientRect(rect);
-}
-function hasFixedPositionAncestor(element, stopNode) {
-  const parentNode = getParentNode(element);
-  if (parentNode === stopNode || !isElement(parentNode) || isLastTraversableNode(parentNode)) {
-    return false;
-  }
-  return getComputedStyle(parentNode).position === 'fixed' || hasFixedPositionAncestor(parentNode, stopNode);
-}
-
-// A "clipping ancestor" is an `overflow` element with the characteristic of
-// clipping (or hiding) child elements. This returns all clipping ancestors
-// of the given element up the tree.
-function getClippingElementAncestors(element, cache) {
-  const cachedResult = cache.get(element);
-  if (cachedResult) {
-    return cachedResult;
-  }
-  let result = getOverflowAncestors(element).filter(el => isElement(el) && getNodeName(el) !== 'body');
-  let currentContainingBlockComputedStyle = null;
-  const elementIsFixed = getComputedStyle(element).position === 'fixed';
-  let currentNode = elementIsFixed ? getParentNode(element) : element;
-
-  // https://developer.mozilla.org/en-US/docs/Web/CSS/Containing_block#identifying_the_containing_block
-  while (isElement(currentNode) && !isLastTraversableNode(currentNode)) {
-    const computedStyle = getComputedStyle(currentNode);
-    const currentNodeIsContaining = isContainingBlock(currentNode);
-    if (!currentNodeIsContaining && computedStyle.position === 'fixed') {
-      currentContainingBlockComputedStyle = null;
-    }
-    const shouldDropCurrentNode = elementIsFixed ? !currentNodeIsContaining && !currentContainingBlockComputedStyle : !currentNodeIsContaining && computedStyle.position === 'static' && !!currentContainingBlockComputedStyle && ['absolute', 'fixed'].includes(currentContainingBlockComputedStyle.position) || isOverflowElement(currentNode) && !currentNodeIsContaining && hasFixedPositionAncestor(element, currentNode);
-    if (shouldDropCurrentNode) {
-      // Drop non-containing blocks.
-      result = result.filter(ancestor => ancestor !== currentNode);
-    } else {
-      // Record last containing block for next iteration.
-      currentContainingBlockComputedStyle = computedStyle;
-    }
-    currentNode = getParentNode(currentNode);
-  }
-  cache.set(element, result);
-  return result;
-}
-
-// Gets the maximum area that the element is visible in due to any number of
-// clipping ancestors.
-function getClippingRect(_ref) {
-  let {
-    element,
-    boundary,
-    rootBoundary,
-    strategy
-  } = _ref;
-  const elementClippingAncestors = boundary === 'clippingAncestors' ? getClippingElementAncestors(element, this._c) : [].concat(boundary);
-  const clippingAncestors = [...elementClippingAncestors, rootBoundary];
-  const firstClippingAncestor = clippingAncestors[0];
-  const clippingRect = clippingAncestors.reduce((accRect, clippingAncestor) => {
-    const rect = getClientRectFromClippingAncestor(element, clippingAncestor, strategy);
-    accRect.top = max(rect.top, accRect.top);
-    accRect.right = min(rect.right, accRect.right);
-    accRect.bottom = min(rect.bottom, accRect.bottom);
-    accRect.left = max(rect.left, accRect.left);
-    return accRect;
-  }, getClientRectFromClippingAncestor(element, firstClippingAncestor, strategy));
-  return {
-    width: clippingRect.right - clippingRect.left,
-    height: clippingRect.bottom - clippingRect.top,
-    x: clippingRect.left,
-    y: clippingRect.top
-  };
-}
-
-function getDimensions(element) {
-  return getCssDimensions(element);
-}
-
-function getRectRelativeToOffsetParent(element, offsetParent, strategy) {
-  const isOffsetParentAnElement = isHTMLElement(offsetParent);
-  const documentElement = getDocumentElement(offsetParent);
-  const isFixed = strategy === 'fixed';
-  const rect = getBoundingClientRect(element, true, isFixed, offsetParent);
-  let scroll = {
-    scrollLeft: 0,
-    scrollTop: 0
-  };
-  const offsets = createCoords(0);
-  if (isOffsetParentAnElement || !isOffsetParentAnElement && !isFixed) {
-    if (getNodeName(offsetParent) !== 'body' || isOverflowElement(documentElement)) {
-      scroll = getNodeScroll(offsetParent);
-    }
-    if (isOffsetParentAnElement) {
-      const offsetRect = getBoundingClientRect(offsetParent, true, isFixed, offsetParent);
-      offsets.x = offsetRect.x + offsetParent.clientLeft;
-      offsets.y = offsetRect.y + offsetParent.clientTop;
-    } else if (documentElement) {
-      offsets.x = getWindowScrollBarX(documentElement);
-    }
-  }
-  return {
-    x: rect.left + scroll.scrollLeft - offsets.x,
-    y: rect.top + scroll.scrollTop - offsets.y,
-    width: rect.width,
-    height: rect.height
-  };
-}
-
-function getTrueOffsetParent(element, polyfill) {
-  if (!isHTMLElement(element) || getComputedStyle(element).position === 'fixed') {
-    return null;
-  }
-  if (polyfill) {
-    return polyfill(element);
-  }
-  return element.offsetParent;
-}
-
-// Gets the closest ancestor positioned element. Handles some edge cases,
-// such as table ancestors and cross browser bugs.
-function getOffsetParent(element, polyfill) {
-  const window = getWindow(element);
-  if (!isHTMLElement(element)) {
-    return window;
-  }
-  let offsetParent = getTrueOffsetParent(element, polyfill);
-  while (offsetParent && isTableElement(offsetParent) && getComputedStyle(offsetParent).position === 'static') {
-    offsetParent = getTrueOffsetParent(offsetParent, polyfill);
-  }
-  if (offsetParent && (getNodeName(offsetParent) === 'html' || getNodeName(offsetParent) === 'body' && getComputedStyle(offsetParent).position === 'static' && !isContainingBlock(offsetParent))) {
-    return window;
-  }
-  return offsetParent || getContainingBlock(element) || window;
-}
-
-const getElementRects = async function (_ref) {
-  let {
-    reference,
-    floating,
-    strategy
-  } = _ref;
-  const getOffsetParentFn = this.getOffsetParent || getOffsetParent;
-  const getDimensionsFn = this.getDimensions;
-  return {
-    reference: getRectRelativeToOffsetParent(reference, await getOffsetParentFn(floating), strategy),
-    floating: {
-      x: 0,
-      y: 0,
-      ...(await getDimensionsFn(floating))
-    }
-  };
-};
-
-function isRTL(element) {
-  return getComputedStyle(element).direction === 'rtl';
-}
-
-const platform = {
-  convertOffsetParentRelativeRectToViewportRelativeRect,
-  getDocumentElement,
-  getClippingRect,
-  getOffsetParent,
-  getElementRects,
-  getClientRects,
-  getDimensions,
-  getScale,
-  isElement,
-  isRTL
-};
-
-// https://samthor.au/2021/observing-dom/
-function observeMove(element, onMove) {
-  let io = null;
-  let timeoutId;
-  const root = getDocumentElement(element);
-  function cleanup() {
-    clearTimeout(timeoutId);
-    io && io.disconnect();
-    io = null;
-  }
-  function refresh(skip, threshold) {
-    if (skip === void 0) {
-      skip = false;
-    }
-    if (threshold === void 0) {
-      threshold = 1;
-    }
-    cleanup();
-    const {
-      left,
-      top,
-      width,
-      height
-    } = element.getBoundingClientRect();
-    if (!skip) {
-      onMove();
-    }
-    if (!width || !height) {
-      return;
-    }
-    const insetTop = floor(top);
-    const insetRight = floor(root.clientWidth - (left + width));
-    const insetBottom = floor(root.clientHeight - (top + height));
-    const insetLeft = floor(left);
-    const rootMargin = -insetTop + "px " + -insetRight + "px " + -insetBottom + "px " + -insetLeft + "px";
-    const options = {
-      rootMargin,
-      threshold: max(0, min(1, threshold)) || 1
-    };
-    let isFirstUpdate = true;
-    function handleObserve(entries) {
-      const ratio = entries[0].intersectionRatio;
-      if (ratio !== threshold) {
-        if (!isFirstUpdate) {
-          return refresh();
-        }
-        if (!ratio) {
-          timeoutId = setTimeout(() => {
-            refresh(false, 1e-7);
-          }, 100);
-        } else {
-          refresh(false, ratio);
-        }
-      }
-      isFirstUpdate = false;
-    }
-
-    // Older browsers don't support a `document` as the root and will throw an
-    // error.
-    try {
-      io = new IntersectionObserver(handleObserve, {
-        ...options,
-        // Handle <iframe>s
-        root: root.ownerDocument
-      });
-    } catch (e) {
-      io = new IntersectionObserver(handleObserve, options);
-    }
-    io.observe(element);
-  }
-  refresh(true);
-  return cleanup;
-}
-
-/**
- * Automatically updates the position of the floating element when necessary.
- * Should only be called when the floating element is mounted on the DOM or
- * visible on the screen.
- * @returns cleanup function that should be invoked when the floating element is
- * removed from the DOM or hidden from the screen.
- * @see https://floating-ui.com/docs/autoUpdate
- */
-function autoUpdate(reference, floating, update, options) {
-  if (options === void 0) {
-    options = {};
-  }
-  const {
-    ancestorScroll = true,
-    ancestorResize = true,
-    elementResize = typeof ResizeObserver === 'function',
-    layoutShift = typeof IntersectionObserver === 'function',
-    animationFrame = false
-  } = options;
-  const referenceEl = unwrapElement(reference);
-  const ancestors = ancestorScroll || ancestorResize ? [...(referenceEl ? getOverflowAncestors(referenceEl) : []), ...getOverflowAncestors(floating)] : [];
-  ancestors.forEach(ancestor => {
-    ancestorScroll && ancestor.addEventListener('scroll', update, {
-      passive: true
-    });
-    ancestorResize && ancestor.addEventListener('resize', update);
-  });
-  const cleanupIo = referenceEl && layoutShift ? observeMove(referenceEl, update) : null;
-  let reobserveFrame = -1;
-  let resizeObserver = null;
-  if (elementResize) {
-    resizeObserver = new ResizeObserver(_ref => {
-      let [firstEntry] = _ref;
-      if (firstEntry && firstEntry.target === referenceEl && resizeObserver) {
-        // Prevent update loops when using the `size` middleware.
-        // https://github.com/floating-ui/floating-ui/issues/1740
-        resizeObserver.unobserve(floating);
-        cancelAnimationFrame(reobserveFrame);
-        reobserveFrame = requestAnimationFrame(() => {
-          resizeObserver && resizeObserver.observe(floating);
-        });
-      }
-      update();
-    });
-    if (referenceEl && !animationFrame) {
-      resizeObserver.observe(referenceEl);
-    }
-    resizeObserver.observe(floating);
-  }
-  let frameId;
-  let prevRefRect = animationFrame ? getBoundingClientRect(reference) : null;
-  if (animationFrame) {
-    frameLoop();
-  }
-  function frameLoop() {
-    const nextRefRect = getBoundingClientRect(reference);
-    if (prevRefRect && (nextRefRect.x !== prevRefRect.x || nextRefRect.y !== prevRefRect.y || nextRefRect.width !== prevRefRect.width || nextRefRect.height !== prevRefRect.height)) {
-      update();
-    }
-    prevRefRect = nextRefRect;
-    frameId = requestAnimationFrame(frameLoop);
-  }
-  update();
-  return () => {
-    ancestors.forEach(ancestor => {
-      ancestorScroll && ancestor.removeEventListener('scroll', update);
-      ancestorResize && ancestor.removeEventListener('resize', update);
-    });
-    cleanupIo && cleanupIo();
-    resizeObserver && resizeObserver.disconnect();
-    resizeObserver = null;
-    if (animationFrame) {
-      cancelAnimationFrame(frameId);
-    }
-  };
-}
-
-/**
- * Computes the `x` and `y` coordinates that will place the floating element
- * next to a reference element when it is given a certain CSS positioning
- * strategy.
- */
-const computePosition = (reference, floating, options) => {
-  // This caches the expensive `getClippingElementAncestors` function so that
-  // multiple lifecycle resets re-use the same result. It only lives for a
-  // single call. If other functions become expensive, we can add them as well.
-  const cache = new Map();
-  const mergedOptions = {
-    platform,
-    ...options
-  };
-  const platformWithCache = {
-    ...mergedOptions.platform,
-    _c: cache
-  };
-  return computePosition$1(reference, floating, {
-    ...mergedOptions,
-    platform: platformWithCache
-  });
-};
-
-const id$1 = CALENDAR_POPOVER_ID;
-const ribbonReferenceElId = `${id$1}-ribbon-ref-el`;
-const getReferenceEl = () => document.querySelector(`[id=${ribbonReferenceElId}]`);
-const handleReferenceElHover = () => {
-    const calendarPopoverStore = get_store_value(popoversStore)[id$1];
-    if (!calendarPopoverStore?.opened) {
-        openPopover({ id: id$1 });
-    }
-};
-const handleWindowMouseover = (event) => {
-    if (get_store_value(settingsStore).openPopoverOnRibbonHover) {
-        const ev = event;
-        const calendarPopoverStore = get_store_value(popoversStore)[id$1];
-        const stickerPopoverStore = get_store_value(popoversStore)[STICKER_POPOVER_ID];
-        const menuEl = document.querySelector('.menu');
-        const calendarElTouched = calendarPopoverStore?.floatingEl?.contains(ev.target) ||
-            ev.target?.id.includes(CALENDAR_POPOVER_ID);
-        const stickerElTouched = stickerPopoverStore?.floatingEl?.contains(ev.target) ||
-            ev.target?.id.includes(STICKER_POPOVER_ID);
-        const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
-        const referenceElTouched = calendarPopoverStore?.referenceEl?.contains(event.target);
-        const targetOut = !calendarElTouched && !menuElTouched && !stickerElTouched;
-        const fileMenu = get_store_value(crrFileMenu);
-        if (referenceElTouched)
-            return;
-        // close CP if only CP opened and user hovered anywhere but it
-        if (calendarPopoverStore?.opened && !stickerPopoverStore?.opened && !menuEl && targetOut) {
-            closePopover({ id: CALENDAR_POPOVER_ID });
-            // close crr open ctx menu
-            fileMenu?.close();
-        }
-    }
-};
-const handleWindowClick$1 = (event) => {
-    const ev = event;
-    const settings = get_store_value(settingsStore);
-    const calendarPopoverStore = get_store_value(popoversStore)[id$1];
-    const stickerPopoverStore = get_store_value(popoversStore)[STICKER_POPOVER_ID];
-    const menuEl = document.querySelector('.menu');
-    const calendarElTouched = calendarPopoverStore?.floatingEl?.contains(ev.target) ||
-        ev.target?.id.includes(CALENDAR_POPOVER_ID);
-    const stickerElTouched = stickerPopoverStore?.floatingEl?.contains(ev.target) ||
-        ev.target?.id.includes(STICKER_POPOVER_ID);
-    const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
-    const targetOut = !calendarElTouched && !menuElTouched && !stickerElTouched;
-    // ensures popovers could be closed one by one
-    if (calendarPopoverStore?.opened && stickerPopoverStore?.opened && settings.popoversCloseData.closePopoversOneByOneOnClickOut) {
-        return;
-    }
-    // close CP if user clicked anywhere but either CP, context menu or SP
-    if (targetOut) {
-        closePopover({ id: CALENDAR_POPOVER_ID });
-    }
-};
-// Accessibility Keyboard Interactions
-const handleWindowKeydown$1 = (event) => {
-    const settings = get_store_value(settingsStore);
-    const calendarPopoverStore = get_store_value(popoversStore)[id$1];
-    const stickerPopoverStore = get_store_value(popoversStore)[STICKER_POPOVER_ID];
-    const floatingEl = getFloatingEl({ id: id$1 });
-    const referenceEl = getReferenceEl();
-    const focusableAllowedList = ':is(a[href], button, input, textarea, select, details, [tabindex]):not([tabindex="-1"])';
-    const focusablePopoverElements = Array.from(floatingEl?.querySelectorAll(focusableAllowedList));
-    const referenceElFocused = (calendarPopoverStore?.opened && document.activeElement === referenceEl) || false;
-    // When the user focuses on 'referenceEl' and then presses the Tab or ArrowDown key, the first element inside the view should receive focus.
-    // TODO: make it work!
-    if (referenceElFocused &&
-        (event.key === 'ArrowDown' || event.key === 'Tab') &&
-        focusablePopoverElements.length > 0) {
-        focusablePopoverElements[0].focus();
-        return;
-    }
-    // ensures popovers could be closed one by one
-    if (calendarPopoverStore?.opened && stickerPopoverStore?.opened && settings.popoversCloseData.closePopoversOneByOneOnEscKeydown) {
-        return;
-    }
-    if (event.key === 'Escape') {
-        referenceEl?.focus();
-        closePopover({ id: id$1 });
-        return;
-    }
-};
-const windowEvents$1 = {
-    click: handleWindowClick$1,
-    auxclick: handleWindowClick$1,
-    keydown: handleWindowKeydown$1,
-    mouseover: handleWindowMouseover
-};
-const open$1 = () => {
-    const floatingEl = getFloatingEl({ id: id$1 });
-    const referenceEl = getReferenceEl();
-    revealFloatingEl({ floatingEl });
-    setFloatingElInteractivity({ floatingEl, enabled: true });
-    popoversStore.update((values) => ({
-        ...values,
-        [id$1]: {
-            ...values[id$1],
-            opened: true,
-            floatingEl,
-            referenceEl,
-            // Trigger Floating UI autoUpdate (open only)
-            // https://floating-ui.com/docs/autoUpdate
-            cleanupPopoverAutoUpdate: autoUpdate(referenceEl, floatingEl, () => positionFloatingEl({ referenceEl, id: id$1 }))
-        }
-    }));
-};
-const extraSetup$1 = () => {
-    positionFloatingEl({ referenceEl: getReferenceEl(), id: id$1 });
-    if (get_store_value(settingsStore).openPopoverOnRibbonHover) {
-        getReferenceEl().addEventListener('mouseover', handleReferenceElHover);
-    }
-};
-const cleanup$1 = () => {
-    const plugin = window.plugin;
-    popoversStore.update((values) => ({
-        ...values,
-        [id$1]: {
-            opened: false,
-            referenceEl: null,
-            floatingEl: null,
-            cleanupPopoverAutoUpdate: () => ({})
-        }
-    }));
-    getReferenceEl().removeEventListener('mouseover', handleReferenceElHover);
-    popover$1.removeWindowEvents();
-    if (plugin.popovers) {
-        Object.values(plugin.popovers).forEach((popover) => popover?.$destroy());
-        plugin.popovers = {};
-    }
-};
-const popover$1 = {
-    open: open$1,
-    extraSetup: extraSetup$1,
-    cleanup: cleanup$1,
-    windowEvents: windowEvents$1,
-    addWindowEvents: () => {
-        for (const [evName, cb] of Object.entries(windowEvents$1)) {
-            window.addEventListener(evName, cb);
-        }
-    },
-    removeWindowEvents: () => {
-        for (const [evName, cb] of Object.entries(windowEvents$1)) {
-            window.removeEventListener(evName, cb);
-        }
-    }
-};
-
-const id = STICKER_POPOVER_ID;
-const spInputKeydownHandlerStore = writable((ev) => {
-    const spInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
-    const settings = get_store_value(settingsStore);
-    const searchInputOnEscKeydown = settings.popoversCloseData.searchInputOnEscKeydown;
-    if (ev.key === 'Escape') {
-        if (settings.popoversCloseData.closePopoversOneByOneOnEscKeydown) {
-            if (searchInputOnEscKeydown === 'close-popover') {
-                closePopover({ id });
-                return;
-            }
-            if (spInput && searchInputOnEscKeydown === 'reset') {
-                if (spInput.value.trim().length > 0) {
-                    // reset input
-                    spInput.value = '';
-                }
-                else {
-                    closePopover({ id });
-                }
-            }
-        }
-        else {
-            // close all popover from capturing-phase-added search input event handler as it stops propagation and window event handlers will not be triggered
-            closePopover({ id });
-            closePopover({ id: CALENDAR_POPOVER_ID });
-        }
-    }
-});
-const handleWindowClick = (event) => {
-    const ev = event;
-    const stickerPopoverStore = get_store_value(popoversStore)[STICKER_POPOVER_ID];
-    const menuEl = document.querySelector('.menu');
-    const stickerElTouched = stickerPopoverStore?.floatingEl?.contains(ev.target) ||
-        ev.target?.id.includes(STICKER_POPOVER_ID);
-    const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
-    // close SP if user clicks anywhere but SP
-    // && !menuElTouched is only relevant for first call
-    if (stickerPopoverStore?.opened && !stickerElTouched && !menuElTouched) {
-        closePopover({ id });
-        return;
-    }
-};
-// Accessibility Keyboard Interactions
-const handleWindowKeydown = (event) => {
-    const settings = get_store_value(settingsStore);
-    const stickerPopoverStore = get_store_value(popoversStore)[id];
-    const floatingEl = getFloatingEl({ id });
-    const focusableAllowedList = ':is(a[href], button, input, textarea, select, details, [tabindex]):not([tabindex="-1"])';
-    const focusablePopoverElements = Array.from(floatingEl?.querySelectorAll(focusableAllowedList));
-    const referenceElFocused = (stickerPopoverStore?.opened && document.activeElement === stickerPopoverStore?.referenceEl) ||
-        false;
-    // When the user focuses on 'referenceEl' and then presses the Tab or ArrowDown key, the first element inside the view should receive focus.
-    // TODO: make it work!
-    if (referenceElFocused &&
-        (event.key === 'ArrowDown' || event.key === 'Tab') &&
-        focusablePopoverElements.length > 0) {
-        focusablePopoverElements[0].focus();
-        return;
-    }
-    if (event.key === 'Escape') {
-        const spInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
-        if (spInput &&
-            spInput.isActiveElement() &&
-            settings.popoversCloseData.searchInputOnEscKeydown) {
-            if (settings.popoversCloseData.searchInputOnEscKeydown === 'close-popover') {
-                spInput.blur();
-                closePopover({ id });
-                return;
-            }
-            if (settings.popoversCloseData.searchInputOnEscKeydown === 'reset') {
-                spInput.value = '';
-                return;
-            }
-        }
-        stickerPopoverStore?.referenceEl?.focus();
-        closePopover({ id });
-        return;
-    }
-};
-const windowEvents = {
-    click: handleWindowClick,
-    auxclick: handleWindowClick,
-    keydown: handleWindowKeydown
-};
-const open = ({ customX, customY }) => {
-    const floatingEl = getFloatingEl({ id });
-    revealFloatingEl({ floatingEl });
-    setFloatingElInteractivity({ floatingEl, enabled: true });
-    const spInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
-    spInput?.focus();
-    // ensure event is fired in the capturing phase
-    spInput?.addEventListener('keydown', get_store_value(spInputKeydownHandlerStore), true);
-    popoversStore.update((values) => ({
-        ...values,
-        [id]: {
-            ...values[id],
-            opened: true,
-            floatingEl,
-            // Trigger Floating UI autoUpdate (open only)
-            // https://floating-ui.com/docs/autoUpdate
-            cleanupPopoverAutoUpdate: autoUpdate(values[id]?.referenceEl, floatingEl, () => positionFloatingEl({
-                referenceEl: values[id]?.referenceEl,
-                id,
-                customX,
-                customY
-            }))
-        }
-    }));
-};
-const close = () => {
-    // remove spInput keydown event handler
-    const spInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
-    spInput?.blur();
-    spInput?.removeEventListener('keydown', get_store_value(spInputKeydownHandlerStore), true);
-};
-const extraSetup = () => {
-    const stickerPopoverStore = get_store_value(popoversStore)[id];
-    positionFloatingEl({ referenceEl: stickerPopoverStore?.referenceEl, id });
-};
-const cleanup = () => {
-    const plugin = window.plugin;
-    popoversStore.update((values) => ({
-        ...values,
-        [id]: {
-            opened: false,
-            referenceEl: null,
-            floatingEl: null,
-            cleanupPopoverAutoUpdate: () => ({})
-        }
-    }));
-    if (plugin.popovers) {
-        Object.values(plugin.popovers).forEach((popover) => popover?.$destroy());
-        plugin.popovers = {};
-    }
-};
-const popover = {
-    open,
-    close,
-    extraSetup,
-    cleanup,
-    addWindowEvents: () => {
-        for (const [evName, cb] of Object.entries(windowEvents)) {
-            window.addEventListener(evName, cb);
-        }
-    },
-    removeWindowEvents: () => {
-        for (const [evName, cb] of Object.entries(windowEvents)) {
-            window.removeEventListener(evName, cb);
-        }
-    }
-};
-
-const popoversStore = writable();
-const mutationObserverCbStore = writable(null);
-const positionFloatingEl = ({ referenceEl, id, customX, customY }) => {
-    const arrowEl = document.querySelector(`#${id}-arrow`);
-    const floatingEl = getFloatingEl({ id });
-    computePosition(referenceEl, floatingEl, {
-        placement: 'right',
-        middleware: [flip(), arrow({ element: arrowEl })]
-    }).then(({ x, y, placement, middlewareData }) => {
-        Object.assign(floatingEl.style, {
-            left: `${customX || x}px`,
-            top: `${customY || y}px`
-        });
-        // Handle Arrow Placement:
-        // https://floating-ui.com/docs/arrow
-        if (arrowEl && middlewareData.arrow) {
-            const { x: arrowX, y: arrowY } = middlewareData.arrow;
-            const staticSide = {
-                top: 'bottom',
-                right: 'left',
-                bottom: 'top',
-                left: 'right'
-            }[placement.split('-')[0]];
-            staticSide &&
-                Object.assign(arrowEl.style, {
-                    left: arrowX != null ? `${arrowX}px` : '',
-                    top: arrowY != null ? `${arrowY}px` : '',
-                    right: '',
-                    bottom: '',
-                    [staticSide]: '9px'
-                });
-        }
-    });
-};
-const revealFloatingEl = ({ floatingEl }) => {
-    floatingEl.style.display = 'block';
-    floatingEl.style.opacity = '1';
-    floatingEl.style.pointerEvents = 'auto';
-    console.log('🙌 revealFloatingEl() > opacity: ', floatingEl.style.opacity);
-};
-const hideFloatingEl = ({ floatingEl }) => {
-    floatingEl.style.opacity = '0';
-    console.log('🙌 hideFloatingEl() > opacity: ', floatingEl.style.opacity);
-};
-const setFloatingElInteractivity = ({ enabled, floatingEl }) => {
-    if (enabled) {
-        floatingEl.removeAttribute('inert');
-    }
-    else {
-        floatingEl.setAttribute('inert', '');
-    }
-};
-const getFloatingEl = ({ id }) => document.querySelector(`#${id}[data-popover="true"]`);
-const openPopover = ({ id, referenceEl, customX, customY }) => {
-    console.log('openPopover() > id: ✅', id);
-    // add mutationObserver to look for when any modal is added to the DOM and close popover in response
-    if (!get_store_value(mutationObserverCbStore)) {
-        const mutationObserverCb = (mutationRecords) => {
-            mutationRecords.forEach((record) => {
-                const modalFound = [...record.addedNodes].find((node) => {
-                    if (node instanceof HTMLElement) {
-                        return node.className.contains('modal');
-                    }
-                });
-                if (modalFound) {
-                    // close all popovers and context menus
-                    const popoversIds = Object.keys(get_store_value(popoversStore));
-                    popoversIds.forEach((id) => closePopover({ id }));
-                    get_store_value(crrFileMenu)?.close();
-                    // disconnect observer and reset observer cb store
-                    mutationObserver.disconnect();
-                    mutationObserverCbStore.set(null);
-                }
-            });
-        };
-        mutationObserverCbStore.set(mutationObserverCb);
-        const mutationObserver = new MutationObserver(mutationObserverCb);
-        mutationObserver.observe(document.querySelector('body'), {
-            childList: true
-        });
-    }
-    popovers[id].open({ referenceEl, customX, customY });
-    popovers[id].addWindowEvents();
-};
-const closePopover = ({ id }) => {
-    console.log('closePopover() > id: ❌', id);
-    const popoverStore = get_store_value(popoversStore)[id];
-    if (popoverStore) {
-        const { referenceEl, floatingEl, cleanupPopoverAutoUpdate } = popoverStore;
-        if (referenceEl && floatingEl) {
-            hideFloatingEl({ floatingEl });
-            setFloatingElInteractivity({ floatingEl, enabled: false });
-            cleanupPopoverAutoUpdate();
-            popoversStore.update((values) => ({
-                ...values,
-                [id]: {
-                    ...values[id],
-                    opened: false
-                }
-            }));
-        }
-    }
-    popovers[id].close?.();
-    popovers[id].removeWindowEvents();
-};
-const togglePopover = ({ id }) => {
-    const popoverStore = get_store_value(popoversStore)[id];
-    if (popoverStore) {
-        const { opened } = popoverStore;
-        if (!opened) {
-            openPopover({ id });
-        }
-        else {
-            closePopover({ id });
-        }
-    }
-};
-const setupPopover = ({ id, referenceEl, view }) => {
-    const plugin = window.plugin;
-    // setup View
-    plugin.popovers[id] = new view.Component({
-        target: document.body,
-        props: { popover: true, close: () => closePopover({ id }), ...view.props }
-    });
-    const emojiPicker = document.querySelector('em-emoji-picker');
-    emojiPicker?.shadowRoot;
-    popoversStore.update((values) => ({
-        ...values,
-        [id]: {
-            opened: false,
-            referenceEl,
-            floatingEl: getFloatingEl({ id }),
-            cleanupPopoverAutoUpdate: () => ({})
-        }
-    }));
-    popovers[id].extraSetup();
-    plugin.popoversCleanups.push(popovers[id].cleanup);
-};
-const popovers = {
-    [CALENDAR_POPOVER_ID]: popover$1,
-    [STICKER_POPOVER_ID]: popover
-};
-
-async function fetchWithRetry(url, retries = 0) {
-    try {
-        const response = await fetch(url);
-        if (!response.ok)
-            throw new Error('Network response was not OK');
-        const localesArr = (await response.json());
-        return localesArr;
-    }
-    catch (error) {
-        if (retries < 3) {
-            new obsidian.Notice(`Something went wrong. Retry ${retries + 1}`);
-            return fetchWithRetry(url, retries + 1);
-        }
-        else {
-            new obsidian.Notice(`Fetch failed after ${retries} attempts. Using local, possibly outdated locales. Check internet and restart plugin.`);
-            return null;
-        }
-    }
-}
 function capitalize(string) {
     return string[0].toUpperCase() + string.slice(1).toLowerCase();
 }
@@ -8669,814 +9266,10 @@ function getOnCreateNoteDialogNoteFromGranularity(granularity) {
     }
 }
 
-var dayjs_min = {exports: {}};
-
-(function (module, exports) {
-	!function(t,e){module.exports=e();}(commonjsGlobal,(function(){var t=1e3,e=6e4,n=36e5,r="millisecond",i="second",s="minute",u="hour",a="day",o="week",c="month",f="quarter",h="year",d="date",l="Invalid Date",$=/^(\d{4})[-/]?(\d{1,2})?[-/]?(\d{0,2})[Tt\s]*(\d{1,2})?:?(\d{1,2})?:?(\d{1,2})?[.:]?(\d+)?$/,y=/\[([^\]]+)]|Y{1,4}|M{1,4}|D{1,2}|d{1,4}|H{1,2}|h{1,2}|a|A|m{1,2}|s{1,2}|Z{1,2}|SSS/g,M={name:"en",weekdays:"Sunday_Monday_Tuesday_Wednesday_Thursday_Friday_Saturday".split("_"),months:"January_February_March_April_May_June_July_August_September_October_November_December".split("_"),ordinal:function(t){var e=["th","st","nd","rd"],n=t%100;return "["+t+(e[(n-20)%10]||e[n]||e[0])+"]"}},m=function(t,e,n){var r=String(t);return !r||r.length>=e?t:""+Array(e+1-r.length).join(n)+t},v={s:m,z:function(t){var e=-t.utcOffset(),n=Math.abs(e),r=Math.floor(n/60),i=n%60;return (e<=0?"+":"-")+m(r,2,"0")+":"+m(i,2,"0")},m:function t(e,n){if(e.date()<n.date())return -t(n,e);var r=12*(n.year()-e.year())+(n.month()-e.month()),i=e.clone().add(r,c),s=n-i<0,u=e.clone().add(r+(s?-1:1),c);return +(-(r+(n-i)/(s?i-u:u-i))||0)},a:function(t){return t<0?Math.ceil(t)||0:Math.floor(t)},p:function(t){return {M:c,y:h,w:o,d:a,D:d,h:u,m:s,s:i,ms:r,Q:f}[t]||String(t||"").toLowerCase().replace(/s$/,"")},u:function(t){return void 0===t}},g="en",D={};D[g]=M;var p="$isDayjsObject",S=function(t){return t instanceof _||!(!t||!t[p])},w=function t(e,n,r){var i;if(!e)return g;if("string"==typeof e){var s=e.toLowerCase();D[s]&&(i=s),n&&(D[s]=n,i=s);var u=e.split("-");if(!i&&u.length>1)return t(u[0])}else {var a=e.name;D[a]=e,i=a;}return !r&&i&&(g=i),i||!r&&g},O=function(t,e){if(S(t))return t.clone();var n="object"==typeof e?e:{};return n.date=t,n.args=arguments,new _(n)},b=v;b.l=w,b.i=S,b.w=function(t,e){return O(t,{locale:e.$L,utc:e.$u,x:e.$x,$offset:e.$offset})};var _=function(){function M(t){this.$L=w(t.locale,null,!0),this.parse(t),this.$x=this.$x||t.x||{},this[p]=!0;}var m=M.prototype;return m.parse=function(t){this.$d=function(t){var e=t.date,n=t.utc;if(null===e)return new Date(NaN);if(b.u(e))return new Date;if(e instanceof Date)return new Date(e);if("string"==typeof e&&!/Z$/i.test(e)){var r=e.match($);if(r){var i=r[2]-1||0,s=(r[7]||"0").substring(0,3);return n?new Date(Date.UTC(r[1],i,r[3]||1,r[4]||0,r[5]||0,r[6]||0,s)):new Date(r[1],i,r[3]||1,r[4]||0,r[5]||0,r[6]||0,s)}}return new Date(e)}(t),this.init();},m.init=function(){var t=this.$d;this.$y=t.getFullYear(),this.$M=t.getMonth(),this.$D=t.getDate(),this.$W=t.getDay(),this.$H=t.getHours(),this.$m=t.getMinutes(),this.$s=t.getSeconds(),this.$ms=t.getMilliseconds();},m.$utils=function(){return b},m.isValid=function(){return !(this.$d.toString()===l)},m.isSame=function(t,e){var n=O(t);return this.startOf(e)<=n&&n<=this.endOf(e)},m.isAfter=function(t,e){return O(t)<this.startOf(e)},m.isBefore=function(t,e){return this.endOf(e)<O(t)},m.$g=function(t,e,n){return b.u(t)?this[e]:this.set(n,t)},m.unix=function(){return Math.floor(this.valueOf()/1e3)},m.valueOf=function(){return this.$d.getTime()},m.startOf=function(t,e){var n=this,r=!!b.u(e)||e,f=b.p(t),l=function(t,e){var i=b.w(n.$u?Date.UTC(n.$y,e,t):new Date(n.$y,e,t),n);return r?i:i.endOf(a)},$=function(t,e){return b.w(n.toDate()[t].apply(n.toDate("s"),(r?[0,0,0,0]:[23,59,59,999]).slice(e)),n)},y=this.$W,M=this.$M,m=this.$D,v="set"+(this.$u?"UTC":"");switch(f){case h:return r?l(1,0):l(31,11);case c:return r?l(1,M):l(0,M+1);case o:var g=this.$locale().weekStart||0,D=(y<g?y+7:y)-g;return l(r?m-D:m+(6-D),M);case a:case d:return $(v+"Hours",0);case u:return $(v+"Minutes",1);case s:return $(v+"Seconds",2);case i:return $(v+"Milliseconds",3);default:return this.clone()}},m.endOf=function(t){return this.startOf(t,!1)},m.$set=function(t,e){var n,o=b.p(t),f="set"+(this.$u?"UTC":""),l=(n={},n[a]=f+"Date",n[d]=f+"Date",n[c]=f+"Month",n[h]=f+"FullYear",n[u]=f+"Hours",n[s]=f+"Minutes",n[i]=f+"Seconds",n[r]=f+"Milliseconds",n)[o],$=o===a?this.$D+(e-this.$W):e;if(o===c||o===h){var y=this.clone().set(d,1);y.$d[l]($),y.init(),this.$d=y.set(d,Math.min(this.$D,y.daysInMonth())).$d;}else l&&this.$d[l]($);return this.init(),this},m.set=function(t,e){return this.clone().$set(t,e)},m.get=function(t){return this[b.p(t)]()},m.add=function(r,f){var d,l=this;r=Number(r);var $=b.p(f),y=function(t){var e=O(l);return b.w(e.date(e.date()+Math.round(t*r)),l)};if($===c)return this.set(c,this.$M+r);if($===h)return this.set(h,this.$y+r);if($===a)return y(1);if($===o)return y(7);var M=(d={},d[s]=e,d[u]=n,d[i]=t,d)[$]||1,m=this.$d.getTime()+r*M;return b.w(m,this)},m.subtract=function(t,e){return this.add(-1*t,e)},m.format=function(t){var e=this,n=this.$locale();if(!this.isValid())return n.invalidDate||l;var r=t||"YYYY-MM-DDTHH:mm:ssZ",i=b.z(this),s=this.$H,u=this.$m,a=this.$M,o=n.weekdays,c=n.months,f=n.meridiem,h=function(t,n,i,s){return t&&(t[n]||t(e,r))||i[n].slice(0,s)},d=function(t){return b.s(s%12||12,t,"0")},$=f||function(t,e,n){var r=t<12?"AM":"PM";return n?r.toLowerCase():r};return r.replace(y,(function(t,r){return r||function(t){switch(t){case"YY":return String(e.$y).slice(-2);case"YYYY":return b.s(e.$y,4,"0");case"M":return a+1;case"MM":return b.s(a+1,2,"0");case"MMM":return h(n.monthsShort,a,c,3);case"MMMM":return h(c,a);case"D":return e.$D;case"DD":return b.s(e.$D,2,"0");case"d":return String(e.$W);case"dd":return h(n.weekdaysMin,e.$W,o,2);case"ddd":return h(n.weekdaysShort,e.$W,o,3);case"dddd":return o[e.$W];case"H":return String(s);case"HH":return b.s(s,2,"0");case"h":return d(1);case"hh":return d(2);case"a":return $(s,u,!0);case"A":return $(s,u,!1);case"m":return String(u);case"mm":return b.s(u,2,"0");case"s":return String(e.$s);case"ss":return b.s(e.$s,2,"0");case"SSS":return b.s(e.$ms,3,"0");case"Z":return i}return null}(t)||i.replace(":","")}))},m.utcOffset=function(){return 15*-Math.round(this.$d.getTimezoneOffset()/15)},m.diff=function(r,d,l){var $,y=this,M=b.p(d),m=O(r),v=(m.utcOffset()-this.utcOffset())*e,g=this-m,D=function(){return b.m(y,m)};switch(M){case h:$=D()/12;break;case c:$=D();break;case f:$=D()/3;break;case o:$=(g-v)/6048e5;break;case a:$=(g-v)/864e5;break;case u:$=g/n;break;case s:$=g/e;break;case i:$=g/t;break;default:$=g;}return l?$:b.a($)},m.daysInMonth=function(){return this.endOf(c).$D},m.$locale=function(){return D[this.$L]},m.locale=function(t,e){if(!t)return this.$L;var n=this.clone(),r=w(t,e,!0);return r&&(n.$L=r),n},m.clone=function(){return b.w(this.$d,this)},m.toDate=function(){return new Date(this.valueOf())},m.toJSON=function(){return this.isValid()?this.toISOString():null},m.toISOString=function(){return this.$d.toISOString()},m.toString=function(){return this.$d.toUTCString()},M}(),k=_.prototype;return O.prototype=k,[["$ms",r],["$s",i],["$m",s],["$H",u],["$W",a],["$M",c],["$y",h],["$D",d]].forEach((function(t){k[t[1]]=function(e){return this.$g(e,t[0],t[1])};})),O.extend=function(t,e){return t.$i||(t(e,_,O),t.$i=!0),O},O.locale=w,O.isDayjs=S,O.unix=function(t){return O(1e3*t)},O.en=D[g],O.Ls=D,O.p={},O})); 
-} (dayjs_min));
-
-var dayjs_minExports = dayjs_min.exports;
-var dayjs = /*@__PURE__*/getDefaultExportFromCjs(dayjs_minExports);
-
-var weekday$1 = {exports: {}};
-
-(function (module, exports) {
-	!function(e,t){module.exports=t();}(commonjsGlobal,(function(){return function(e,t){t.prototype.weekday=function(e){var t=this.$locale().weekStart||0,i=this.$W,n=(i<t?i+7:i)-t;return this.$utils().u(e)?n:this.subtract(n,"day").add(e,"day")};}})); 
-} (weekday$1));
-
-var weekdayExports = weekday$1.exports;
-var weekday = /*@__PURE__*/getDefaultExportFromCjs(weekdayExports);
-
-var localeData$1 = {exports: {}};
-
-(function (module, exports) {
-	!function(n,e){module.exports=e();}(commonjsGlobal,(function(){return function(n,e,t){var r=e.prototype,o=function(n){return n&&(n.indexOf?n:n.s)},u=function(n,e,t,r,u){var i=n.name?n:n.$locale(),a=o(i[e]),s=o(i[t]),f=a||s.map((function(n){return n.slice(0,r)}));if(!u)return f;var d=i.weekStart;return f.map((function(n,e){return f[(e+(d||0))%7]}))},i=function(){return t.Ls[t.locale()]},a=function(n,e){return n.formats[e]||function(n){return n.replace(/(\[[^\]]+])|(MMMM|MM|DD|dddd)/g,(function(n,e,t){return e||t.slice(1)}))}(n.formats[e.toUpperCase()])},s=function(){var n=this;return {months:function(e){return e?e.format("MMMM"):u(n,"months")},monthsShort:function(e){return e?e.format("MMM"):u(n,"monthsShort","months",3)},firstDayOfWeek:function(){return n.$locale().weekStart||0},weekdays:function(e){return e?e.format("dddd"):u(n,"weekdays")},weekdaysMin:function(e){return e?e.format("dd"):u(n,"weekdaysMin","weekdays",2)},weekdaysShort:function(e){return e?e.format("ddd"):u(n,"weekdaysShort","weekdays",3)},longDateFormat:function(e){return a(n.$locale(),e)},meridiem:this.$locale().meridiem,ordinal:this.$locale().ordinal}};r.localeData=function(){return s.bind(this)()},t.localeData=function(){var n=i();return {firstDayOfWeek:function(){return n.weekStart||0},weekdays:function(){return t.weekdays()},weekdaysShort:function(){return t.weekdaysShort()},weekdaysMin:function(){return t.weekdaysMin()},months:function(){return t.months()},monthsShort:function(){return t.monthsShort()},longDateFormat:function(e){return a(n,e)},meridiem:n.meridiem,ordinal:n.ordinal}},t.months=function(){return u(i(),"months")},t.monthsShort=function(){return u(i(),"monthsShort","months",3)},t.weekdays=function(n){return u(i(),"weekdays",null,null,n)},t.weekdaysShort=function(n){return u(i(),"weekdaysShort","weekdays",3,n)},t.weekdaysMin=function(n){return u(i(),"weekdaysMin","weekdays",2,n)};}})); 
-} (localeData$1));
-
-var localeDataExports = localeData$1.exports;
-var localeData = /*@__PURE__*/getDefaultExportFromCjs(localeDataExports);
-
-const localesMap = new Map();
-const locales = [
-    { key: 'af', name: 'Afrikaans' },
-    { key: 'am', name: 'Amharic' },
-    { key: 'ar-dz', name: 'Arabic (Algeria)' },
-    { key: 'ar-iq', name: ' Arabic (Iraq)' },
-    { key: 'ar-kw', name: 'Arabic (Kuwait)' },
-    { key: 'ar-ly', name: 'Arabic (Lybia)' },
-    { key: 'ar-ma', name: 'Arabic (Morocco)' },
-    { key: 'ar-sa', name: 'Arabic (Saudi Arabia)' },
-    { key: 'ar-tn', name: ' Arabic (Tunisia)' },
-    { key: 'ar', name: 'Arabic' },
-    { key: 'az', name: 'Azerbaijani' },
-    { key: 'be', name: 'Belarusian' },
-    { key: 'bg', name: 'Bulgarian' },
-    { key: 'bi', name: 'Bislama' },
-    { key: 'bm', name: 'Bambara' },
-    { key: 'bn-bd', name: 'Bengali (Bangladesh)' },
-    { key: 'bn', name: 'Bengali' },
-    { key: 'bo', name: 'Tibetan' },
-    { key: 'br', name: 'Breton' },
-    { key: 'bs', name: 'Bosnian' },
-    { key: 'ca', name: 'Catalan' },
-    { key: 'cs', name: 'Czech' },
-    { key: 'cv', name: 'Chuvash' },
-    { key: 'cy', name: 'Welsh' },
-    { key: 'da', name: 'Danish' },
-    { key: 'de-at', name: 'German (Austria)' },
-    { key: 'de-ch', name: 'German (Switzerland)' },
-    { key: 'de', name: 'German' },
-    { key: 'dv', name: 'Maldivian' },
-    { key: 'el', name: 'Greek' },
-    { key: 'en-au', name: 'English (Australia)' },
-    { key: 'en-ca', name: 'English (Canada)' },
-    { key: 'en-gb', name: 'English (United Kingdom)' },
-    { key: 'en-ie', name: 'English (Ireland)' },
-    { key: 'en-il', name: 'English (Israel)' },
-    { key: 'en-in', name: 'English (India)' },
-    { key: 'en-nz', name: 'English (New Zealand)' },
-    { key: 'en-sg', name: 'English (Singapore)' },
-    { key: 'en-tt', name: 'English (Trinidad & Tobago)' },
-    { key: 'en', name: 'English' },
-    { key: 'eo', name: 'Esperanto' },
-    { key: 'es-do', name: 'Spanish (Dominican Republic)' },
-    { key: 'es-mx', name: 'Spanish (Mexico)' },
-    { key: 'es-pr', name: 'Spanish (Puerto Rico)' },
-    { key: 'es-us', name: 'Spanish (United States)' },
-    { key: 'es', name: 'Spanish' },
-    { key: 'et', name: 'Estonian' },
-    { key: 'eu', name: 'Basque' },
-    { key: 'fa', name: 'Persian' },
-    { key: 'fi', name: 'Finnish' },
-    { key: 'fo', name: 'Faroese' },
-    { key: 'fr-ca', name: 'French (Canada)' },
-    { key: 'fr-ch', name: 'French (Switzerland)' },
-    { key: 'fr', name: 'French' },
-    { key: 'fy', name: 'Frisian' },
-    { key: 'ga', name: 'Irish or Irish Gaelic' },
-    { key: 'gd', name: 'Scottish Gaelic' },
-    { key: 'gl', name: 'Galician' },
-    { key: 'gom-latn', name: 'Konkani Latin script' },
-    { key: 'gu', name: 'Gujarati' },
-    { key: 'he', name: 'Hebrew' },
-    { key: 'hi', name: 'Hindi' },
-    { key: 'hr', name: 'Croatian' },
-    { key: 'ht', name: 'Haitian Creole (Haiti)' },
-    { key: 'hu', name: 'Hungarian' },
-    { key: 'hy-am', name: 'Armenian' },
-    { key: 'id', name: 'Indonesian' },
-    { key: 'is', name: 'Icelandic' },
-    { key: 'it-ch', name: 'Italian (Switzerland)' },
-    { key: 'it', name: 'Italian' },
-    { key: 'ja', name: 'Japanese' },
-    { key: 'jv', name: 'Javanese' },
-    { key: 'ka', name: 'Georgian' },
-    { key: 'kk', name: 'Kazakh' },
-    { key: 'km', name: 'Cambodian' },
-    { key: 'kn', name: 'Kannada' },
-    { key: 'ko', name: 'Korean' },
-    { key: 'ku', name: 'Kurdish' },
-    { key: 'ky', name: 'Kyrgyz' },
-    { key: 'lb', name: 'Luxembourgish' },
-    { key: 'lo', name: 'Lao' },
-    { key: 'lt', name: 'Lithuanian' },
-    { key: 'lv', name: 'Latvian' },
-    { key: 'me', name: 'Montenegrin' },
-    { key: 'mi', name: 'Maori' },
-    { key: 'mk', name: 'Macedonian' },
-    { key: 'ml', name: 'Malayalam' },
-    { key: 'mn', name: 'Mongolian' },
-    { key: 'mr', name: 'Marathi' },
-    { key: 'ms-my', name: 'Malay' },
-    { key: 'ms', name: 'Malay' },
-    { key: 'mt', name: 'Maltese (Malta)' },
-    { key: 'my', name: 'Burmese' },
-    { key: 'nb', name: 'Norwegian Bokmål' },
-    { key: 'ne', name: 'Nepalese' },
-    { key: 'nl-be', name: 'Dutch (Belgium)' },
-    { key: 'nl', name: 'Dutch' },
-    { key: 'nn', name: 'Nynorsk' },
-    { key: 'oc-lnc', name: 'Occitan, lengadocian dialecte' },
-    { key: 'pa-in', name: 'Punjabi (India)' },
-    { key: 'pl', name: 'Polish' },
-    { key: 'pt-br', name: 'Portuguese (Brazil)' },
-    { key: 'pt', name: 'Portuguese' },
-    { key: 'rn', name: 'Kirundi' },
-    { key: 'sd', name: 'Sindhi' },
-    { key: 'se', name: 'Northern Sami' },
-    { key: 'si', name: 'Sinhalese' },
-    { key: 'sk', name: 'Slovak' },
-    { key: 'sl', name: 'Slovenian' },
-    { key: 'sq', name: 'Albanian' },
-    { key: 'sr-cyrl', name: 'Serbian Cyrillic' },
-    { key: 'sr', name: 'Serbian' },
-    { key: 'ss', name: 'siSwati' },
-    { key: 'sv-fi', name: 'Finland Swedish' },
-    { key: 'sv', name: 'Swedish' },
-    { key: 'sw', name: 'Swahili' },
-    { key: 'ta', name: 'Tamil' },
-    { key: 'te', name: 'Telugu' },
-    { key: 'tet', name: 'Tetun Dili (East Timor)' },
-    { key: 'tg', name: 'Tajik' },
-    { key: 'th', name: 'Thai' },
-    { key: 'tk', name: 'Turkmen' },
-    { key: 'tl-ph', name: 'Tagalog (Philippines)' },
-    { key: 'tlh', name: 'Klingon' },
-    { key: 'tr', name: 'Turkish' },
-    { key: 'tzl', name: 'Talossan' },
-    { key: 'tzm-latn', name: 'Central Atlas Tamazight Latin' },
-    { key: 'tzm', name: 'Central Atlas Tamazight' },
-    { key: 'ug-cn', name: 'Uyghur (China)' },
-    { key: 'uk', name: 'Ukrainian' },
-    { key: 'ur', name: 'Urdu' },
-    { key: 'uz-latn', name: 'Uzbek Latin' },
-    { key: 'uz', name: 'Uzbek' },
-    { key: 'vi', name: 'Vietnamese' },
-    { key: 'x-pseudo', name: 'Pseudo' },
-    { key: 'yo', name: 'Yoruba Nigeria' },
-    { key: 'zh-cn', name: 'Chinese (China)' },
-    { key: 'zh-hk', name: 'Chinese (Hong Kong)' },
-    { key: 'zh-tw', name: 'Chinese (Taiwan)' },
-    { key: 'zh', name: 'Chinese' },
-    { key: 'rw', name: 'Kinyarwanda (Rwanda)' },
-    { key: 'ru', name: 'Russian' },
-    { key: 'ro', name: 'Romanian' }
-];
-locales.forEach((obj) => {
-    localesMap.set(obj.key, obj.name);
-});
-
-dayjs.extend(weekday);
-dayjs.extend(localeData);
-const DEFAULT_SETTINGS = Object.freeze({
-    viewOpen: false,
-    shouldConfirmBeforeCreate: true,
-    yearsRangesStart: 2020,
-    autoHoverPreview: false,
-    openPopoverOnRibbonHover: false,
-    crrNldModalGranularity: 'day',
-    localeData: {
-        loading: false,
-        weekStart: dayjs.weekdays()[dayjs().weekday(0).day()],
-        showWeekNums: false,
-        sysLocaleKey: navigator.languages.find((locale) => localesMap.has(locale.toLocaleLowerCase())) ||
-            navigator.languages[0],
-        localeOverride: null,
-        weekdays: dayjs.weekdays(),
-        weekdaysShort: dayjs.weekdaysShort()
-    },
-    popoversCloseData: {
-        closePopoversOneByOneOnClickOut: false,
-        closePopoversOneByOneOnEscKeydown: true,
-        searchInputOnEscKeydown: 'close-popover'
-    }
-});
-class SettingsTab extends obsidian.PluginSettingTab {
-    plugin;
-    unsubscribeSettingsStore;
-    locales = localesMap;
-    localesUpdated = false;
-    firstRender = true;
-    constructor(app, plugin) {
-        super(app, plugin);
-        this.plugin = plugin;
-        window.dayjs = dayjs;
-    }
-    display() {
-        console.log('Displaying setttings ⚙️');
-        this.containerEl.empty();
-        this.containerEl.createEl('h3', {
-            text: 'General'
-        });
-        this.addPopoverSetting();
-        this.addOpenPopoverOnRibbonHoverSetting();
-        this.addConfirmCreateSetting();
-        this.addConfirmAutoHoverPreviewSetting();
-        this.addShowWeeklyNoteSetting();
-        this.containerEl.createEl('h3', {
-            text: 'Locale'
-        });
-        this.addLocaleOverrideSetting();
-        this.addWeekStartSetting();
-        if (!get_store_value(settingsStore).viewOpen) {
-            this.containerEl.createEl('h3', {
-                text: 'Popovers close conditions'
-            });
-            this.addClosePopoversOneByOneOnClickOutSetting();
-            this.addClosePopoversOneByBoneOnEscKeydownSetting();
-            if (get_store_value(settingsStore).popoversCloseData.closePopoversOneByOneOnEscKeydown) {
-                this.addSpSearchInputOnEscKeydownSetting();
-            }
-        }
-    }
-    addPopoverSetting() {
-        // TODO: improve wording
-        new obsidian.Setting(this.containerEl)
-            .setName('Ribbon icon opens Calendar view')
-            .setDesc('Show Calendar view when clicking on ribbon icon instead of default popover')
-            .addToggle((viewOpen) => viewOpen.setValue(this.plugin.settings.viewOpen).onChange(async (viewOpen) => {
-            if (this.plugin.popoversCleanups.length > 0) {
-                this.plugin.popoversCleanups.forEach((cleanup) => cleanup());
-                this.plugin.popoversCleanups = [];
-            }
-            if (!viewOpen) {
-                setupPopover({
-                    id: CALENDAR_POPOVER_ID,
-                    view: {
-                        Component: View$1
-                    }
-                });
-            }
-            await this.plugin.saveSettings(() => ({
-                viewOpen
-            }));
-            this.display(); // hide/show popovers close conditions settings
-        }));
-    }
-    addOpenPopoverOnRibbonHoverSetting() {
-        // TODO: improve wording
-        new obsidian.Setting(this.containerEl).setName('Open popover on Ribbon hover').addToggle((el) => el
-            .setValue(this.plugin.settings.openPopoverOnRibbonHover)
-            .onChange(async (openPopoverOnRibbonHover) => {
-            console.log('setting() > popoversCleanups: 🧹🧹🧹 🌬️ ', this.plugin.popoversCleanups);
-            if (this.plugin.popoversCleanups.length > 0) {
-                this.plugin.popoversCleanups.forEach((cleanup) => cleanup());
-                this.plugin.popoversCleanups = [];
-            }
-            console.log('setting() > openPopoverOnRibbonHover: ', openPopoverOnRibbonHover);
-            setupPopover({
-                id: CALENDAR_POPOVER_ID,
-                view: {
-                    Component: View$1
-                }
-            });
-            await this.plugin.saveSettings(() => ({
-                openPopoverOnRibbonHover
-            }));
-        }));
-    }
-    addConfirmCreateSetting() {
-        new obsidian.Setting(this.containerEl)
-            .setName('Confirm before creating new note')
-            .setDesc('Display a confirmation dialog before creating a new note')
-            .addToggle((toggle) => {
-            toggle.setValue(this.plugin.settings.shouldConfirmBeforeCreate);
-            toggle.onChange(async (value) => {
-                this.plugin.saveSettings(() => ({
-                    shouldConfirmBeforeCreate: value
-                }));
-            });
-        });
-    }
-    addConfirmAutoHoverPreviewSetting() {
-        // TODO: improve wording
-        new obsidian.Setting(this.containerEl)
-            .setName('Automatically preview note on hover')
-            .setDesc('Require special key combination (Shift + mouse hover) to preview note')
-            .addToggle((toggle) => {
-            toggle.setValue(this.plugin.settings.autoHoverPreview);
-            toggle.onChange(async (value) => {
-                this.plugin.saveSettings(() => ({
-                    autoHoverPreview: value
-                }));
-            });
-        });
-    }
-    addShowWeeklyNoteSetting() {
-        new obsidian.Setting(this.containerEl)
-            .setName('Show week number')
-            .setDesc('Enable this to add a column with the week number')
-            .addToggle((toggle) => {
-            toggle.setValue(this.plugin.settings.localeData.showWeekNums);
-            toggle.onChange(async (value) => {
-                this.plugin.saveSettings((settings) => ({
-                    localeData: {
-                        ...settings.localeData,
-                        showWeekNums: value
-                    }
-                }));
-                this.display(); // show/hide weekly settings
-            });
-        });
-    }
-    addWeekStartSetting() {
-        // clean dropdown to allow different options when rerendered
-        const removeAllOptions = (dropdown) => {
-            const selectNode = dropdown.selectEl;
-            while (selectNode.firstChild) {
-                selectNode.removeChild(selectNode.firstChild);
-            }
-        };
-        const localeData = get_store_value(settingsStore).localeData;
-        // TODO: improve wording
-        new obsidian.Setting(this.containerEl)
-            .setName('Start week on:')
-            .setDesc("Choose what day of the week to start. Select 'Locale default' to use the default specified by day.js")
-            .addDropdown((dropdown) => {
-            removeAllOptions(dropdown);
-            if (!localeData.loading) {
-                // default value
-                dropdown.setValue(localeData.weekStart);
-                // options
-                dropdown.addOption(localeData.weekStart, `Locale default - ${localeData.weekStart}`);
-                localeData.weekdays.forEach((day) => {
-                    dropdown.addOption(day, day);
-                });
-                dropdown.onChange(async (value) => {
-                    this.plugin.saveSettings((settings) => ({
-                        localeData: {
-                            ...settings.localeData,
-                            weekStart: value
-                        }
-                    }));
-                });
-            }
-            else {
-                dropdown.addOption('loading', 'Loading...');
-                // add invisible option to reduce layout shifting when actual data is loaded
-                dropdown.addOption('invisible', '.'.repeat(40));
-                dropdown.selectEl.options[1].disabled = true;
-                dropdown.selectEl.options[1].style.display = 'none';
-                dropdown.setDisabled(true);
-            }
-        });
-    }
-    addLocaleOverrideSetting() {
-        const localeData = get_store_value(settingsStore).localeData;
-        if (this.firstRender) {
-            this.firstRender = false;
-            this.loadLocale(localeData.localeOverride || localeData.sysLocaleKey);
-        }
-        new obsidian.Setting(this.containerEl)
-            .setName('Override locale:')
-            .setDesc('Set this if you want to use a locale different from the default')
-            .addDropdown(async (dropdown) => {
-            dropdown.setValue(localeData.localeOverride || localeData.sysLocaleKey);
-            const sysLocaleName = this.locales.get(localeData.sysLocaleKey) || localeData.sysLocaleKey;
-            dropdown.addOption(localeData.sysLocaleKey, `Same as system - ${sysLocaleName}`);
-            //// Request locales list from the internet if connection available and locales are not updated already, otherwise load from local file
-            if (navigator.onLine) {
-                if (!this.localesUpdated) {
-                    // add invisible option to ensure <select /> doesn't break
-                    dropdown.addOption('invisible', '.'.repeat(60));
-                    dropdown.selectEl.options[1].disabled = true;
-                    dropdown.selectEl.options[1].style.display = 'none';
-                    // add loading option
-                    dropdown.addOption('loading', 'Loading...');
-                    dropdown.selectEl.options[2].disabled = true;
-                    try {
-                        const localesArrRes = await fetchWithRetry('https://cdn.jsdelivr.net/npm/dayjs@1/locale.json');
-                        if (!localesArrRes) {
-                            this.locales = localesMap;
-                        }
-                        else {
-                            const localesMap = new Map();
-                            localesArrRes.forEach((obj) => {
-                                localesMap.set(obj.key, obj.name);
-                            });
-                            this.locales = localesMap;
-                            this.localesUpdated = true;
-                        }
-                        // remove loading option
-                        dropdown.selectEl.remove(2);
-                    }
-                    catch (error) {
-                        console.error(error);
-                        this.locales = localesMap;
-                        new obsidian.Notice(error);
-                    }
-                }
-            }
-            else {
-                this.locales = localesMap;
-            }
-            // Add options once locales loaded from the internet or local file
-            this.locales.forEach((value, key) => {
-                dropdown.addOption(key, value);
-            });
-            // update dropdown value to avoid reset after new locale loaded
-            dropdown.setValue(localeData.localeOverride || localeData.sysLocaleKey);
-            dropdown.onChange(async (localeKey) => {
-                this.loadLocale(localeKey);
-            });
-        });
-    }
-    addClosePopoversOneByOneOnClickOutSetting() {
-        const settingEl = new obsidian.Setting(this.containerEl)
-            .setName('Close popovers one by one on click outside')
-            .addToggle((toggle) => {
-            toggle.setValue(get_store_value(settingsStore).popoversCloseData.closePopoversOneByOneOnClickOut);
-            toggle.onChange((value) => {
-                this.plugin.saveSettings((settings) => ({
-                    popoversCloseData: {
-                        ...settings.popoversCloseData,
-                        closePopoversOneByOneOnClickOut: value
-                    }
-                }));
-            });
-        }).settingEl;
-        settingEl.style.flexWrap = 'wrap';
-    }
-    addClosePopoversOneByBoneOnEscKeydownSetting() {
-        new obsidian.Setting(this.containerEl)
-            .setName('Close popovers one by one on `Esc` key pressed')
-            .addToggle((toggle) => {
-            toggle.setValue(get_store_value(settingsStore).popoversCloseData.closePopoversOneByOneOnEscKeydown);
-            toggle.onChange((value) => {
-                this.plugin.saveSettings((settings) => ({
-                    popoversCloseData: {
-                        ...settings.popoversCloseData,
-                        closePopoversOneByOneOnEscKeydown: value
-                    }
-                }));
-                this.display();
-            });
-        });
-    }
-    addSpSearchInputOnEscKeydownSetting() {
-        console.log('👟 RUNNING addSpSearchInputOnEscKeydownSetting()');
-        new obsidian.Setting(this.containerEl)
-            .setName("On sticker popover's search input `Esc` keydown")
-            .setDesc("Decide what to do when `Esc` pressed in sticker popover's search input")
-            .addDropdown((dropdown) => {
-            console.log('value in store: ', get_store_value(settingsStore).popoversCloseData.searchInputOnEscKeydown);
-            // dropdown.setValue(get(settingsStore).popoversCloseData.searchInputOnEscKeydown);
-            dropdown.addOption('close-popover', 'Close sticker popover');
-            dropdown.addOption('reset', 'Erase search input');
-            dropdown.setValue(get_store_value(settingsStore).popoversCloseData.searchInputOnEscKeydown);
-            dropdown.onChange((value) => {
-                console.log('from addSpSearchInputONEscKeydownSetting(), value: ', value);
-                const typedValue = value;
-                this.plugin.saveSettings((settings) => ({
-                    popoversCloseData: {
-                        ...settings.popoversCloseData,
-                        searchInputOnEscKeydown: typedValue
-                    }
-                }));
-            });
-        });
-    }
-    // helpers
-    loadLocale(localeKey = 'en') {
-        const loadLocaleWithRetry = (locale, retries = 0) => {
-            return new Promise((resolve, reject) => {
-                // resolve if locale already loaded
-                if (document.querySelector(`script[src="https://cdn.jsdelivr.net/npm/dayjs@1/locale/${locale}.js"]`)) {
-                    resolve(locale);
-                    return;
-                }
-                const script = document.createElement('script');
-                script.src = `https://cdn.jsdelivr.net/npm/dayjs@1/locale/${locale}.js`;
-                document.body.appendChild(script);
-                script.onload = () => {
-                    resolve(locale); // Resolve with the selected locale
-                };
-                script.onerror = () => {
-                    if (retries < 3) {
-                        new obsidian.Notice(`Retrying to load locale: ${locale}, attempt ${retries + 1}`);
-                        loadLocaleWithRetry(locale, retries + 1)
-                            .then(resolve) // Resolve with the selected locale after successful retry
-                            .catch(reject);
-                    }
-                    else {
-                        new obsidian.Notice(`Failed to load locale: ${locale} after ${retries} attempts`);
-                        // Resolve to default English if locale cannot be fetched
-                        new obsidian.Notice('Defaulting to English - en');
-                        resolve('en');
-                    }
-                };
-            });
-        };
-        const defaultToEnglish = () => {
-            window.dayjs.locale('en');
-            this.plugin.saveSettings((settings) => ({
-                localeData: {
-                    ...settings.localeData,
-                    weekStart: window.dayjs.weekdays()[window.dayjs().weekday(0).day()],
-                    localeOverride: 'en',
-                    weekdays: window.dayjs.weekdays(),
-                    weekdaysShort: window.dayjs.weekdaysShort()
-                }
-            }));
-            this.display();
-        };
-        (async () => {
-            try {
-                if (localeKey === 'en') {
-                    defaultToEnglish();
-                }
-                else {
-                    // loading
-                    if (!get_store_value(settingsStore).localeData.loading) {
-                        this.plugin.saveSettings((settings) => ({
-                            localeData: {
-                                ...settings.localeData,
-                                loading: true
-                            }
-                        }));
-                        this.display();
-                    }
-                    // request
-                    const selectedLocale = await loadLocaleWithRetry(localeKey);
-                    if (selectedLocale === 'en') {
-                        defaultToEnglish();
-                    }
-                    else {
-                        // set new locale
-                        window.dayjs.locale(selectedLocale);
-                        this.plugin.saveSettings((settings) => ({
-                            localeData: {
-                                ...settings.localeData,
-                                weekStart: window.dayjs.weekdays()[window.dayjs().weekday(0).day()],
-                                localeOverride: localeKey,
-                                weekdays: window.dayjs.weekdays(),
-                                weekdaysShort: window.dayjs.weekdaysShort(),
-                                loading: false
-                            }
-                        }));
-                        this.display();
-                    }
-                }
-            }
-            catch (error) {
-                console.error(error);
-            }
-        })();
-    }
-}
-
-/**
- * This function mimics the behavior of the daily-notes plugin
- * so it will replace {{date}}, {{title}}, and {{time}} with the
- * formatted timestamp.
- *
- * Note: it has an added bonus that it's not 'today' specific.
- */
-async function createDailyNote(date) {
-    const app = window.app;
-    const { vault } = app;
-    const { template, folder, format } = getNoteSettingsByGranularity('day');
-    // TODO: Find out what IFoldInfo is used for (think it is for keeping track of openned folders)
-    const [templateContents, IFoldInfo] = await getTemplateInfo(template);
-    const filename = date.format(format);
-    const normalizedPath = await getNotePath(folder, filename);
-    // console.table(getNoteSettingsByGranularity('day'));
-    // console.log('getTemplateInfo:', templateContents, IFoldInfo);
-    // console.log("onClickDay() > createDailyNote > filename, format: ", filename, format)
-    // console.log('NOrmalized path', normalizedPath);
-    try {
-        const createdFile = await vault.create(normalizedPath, templateContents
-            .replace(/{{\s*date\s*}}/gi, filename)
-            .replace(/{{\s*time\s*}}/gi, date.format('HH:mm'))
-            .replace(/{{\s*title\s*}}/gi, filename)
-            .replace(/{{\s*(date|time)\s*(([+-]\d+)([yqmwdhs]))?\s*(:.+?)?}}/gi, (_, _timeOrDate, calc, timeDelta, unit, dayjsFormat) => {
-            let currentDate = window.dayjs();
-            if (calc) {
-                currentDate = currentDate.add(parseInt(timeDelta, 10), unit);
-            }
-            if (dayjsFormat) {
-                return currentDate.format(dayjsFormat.substring(1).trim());
-            }
-            return currentDate.format(format);
-        })
-            .replace(/{{\s*yesterday\s*}}/gi, date.subtract(1, 'd').format(format))
-            .replace(/{{\s*tomorrow\s*}}/gi, date.add(1, 'd').format(format)));
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        app.foldManager.save(createdFile, IFoldInfo);
-        return createdFile;
-    }
-    catch (err) {
-        console.error(`Failed to create file: '${normalizedPath}'`, err);
-        new obsidian.Notice(`Failed to create file: '${normalizedPath}'`);
-    }
-}
-
-function getDaysOfWeek() {
-    const { moment } = window;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let weekStart = moment.localeData()._week.dow;
-    const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    while (weekStart) {
-        daysOfWeek.push(daysOfWeek.shift());
-        weekStart--;
-    }
-    return daysOfWeek;
-}
-function getDayOfWeekNumericalValue(dayOfWeekName) {
-    return getDaysOfWeek().indexOf(dayOfWeekName.toLowerCase());
-}
-async function createWeeklyNote(date) {
-    const { vault } = window.app;
-    const { template, format, folder } = getNoteSettingsByGranularity('week');
-    const [templateContents, IFoldInfo] = await getTemplateInfo(template);
-    const filename = date.format(format);
-    const normalizedPath = await getNotePath(folder, filename);
-    try {
-        const createdFile = await vault.create(normalizedPath, templateContents
-            .replace(/{{\s*(date|time)\s*(([+-]\d+)([yqmwdhs]))?\s*(:.+?)?}}/gi, (_, _timeOrDate, calc, timeDelta, unit, momentFormat) => {
-            const now = window.moment();
-            const currentDate = date.clone().set({
-                hour: now.get('hour'),
-                minute: now.get('minute'),
-                second: now.get('second')
-            });
-            if (calc) {
-                currentDate.add(parseInt(timeDelta, 10), unit);
-            }
-            if (momentFormat) {
-                return currentDate.format(momentFormat.substring(1).trim());
-            }
-            return currentDate.format(format);
-        })
-            .replace(/{{\s*title\s*}}/gi, filename)
-            .replace(/{{\s*time\s*}}/gi, window.moment().format('HH:mm'))
-            .replace(/{{\s*(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\s*:(.*?)}}/gi, (_, dayOfWeek, momentFormat) => {
-            const day = getDayOfWeekNumericalValue(dayOfWeek);
-            return date.weekday(day).format(momentFormat.trim());
-        }));
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        window.app.foldManager.save(createdFile, IFoldInfo);
-        return createdFile;
-    }
-    catch (err) {
-        console.error(`Failed to create file: '${normalizedPath}'`, err);
-        new obsidian.Notice(`Failed to create file: '${normalizedPath}'`);
-    }
-}
-
-/**
- * This function mimics the behavior of the daily-notes plugin
- * so it will replace {{date}}, {{title}}, and {{time}} with the
- * formatted timestamp.
- *
- * Note: it has an added bonus that it's not 'today' specific.
- */
-async function createMonthlyNote(date) {
-    const { vault } = window.app;
-    const { template, format, folder } = getNoteSettingsByGranularity('month');
-    const [templateContents, IFoldInfo] = await getTemplateInfo(template);
-    const filename = date.format(format);
-    const normalizedPath = await getNotePath(folder, filename);
-    try {
-        const createdFile = await vault.create(normalizedPath, templateContents
-            .replace(/{{\s*(date|time)\s*(([+-]\d+)([yqmwdhs]))?\s*(:.+?)?}}/gi, (_, _timeOrDate, calc, timeDelta, unit, momentFormat) => {
-            const now = window.moment();
-            const currentDate = date.clone().set({
-                hour: now.get('hour'),
-                minute: now.get('minute'),
-                second: now.get('second')
-            });
-            if (calc) {
-                currentDate.add(parseInt(timeDelta, 10), unit);
-            }
-            if (momentFormat) {
-                return currentDate.format(momentFormat.substring(1).trim());
-            }
-            return currentDate.format(format);
-        })
-            .replace(/{{\s*date\s*}}/gi, filename)
-            .replace(/{{\s*time\s*}}/gi, window.moment().format('HH:mm'))
-            .replace(/{{\s*title\s*}}/gi, filename));
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        window.app.foldManager.save(createdFile, IFoldInfo);
-        return createdFile;
-    }
-    catch (err) {
-        console.error(`Failed to create file: '${normalizedPath}'`, err);
-        new obsidian.Notice(`Failed to create file: '${normalizedPath}'`);
-    }
-}
-
-/**
- * This function mimics the behavior of the daily-notes plugin
- * so it will replace {{date}}, {{title}}, and {{time}} with the
- * formatted timestamp.
- *
- * Note: it has an added bonus that it's not 'today' specific.
- */
-async function createQuarterlyNote(date) {
-    const { vault } = window.app;
-    const { template, format, folder } = getNoteSettingsByGranularity('quarter');
-    const [templateContents, IFoldInfo] = await getTemplateInfo(template);
-    const filename = date.format(format);
-    const normalizedPath = await getNotePath(folder, filename);
-    try {
-        const createdFile = await vault.create(normalizedPath, templateContents
-            .replace(/{{\s*(date|time)\s*(([+-]\d+)([yqmwdhs]))?\s*(:.+?)?}}/gi, (_, _timeOrDate, calc, timeDelta, unit, momentFormat) => {
-            const now = window.moment();
-            const currentDate = date.clone().set({
-                hour: now.get('hour'),
-                minute: now.get('minute'),
-                second: now.get('second')
-            });
-            if (calc) {
-                currentDate.add(parseInt(timeDelta, 10), unit);
-            }
-            if (momentFormat) {
-                return currentDate.format(momentFormat.substring(1).trim());
-            }
-            return currentDate.format(format);
-        })
-            .replace(/{{\s*date\s*}}/gi, filename)
-            .replace(/{{\s*time\s*}}/gi, window.moment().format('HH:mm'))
-            .replace(/{{\s*title\s*}}/gi, filename));
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        window.app.foldManager.save(createdFile, IFoldInfo);
-        return createdFile;
-    }
-    catch (err) {
-        console.error(`Failed to create file: '${normalizedPath}'`, err);
-        new obsidian.Notice(`Failed to create file: '${normalizedPath}'`);
-    }
-}
-
-/**
- * This function mimics the behavior of the daily-notes plugin
- * so it will replace {{date}}, {{title}}, and {{time}} with the
- * formatted timestamp.
- *
- * Note: it has an added bonus that it's not 'today' specific.
- */
-async function createYearlyNote(date) {
-    const { vault } = window.app;
-    const { template, format, folder } = getNoteSettingsByGranularity('year');
-    const [templateContents, IFoldInfo] = await getTemplateInfo(template);
-    const filename = date.format(format);
-    const normalizedPath = await getNotePath(folder, filename);
-    try {
-        const createdFile = await vault.create(normalizedPath, templateContents
-            .replace(/{{\s*(date|time)\s*(([+-]\d+)([yqmwdhs]))?\s*(:.+?)?}}/gi, (_, _timeOrDate, calc, timeDelta, unit, momentFormat) => {
-            const now = window.moment();
-            const currentDate = date.clone().set({
-                hour: now.get("hour"),
-                minute: now.get("minute"),
-                second: now.get("second"),
-            });
-            if (calc) {
-                currentDate.add(parseInt(timeDelta, 10), unit);
-            }
-            if (momentFormat) {
-                return currentDate.format(momentFormat.substring(1).trim());
-            }
-            return currentDate.format(format);
-        })
-            .replace(/{{\s*date\s*}}/gi, filename)
-            .replace(/{{\s*time\s*}}/gi, window.moment().format("HH:mm"))
-            .replace(/{{\s*title\s*}}/gi, filename));
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        window.app.foldManager.save(createdFile, IFoldInfo);
-        return createdFile;
-    }
-    catch (err) {
-        console.error(`Failed to create file: '${normalizedPath}'`, err);
-        new obsidian.Notice(`Failed to create file: '${normalizedPath}'`);
-    }
-}
-
 /* src/calendar-ui/components/ConfirmationModal.svelte generated by Svelte v4.2.0 */
 
 function add_css$f(target) {
-	append_styles(target, "svelte-1st9t5s", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.m-0.svelte-1st9t5s{margin:0px\n}.mt-2.svelte-1st9t5s{margin-top:0.5rem\n}.mt-3.svelte-1st9t5s{margin-top:0.75rem\n}.mt-7.svelte-1st9t5s{margin-top:1.75rem\n}.flex.svelte-1st9t5s{display:flex\n}.items-center.svelte-1st9t5s{align-items:center\n}.text-sm.svelte-1st9t5s{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-1st9t5s{font-size:0.75rem;line-height:1rem\n}.text-\\[--text-muted\\].svelte-1st9t5s{color:var(--text-muted)\n}.hover\\:cursor-pointer.svelte-1st9t5s:hover{cursor:pointer\n}");
+	append_styles(target, "svelte-165d0os", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.m-0.svelte-165d0os{margin:0px\n}.mt-2.svelte-165d0os{margin-top:0.5rem\n}.mt-3.svelte-165d0os{margin-top:0.75rem\n}.mt-7.svelte-165d0os{margin-top:1.75rem\n}.flex.svelte-165d0os{display:flex\n}.items-center.svelte-165d0os{align-items:center\n}.text-sm.svelte-165d0os{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-165d0os{font-size:0.75rem;line-height:1rem\n}.text-\\[--text-muted\\].svelte-165d0os{color:var(--text-muted)\n}.hover\\:cursor-pointer.svelte-165d0os:hover{cursor:pointer\n}");
 }
 
 // (36:1) {#if note}
@@ -9487,7 +9280,7 @@ function create_if_block$8(ctx) {
 		c() {
 			p = element("p");
 			p.textContent = `${/*note*/ ctx[3]}`;
-			attr(p, "class", "m-0 mt-2 text-xs text-[--text-muted] svelte-1st9t5s");
+			attr(p, "class", "m-0 mt-2 text-xs text-[--text-muted] svelte-165d0os");
 		},
 		m(target, anchor) {
 			insert(target, p, anchor);
@@ -9542,10 +9335,10 @@ function create_fragment$f(ctx) {
 			button1 = element("button");
 			button1.textContent = `${/*cta*/ ctx[4]}`;
 			attr(input, "type", "checkbox");
-			attr(input, "class", "hover:cursor-pointer svelte-1st9t5s");
-			attr(label, "class", "flex items-center hover:cursor-pointer text-sm mt-7 svelte-1st9t5s");
+			attr(input, "class", "hover:cursor-pointer svelte-165d0os");
+			attr(label, "class", "flex items-center hover:cursor-pointer text-sm mt-7 svelte-165d0os");
 			attr(button1, "class", "mod-cta");
-			attr(div0, "class", "modal-button-container mt-3 svelte-1st9t5s");
+			attr(div0, "class", "modal-button-container mt-3 svelte-165d0os");
 		},
 		m(target, anchor) {
 			insert(target, div1, anchor);
@@ -9697,7 +9490,7 @@ function getAllNotesByGranularity(granularity) {
         obsidian.Vault.recurseChildren(notesFolder, (note) => {
             // console.log(`getAllNotesByGranularity() > Vault.recurseChildren(${notesFolder}) > note: `, note)
             if (note instanceof obsidian.TFile) {
-                // if file name maps to a valid dayjs date, it is saved in store.
+                // if file name maps to a valid moment date, it is saved in store.
                 const date = getDateFromFile(note, granularity);
                 if (date) {
                     const dateUID = getDateUID(date, granularity);
@@ -9913,7 +9706,6 @@ function createYearsRangesStore() {
         ...store
     };
 }
-const settingsStore = writable(DEFAULT_SETTINGS);
 function createSelectedFileStore() {
     const store = writable(null);
     return {
@@ -9924,6 +9716,11 @@ function createSelectedFileStore() {
         ...store
     };
 }
+const settingsStore = writable(DEFAULT_SETTINGS);
+const localeDataStore = writable({
+    weekdays: defaultWeekdays,
+    weekdaysShort: defaultWeekdaysShort
+});
 const displayedDateStore = writable(window.moment());
 const activeFile = createSelectedFileStore();
 const yearsRanges = createYearsRangesStore();
@@ -9936,10 +9733,60 @@ granularities.forEach((granularity) => {
 });
 const crrFileMenu = writable(null);
 
+function isMacOS() {
+    return navigator.appVersion.indexOf('Mac') !== -1;
+}
+function isMetaPressed(e) {
+    return isMacOS() ? e.metaKey : e.ctrlKey;
+}
+function isWeekend(date) {
+    return date.isoWeekday() === 6 || date.isoWeekday() === 7;
+}
+function getStartOfWeek(days) {
+    return days[0].weekday(0);
+}
+/**
+ * Generate a 2D array of daily information to power
+ * the calendar view.
+ */
+function getMonth(displayedDate) {
+    const locale = displayedDate.locale();
+    const month = [];
+    let week = { days: [], weekNum: 0 };
+    const startOfMonth = displayedDate.clone().locale(locale).date(1);
+    const startOffset = get_store_value(localeDataStore).weekdays.indexOf(startOfMonth.format('dddd'));
+    let date = startOfMonth.clone().subtract(startOffset, 'days');
+    for (let _day = 0; _day < 42; _day++) {
+        if (_day % 7 === 0) {
+            week = {
+                days: [],
+                weekNum: date.week()
+            };
+            month.push(week);
+        }
+        week.days.push(date);
+        date = date.clone().add(1, 'days');
+    }
+    return month;
+}
+function getYears({ startRangeYear }) {
+    let crrRangeYear = startRangeYear;
+    const COLUMNS = 3;
+    const ROWS = 4;
+    const years = Array.from({ length: ROWS }, () => Array(COLUMNS).fill(0));
+    for (let rowIndex = 0; rowIndex < ROWS; rowIndex++) {
+        for (let colIndex = 0; colIndex < COLUMNS; colIndex++) {
+            years[rowIndex][colIndex] = crrRangeYear;
+            crrRangeYear++;
+        }
+    }
+    return years;
+}
+
 /* src/calendar-ui/components/Dot.svelte generated by Svelte v4.2.0 */
 
 function add_css$e(target) {
-	append_styles(target, "svelte-1st9t5s", ".container.svelte-1st9t5s{width:100%\n}@media(min-width: 640px){.container.svelte-1st9t5s{max-width:640px\n    }}@media(min-width: 768px){.container.svelte-1st9t5s{max-width:768px\n    }}@media(min-width: 1024px){.container.svelte-1st9t5s{max-width:1024px\n    }}@media(min-width: 1280px){.container.svelte-1st9t5s{max-width:1280px\n    }}@media(min-width: 1536px){.container.svelte-1st9t5s{max-width:1536px\n    }}.pointer-events-none.svelte-1st9t5s{pointer-events:none\n}.invisible.svelte-1st9t5s{visibility:hidden\n}.collapse.svelte-1st9t5s{visibility:collapse\n}.absolute.svelte-1st9t5s{position:absolute\n}.relative.svelte-1st9t5s{position:relative\n}.left-0.svelte-1st9t5s{left:0px\n}.left-full.svelte-1st9t5s{left:100%\n}.top-0.svelte-1st9t5s{top:0px\n}.z-10.svelte-1st9t5s{z-index:10\n}.z-20.svelte-1st9t5s{z-index:20\n}.m-0.svelte-1st9t5s{margin:0px\n}.mx-\\[1px\\].svelte-1st9t5s{margin-left:1px;margin-right:1px\n}.ml-\\[5px\\].svelte-1st9t5s{margin-left:5px\n}.mt-2.svelte-1st9t5s{margin-top:0.5rem\n}.mt-3.svelte-1st9t5s{margin-top:0.75rem\n}.mt-7.svelte-1st9t5s{margin-top:1.75rem\n}.block.svelte-1st9t5s{display:block\n}.inline-block.svelte-1st9t5s{display:inline-block\n}.flex.svelte-1st9t5s{display:flex\n}.table.svelte-1st9t5s{display:table\n}.contents.svelte-1st9t5s{display:contents\n}.h-2.svelte-1st9t5s{height:0.5rem\n}.h-2\\.5.svelte-1st9t5s{height:0.625rem\n}.h-3.svelte-1st9t5s{height:0.75rem\n}.h-\\[6px\\].svelte-1st9t5s{height:6px\n}.w-2.svelte-1st9t5s{width:0.5rem\n}.w-2\\.5.svelte-1st9t5s{width:0.625rem\n}.w-3.svelte-1st9t5s{width:0.75rem\n}.w-\\[6px\\].svelte-1st9t5s{width:6px\n}.w-full.svelte-1st9t5s{width:100%\n}.w-max.svelte-1st9t5s{width:-moz-max-content;width:max-content\n}.border-collapse.svelte-1st9t5s{border-collapse:collapse\n}.-translate-x-1\\/2.svelte-1st9t5s{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.-translate-y-1\\/2.svelte-1st9t5s{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.rotate-12.svelte-1st9t5s{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.rotate-45.svelte-1st9t5s{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.transform.svelte-1st9t5s{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.cursor-default.svelte-1st9t5s{cursor:default\n}.cursor-not-allowed.svelte-1st9t5s{cursor:not-allowed\n}.cursor-pointer.svelte-1st9t5s{cursor:pointer\n}.flex-col.svelte-1st9t5s{flex-direction:column\n}.items-center.svelte-1st9t5s{align-items:center\n}.justify-between.svelte-1st9t5s{justify-content:space-between\n}.rounded-md.svelte-1st9t5s{border-radius:0.375rem\n}.rounded-sm.svelte-1st9t5s{border-radius:0.125rem\n}.border-0.svelte-1st9t5s{border-width:0px\n}.bg-gray-100.svelte-1st9t5s{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))\n}.bg-slate-500.svelte-1st9t5s{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))\n}.bg-transparent.svelte-1st9t5s{background-color:transparent\n}.p-1.svelte-1st9t5s{padding:0.25rem\n}.p-2.svelte-1st9t5s{padding:0.5rem\n}.px-4.svelte-1st9t5s{padding-left:1rem;padding-right:1rem\n}.py-2.svelte-1st9t5s{padding-top:0.5rem;padding-bottom:0.5rem\n}.pt-4.svelte-1st9t5s{padding-top:1rem\n}.text-sm.svelte-1st9t5s{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-1st9t5s{font-size:0.75rem;line-height:1rem\n}.uppercase.svelte-1st9t5s{text-transform:uppercase\n}.capitalize.svelte-1st9t5s{text-transform:capitalize\n}.text-\\[--text-muted\\].svelte-1st9t5s{color:var(--text-muted)\n}.text-\\[--text-on-accent\\].svelte-1st9t5s{color:var(--text-on-accent)\n}.text-black.svelte-1st9t5s{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))\n}.text-white.svelte-1st9t5s{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))\n}.opacity-0.svelte-1st9t5s{opacity:0\n}.opacity-50.svelte-1st9t5s{opacity:0.5\n}.shadow.svelte-1st9t5s{--tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)\n}.blur.svelte-1st9t5s{--tw-blur:blur(8px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)\n}.transition.svelte-1st9t5s{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms\n}.\\[all\\:inherit\\].svelte-1st9t5s{all:inherit\n}.hover\\:cursor-pointer.svelte-1st9t5s:hover{cursor:pointer\n}");
+	append_styles(target, "svelte-165d0os", ".container.svelte-165d0os{width:100%\n}@media(min-width: 640px){.container.svelte-165d0os{max-width:640px\n    }}@media(min-width: 768px){.container.svelte-165d0os{max-width:768px\n    }}@media(min-width: 1024px){.container.svelte-165d0os{max-width:1024px\n    }}@media(min-width: 1280px){.container.svelte-165d0os{max-width:1280px\n    }}@media(min-width: 1536px){.container.svelte-165d0os{max-width:1536px\n    }}.pointer-events-none.svelte-165d0os{pointer-events:none\n}.collapse.svelte-165d0os{visibility:collapse\n}.static.svelte-165d0os{position:static\n}.absolute.svelte-165d0os{position:absolute\n}.relative.svelte-165d0os{position:relative\n}.left-0.svelte-165d0os{left:0px\n}.left-full.svelte-165d0os{left:100%\n}.top-0.svelte-165d0os{top:0px\n}.z-10.svelte-165d0os{z-index:10\n}.z-20.svelte-165d0os{z-index:20\n}.m-0.svelte-165d0os{margin:0px\n}.mx-\\[1px\\].svelte-165d0os{margin-left:1px;margin-right:1px\n}.ml-\\[5px\\].svelte-165d0os{margin-left:5px\n}.mt-2.svelte-165d0os{margin-top:0.5rem\n}.mt-3.svelte-165d0os{margin-top:0.75rem\n}.mt-7.svelte-165d0os{margin-top:1.75rem\n}.block.svelte-165d0os{display:block\n}.inline-block.svelte-165d0os{display:inline-block\n}.flex.svelte-165d0os{display:flex\n}.table.svelte-165d0os{display:table\n}.contents.svelte-165d0os{display:contents\n}.h-2.svelte-165d0os{height:0.5rem\n}.h-2\\.5.svelte-165d0os{height:0.625rem\n}.h-3.svelte-165d0os{height:0.75rem\n}.h-\\[6px\\].svelte-165d0os{height:6px\n}.w-2.svelte-165d0os{width:0.5rem\n}.w-2\\.5.svelte-165d0os{width:0.625rem\n}.w-3.svelte-165d0os{width:0.75rem\n}.w-\\[6px\\].svelte-165d0os{width:6px\n}.w-full.svelte-165d0os{width:100%\n}.w-max.svelte-165d0os{width:-moz-max-content;width:max-content\n}.border-collapse.svelte-165d0os{border-collapse:collapse\n}.-translate-x-1\\/2.svelte-165d0os{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.-translate-y-1\\/2.svelte-165d0os{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.rotate-12.svelte-165d0os{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.rotate-45.svelte-165d0os{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.transform.svelte-165d0os{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.cursor-default.svelte-165d0os{cursor:default\n}.cursor-not-allowed.svelte-165d0os{cursor:not-allowed\n}.cursor-pointer.svelte-165d0os{cursor:pointer\n}.flex-col.svelte-165d0os{flex-direction:column\n}.items-center.svelte-165d0os{align-items:center\n}.justify-between.svelte-165d0os{justify-content:space-between\n}.rounded-md.svelte-165d0os{border-radius:0.375rem\n}.rounded-sm.svelte-165d0os{border-radius:0.125rem\n}.border-0.svelte-165d0os{border-width:0px\n}.bg-gray-100.svelte-165d0os{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))\n}.bg-slate-500.svelte-165d0os{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))\n}.bg-transparent.svelte-165d0os{background-color:transparent\n}.p-1.svelte-165d0os{padding:0.25rem\n}.p-2.svelte-165d0os{padding:0.5rem\n}.px-4.svelte-165d0os{padding-left:1rem;padding-right:1rem\n}.py-2.svelte-165d0os{padding-top:0.5rem;padding-bottom:0.5rem\n}.pt-4.svelte-165d0os{padding-top:1rem\n}.text-sm.svelte-165d0os{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-165d0os{font-size:0.75rem;line-height:1rem\n}.uppercase.svelte-165d0os{text-transform:uppercase\n}.capitalize.svelte-165d0os{text-transform:capitalize\n}.text-\\[--text-muted\\].svelte-165d0os{color:var(--text-muted)\n}.text-\\[--text-on-accent\\].svelte-165d0os{color:var(--text-on-accent)\n}.text-black.svelte-165d0os{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))\n}.text-white.svelte-165d0os{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))\n}.opacity-0.svelte-165d0os{opacity:0\n}.opacity-50.svelte-165d0os{opacity:0.5\n}.shadow.svelte-165d0os{--tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)\n}.blur.svelte-165d0os{--tw-blur:blur(8px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)\n}.transition.svelte-165d0os{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms\n}.\\[all\\:inherit\\].svelte-165d0os{all:inherit\n}.hover\\:cursor-pointer.svelte-165d0os:hover{cursor:pointer\n}");
 }
 
 function create_fragment$e(ctx) {
@@ -9958,7 +9805,7 @@ function create_fragment$e(ctx) {
 			attr(circle, "cx", "3");
 			attr(circle, "cy", "3");
 			attr(circle, "r", "2");
-			attr(svg, "class", svg_class_value = "" + (null_to_empty(`${/*$$restProps*/ ctx[3].class} inline-block h-[6px] w-[6px] mx-[1px] ${/*isActive*/ ctx[2] ? 'text-[--text-on-accent]' : ''}`) + " svelte-1st9t5s"));
+			attr(svg, "class", svg_class_value = "" + (null_to_empty(`${/*$$restProps*/ ctx[3].class} inline-block h-[6px] w-[6px] mx-[1px] ${/*isActive*/ ctx[2] ? 'text-[--text-on-accent]' : ''}`) + " svelte-165d0os"));
 			set_style(svg, "color", /*color*/ ctx[0]);
 			attr(svg, "viewBox", "0 0 6 6");
 			attr(svg, "xmlns", "http://www.w3.org/2000/svg");
@@ -9976,7 +9823,7 @@ function create_fragment$e(ctx) {
 				attr(circle, "fill", circle_fill_value);
 			}
 
-			if (dirty & /*$$restProps, isActive*/ 12 && svg_class_value !== (svg_class_value = "" + (null_to_empty(`${/*$$restProps*/ ctx[3].class} inline-block h-[6px] w-[6px] mx-[1px] ${/*isActive*/ ctx[2] ? 'text-[--text-on-accent]' : ''}`) + " svelte-1st9t5s"))) {
+			if (dirty & /*$$restProps, isActive*/ 12 && svg_class_value !== (svg_class_value = "" + (null_to_empty(`${/*$$restProps*/ ctx[3].class} inline-block h-[6px] w-[6px] mx-[1px] ${/*isActive*/ ctx[2] ? 'text-[--text-on-accent]' : ''}`) + " svelte-165d0os"))) {
 				attr(svg, "class", svg_class_value);
 			}
 
@@ -10024,7 +9871,7 @@ const VIEW = Symbol('view');
 /* src/calendar-ui/components/EmojiSticker.svelte generated by Svelte v4.2.0 */
 
 function add_css$d(target) {
-	append_styles(target, "svelte-6f8090", ".svelte-6f8090,.svelte-6f8090::before,.svelte-6f8090::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-6f8090::before,.svelte-6f8090::after{--tw-content:''}.svelte-6f8090:-moz-focusring{outline:auto}.svelte-6f8090:-moz-ui-invalid{box-shadow:none}.svelte-6f8090::-webkit-inner-spin-button,.svelte-6f8090::-webkit-outer-spin-button{height:auto}.svelte-6f8090::-webkit-search-decoration{-webkit-appearance:none}.svelte-6f8090::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}.svelte-6f8090:disabled{cursor:default}.svelte-6f8090,.svelte-6f8090::before,.svelte-6f8090::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-6f8090::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.absolute.svelte-6f8090{position:absolute}.left-full.svelte-6f8090{left:100%}.top-0.svelte-6f8090{top:0px}.-translate-x-1\\/2.svelte-6f8090{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-y-1\\/2.svelte-6f8090{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-12.svelte-6f8090{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}");
+	append_styles(target, "svelte-1fig2o3", ".svelte-1fig2o3,.svelte-1fig2o3::before,.svelte-1fig2o3::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-1fig2o3::before,.svelte-1fig2o3::after{--tw-content:''}.svelte-1fig2o3:-moz-focusring{outline:auto}.svelte-1fig2o3:-moz-ui-invalid{box-shadow:none}.svelte-1fig2o3::-webkit-inner-spin-button,.svelte-1fig2o3::-webkit-outer-spin-button{height:auto}.svelte-1fig2o3::-webkit-search-decoration{-webkit-appearance:none}.svelte-1fig2o3::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}.svelte-1fig2o3:disabled{cursor:default}.svelte-1fig2o3,.svelte-1fig2o3::before,.svelte-1fig2o3::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-1fig2o3::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.absolute.svelte-1fig2o3{position:absolute}.left-full.svelte-1fig2o3{left:100%}.top-0.svelte-1fig2o3{top:0px}.-translate-x-1\\/2.svelte-1fig2o3{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-y-1\\/2.svelte-1fig2o3{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-12.svelte-1fig2o3{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}");
 }
 
 // (4:0) {#if emoji}
@@ -10036,7 +9883,7 @@ function create_if_block$7(ctx) {
 		c() {
 			div = element("div");
 			t = text(/*emoji*/ ctx[0]);
-			attr(div, "class", "rotate-12 absolute top-0 left-full -translate-x-1/2 -translate-y-1/2 svelte-6f8090");
+			attr(div, "class", "rotate-12 absolute top-0 left-full -translate-x-1/2 -translate-y-1/2 svelte-1fig2o3");
 		},
 		m(target, anchor) {
 			insert(target, div, anchor);
@@ -10112,7 +9959,7 @@ class EmojiSticker extends SvelteComponent {
 /* src/calendar-ui/components/Day.svelte generated by Svelte v4.2.0 */
 
 function add_css$c(target) {
-	append_styles(target, "svelte-pk4qg", ".svelte-pk4qg,.svelte-pk4qg::before,.svelte-pk4qg::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-pk4qg::before,.svelte-pk4qg::after{--tw-content:''}button.svelte-pk4qg{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-pk4qg{text-transform:none}button.svelte-pk4qg{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-pk4qg:-moz-focusring{outline:auto}.svelte-pk4qg:-moz-ui-invalid{box-shadow:none}.svelte-pk4qg::-webkit-inner-spin-button,.svelte-pk4qg::-webkit-outer-spin-button{height:auto}.svelte-pk4qg::-webkit-search-decoration{-webkit-appearance:none}.svelte-pk4qg::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-pk4qg{cursor:pointer}.svelte-pk4qg:disabled{cursor:default}.svelte-pk4qg,.svelte-pk4qg::before,.svelte-pk4qg::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-pk4qg::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-pk4qg{position:relative}.flex.svelte-pk4qg{display:flex}.w-full.svelte-pk4qg{width:100%}.flex-col.svelte-pk4qg{flex-direction:column}.day.svelte-pk4qg{background-color:var(--color-background-day);border-radius:4px;color:var(--color-text-day);cursor:pointer;font-size:0.8em;height:100%;padding:4px;position:relative;text-align:center;transition:background-color 0.1s ease-in, color 0.1s ease-in;vertical-align:baseline}.day.svelte-pk4qg:hover{background-color:var(--interactive-hover)}.day.svelte-pk4qg:active{color:var(--text-on-accent);background-color:var(--interactive-accent)}");
+	append_styles(target, "svelte-p3whgf", ".svelte-p3whgf,.svelte-p3whgf::before,.svelte-p3whgf::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-p3whgf::before,.svelte-p3whgf::after{--tw-content:''}button.svelte-p3whgf{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-p3whgf{text-transform:none}button.svelte-p3whgf{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-p3whgf:-moz-focusring{outline:auto}.svelte-p3whgf:-moz-ui-invalid{box-shadow:none}.svelte-p3whgf::-webkit-inner-spin-button,.svelte-p3whgf::-webkit-outer-spin-button{height:auto}.svelte-p3whgf::-webkit-search-decoration{-webkit-appearance:none}.svelte-p3whgf::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-p3whgf{cursor:pointer}.svelte-p3whgf:disabled{cursor:default}.svelte-p3whgf,.svelte-p3whgf::before,.svelte-p3whgf::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-p3whgf::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-p3whgf{position:relative}.flex.svelte-p3whgf{display:flex}.w-full.svelte-p3whgf{width:100%}.flex-col.svelte-p3whgf{flex-direction:column}.day.svelte-p3whgf{background-color:var(--color-background-day);border-radius:4px;color:var(--color-text-day);cursor:pointer;font-size:0.8em;height:100%;padding:4px;position:relative;text-align:center;transition:background-color 0.1s ease-in, color 0.1s ease-in;vertical-align:baseline}.day.svelte-p3whgf:hover{background-color:var(--interactive-hover)}.day.svelte-p3whgf:active{color:var(--text-on-accent);background-color:var(--interactive-accent)}");
 }
 
 // (54:2) {#if $rerenderStore && getNoteByGranularity({ date, granularity: 'day' })}
@@ -10173,8 +10020,8 @@ function create_fragment$c(ctx) {
 			if (if_block) if_block.c();
 			t2 = space();
 			create_component(emojisticker.$$.fragment);
-			attr(button, "class", "day w-full flex flex-col svelte-pk4qg");
-			attr(td, "class", "relative svelte-pk4qg");
+			attr(button, "class", "day w-full flex flex-col svelte-p3whgf");
+			attr(td, "class", "relative svelte-p3whgf");
 		},
 		m(target, anchor) {
 			insert(target, td, anchor);
@@ -10314,7 +10161,7 @@ class Day extends SvelteComponent {
 /* src/calendar-ui/components/WeekNum.svelte generated by Svelte v4.2.0 */
 
 function add_css$b(target) {
-	append_styles(target, "svelte-179eria", ".svelte-179eria,.svelte-179eria::before,.svelte-179eria::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-179eria::before,.svelte-179eria::after{--tw-content:''}button.svelte-179eria{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-179eria{text-transform:none}button.svelte-179eria{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-179eria:-moz-focusring{outline:auto}.svelte-179eria:-moz-ui-invalid{box-shadow:none}.svelte-179eria::-webkit-inner-spin-button,.svelte-179eria::-webkit-outer-spin-button{height:auto}.svelte-179eria::-webkit-search-decoration{-webkit-appearance:none}.svelte-179eria::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-179eria{cursor:pointer}.svelte-179eria:disabled{cursor:default}.svelte-179eria,.svelte-179eria::before,.svelte-179eria::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-179eria::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-179eria{position:relative}td.svelte-179eria{border-right:1px solid var(--background-modifier-border)}");
+	append_styles(target, "svelte-1f800vx", ".svelte-1f800vx,.svelte-1f800vx::before,.svelte-1f800vx::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-1f800vx::before,.svelte-1f800vx::after{--tw-content:''}button.svelte-1f800vx{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-1f800vx{text-transform:none}button.svelte-1f800vx{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-1f800vx:-moz-focusring{outline:auto}.svelte-1f800vx:-moz-ui-invalid{box-shadow:none}.svelte-1f800vx::-webkit-inner-spin-button,.svelte-1f800vx::-webkit-outer-spin-button{height:auto}.svelte-1f800vx::-webkit-search-decoration{-webkit-appearance:none}.svelte-1f800vx::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-1f800vx{cursor:pointer}.svelte-1f800vx:disabled{cursor:default}.svelte-1f800vx,.svelte-1f800vx::before,.svelte-1f800vx::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-1f800vx::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-1f800vx{position:relative}td.svelte-1f800vx{border-right:1px solid var(--background-modifier-border)}");
 }
 
 // (58:2) {#if $rerenderStore && getNoteByGranularity( { date: startOfWeekDate, granularity: 'week' } )}
@@ -10374,8 +10221,8 @@ function create_fragment$b(ctx) {
 			if (if_block) if_block.c();
 			t2 = space();
 			create_component(emojisticker.$$.fragment);
-			attr(button, "class", "day svelte-179eria");
-			attr(td, "class", "relative svelte-179eria");
+			attr(button, "class", "day svelte-1f800vx");
+			attr(td, "class", "relative svelte-1f800vx");
 		},
 		m(target, anchor) {
 			insert(target, td, anchor);
@@ -10522,7 +10369,7 @@ class WeekNum extends SvelteComponent {
 /* src/calendar-ui/components/Arrow.svelte generated by Svelte v4.2.0 */
 
 function add_css$a(target) {
-	append_styles(target, "svelte-7fqqde", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.arrow.svelte-7fqqde.svelte-7fqqde{all:inherit;align-items:center;cursor:pointer;display:flex;justify-content:center;width:24px}.arrow.is-mobile.svelte-7fqqde.svelte-7fqqde{width:32px}.right.svelte-7fqqde.svelte-7fqqde{transform:rotate(180deg)}.arrow.svelte-7fqqde svg.svelte-7fqqde{color:var(--color-arrow);height:16px;width:16px}");
+	append_styles(target, "svelte-uwxdyt", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.arrow.svelte-uwxdyt.svelte-uwxdyt{all:inherit;align-items:center;cursor:pointer;display:flex;justify-content:center;width:24px}.arrow.is-mobile.svelte-uwxdyt.svelte-uwxdyt{width:32px}.right.svelte-uwxdyt.svelte-uwxdyt{transform:rotate(180deg)}.arrow.svelte-uwxdyt svg.svelte-uwxdyt{color:var(--color-arrow);height:16px;width:16px}");
 }
 
 function create_fragment$a(ctx) {
@@ -10543,8 +10390,8 @@ function create_fragment$a(ctx) {
 			attr(svg, "role", "img");
 			attr(svg, "xmlns", "http://www.w3.org/2000/svg");
 			attr(svg, "viewBox", "0 0 320 512");
-			attr(svg, "class", "svelte-7fqqde");
-			attr(button, "class", "arrow svelte-7fqqde");
+			attr(svg, "class", "svelte-uwxdyt");
+			attr(button, "class", "arrow svelte-uwxdyt");
 			attr(button, "aria-label", /*tooltip*/ ctx[1]);
 			toggle_class(button, "is-mobile", /*isMobile*/ ctx[3]);
 			toggle_class(button, "right", /*direction*/ ctx[2] === 'right');
@@ -10613,7 +10460,7 @@ class Arrow extends SvelteComponent {
 /* src/calendar-ui/components/MonthNav.svelte generated by Svelte v4.2.0 */
 
 function add_css$9(target) {
-	append_styles(target, "svelte-mm9mul", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.flex.svelte-mm9mul{display:flex}.justify-between.svelte-mm9mul{justify-content:space-between}.\\[all\\:inherit\\].svelte-mm9mul{all:inherit}.nav.svelte-mm9mul{align-items:baseline;display:flex;margin:0.6em 0 1em;padding:0 8px;width:100%}.title.svelte-mm9mul{color:var(--color-text-title);cursor:pointer;display:flex;font-size:1.4em;gap:0.3em;margin:0}.month.svelte-mm9mul{font-weight:500}.year.svelte-mm9mul{color:var(--interactive-accent)}.right-nav.svelte-mm9mul{align-items:center;display:flex;justify-content:center;margin-left:auto}.reset-button.svelte-mm9mul{all:inherit;cursor:pointer;align-items:center;color:var(--color-arrow);display:flex;opacity:0.4;padding:0.5em}.reset-button.active.svelte-mm9mul{cursor:pointer;opacity:1}");
+	append_styles(target, "svelte-128qf5q", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.flex.svelte-128qf5q{display:flex}.justify-between.svelte-128qf5q{justify-content:space-between}.\\[all\\:inherit\\].svelte-128qf5q{all:inherit}.nav.svelte-128qf5q{align-items:baseline;display:flex;margin:0.6em 0 1em;padding:0 8px;width:100%}.title.svelte-128qf5q{color:var(--color-text-title);cursor:pointer;display:flex;font-size:1.4em;gap:0.3em;margin:0}.month.svelte-128qf5q{font-weight:500}.year.svelte-128qf5q{color:var(--interactive-accent)}.right-nav.svelte-128qf5q{align-items:center;display:flex;justify-content:center;margin-left:auto}.reset-button.svelte-128qf5q{all:inherit;cursor:pointer;align-items:center;color:var(--color-arrow);display:flex;opacity:0.4;padding:0.5em}.reset-button.active.svelte-128qf5q{cursor:pointer;opacity:1}");
 }
 
 function create_fragment$9(ctx) {
@@ -10681,18 +10528,18 @@ function create_fragment$9(ctx) {
 			create_component(dot.$$.fragment);
 			t5 = space();
 			create_component(arrow1.$$.fragment);
-			attr(button0, "class", "month [all:inherit] svelte-mm9mul");
-			attr(button1, "class", "year [all:inherit] svelte-mm9mul");
-			attr(span, "class", "flex justify-between title svelte-mm9mul");
+			attr(button0, "class", "month [all:inherit] svelte-128qf5q");
+			attr(button1, "class", "year [all:inherit] svelte-128qf5q");
+			attr(span, "class", "flex justify-between title svelte-128qf5q");
 
 			attr(button2, "aria-label", button2_aria_label_value = !/*showingCurrentMonth*/ ctx[1]
 			? 'Reset to current month'
 			: null);
 
-			attr(button2, "class", "reset-button svelte-mm9mul");
+			attr(button2, "class", "reset-button svelte-128qf5q");
 			toggle_class(button2, "active", /*showingCurrentMonth*/ ctx[1]);
-			attr(div1, "class", "right-nav svelte-mm9mul");
-			attr(div2, "class", "nav svelte-mm9mul");
+			attr(div1, "class", "right-nav svelte-128qf5q");
+			attr(div2, "class", "nav svelte-128qf5q");
 		},
 		m(target, anchor) {
 			insert(target, div2, anchor);
@@ -10903,7 +10750,7 @@ class MonthNav extends SvelteComponent {
 /* src/calendar-ui/components/YearNav.svelte generated by Svelte v4.2.0 */
 
 function add_css$8(target) {
-	append_styles(target, "svelte-mm9mul", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.flex.svelte-mm9mul{display:flex}.cursor-default.svelte-mm9mul{cursor:default}.justify-between.svelte-mm9mul{justify-content:space-between}.\\[all\\:inherit\\].svelte-mm9mul{all:inherit}.nav.svelte-mm9mul{align-items:baseline;display:flex;margin:0.6em 0 1em;padding:0 8px;width:100%}.title.svelte-mm9mul{color:var(--color-text-title);cursor:pointer;display:flex;font-size:1.4em;gap:0.3em;margin:0}.month.svelte-mm9mul{font-weight:500}.year.svelte-mm9mul{color:var(--interactive-accent)}.right-nav.svelte-mm9mul{align-items:center;display:flex;justify-content:center;margin-left:auto}.reset-button.svelte-mm9mul{all:inherit;cursor:pointer;align-items:center;color:var(--color-arrow);display:flex;opacity:0.4;padding:0.5em}.reset-button.active.svelte-mm9mul{cursor:pointer;opacity:1}");
+	append_styles(target, "svelte-128qf5q", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.flex.svelte-128qf5q{display:flex}.cursor-default.svelte-128qf5q{cursor:default}.justify-between.svelte-128qf5q{justify-content:space-between}.\\[all\\:inherit\\].svelte-128qf5q{all:inherit}.nav.svelte-128qf5q{align-items:baseline;display:flex;margin:0.6em 0 1em;padding:0 8px;width:100%}.title.svelte-128qf5q{color:var(--color-text-title);cursor:pointer;display:flex;font-size:1.4em;gap:0.3em;margin:0}.month.svelte-128qf5q{font-weight:500}.year.svelte-128qf5q{color:var(--interactive-accent)}.right-nav.svelte-128qf5q{align-items:center;display:flex;justify-content:center;margin-left:auto}.reset-button.svelte-128qf5q{all:inherit;cursor:pointer;align-items:center;color:var(--color-arrow);display:flex;opacity:0.4;padding:0.5em}.reset-button.active.svelte-128qf5q{cursor:pointer;opacity:1}");
 }
 
 function create_fragment$8(ctx) {
@@ -10971,18 +10818,18 @@ function create_fragment$8(ctx) {
 			create_component(dot.$$.fragment);
 			t5 = space();
 			create_component(arrow1.$$.fragment);
-			attr(button0, "class", "month [all:inherit] svelte-mm9mul");
-			attr(span0, "class", "year cursor-default svelte-mm9mul");
-			attr(span1, "class", "flex justify-between title svelte-mm9mul");
+			attr(button0, "class", "month [all:inherit] svelte-128qf5q");
+			attr(span0, "class", "year cursor-default svelte-128qf5q");
+			attr(span1, "class", "flex justify-between title svelte-128qf5q");
 
 			attr(button1, "aria-label", button1_aria_label_value = !/*showingCurrentYear*/ ctx[1]
 			? 'Reset to current year'
 			: null);
 
-			attr(button1, "class", "reset-button svelte-mm9mul");
+			attr(button1, "class", "reset-button svelte-128qf5q");
 			toggle_class(button1, "active", /*showingCurrentYear*/ ctx[1]);
-			attr(div1, "class", "right-nav svelte-mm9mul");
-			attr(div2, "class", "nav svelte-mm9mul");
+			attr(div1, "class", "right-nav svelte-128qf5q");
+			attr(div2, "class", "nav svelte-128qf5q");
 		},
 		m(target, anchor) {
 			insert(target, div2, anchor);
@@ -11174,7 +11021,7 @@ class YearNav extends SvelteComponent {
 /* src/calendar-ui/components/YearsNav.svelte generated by Svelte v4.2.0 */
 
 function add_css$7(target) {
-	append_styles(target, "svelte-177w4en", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.flex.svelte-177w4en{display:flex}.justify-between.svelte-177w4en{justify-content:space-between}.nav.svelte-177w4en{align-items:baseline;display:flex;margin:0.6em 0 1em;padding:0 8px;width:100%}.title.svelte-177w4en{color:var(--color-text-title);display:flex;font-size:1.4em;gap:0.3em;margin:0}.month.svelte-177w4en{font-weight:500}.right-nav.svelte-177w4en{align-items:center;display:flex;justify-content:center;margin-left:auto}.reset-button.svelte-177w4en{all:inherit;cursor:pointer;align-items:center;color:var(--color-arrow);display:flex;opacity:0.4;padding:0.5em}.reset-button.active.svelte-177w4en{cursor:pointer;opacity:1}");
+	append_styles(target, "svelte-dgxzu4", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.flex.svelte-dgxzu4{display:flex}.justify-between.svelte-dgxzu4{justify-content:space-between}.nav.svelte-dgxzu4{align-items:baseline;display:flex;margin:0.6em 0 1em;padding:0 8px;width:100%}.title.svelte-dgxzu4{color:var(--color-text-title);display:flex;font-size:1.4em;gap:0.3em;margin:0}.month.svelte-dgxzu4{font-weight:500}.right-nav.svelte-dgxzu4{align-items:center;display:flex;justify-content:center;margin-left:auto}.reset-button.svelte-dgxzu4{all:inherit;cursor:pointer;align-items:center;color:var(--color-arrow);display:flex;opacity:0.4;padding:0.5em}.reset-button.active.svelte-dgxzu4{cursor:pointer;opacity:1}");
 }
 
 function create_fragment$7(ctx) {
@@ -11235,17 +11082,17 @@ function create_fragment$7(ctx) {
 			create_component(dot.$$.fragment);
 			t3 = space();
 			create_component(arrow1.$$.fragment);
-			attr(span0, "class", "month svelte-177w4en");
-			attr(span1, "class", "flex justify-between title svelte-177w4en");
+			attr(span0, "class", "month svelte-dgxzu4");
+			attr(span1, "class", "flex justify-between title svelte-dgxzu4");
 
 			attr(button, "aria-label", button_aria_label_value = !/*showingCurrentRange*/ ctx[1]
 			? 'Reset to current year'
 			: null);
 
-			attr(button, "class", "reset-button svelte-177w4en");
+			attr(button, "class", "reset-button svelte-dgxzu4");
 			toggle_class(button, "active", /*showingCurrentRange*/ ctx[1]);
-			attr(div1, "class", "right-nav svelte-177w4en");
-			attr(div2, "class", "nav svelte-177w4en");
+			attr(div1, "class", "right-nav svelte-dgxzu4");
+			attr(div2, "class", "nav svelte-dgxzu4");
 		},
 		m(target, anchor) {
 			insert(target, div2, anchor);
@@ -11374,7 +11221,7 @@ class YearsNav extends SvelteComponent {
 /* src/calendar-ui/components/QuarterNum.svelte generated by Svelte v4.2.0 */
 
 function add_css$6(target) {
-	append_styles(target, "svelte-6f8090", ".svelte-6f8090,.svelte-6f8090::before,.svelte-6f8090::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-6f8090::before,.svelte-6f8090::after{--tw-content:''}button.svelte-6f8090{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-6f8090{text-transform:none}button.svelte-6f8090{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-6f8090:-moz-focusring{outline:auto}.svelte-6f8090:-moz-ui-invalid{box-shadow:none}.svelte-6f8090::-webkit-inner-spin-button,.svelte-6f8090::-webkit-outer-spin-button{height:auto}.svelte-6f8090::-webkit-search-decoration{-webkit-appearance:none}.svelte-6f8090::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-6f8090{cursor:pointer}.svelte-6f8090:disabled{cursor:default}.svelte-6f8090,.svelte-6f8090::before,.svelte-6f8090::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-6f8090::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-6f8090{position:relative}");
+	append_styles(target, "svelte-1fig2o3", ".svelte-1fig2o3,.svelte-1fig2o3::before,.svelte-1fig2o3::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-1fig2o3::before,.svelte-1fig2o3::after{--tw-content:''}button.svelte-1fig2o3{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-1fig2o3{text-transform:none}button.svelte-1fig2o3{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-1fig2o3:-moz-focusring{outline:auto}.svelte-1fig2o3:-moz-ui-invalid{box-shadow:none}.svelte-1fig2o3::-webkit-inner-spin-button,.svelte-1fig2o3::-webkit-outer-spin-button{height:auto}.svelte-1fig2o3::-webkit-search-decoration{-webkit-appearance:none}.svelte-1fig2o3::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-1fig2o3{cursor:pointer}.svelte-1fig2o3:disabled{cursor:default}.svelte-1fig2o3,.svelte-1fig2o3::before,.svelte-1fig2o3::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-1fig2o3::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-1fig2o3{position:relative}");
 }
 
 // (44:2) {#if $rerenderStore && getNoteByGranularity({ date, granularity: 'quarter' })}
@@ -11436,8 +11283,8 @@ function create_fragment$6(ctx) {
 			if (if_block) if_block.c();
 			t3 = space();
 			create_component(emojisticker.$$.fragment);
-			attr(button, "class", "svelte-6f8090");
-			attr(td, "class", "relative svelte-6f8090");
+			attr(button, "class", "svelte-1fig2o3");
+			attr(td, "class", "relative svelte-1fig2o3");
 		},
 		m(target, anchor) {
 			insert(target, td, anchor);
@@ -11590,7 +11437,7 @@ class QuarterNum extends SvelteComponent {
 /* src/calendar-ui/components/Month.svelte generated by Svelte v4.2.0 */
 
 function add_css$5(target) {
-	append_styles(target, "svelte-6f8090", ".svelte-6f8090,.svelte-6f8090::before,.svelte-6f8090::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-6f8090::before,.svelte-6f8090::after{--tw-content:''}button.svelte-6f8090{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-6f8090{text-transform:none}button.svelte-6f8090{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-6f8090:-moz-focusring{outline:auto}.svelte-6f8090:-moz-ui-invalid{box-shadow:none}.svelte-6f8090::-webkit-inner-spin-button,.svelte-6f8090::-webkit-outer-spin-button{height:auto}.svelte-6f8090::-webkit-search-decoration{-webkit-appearance:none}.svelte-6f8090::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-6f8090{cursor:pointer}.svelte-6f8090:disabled{cursor:default}.svelte-6f8090,.svelte-6f8090::before,.svelte-6f8090::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-6f8090::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-6f8090{position:relative}");
+	append_styles(target, "svelte-1fig2o3", ".svelte-1fig2o3,.svelte-1fig2o3::before,.svelte-1fig2o3::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-1fig2o3::before,.svelte-1fig2o3::after{--tw-content:''}button.svelte-1fig2o3{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-1fig2o3{text-transform:none}button.svelte-1fig2o3{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-1fig2o3:-moz-focusring{outline:auto}.svelte-1fig2o3:-moz-ui-invalid{box-shadow:none}.svelte-1fig2o3::-webkit-inner-spin-button,.svelte-1fig2o3::-webkit-outer-spin-button{height:auto}.svelte-1fig2o3::-webkit-search-decoration{-webkit-appearance:none}.svelte-1fig2o3::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-1fig2o3{cursor:pointer}.svelte-1fig2o3:disabled{cursor:default}.svelte-1fig2o3,.svelte-1fig2o3::before,.svelte-1fig2o3::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-1fig2o3::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-1fig2o3{position:relative}");
 }
 
 // (44:2) {#if $rerenderStore && getNoteByGranularity({ date, granularity: 'month' })}
@@ -11651,8 +11498,8 @@ function create_fragment$5(ctx) {
 			if (if_block) if_block.c();
 			t2 = space();
 			create_component(emojisticker.$$.fragment);
-			attr(button, "class", "svelte-6f8090");
-			attr(td, "class", "relative svelte-6f8090");
+			attr(button, "class", "svelte-1fig2o3");
+			attr(td, "class", "relative svelte-1fig2o3");
 		},
 		m(target, anchor) {
 			insert(target, td, anchor);
@@ -11804,7 +11651,7 @@ class Month extends SvelteComponent {
 /* src/calendar-ui/components/Year.svelte generated by Svelte v4.2.0 */
 
 function add_css$4(target) {
-	append_styles(target, "svelte-6f8090", ".svelte-6f8090,.svelte-6f8090::before,.svelte-6f8090::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-6f8090::before,.svelte-6f8090::after{--tw-content:''}button.svelte-6f8090{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-6f8090{text-transform:none}button.svelte-6f8090{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-6f8090:-moz-focusring{outline:auto}.svelte-6f8090:-moz-ui-invalid{box-shadow:none}.svelte-6f8090::-webkit-inner-spin-button,.svelte-6f8090::-webkit-outer-spin-button{height:auto}.svelte-6f8090::-webkit-search-decoration{-webkit-appearance:none}.svelte-6f8090::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-6f8090{cursor:pointer}.svelte-6f8090:disabled{cursor:default}.svelte-6f8090,.svelte-6f8090::before,.svelte-6f8090::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-6f8090::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-6f8090{position:relative}");
+	append_styles(target, "svelte-1fig2o3", ".svelte-1fig2o3,.svelte-1fig2o3::before,.svelte-1fig2o3::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-1fig2o3::before,.svelte-1fig2o3::after{--tw-content:''}button.svelte-1fig2o3{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-1fig2o3{text-transform:none}button.svelte-1fig2o3{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-1fig2o3:-moz-focusring{outline:auto}.svelte-1fig2o3:-moz-ui-invalid{box-shadow:none}.svelte-1fig2o3::-webkit-inner-spin-button,.svelte-1fig2o3::-webkit-outer-spin-button{height:auto}.svelte-1fig2o3::-webkit-search-decoration{-webkit-appearance:none}.svelte-1fig2o3::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-1fig2o3{cursor:pointer}.svelte-1fig2o3:disabled{cursor:default}.svelte-1fig2o3,.svelte-1fig2o3::before,.svelte-1fig2o3::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-1fig2o3::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-1fig2o3{position:relative}");
 }
 
 // (45:2) {#if $rerenderStore && getNoteByGranularity({ date, granularity: 'year' })}
@@ -11864,8 +11711,8 @@ function create_fragment$4(ctx) {
 			if (if_block) if_block.c();
 			t2 = space();
 			create_component(emojisticker.$$.fragment);
-			attr(button, "class", "svelte-6f8090");
-			attr(td, "class", "relative svelte-6f8090");
+			attr(button, "class", "svelte-1fig2o3");
+			attr(td, "class", "relative svelte-1fig2o3");
 		},
 		m(target, anchor) {
 			insert(target, td, anchor);
@@ -12019,75 +11866,75 @@ class Year extends SvelteComponent {
 /* src/calendar-ui/components/Calendar.svelte generated by Svelte v4.2.0 */
 
 function add_css$3(target) {
-	append_styles(target, "svelte-ctircw", ".svelte-ctircw.svelte-ctircw.svelte-ctircw,.svelte-ctircw.svelte-ctircw.svelte-ctircw::before,.svelte-ctircw.svelte-ctircw.svelte-ctircw::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-ctircw.svelte-ctircw.svelte-ctircw::before,.svelte-ctircw.svelte-ctircw.svelte-ctircw::after{--tw-content:''}table.svelte-ctircw.svelte-ctircw.svelte-ctircw{text-indent:0;border-color:inherit;border-collapse:collapse}button.svelte-ctircw.svelte-ctircw.svelte-ctircw{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-ctircw.svelte-ctircw.svelte-ctircw{text-transform:none}button.svelte-ctircw.svelte-ctircw.svelte-ctircw{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-ctircw.svelte-ctircw.svelte-ctircw:-moz-focusring{outline:auto}.svelte-ctircw.svelte-ctircw.svelte-ctircw:-moz-ui-invalid{box-shadow:none}.svelte-ctircw.svelte-ctircw.svelte-ctircw::-webkit-inner-spin-button,.svelte-ctircw.svelte-ctircw.svelte-ctircw::-webkit-outer-spin-button{height:auto}.svelte-ctircw.svelte-ctircw.svelte-ctircw::-webkit-search-decoration{-webkit-appearance:none}.svelte-ctircw.svelte-ctircw.svelte-ctircw::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-ctircw.svelte-ctircw.svelte-ctircw{cursor:pointer}.svelte-ctircw.svelte-ctircw.svelte-ctircw:disabled{cursor:default}.svelte-ctircw.svelte-ctircw.svelte-ctircw,.svelte-ctircw.svelte-ctircw.svelte-ctircw::before,.svelte-ctircw.svelte-ctircw.svelte-ctircw::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-ctircw.svelte-ctircw.svelte-ctircw::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.container.svelte-ctircw.svelte-ctircw.svelte-ctircw{width:100%}@media(min-width: 640px){.container.svelte-ctircw.svelte-ctircw.svelte-ctircw{max-width:640px}}@media(min-width: 768px){.container.svelte-ctircw.svelte-ctircw.svelte-ctircw{max-width:768px}}@media(min-width: 1024px){.container.svelte-ctircw.svelte-ctircw.svelte-ctircw{max-width:1024px}}@media(min-width: 1280px){.container.svelte-ctircw.svelte-ctircw.svelte-ctircw{max-width:1280px}}@media(min-width: 1536px){.container.svelte-ctircw.svelte-ctircw.svelte-ctircw{max-width:1536px}}.pointer-events-none.svelte-ctircw.svelte-ctircw.svelte-ctircw{pointer-events:none}.invisible.svelte-ctircw.svelte-ctircw.svelte-ctircw{visibility:hidden}.collapse.svelte-ctircw.svelte-ctircw.svelte-ctircw{visibility:collapse}.absolute.svelte-ctircw.svelte-ctircw.svelte-ctircw{position:absolute}.relative.svelte-ctircw.svelte-ctircw.svelte-ctircw{position:relative}.left-0.svelte-ctircw.svelte-ctircw.svelte-ctircw{left:0px}.left-full.svelte-ctircw.svelte-ctircw.svelte-ctircw{left:100%}.top-0.svelte-ctircw.svelte-ctircw.svelte-ctircw{top:0px}.z-10.svelte-ctircw.svelte-ctircw.svelte-ctircw{z-index:10}.z-20.svelte-ctircw.svelte-ctircw.svelte-ctircw{z-index:20}.m-0.svelte-ctircw.svelte-ctircw.svelte-ctircw{margin:0px}.mx-\\[1px\\].svelte-ctircw.svelte-ctircw.svelte-ctircw{margin-left:1px;margin-right:1px}.ml-\\[5px\\].svelte-ctircw.svelte-ctircw.svelte-ctircw{margin-left:5px}.mt-2.svelte-ctircw.svelte-ctircw.svelte-ctircw{margin-top:0.5rem}.mt-3.svelte-ctircw.svelte-ctircw.svelte-ctircw{margin-top:0.75rem}.mt-7.svelte-ctircw.svelte-ctircw.svelte-ctircw{margin-top:1.75rem}.block.svelte-ctircw.svelte-ctircw.svelte-ctircw{display:block}.inline-block.svelte-ctircw.svelte-ctircw.svelte-ctircw{display:inline-block}.flex.svelte-ctircw.svelte-ctircw.svelte-ctircw{display:flex}.table.svelte-ctircw.svelte-ctircw.svelte-ctircw{display:table}.contents.svelte-ctircw.svelte-ctircw.svelte-ctircw{display:contents}.h-2.svelte-ctircw.svelte-ctircw.svelte-ctircw{height:0.5rem}.h-2\\.5.svelte-ctircw.svelte-ctircw.svelte-ctircw{height:0.625rem}.h-3.svelte-ctircw.svelte-ctircw.svelte-ctircw{height:0.75rem}.h-\\[6px\\].svelte-ctircw.svelte-ctircw.svelte-ctircw{height:6px}.w-2.svelte-ctircw.svelte-ctircw.svelte-ctircw{width:0.5rem}.w-2\\.5.svelte-ctircw.svelte-ctircw.svelte-ctircw{width:0.625rem}.w-3.svelte-ctircw.svelte-ctircw.svelte-ctircw{width:0.75rem}.w-\\[6px\\].svelte-ctircw.svelte-ctircw.svelte-ctircw{width:6px}.w-full.svelte-ctircw.svelte-ctircw.svelte-ctircw{width:100%}.w-max.svelte-ctircw.svelte-ctircw.svelte-ctircw{width:-moz-max-content;width:max-content}.border-collapse.svelte-ctircw.svelte-ctircw.svelte-ctircw{border-collapse:collapse}.-translate-x-1\\/2.svelte-ctircw.svelte-ctircw.svelte-ctircw{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-y-1\\/2.svelte-ctircw.svelte-ctircw.svelte-ctircw{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-12.svelte-ctircw.svelte-ctircw.svelte-ctircw{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-45.svelte-ctircw.svelte-ctircw.svelte-ctircw{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.transform.svelte-ctircw.svelte-ctircw.svelte-ctircw{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-default.svelte-ctircw.svelte-ctircw.svelte-ctircw{cursor:default}.cursor-not-allowed.svelte-ctircw.svelte-ctircw.svelte-ctircw{cursor:not-allowed}.cursor-pointer.svelte-ctircw.svelte-ctircw.svelte-ctircw{cursor:pointer}.flex-col.svelte-ctircw.svelte-ctircw.svelte-ctircw{flex-direction:column}.items-center.svelte-ctircw.svelte-ctircw.svelte-ctircw{align-items:center}.justify-between.svelte-ctircw.svelte-ctircw.svelte-ctircw{justify-content:space-between}.space-x-1.svelte-ctircw>.svelte-ctircw:not([hidden])~.svelte-ctircw:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(0.25rem * var(--tw-space-x-reverse));margin-left:calc(0.25rem * calc(1 - var(--tw-space-x-reverse)))}.rounded-md.svelte-ctircw.svelte-ctircw.svelte-ctircw{border-radius:0.375rem}.rounded-sm.svelte-ctircw.svelte-ctircw.svelte-ctircw{border-radius:0.125rem}.border-0.svelte-ctircw.svelte-ctircw.svelte-ctircw{border-width:0px}.bg-gray-100.svelte-ctircw.svelte-ctircw.svelte-ctircw{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))}.bg-slate-500.svelte-ctircw.svelte-ctircw.svelte-ctircw{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))}.bg-transparent.svelte-ctircw.svelte-ctircw.svelte-ctircw{background-color:transparent}.p-1.svelte-ctircw.svelte-ctircw.svelte-ctircw{padding:0.25rem}.p-2.svelte-ctircw.svelte-ctircw.svelte-ctircw{padding:0.5rem}.px-4.svelte-ctircw.svelte-ctircw.svelte-ctircw{padding-left:1rem;padding-right:1rem}.py-2.svelte-ctircw.svelte-ctircw.svelte-ctircw{padding-top:0.5rem;padding-bottom:0.5rem}.pt-4.svelte-ctircw.svelte-ctircw.svelte-ctircw{padding-top:1rem}.text-sm.svelte-ctircw.svelte-ctircw.svelte-ctircw{font-size:0.875rem;line-height:1.25rem}.text-xs.svelte-ctircw.svelte-ctircw.svelte-ctircw{font-size:0.75rem;line-height:1rem}.uppercase.svelte-ctircw.svelte-ctircw.svelte-ctircw{text-transform:uppercase}.capitalize.svelte-ctircw.svelte-ctircw.svelte-ctircw{text-transform:capitalize}.text-\\[--text-muted\\].svelte-ctircw.svelte-ctircw.svelte-ctircw{color:var(--text-muted)}.text-\\[--text-on-accent\\].svelte-ctircw.svelte-ctircw.svelte-ctircw{color:var(--text-on-accent)}.text-black.svelte-ctircw.svelte-ctircw.svelte-ctircw{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))}.text-white.svelte-ctircw.svelte-ctircw.svelte-ctircw{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))}.opacity-0.svelte-ctircw.svelte-ctircw.svelte-ctircw{opacity:0}.opacity-50.svelte-ctircw.svelte-ctircw.svelte-ctircw{opacity:0.5}.shadow.svelte-ctircw.svelte-ctircw.svelte-ctircw{--tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.blur.svelte-ctircw.svelte-ctircw.svelte-ctircw{--tw-blur:blur(8px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.transition.svelte-ctircw.svelte-ctircw.svelte-ctircw{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.\\[all\\:inherit\\].svelte-ctircw.svelte-ctircw.svelte-ctircw{all:inherit}.container.svelte-ctircw.svelte-ctircw.svelte-ctircw{--color-background-heading:transparent;--color-background-day:transparent;--color-background-weeknum:transparent;--color-background-weekend:transparent;--color-dot:var(--text-muted);--color-arrow:var(--text-muted);--color-button:var(--text-muted);--color-text-title:var(--text-normal);--color-text-heading:var(--text-muted);--color-text-day:var(--text-normal);--color-text-today:var(--interactive-accent);--color-text-weeknum:var(--text-muted);padding:0 8px}.weekend.svelte-ctircw.svelte-ctircw.svelte-ctircw{background-color:var(--color-background-weekend)}.calendar.svelte-ctircw.svelte-ctircw.svelte-ctircw{border-collapse:collapse;width:100%}th.svelte-ctircw.svelte-ctircw.svelte-ctircw{background-color:var(--color-background-heading);color:var(--color-text-heading);font-size:0.6em;letter-spacing:1px;padding:4px;text-align:center;text-transform:uppercase}.hover\\:cursor-pointer.svelte-ctircw.svelte-ctircw.svelte-ctircw:hover{cursor:pointer}");
+	append_styles(target, "svelte-1d1waif", ".svelte-1d1waif.svelte-1d1waif.svelte-1d1waif,.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif::before,.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif::before,.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif::after{--tw-content:''}table.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{text-indent:0;border-color:inherit;border-collapse:collapse}button.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{text-transform:none}button.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif:-moz-focusring{outline:auto}.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif:-moz-ui-invalid{box-shadow:none}.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif::-webkit-inner-spin-button,.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif::-webkit-outer-spin-button{height:auto}.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif::-webkit-search-decoration{-webkit-appearance:none}.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{cursor:pointer}.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif:disabled{cursor:default}.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif,.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif::before,.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.container.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{width:100%}@media(min-width: 640px){.container.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{max-width:640px}}@media(min-width: 768px){.container.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{max-width:768px}}@media(min-width: 1024px){.container.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{max-width:1024px}}@media(min-width: 1280px){.container.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{max-width:1280px}}@media(min-width: 1536px){.container.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{max-width:1536px}}.pointer-events-none.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{pointer-events:none}.collapse.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{visibility:collapse}.static.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{position:static}.absolute.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{position:absolute}.relative.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{position:relative}.left-0.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{left:0px}.left-full.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{left:100%}.top-0.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{top:0px}.z-10.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{z-index:10}.z-20.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{z-index:20}.m-0.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{margin:0px}.mx-\\[1px\\].svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{margin-left:1px;margin-right:1px}.ml-\\[5px\\].svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{margin-left:5px}.mt-2.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{margin-top:0.5rem}.mt-3.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{margin-top:0.75rem}.mt-7.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{margin-top:1.75rem}.block.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{display:block}.inline-block.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{display:inline-block}.flex.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{display:flex}.table.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{display:table}.contents.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{display:contents}.h-2.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{height:0.5rem}.h-2\\.5.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{height:0.625rem}.h-3.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{height:0.75rem}.h-\\[6px\\].svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{height:6px}.w-2.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{width:0.5rem}.w-2\\.5.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{width:0.625rem}.w-3.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{width:0.75rem}.w-\\[6px\\].svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{width:6px}.w-full.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{width:100%}.w-max.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{width:-moz-max-content;width:max-content}.border-collapse.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{border-collapse:collapse}.-translate-x-1\\/2.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-y-1\\/2.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-12.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-45.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.transform.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-default.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{cursor:default}.cursor-not-allowed.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{cursor:not-allowed}.cursor-pointer.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{cursor:pointer}.flex-col.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{flex-direction:column}.items-center.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{align-items:center}.justify-between.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{justify-content:space-between}.space-x-1.svelte-1d1waif>.svelte-1d1waif:not([hidden])~.svelte-1d1waif:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(0.25rem * var(--tw-space-x-reverse));margin-left:calc(0.25rem * calc(1 - var(--tw-space-x-reverse)))}.rounded-md.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{border-radius:0.375rem}.rounded-sm.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{border-radius:0.125rem}.border-0.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{border-width:0px}.bg-gray-100.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))}.bg-slate-500.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))}.bg-transparent.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{background-color:transparent}.p-1.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{padding:0.25rem}.p-2.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{padding:0.5rem}.px-4.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{padding-left:1rem;padding-right:1rem}.py-2.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{padding-top:0.5rem;padding-bottom:0.5rem}.pt-4.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{padding-top:1rem}.text-sm.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{font-size:0.875rem;line-height:1.25rem}.text-xs.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{font-size:0.75rem;line-height:1rem}.uppercase.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{text-transform:uppercase}.capitalize.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{text-transform:capitalize}.text-\\[--text-muted\\].svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{color:var(--text-muted)}.text-\\[--text-on-accent\\].svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{color:var(--text-on-accent)}.text-black.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))}.text-white.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))}.opacity-0.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{opacity:0}.opacity-50.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{opacity:0.5}.shadow.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{--tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.blur.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{--tw-blur:blur(8px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.transition.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.\\[all\\:inherit\\].svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{all:inherit}.container.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{--color-background-heading:transparent;--color-background-day:transparent;--color-background-weeknum:transparent;--color-background-weekend:transparent;--color-dot:var(--text-muted);--color-arrow:var(--text-muted);--color-button:var(--text-muted);--color-text-title:var(--text-normal);--color-text-heading:var(--text-muted);--color-text-day:var(--text-normal);--color-text-today:var(--interactive-accent);--color-text-weeknum:var(--text-muted);padding:0 8px}.weekend.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{background-color:var(--color-background-weekend)}.calendar.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{border-collapse:collapse;width:100%}th.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif{background-color:var(--color-background-heading);color:var(--color-text-heading);font-size:0.6em;letter-spacing:1px;padding:4px;text-align:center;text-transform:uppercase}.hover\\:cursor-pointer.svelte-1d1waif.svelte-1d1waif.svelte-1d1waif:hover{cursor:pointer}");
 }
 
 function get_each_context$1(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[8] = list[i];
+	child_ctx[9] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_1(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[11] = list[i];
+	child_ctx[12] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_2(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[14] = list[i];
-	child_ctx[16] = i;
+	child_ctx[15] = list[i];
+	child_ctx[17] = i;
 	return child_ctx;
 }
 
 function get_each_context_3(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[17] = list[i];
+	child_ctx[18] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_4(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[20] = list[i];
+	child_ctx[21] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_5(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[23] = list[i];
+	child_ctx[24] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_6(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[26] = list[i];
+	child_ctx[27] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_7(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[29] = list[i];
+	child_ctx[30] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_8(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[32] = list[i];
+	child_ctx[33] = list[i];
 	return child_ctx;
 }
 
-// (34:2) {#each togglePeriods as period}
+// (26:2) {#each togglePeriods as period}
 function create_each_block_8(ctx) {
 	let button;
-	let t_value = capitalize(/*period*/ ctx[32]) + "";
+	let t_value = capitalize(/*period*/ ctx[33]) + "";
 	let t;
 	let button_class_value;
 	let mounted;
 	let dispose;
 
 	function click_handler() {
-		return /*click_handler*/ ctx[7](/*period*/ ctx[32]);
+		return /*click_handler*/ ctx[8](/*period*/ ctx[33]);
 	}
 
 	return {
@@ -12095,9 +11942,9 @@ function create_each_block_8(ctx) {
 			button = element("button");
 			t = text(t_value);
 
-			attr(button, "class", button_class_value = "" + (null_to_empty(`w-full cursor-pointer rounded-md px-4 py-2 text-black ${/*crrView*/ ctx[0] === /*period*/ ctx[32]
+			attr(button, "class", button_class_value = "" + (null_to_empty(`w-full cursor-pointer rounded-md px-4 py-2 text-black ${/*crrView*/ ctx[0] === /*period*/ ctx[33]
 			? 'bg-gray-100'
-			: 'text-white'}`) + " svelte-ctircw"));
+			: 'text-white'}`) + " svelte-1d1waif"));
 		},
 		m(target, anchor) {
 			insert(target, button, anchor);
@@ -12111,9 +11958,9 @@ function create_each_block_8(ctx) {
 		p(new_ctx, dirty) {
 			ctx = new_ctx;
 
-			if (dirty[0] & /*crrView*/ 1 && button_class_value !== (button_class_value = "" + (null_to_empty(`w-full cursor-pointer rounded-md px-4 py-2 text-black ${/*crrView*/ ctx[0] === /*period*/ ctx[32]
+			if (dirty[0] & /*crrView*/ 1 && button_class_value !== (button_class_value = "" + (null_to_empty(`w-full cursor-pointer rounded-md px-4 py-2 text-black ${/*crrView*/ ctx[0] === /*period*/ ctx[33]
 			? 'bg-gray-100'
-			: 'text-white'}`) + " svelte-ctircw"))) {
+			: 'text-white'}`) + " svelte-1d1waif"))) {
 				attr(button, "class", button_class_value);
 			}
 		},
@@ -12128,7 +11975,7 @@ function create_each_block_8(ctx) {
 	};
 }
 
-// (43:1) {#if crrView === 'days'}
+// (35:1) {#if crrView === 'days'}
 function create_if_block_3(ctx) {
 	let monthnav;
 	let t0;
@@ -12162,7 +12009,7 @@ function create_if_block_3(ctx) {
 	}
 
 	let each_value_4 = ensure_array_like(/*month*/ ctx[1]);
-	const get_key = ctx => /*week*/ ctx[20].weekNum;
+	const get_key = ctx => /*week*/ ctx[21].weekNum;
 
 	for (let i = 0; i < each_value_4.length; i += 1) {
 		let child_ctx = get_each_context_4(ctx, each_value_4, i);
@@ -12200,11 +12047,11 @@ function create_if_block_3(ctx) {
 				each_blocks[i].c();
 			}
 
-			attr(colgroup, "class", "svelte-ctircw");
-			attr(tr, "class", "svelte-ctircw");
-			attr(thead, "class", "svelte-ctircw");
-			attr(tbody, "class", "svelte-ctircw");
-			attr(table, "class", "calendar svelte-ctircw");
+			attr(colgroup, "class", "svelte-1d1waif");
+			attr(tr, "class", "svelte-1d1waif");
+			attr(thead, "class", "svelte-1d1waif");
+			attr(tbody, "class", "svelte-1d1waif");
+			attr(table, "class", "calendar svelte-1d1waif");
 		},
 		m(target, anchor) {
 			mount_component(monthnav, target, anchor);
@@ -12357,14 +12204,14 @@ function create_if_block_3(ctx) {
 	};
 }
 
-// (47:4) {#if showWeekNums}
+// (39:4) {#if showWeekNums}
 function create_if_block_6(ctx) {
 	let col;
 
 	return {
 		c() {
 			col = element("col");
-			attr(col, "class", "svelte-ctircw");
+			attr(col, "class", "svelte-1d1waif");
 		},
 		m(target, anchor) {
 			insert(target, col, anchor);
@@ -12377,22 +12224,22 @@ function create_if_block_6(ctx) {
 	};
 }
 
-// (50:4) {#each month[1].days as date}
+// (42:4) {#each month[1].days as date}
 function create_each_block_7(ctx) {
 	let col;
 
 	return {
 		c() {
 			col = element("col");
-			attr(col, "class", "svelte-ctircw");
-			toggle_class(col, "weekend", isWeekend(/*date*/ ctx[29]));
+			attr(col, "class", "svelte-1d1waif");
+			toggle_class(col, "weekend", isWeekend(/*date*/ ctx[30]));
 		},
 		m(target, anchor) {
 			insert(target, col, anchor);
 		},
 		p(ctx, dirty) {
 			if (dirty[0] & /*month*/ 2) {
-				toggle_class(col, "weekend", isWeekend(/*date*/ ctx[29]));
+				toggle_class(col, "weekend", isWeekend(/*date*/ ctx[30]));
 			}
 		},
 		d(detaching) {
@@ -12403,7 +12250,7 @@ function create_each_block_7(ctx) {
 	};
 }
 
-// (56:5) {#if showWeekNums}
+// (48:5) {#if showWeekNums}
 function create_if_block_5(ctx) {
 	let th;
 
@@ -12411,7 +12258,7 @@ function create_if_block_5(ctx) {
 		c() {
 			th = element("th");
 			th.textContent = "W";
-			attr(th, "class", "svelte-ctircw");
+			attr(th, "class", "svelte-1d1waif");
 		},
 		m(target, anchor) {
 			insert(target, th, anchor);
@@ -12424,24 +12271,24 @@ function create_if_block_5(ctx) {
 	};
 }
 
-// (59:5) {#each weekdaysShort as dayOfWeek}
+// (51:5) {#each weekdaysShort as dayOfWeek}
 function create_each_block_6(ctx) {
 	let th;
-	let t_value = /*dayOfWeek*/ ctx[26] + "";
+	let t_value = /*dayOfWeek*/ ctx[27] + "";
 	let t;
 
 	return {
 		c() {
 			th = element("th");
 			t = text(t_value);
-			attr(th, "class", "svelte-ctircw");
+			attr(th, "class", "svelte-1d1waif");
 		},
 		m(target, anchor) {
 			insert(target, th, anchor);
 			append(th, t);
 		},
 		p(ctx, dirty) {
-			if (dirty[0] & /*weekdaysShort*/ 4 && t_value !== (t_value = /*dayOfWeek*/ ctx[26] + "")) set_data(t, t_value);
+			if (dirty[0] & /*weekdaysShort*/ 4 && t_value !== (t_value = /*dayOfWeek*/ ctx[27] + "")) set_data(t, t_value);
 		},
 		d(detaching) {
 			if (detaching) {
@@ -12451,15 +12298,15 @@ function create_each_block_6(ctx) {
 	};
 }
 
-// (67:6) {#if showWeekNums}
+// (59:6) {#if showWeekNums}
 function create_if_block_4(ctx) {
 	let weeknum;
 	let current;
 
 	weeknum = new WeekNum({
 			props: {
-				weekNum: /*week*/ ctx[20].weekNum,
-				startOfWeekDate: getStartOfWeek(/*week*/ ctx[20].days)
+				weekNum: /*week*/ ctx[21].weekNum,
+				startOfWeekDate: getStartOfWeek(/*week*/ ctx[21].days)
 			}
 		});
 
@@ -12473,8 +12320,8 @@ function create_if_block_4(ctx) {
 		},
 		p(ctx, dirty) {
 			const weeknum_changes = {};
-			if (dirty[0] & /*month*/ 2) weeknum_changes.weekNum = /*week*/ ctx[20].weekNum;
-			if (dirty[0] & /*month*/ 2) weeknum_changes.startOfWeekDate = getStartOfWeek(/*week*/ ctx[20].days);
+			if (dirty[0] & /*month*/ 2) weeknum_changes.weekNum = /*week*/ ctx[21].weekNum;
+			if (dirty[0] & /*month*/ 2) weeknum_changes.startOfWeekDate = getStartOfWeek(/*week*/ ctx[21].days);
 			weeknum.$set(weeknum_changes);
 		},
 		i(local) {
@@ -12492,12 +12339,12 @@ function create_if_block_4(ctx) {
 	};
 }
 
-// (72:6) {#each week.days as day (day.format())}
+// (64:6) {#each week.days as day (day.format())}
 function create_each_block_5(key_1, ctx) {
 	let first;
 	let day_1;
 	let current;
-	day_1 = new Day({ props: { date: /*day*/ ctx[23] } });
+	day_1 = new Day({ props: { date: /*day*/ ctx[24] } });
 
 	return {
 		key: key_1,
@@ -12515,7 +12362,7 @@ function create_each_block_5(key_1, ctx) {
 		p(new_ctx, dirty) {
 			ctx = new_ctx;
 			const day_1_changes = {};
-			if (dirty[0] & /*month*/ 2) day_1_changes.date = /*day*/ ctx[23];
+			if (dirty[0] & /*month*/ 2) day_1_changes.date = /*day*/ ctx[24];
 			day_1.$set(day_1_changes);
 		},
 		i(local) {
@@ -12537,7 +12384,7 @@ function create_each_block_5(key_1, ctx) {
 	};
 }
 
-// (65:4) {#each month as week (week.weekNum)}
+// (57:4) {#each month as week (week.weekNum)}
 function create_each_block_4(key_1, ctx) {
 	let tr;
 	let t0;
@@ -12546,8 +12393,8 @@ function create_each_block_4(key_1, ctx) {
 	let t1;
 	let current;
 	let if_block = /*showWeekNums*/ ctx[3] && create_if_block_4(ctx);
-	let each_value_5 = ensure_array_like(/*week*/ ctx[20].days);
-	const get_key = ctx => /*day*/ ctx[23].format();
+	let each_value_5 = ensure_array_like(/*week*/ ctx[21].days);
+	const get_key = ctx => /*day*/ ctx[24].format();
 
 	for (let i = 0; i < each_value_5.length; i += 1) {
 		let child_ctx = get_each_context_5(ctx, each_value_5, i);
@@ -12568,7 +12415,7 @@ function create_each_block_4(key_1, ctx) {
 			}
 
 			t1 = space();
-			attr(tr, "class", "svelte-ctircw");
+			attr(tr, "class", "svelte-1d1waif");
 			this.first = tr;
 		},
 		m(target, anchor) {
@@ -12612,7 +12459,7 @@ function create_each_block_4(key_1, ctx) {
 			}
 
 			if (dirty[0] & /*month*/ 2) {
-				each_value_5 = ensure_array_like(/*week*/ ctx[20].days);
+				each_value_5 = ensure_array_like(/*week*/ ctx[21].days);
 				group_outros();
 				each_blocks = update_keyed_each(each_blocks, dirty, get_key, 1, ctx, each_value_5, each_1_lookup, tr, outro_and_destroy_block, create_each_block_5, t1, get_each_context_5);
 				check_outros();
@@ -12651,7 +12498,7 @@ function create_each_block_4(key_1, ctx) {
 	};
 }
 
-// (80:1) {#if crrView === 'months'}
+// (72:1) {#if crrView === 'months'}
 function create_if_block_1$1(ctx) {
 	let yearnav;
 	let t;
@@ -12681,8 +12528,8 @@ function create_if_block_1$1(ctx) {
 				each_blocks[i].c();
 			}
 
-			attr(tbody, "class", "svelte-ctircw");
-			attr(table, "class", "calendar svelte-ctircw");
+			attr(tbody, "class", "svelte-1d1waif");
+			attr(table, "class", "calendar svelte-1d1waif");
 		},
 		m(target, anchor) {
 			mount_component(yearnav, target, anchor);
@@ -12758,11 +12605,11 @@ function create_if_block_1$1(ctx) {
 	};
 }
 
-// (86:6) {#if showWeekNums}
+// (78:6) {#if showWeekNums}
 function create_if_block_2(ctx) {
 	let quarternum;
 	let current;
-	quarternum = new QuarterNum({ props: { quarterNum: /*i*/ ctx[16] + 1 } });
+	quarternum = new QuarterNum({ props: { quarterNum: /*i*/ ctx[17] + 1 } });
 
 	return {
 		c() {
@@ -12787,13 +12634,13 @@ function create_if_block_2(ctx) {
 	};
 }
 
-// (89:6) {#each quarterMonthsIndexes as monthIndex}
+// (81:6) {#each quarterMonthsIndexes as monthIndex}
 function create_each_block_3(ctx) {
 	let month_1;
 	let current;
 
 	month_1 = new Month({
-			props: { monthIndex: /*monthIndex*/ ctx[17] }
+			props: { monthIndex: /*monthIndex*/ ctx[18] }
 		});
 
 	return {
@@ -12820,14 +12667,14 @@ function create_each_block_3(ctx) {
 	};
 }
 
-// (84:4) {#each monthsIndexesInQuarters as quarterMonthsIndexes, i}
+// (76:4) {#each monthsIndexesInQuarters as quarterMonthsIndexes, i}
 function create_each_block_2(ctx) {
 	let tr;
 	let t0;
 	let t1;
 	let current;
 	let if_block = /*showWeekNums*/ ctx[3] && create_if_block_2(ctx);
-	let each_value_3 = ensure_array_like(/*quarterMonthsIndexes*/ ctx[14]);
+	let each_value_3 = ensure_array_like(/*quarterMonthsIndexes*/ ctx[15]);
 	let each_blocks = [];
 
 	for (let i = 0; i < each_value_3.length; i += 1) {
@@ -12845,7 +12692,7 @@ function create_each_block_2(ctx) {
 			}
 
 			t1 = space();
-			attr(tr, "class", "svelte-ctircw");
+			attr(tr, "class", "svelte-1d1waif");
 		},
 		m(target, anchor) {
 			insert(target, tr, anchor);
@@ -12914,7 +12761,7 @@ function create_each_block_2(ctx) {
 	};
 }
 
-// (97:1) {#if crrView === 'years'}
+// (89:1) {#if crrView === 'years'}
 function create_if_block$1(ctx) {
 	let yearsnav;
 	let t;
@@ -12948,8 +12795,8 @@ function create_if_block$1(ctx) {
 				each_blocks[i].c();
 			}
 
-			attr(tbody, "class", "svelte-ctircw");
-			attr(table, "class", "calendar svelte-ctircw");
+			attr(tbody, "class", "svelte-1d1waif");
+			attr(table, "class", "calendar svelte-1d1waif");
 		},
 		m(target, anchor) {
 			mount_component(yearsnav, target, anchor);
@@ -13028,11 +12875,11 @@ function create_if_block$1(ctx) {
 	};
 }
 
-// (103:6) {#each rowYearsRange as year}
+// (95:6) {#each rowYearsRange as year}
 function create_each_block_1(ctx) {
 	let year_1;
 	let current;
-	year_1 = new Year({ props: { year: /*year*/ ctx[11] } });
+	year_1 = new Year({ props: { year: /*year*/ ctx[12] } });
 
 	return {
 		c() {
@@ -13044,7 +12891,7 @@ function create_each_block_1(ctx) {
 		},
 		p(ctx, dirty) {
 			const year_1_changes = {};
-			if (dirty[0] & /*$yearsRanges*/ 16) year_1_changes.year = /*year*/ ctx[11];
+			if (dirty[0] & /*$yearsRanges*/ 16) year_1_changes.year = /*year*/ ctx[12];
 			year_1.$set(year_1_changes);
 		},
 		i(local) {
@@ -13062,12 +12909,12 @@ function create_each_block_1(ctx) {
 	};
 }
 
-// (101:4) {#each getYears( { startRangeYear: +$yearsRanges.ranges[$yearsRanges.crrRangeIndex].split('-')[0] } ) as rowYearsRange}
+// (93:4) {#each getYears( { startRangeYear: +$yearsRanges.ranges[$yearsRanges.crrRangeIndex].split('-')[0] } ) as rowYearsRange}
 function create_each_block$1(ctx) {
 	let tr;
 	let t;
 	let current;
-	let each_value_1 = ensure_array_like(/*rowYearsRange*/ ctx[8]);
+	let each_value_1 = ensure_array_like(/*rowYearsRange*/ ctx[9]);
 	let each_blocks = [];
 
 	for (let i = 0; i < each_value_1.length; i += 1) {
@@ -13087,7 +12934,7 @@ function create_each_block$1(ctx) {
 			}
 
 			t = space();
-			attr(tr, "class", "svelte-ctircw");
+			attr(tr, "class", "svelte-1d1waif");
 		},
 		m(target, anchor) {
 			insert(target, tr, anchor);
@@ -13103,7 +12950,7 @@ function create_each_block$1(ctx) {
 		},
 		p(ctx, dirty) {
 			if (dirty[0] & /*$yearsRanges*/ 16) {
-				each_value_1 = ensure_array_like(/*rowYearsRange*/ ctx[8]);
+				each_value_1 = ensure_array_like(/*rowYearsRange*/ ctx[9]);
 				let i;
 
 				for (i = 0; i < each_value_1.length; i += 1) {
@@ -13190,9 +13037,9 @@ function create_fragment$3(ctx) {
 			if (if_block1) if_block1.c();
 			t2 = space();
 			if (if_block2) if_block2.c();
-			attr(div0, "class", "flex rounded-md space-x-1 p-1 w-full svelte-ctircw");
+			attr(div0, "class", "flex rounded-md space-x-1 p-1 w-full svelte-1d1waif");
 			attr(div1, "id", "calendar-container");
-			attr(div1, "class", "container svelte-ctircw");
+			attr(div1, "class", "container svelte-1d1waif");
 		},
 		m(target, anchor) {
 			insert(target, div1, anchor);
@@ -13336,22 +13183,23 @@ function instance$3($$self, $$props, $$invalidate) {
 	let weekdaysShort;
 	let month;
 	let $displayedDateStore;
+	let $localeDataStore;
 	let $settingsStore;
 	let $yearsRanges;
 	component_subscribe($$self, displayedDateStore, $$value => $$invalidate(5, $displayedDateStore = $$value));
-	component_subscribe($$self, settingsStore, $$value => $$invalidate(6, $settingsStore = $$value));
+	component_subscribe($$self, localeDataStore, $$value => $$invalidate(6, $localeDataStore = $$value));
+	component_subscribe($$self, settingsStore, $$value => $$invalidate(7, $settingsStore = $$value));
 	component_subscribe($$self, yearsRanges, $$value => $$invalidate(4, $yearsRanges = $$value));
-	window.dayjs.extend(weekOfYear);
-	window.dayjs.extend(isoWeek);
-
-	// $: $settingsStore, reindexNotes();
 	let crrView = 'days';
-
 	const click_handler = period => $$invalidate(0, crrView = period);
 
 	$$self.$$.update = () => {
-		if ($$self.$$.dirty[0] & /*$settingsStore*/ 64) {
-			$$invalidate(3, { localeData: { showWeekNums, weekdaysShort } } = $settingsStore, showWeekNums, ($$invalidate(2, weekdaysShort), $$invalidate(6, $settingsStore)));
+		if ($$self.$$.dirty[0] & /*$settingsStore*/ 128) {
+			$$invalidate(3, { localeSettings: { showWeekNums } } = $settingsStore, showWeekNums);
+		}
+
+		if ($$self.$$.dirty[0] & /*$localeDataStore*/ 64) {
+			$$invalidate(2, { weekdaysShort } = $localeDataStore, weekdaysShort);
 		}
 
 		if ($$self.$$.dirty[0] & /*$displayedDateStore*/ 32) {
@@ -13366,6 +13214,7 @@ function instance$3($$self, $$props, $$invalidate) {
 		showWeekNums,
 		$yearsRanges,
 		$displayedDateStore,
+		$localeDataStore,
 		$settingsStore,
 		click_handler
 	];
@@ -55618,7 +55467,7 @@ $329d53ba9fd7125f$exports = ":host {\n  width: min-content;\n  height: 435px;\n 
 /* src/calendar-ui/components/StickerPopover.svelte generated by Svelte v4.2.0 */
 
 function add_css$2(target) {
-	append_styles(target, "svelte-t7ujhl", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.pointer-events-none.svelte-t7ujhl{pointer-events:none}.absolute.svelte-t7ujhl{position:absolute}.left-0.svelte-t7ujhl{left:0px}.top-0.svelte-t7ujhl{top:0px}.z-20.svelte-t7ujhl{z-index:20}.w-max.svelte-t7ujhl{width:-moz-max-content;width:max-content}.bg-transparent.svelte-t7ujhl{background-color:transparent}.opacity-0.svelte-t7ujhl{opacity:0}#emoji-modal.svelte-t7ujhl{padding:0px;min-width:unset;width:unset !important}");
+	append_styles(target, "svelte-15v7n78", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.pointer-events-none.svelte-15v7n78{pointer-events:none}.absolute.svelte-15v7n78{position:absolute}.left-0.svelte-15v7n78{left:0px}.top-0.svelte-15v7n78{top:0px}.z-20.svelte-15v7n78{z-index:20}.w-max.svelte-15v7n78{width:-moz-max-content;width:max-content}.bg-transparent.svelte-15v7n78{background-color:transparent}.opacity-0.svelte-15v7n78{opacity:0}#emoji-modal.svelte-15v7n78{padding:0px;min-width:unset;width:unset !important}");
 }
 
 function create_fragment$2(ctx) {
@@ -55629,7 +55478,7 @@ function create_fragment$2(ctx) {
 		c() {
 			div1 = element("div");
 			div0 = element("div");
-			attr(div1, "class", "bg-transparent z-20 w-max opacity-0 pointer-events-none absolute top-0 left-0 svelte-t7ujhl");
+			attr(div1, "class", "bg-transparent z-20 w-max opacity-0 pointer-events-none absolute top-0 left-0 svelte-15v7n78");
 			attr(div1, "data-popover", /*popover*/ ctx[0]);
 			attr(div1, "id", STICKER_POPOVER_ID);
 		},
@@ -55786,10 +55635,10 @@ class StickerPopover extends SvelteComponent {
 /* src/View.svelte generated by Svelte v4.2.0 */
 
 function add_css$1(target) {
-	append_styles(target, "svelte-6f8090", ".svelte-6f8090.svelte-6f8090.svelte-6f8090,.svelte-6f8090.svelte-6f8090.svelte-6f8090::before,.svelte-6f8090.svelte-6f8090.svelte-6f8090::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-6f8090.svelte-6f8090.svelte-6f8090::before,.svelte-6f8090.svelte-6f8090.svelte-6f8090::after{--tw-content:''}.svelte-6f8090.svelte-6f8090.svelte-6f8090:-moz-focusring{outline:auto}.svelte-6f8090.svelte-6f8090.svelte-6f8090:-moz-ui-invalid{box-shadow:none}.svelte-6f8090.svelte-6f8090.svelte-6f8090::-webkit-inner-spin-button,.svelte-6f8090.svelte-6f8090.svelte-6f8090::-webkit-outer-spin-button{height:auto}.svelte-6f8090.svelte-6f8090.svelte-6f8090::-webkit-search-decoration{-webkit-appearance:none}.svelte-6f8090.svelte-6f8090.svelte-6f8090::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}.svelte-6f8090.svelte-6f8090.svelte-6f8090:disabled{cursor:default}.svelte-6f8090.svelte-6f8090.svelte-6f8090,.svelte-6f8090.svelte-6f8090.svelte-6f8090::before,.svelte-6f8090.svelte-6f8090.svelte-6f8090::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-6f8090.svelte-6f8090.svelte-6f8090::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.container.svelte-6f8090.svelte-6f8090.svelte-6f8090{width:100%}@media(min-width: 640px){.container.svelte-6f8090.svelte-6f8090.svelte-6f8090{max-width:640px}}@media(min-width: 768px){.container.svelte-6f8090.svelte-6f8090.svelte-6f8090{max-width:768px}}@media(min-width: 1024px){.container.svelte-6f8090.svelte-6f8090.svelte-6f8090{max-width:1024px}}@media(min-width: 1280px){.container.svelte-6f8090.svelte-6f8090.svelte-6f8090{max-width:1280px}}@media(min-width: 1536px){.container.svelte-6f8090.svelte-6f8090.svelte-6f8090{max-width:1536px}}.pointer-events-none.svelte-6f8090.svelte-6f8090.svelte-6f8090{pointer-events:none}.invisible.svelte-6f8090.svelte-6f8090.svelte-6f8090{visibility:hidden}.collapse.svelte-6f8090.svelte-6f8090.svelte-6f8090{visibility:collapse}.absolute.svelte-6f8090.svelte-6f8090.svelte-6f8090{position:absolute}.relative.svelte-6f8090.svelte-6f8090.svelte-6f8090{position:relative}.left-0.svelte-6f8090.svelte-6f8090.svelte-6f8090{left:0px}.left-full.svelte-6f8090.svelte-6f8090.svelte-6f8090{left:100%}.top-0.svelte-6f8090.svelte-6f8090.svelte-6f8090{top:0px}.z-10.svelte-6f8090.svelte-6f8090.svelte-6f8090{z-index:10}.z-20.svelte-6f8090.svelte-6f8090.svelte-6f8090{z-index:20}.m-0.svelte-6f8090.svelte-6f8090.svelte-6f8090{margin:0px}.mx-\\[1px\\].svelte-6f8090.svelte-6f8090.svelte-6f8090{margin-left:1px;margin-right:1px}.ml-\\[5px\\].svelte-6f8090.svelte-6f8090.svelte-6f8090{margin-left:5px}.mt-2.svelte-6f8090.svelte-6f8090.svelte-6f8090{margin-top:0.5rem}.mt-3.svelte-6f8090.svelte-6f8090.svelte-6f8090{margin-top:0.75rem}.mt-7.svelte-6f8090.svelte-6f8090.svelte-6f8090{margin-top:1.75rem}.block.svelte-6f8090.svelte-6f8090.svelte-6f8090{display:block}.inline-block.svelte-6f8090.svelte-6f8090.svelte-6f8090{display:inline-block}.flex.svelte-6f8090.svelte-6f8090.svelte-6f8090{display:flex}.table.svelte-6f8090.svelte-6f8090.svelte-6f8090{display:table}.contents.svelte-6f8090.svelte-6f8090.svelte-6f8090{display:contents}.h-2.svelte-6f8090.svelte-6f8090.svelte-6f8090{height:0.5rem}.h-2\\.5.svelte-6f8090.svelte-6f8090.svelte-6f8090{height:0.625rem}.h-3.svelte-6f8090.svelte-6f8090.svelte-6f8090{height:0.75rem}.h-\\[6px\\].svelte-6f8090.svelte-6f8090.svelte-6f8090{height:6px}.w-2.svelte-6f8090.svelte-6f8090.svelte-6f8090{width:0.5rem}.w-2\\.5.svelte-6f8090.svelte-6f8090.svelte-6f8090{width:0.625rem}.w-3.svelte-6f8090.svelte-6f8090.svelte-6f8090{width:0.75rem}.w-\\[6px\\].svelte-6f8090.svelte-6f8090.svelte-6f8090{width:6px}.w-full.svelte-6f8090.svelte-6f8090.svelte-6f8090{width:100%}.w-max.svelte-6f8090.svelte-6f8090.svelte-6f8090{width:-moz-max-content;width:max-content}.border-collapse.svelte-6f8090.svelte-6f8090.svelte-6f8090{border-collapse:collapse}.-translate-x-1\\/2.svelte-6f8090.svelte-6f8090.svelte-6f8090{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-y-1\\/2.svelte-6f8090.svelte-6f8090.svelte-6f8090{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-12.svelte-6f8090.svelte-6f8090.svelte-6f8090{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-45.svelte-6f8090.svelte-6f8090.svelte-6f8090{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.transform.svelte-6f8090.svelte-6f8090.svelte-6f8090{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-default.svelte-6f8090.svelte-6f8090.svelte-6f8090{cursor:default}.cursor-not-allowed.svelte-6f8090.svelte-6f8090.svelte-6f8090{cursor:not-allowed}.cursor-pointer.svelte-6f8090.svelte-6f8090.svelte-6f8090{cursor:pointer}.flex-col.svelte-6f8090.svelte-6f8090.svelte-6f8090{flex-direction:column}.items-center.svelte-6f8090.svelte-6f8090.svelte-6f8090{align-items:center}.justify-between.svelte-6f8090.svelte-6f8090.svelte-6f8090{justify-content:space-between}.space-x-1.svelte-6f8090>.svelte-6f8090:not([hidden])~.svelte-6f8090:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(0.25rem * var(--tw-space-x-reverse));margin-left:calc(0.25rem * calc(1 - var(--tw-space-x-reverse)))}.space-x-2.svelte-6f8090>.svelte-6f8090:not([hidden])~.svelte-6f8090:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(0.5rem * var(--tw-space-x-reverse));margin-left:calc(0.5rem * calc(1 - var(--tw-space-x-reverse)))}.rounded-md.svelte-6f8090.svelte-6f8090.svelte-6f8090{border-radius:0.375rem}.rounded-sm.svelte-6f8090.svelte-6f8090.svelte-6f8090{border-radius:0.125rem}.border-0.svelte-6f8090.svelte-6f8090.svelte-6f8090{border-width:0px}.bg-gray-100.svelte-6f8090.svelte-6f8090.svelte-6f8090{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))}.bg-slate-500.svelte-6f8090.svelte-6f8090.svelte-6f8090{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))}.bg-transparent.svelte-6f8090.svelte-6f8090.svelte-6f8090{background-color:transparent}.p-1.svelte-6f8090.svelte-6f8090.svelte-6f8090{padding:0.25rem}.p-2.svelte-6f8090.svelte-6f8090.svelte-6f8090{padding:0.5rem}.px-4.svelte-6f8090.svelte-6f8090.svelte-6f8090{padding-left:1rem;padding-right:1rem}.py-2.svelte-6f8090.svelte-6f8090.svelte-6f8090{padding-top:0.5rem;padding-bottom:0.5rem}.pt-4.svelte-6f8090.svelte-6f8090.svelte-6f8090{padding-top:1rem}.text-sm.svelte-6f8090.svelte-6f8090.svelte-6f8090{font-size:0.875rem;line-height:1.25rem}.text-xs.svelte-6f8090.svelte-6f8090.svelte-6f8090{font-size:0.75rem;line-height:1rem}.uppercase.svelte-6f8090.svelte-6f8090.svelte-6f8090{text-transform:uppercase}.capitalize.svelte-6f8090.svelte-6f8090.svelte-6f8090{text-transform:capitalize}.text-\\[--text-muted\\].svelte-6f8090.svelte-6f8090.svelte-6f8090{color:var(--text-muted)}.text-\\[--text-on-accent\\].svelte-6f8090.svelte-6f8090.svelte-6f8090{color:var(--text-on-accent)}.text-black.svelte-6f8090.svelte-6f8090.svelte-6f8090{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))}.text-white.svelte-6f8090.svelte-6f8090.svelte-6f8090{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))}.opacity-0.svelte-6f8090.svelte-6f8090.svelte-6f8090{opacity:0}.opacity-50.svelte-6f8090.svelte-6f8090.svelte-6f8090{opacity:0.5}.shadow.svelte-6f8090.svelte-6f8090.svelte-6f8090{--tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.blur.svelte-6f8090.svelte-6f8090.svelte-6f8090{--tw-blur:blur(8px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.transition.svelte-6f8090.svelte-6f8090.svelte-6f8090{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.\\[all\\:inherit\\].svelte-6f8090.svelte-6f8090.svelte-6f8090{all:inherit}.hover\\:cursor-pointer.svelte-6f8090.svelte-6f8090.svelte-6f8090:hover{cursor:pointer}");
+	append_styles(target, "svelte-1fig2o3", ".svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3,.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3::before,.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3::before,.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3::after{--tw-content:''}.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3:-moz-focusring{outline:auto}.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3:-moz-ui-invalid{box-shadow:none}.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3::-webkit-inner-spin-button,.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3::-webkit-outer-spin-button{height:auto}.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3::-webkit-search-decoration{-webkit-appearance:none}.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3:disabled{cursor:default}.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3,.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3::before,.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.container.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{width:100%}@media(min-width: 640px){.container.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{max-width:640px}}@media(min-width: 768px){.container.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{max-width:768px}}@media(min-width: 1024px){.container.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{max-width:1024px}}@media(min-width: 1280px){.container.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{max-width:1280px}}@media(min-width: 1536px){.container.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{max-width:1536px}}.pointer-events-none.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{pointer-events:none}.collapse.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{visibility:collapse}.static.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{position:static}.absolute.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{position:absolute}.relative.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{position:relative}.left-0.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{left:0px}.left-full.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{left:100%}.top-0.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{top:0px}.z-10.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{z-index:10}.z-20.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{z-index:20}.m-0.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{margin:0px}.mx-\\[1px\\].svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{margin-left:1px;margin-right:1px}.ml-\\[5px\\].svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{margin-left:5px}.mt-2.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{margin-top:0.5rem}.mt-3.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{margin-top:0.75rem}.mt-7.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{margin-top:1.75rem}.block.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{display:block}.inline-block.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{display:inline-block}.flex.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{display:flex}.table.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{display:table}.contents.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{display:contents}.h-2.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{height:0.5rem}.h-2\\.5.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{height:0.625rem}.h-3.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{height:0.75rem}.h-\\[6px\\].svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{height:6px}.w-2.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{width:0.5rem}.w-2\\.5.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{width:0.625rem}.w-3.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{width:0.75rem}.w-\\[6px\\].svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{width:6px}.w-full.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{width:100%}.w-max.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{width:-moz-max-content;width:max-content}.border-collapse.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{border-collapse:collapse}.-translate-x-1\\/2.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-y-1\\/2.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-12.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-45.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.transform.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-default.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{cursor:default}.cursor-not-allowed.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{cursor:not-allowed}.cursor-pointer.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{cursor:pointer}.flex-col.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{flex-direction:column}.items-center.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{align-items:center}.justify-between.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{justify-content:space-between}.space-x-1.svelte-1fig2o3>.svelte-1fig2o3:not([hidden])~.svelte-1fig2o3:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(0.25rem * var(--tw-space-x-reverse));margin-left:calc(0.25rem * calc(1 - var(--tw-space-x-reverse)))}.rounded-md.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{border-radius:0.375rem}.rounded-sm.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{border-radius:0.125rem}.border-0.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{border-width:0px}.bg-gray-100.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))}.bg-slate-500.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))}.bg-transparent.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{background-color:transparent}.p-1.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{padding:0.25rem}.p-2.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{padding:0.5rem}.px-4.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{padding-left:1rem;padding-right:1rem}.py-2.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{padding-top:0.5rem;padding-bottom:0.5rem}.pt-4.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{padding-top:1rem}.text-sm.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{font-size:0.875rem;line-height:1.25rem}.text-xs.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{font-size:0.75rem;line-height:1rem}.uppercase.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{text-transform:uppercase}.capitalize.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{text-transform:capitalize}.text-\\[--text-muted\\].svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{color:var(--text-muted)}.text-\\[--text-on-accent\\].svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{color:var(--text-on-accent)}.text-black.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))}.text-white.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))}.opacity-0.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{opacity:0}.opacity-50.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{opacity:0.5}.shadow.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{--tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.blur.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{--tw-blur:blur(8px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.transition.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.\\[all\\:inherit\\].svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{all:inherit}.hover\\:cursor-pointer.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3:hover{cursor:pointer}");
 }
 
-// (137:0) {#if popover}
+// (136:0) {#if popover}
 function create_if_block_1(ctx) {
 	let div3;
 	let div0;
@@ -55810,10 +55659,10 @@ function create_if_block_1(ctx) {
 			div1 = element("div");
 			create_component(calendar.$$.fragment);
 			attr(div0, "id", `${CALENDAR_POPOVER_ID}-arrow`);
-			attr(div0, "class", "rotate-45 absolute w-2.5 h-2.5 bg-slate-500 svelte-6f8090");
-			attr(div1, "class", "bg-slate-500 rounded-sm svelte-6f8090");
-			attr(div2, "class", "ml-[5px] p-2 svelte-6f8090");
-			attr(div3, "class", div3_class_value = "" + (null_to_empty(clsx(/*popover*/ ctx[0] && 'bg-transparent z-10 w-max opacity-0 pointer-events-none absolute top-0 left-0')) + " svelte-6f8090"));
+			attr(div0, "class", "rotate-45 absolute w-2.5 h-2.5 bg-slate-500 svelte-1fig2o3");
+			attr(div1, "class", "bg-slate-500 rounded-sm svelte-1fig2o3");
+			attr(div2, "class", "ml-[5px] p-2 svelte-1fig2o3");
+			attr(div3, "class", div3_class_value = "" + (null_to_empty(clsx(/*popover*/ ctx[0] && 'bg-transparent z-10 w-max opacity-0 pointer-events-none absolute top-0 left-0')) + " svelte-1fig2o3"));
 			attr(div3, "data-popover", /*popover*/ ctx[0]);
 			attr(div3, "id", CALENDAR_POPOVER_ID);
 		},
@@ -55827,7 +55676,7 @@ function create_if_block_1(ctx) {
 			current = true;
 		},
 		p(ctx, dirty) {
-			if (!current || dirty & /*popover*/ 1 && div3_class_value !== (div3_class_value = "" + (null_to_empty(clsx(/*popover*/ ctx[0] && 'bg-transparent z-10 w-max opacity-0 pointer-events-none absolute top-0 left-0')) + " svelte-6f8090"))) {
+			if (!current || dirty & /*popover*/ 1 && div3_class_value !== (div3_class_value = "" + (null_to_empty(clsx(/*popover*/ ctx[0] && 'bg-transparent z-10 w-max opacity-0 pointer-events-none absolute top-0 left-0')) + " svelte-1fig2o3"))) {
 				attr(div3, "class", div3_class_value);
 			}
 
@@ -55854,7 +55703,7 @@ function create_if_block_1(ctx) {
 	};
 }
 
-// (153:0) {#if !popover}
+// (152:0) {#if !popover}
 function create_if_block(ctx) {
 	let calendar;
 	let current;
@@ -56110,7 +55959,6 @@ function instance$1($$self, $$props, $$invalidate) {
 	};
 
 	setContext(VIEW, {
-		app: window.app,
 		eventHandlers: { onClick, onHover, onContextMenu }
 	});
 
@@ -56374,7 +56222,7 @@ class CalendarView extends obsidian.ItemView {
 /* src/calendar-ui/components/Nldatepicker.svelte generated by Svelte v4.2.0 */
 
 function add_css(target) {
-	append_styles(target, "svelte-1st9t5s", ".container.svelte-1st9t5s{width:100%\n}@media(min-width: 640px){.container.svelte-1st9t5s{max-width:640px\n    }}@media(min-width: 768px){.container.svelte-1st9t5s{max-width:768px\n    }}@media(min-width: 1024px){.container.svelte-1st9t5s{max-width:1024px\n    }}@media(min-width: 1280px){.container.svelte-1st9t5s{max-width:1280px\n    }}@media(min-width: 1536px){.container.svelte-1st9t5s{max-width:1536px\n    }}.pointer-events-none.svelte-1st9t5s{pointer-events:none\n}.invisible.svelte-1st9t5s{visibility:hidden\n}.collapse.svelte-1st9t5s{visibility:collapse\n}.absolute.svelte-1st9t5s{position:absolute\n}.relative.svelte-1st9t5s{position:relative\n}.left-0.svelte-1st9t5s{left:0px\n}.left-full.svelte-1st9t5s{left:100%\n}.top-0.svelte-1st9t5s{top:0px\n}.z-10.svelte-1st9t5s{z-index:10\n}.z-20.svelte-1st9t5s{z-index:20\n}.m-0.svelte-1st9t5s{margin:0px\n}.mx-\\[1px\\].svelte-1st9t5s{margin-left:1px;margin-right:1px\n}.ml-\\[5px\\].svelte-1st9t5s{margin-left:5px\n}.mt-2.svelte-1st9t5s{margin-top:0.5rem\n}.mt-3.svelte-1st9t5s{margin-top:0.75rem\n}.mt-7.svelte-1st9t5s{margin-top:1.75rem\n}.block.svelte-1st9t5s{display:block\n}.inline-block.svelte-1st9t5s{display:inline-block\n}.flex.svelte-1st9t5s{display:flex\n}.table.svelte-1st9t5s{display:table\n}.contents.svelte-1st9t5s{display:contents\n}.h-2.svelte-1st9t5s{height:0.5rem\n}.h-2\\.5.svelte-1st9t5s{height:0.625rem\n}.h-3.svelte-1st9t5s{height:0.75rem\n}.h-\\[6px\\].svelte-1st9t5s{height:6px\n}.w-2.svelte-1st9t5s{width:0.5rem\n}.w-2\\.5.svelte-1st9t5s{width:0.625rem\n}.w-3.svelte-1st9t5s{width:0.75rem\n}.w-\\[6px\\].svelte-1st9t5s{width:6px\n}.w-full.svelte-1st9t5s{width:100%\n}.w-max.svelte-1st9t5s{width:-moz-max-content;width:max-content\n}.border-collapse.svelte-1st9t5s{border-collapse:collapse\n}.-translate-x-1\\/2.svelte-1st9t5s{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.-translate-y-1\\/2.svelte-1st9t5s{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.rotate-12.svelte-1st9t5s{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.rotate-45.svelte-1st9t5s{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.transform.svelte-1st9t5s{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.cursor-default.svelte-1st9t5s{cursor:default\n}.cursor-not-allowed.svelte-1st9t5s{cursor:not-allowed\n}.cursor-pointer.svelte-1st9t5s{cursor:pointer\n}.flex-col.svelte-1st9t5s{flex-direction:column\n}.items-center.svelte-1st9t5s{align-items:center\n}.justify-between.svelte-1st9t5s{justify-content:space-between\n}.rounded-md.svelte-1st9t5s{border-radius:0.375rem\n}.rounded-sm.svelte-1st9t5s{border-radius:0.125rem\n}.border-0.svelte-1st9t5s{border-width:0px\n}.bg-gray-100.svelte-1st9t5s{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))\n}.bg-slate-500.svelte-1st9t5s{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))\n}.bg-transparent.svelte-1st9t5s{background-color:transparent\n}.p-1.svelte-1st9t5s{padding:0.25rem\n}.p-2.svelte-1st9t5s{padding:0.5rem\n}.px-4.svelte-1st9t5s{padding-left:1rem;padding-right:1rem\n}.py-2.svelte-1st9t5s{padding-top:0.5rem;padding-bottom:0.5rem\n}.pt-4.svelte-1st9t5s{padding-top:1rem\n}.text-sm.svelte-1st9t5s{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-1st9t5s{font-size:0.75rem;line-height:1rem\n}.uppercase.svelte-1st9t5s{text-transform:uppercase\n}.capitalize.svelte-1st9t5s{text-transform:capitalize\n}.text-\\[--text-muted\\].svelte-1st9t5s{color:var(--text-muted)\n}.text-\\[--text-on-accent\\].svelte-1st9t5s{color:var(--text-on-accent)\n}.text-black.svelte-1st9t5s{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))\n}.text-white.svelte-1st9t5s{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))\n}.opacity-0.svelte-1st9t5s{opacity:0\n}.opacity-50.svelte-1st9t5s{opacity:0.5\n}.shadow.svelte-1st9t5s{--tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)\n}.blur.svelte-1st9t5s{--tw-blur:blur(8px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)\n}.transition.svelte-1st9t5s{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms\n}.\\[all\\:inherit\\].svelte-1st9t5s{all:inherit\n}.hover\\:cursor-pointer.svelte-1st9t5s:hover{cursor:pointer\n}");
+	append_styles(target, "svelte-165d0os", ".container.svelte-165d0os{width:100%\n}@media(min-width: 640px){.container.svelte-165d0os{max-width:640px\n    }}@media(min-width: 768px){.container.svelte-165d0os{max-width:768px\n    }}@media(min-width: 1024px){.container.svelte-165d0os{max-width:1024px\n    }}@media(min-width: 1280px){.container.svelte-165d0os{max-width:1280px\n    }}@media(min-width: 1536px){.container.svelte-165d0os{max-width:1536px\n    }}.pointer-events-none.svelte-165d0os{pointer-events:none\n}.collapse.svelte-165d0os{visibility:collapse\n}.static.svelte-165d0os{position:static\n}.absolute.svelte-165d0os{position:absolute\n}.relative.svelte-165d0os{position:relative\n}.left-0.svelte-165d0os{left:0px\n}.left-full.svelte-165d0os{left:100%\n}.top-0.svelte-165d0os{top:0px\n}.z-10.svelte-165d0os{z-index:10\n}.z-20.svelte-165d0os{z-index:20\n}.m-0.svelte-165d0os{margin:0px\n}.mx-\\[1px\\].svelte-165d0os{margin-left:1px;margin-right:1px\n}.ml-\\[5px\\].svelte-165d0os{margin-left:5px\n}.mt-2.svelte-165d0os{margin-top:0.5rem\n}.mt-3.svelte-165d0os{margin-top:0.75rem\n}.mt-7.svelte-165d0os{margin-top:1.75rem\n}.block.svelte-165d0os{display:block\n}.inline-block.svelte-165d0os{display:inline-block\n}.flex.svelte-165d0os{display:flex\n}.table.svelte-165d0os{display:table\n}.contents.svelte-165d0os{display:contents\n}.h-2.svelte-165d0os{height:0.5rem\n}.h-2\\.5.svelte-165d0os{height:0.625rem\n}.h-3.svelte-165d0os{height:0.75rem\n}.h-\\[6px\\].svelte-165d0os{height:6px\n}.w-2.svelte-165d0os{width:0.5rem\n}.w-2\\.5.svelte-165d0os{width:0.625rem\n}.w-3.svelte-165d0os{width:0.75rem\n}.w-\\[6px\\].svelte-165d0os{width:6px\n}.w-full.svelte-165d0os{width:100%\n}.w-max.svelte-165d0os{width:-moz-max-content;width:max-content\n}.border-collapse.svelte-165d0os{border-collapse:collapse\n}.-translate-x-1\\/2.svelte-165d0os{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.-translate-y-1\\/2.svelte-165d0os{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.rotate-12.svelte-165d0os{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.rotate-45.svelte-165d0os{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.transform.svelte-165d0os{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.cursor-default.svelte-165d0os{cursor:default\n}.cursor-not-allowed.svelte-165d0os{cursor:not-allowed\n}.cursor-pointer.svelte-165d0os{cursor:pointer\n}.flex-col.svelte-165d0os{flex-direction:column\n}.items-center.svelte-165d0os{align-items:center\n}.justify-between.svelte-165d0os{justify-content:space-between\n}.rounded-md.svelte-165d0os{border-radius:0.375rem\n}.rounded-sm.svelte-165d0os{border-radius:0.125rem\n}.border-0.svelte-165d0os{border-width:0px\n}.bg-gray-100.svelte-165d0os{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))\n}.bg-slate-500.svelte-165d0os{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))\n}.bg-transparent.svelte-165d0os{background-color:transparent\n}.p-1.svelte-165d0os{padding:0.25rem\n}.p-2.svelte-165d0os{padding:0.5rem\n}.px-4.svelte-165d0os{padding-left:1rem;padding-right:1rem\n}.py-2.svelte-165d0os{padding-top:0.5rem;padding-bottom:0.5rem\n}.pt-4.svelte-165d0os{padding-top:1rem\n}.text-sm.svelte-165d0os{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-165d0os{font-size:0.75rem;line-height:1rem\n}.uppercase.svelte-165d0os{text-transform:uppercase\n}.capitalize.svelte-165d0os{text-transform:capitalize\n}.text-\\[--text-muted\\].svelte-165d0os{color:var(--text-muted)\n}.text-\\[--text-on-accent\\].svelte-165d0os{color:var(--text-on-accent)\n}.text-black.svelte-165d0os{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))\n}.text-white.svelte-165d0os{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))\n}.opacity-0.svelte-165d0os{opacity:0\n}.opacity-50.svelte-165d0os{opacity:0.5\n}.shadow.svelte-165d0os{--tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)\n}.blur.svelte-165d0os{--tw-blur:blur(8px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)\n}.transition.svelte-165d0os{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms\n}.\\[all\\:inherit\\].svelte-165d0os{all:inherit\n}.hover\\:cursor-pointer.svelte-165d0os:hover{cursor:pointer\n}");
 }
 
 function get_each_context(ctx, list, i) {
@@ -56493,7 +56341,7 @@ function create_fragment(ctx) {
 			attr(input0, "spellcheck", "false");
 			attr(input0, "placeholder", "Today");
 			attr(div3, "class", "setting-item-control");
-			attr(div4, "class", "setting-item border-0 svelte-1st9t5s");
+			attr(div4, "class", "setting-item border-0 svelte-165d0os");
 			attr(div7, "class", "setting-item-info");
 			attr(input1, "type", "text");
 			attr(input1, "spellcheck", "false");
@@ -56505,16 +56353,16 @@ function create_fragment(ctx) {
 			if (/*granularity*/ ctx[3] === void 0) add_render_callback(() => /*select_change_handler*/ ctx[11].call(select));
 			attr(div13, "class", "setting-item-control");
 			attr(div14, "class", "setting-item");
-			attr(button0, "class", "cursor-pointer svelte-1st9t5s");
+			attr(button0, "class", "cursor-pointer svelte-165d0os");
 
 			attr(button1, "class", button1_class_value = "" + (null_to_empty(`mod-cta ${/*parsedDate*/ ctx[4]
 			? 'cursor-pointer'
-			: 'cursor-not-allowed opacity-50'}`) + " svelte-1st9t5s"));
+			: 'cursor-not-allowed opacity-50'}`) + " svelte-165d0os"));
 
 			attr(button1, "aria-disabled", button1_aria_disabled_value = !Boolean(/*parsedDate*/ ctx[4]));
 			button1.disabled = button1_disabled_value = !Boolean(/*parsedDate*/ ctx[4]);
-			attr(div15, "class", "modal-button-container mt-3 svelte-1st9t5s");
-			attr(div16, "class", "pt-4 svelte-1st9t5s");
+			attr(div15, "class", "modal-button-container mt-3 svelte-165d0os");
+			attr(div16, "class", "pt-4 svelte-165d0os");
 		},
 		m(target, anchor) {
 			insert(target, div16, anchor);
@@ -56586,7 +56434,7 @@ function create_fragment(ctx) {
 
 			if (dirty & /*parsedDate*/ 16 && button1_class_value !== (button1_class_value = "" + (null_to_empty(`mod-cta ${/*parsedDate*/ ctx[4]
 			? 'cursor-pointer'
-			: 'cursor-not-allowed opacity-50'}`) + " svelte-1st9t5s"))) {
+			: 'cursor-not-allowed opacity-50'}`) + " svelte-165d0os"))) {
 				attr(button1, "class", button1_class_value);
 			}
 
@@ -56770,7 +56618,6 @@ class DailyNoteFlexPlugin extends obsidian.Plugin {
         console.log('ON Unload ⛰️');
         this.app.workspace.getLeavesOfType(VIEW_TYPE_CALENDAR).forEach((leaf) => leaf.detach());
         this.popoversCleanups.length > 0 && this.popoversCleanups.forEach((cleanup) => cleanup());
-        this.removeLocaleScripts();
         window.plugin = null;
     }
     async onload() {
@@ -56780,8 +56627,8 @@ class DailyNoteFlexPlugin extends obsidian.Plugin {
         this.register(settingsStore.subscribe((settings) => {
             this.settings = settings;
         }));
-        this.addSettingTab(new SettingsTab(this.app, this));
         await this.loadSettings();
+        this.addSettingTab(new SettingsTab(this.app, this));
         this.handleRibbon();
         // register view
         this.registerView(VIEW_TYPE_CALENDAR, (leaf) => new CalendarView(leaf));
@@ -56841,14 +56688,13 @@ class DailyNoteFlexPlugin extends obsidian.Plugin {
                     id: CALENDAR_POPOVER_ID,
                     view: {
                         Component: View$1
-                    },
+                    }
                 });
             }
         });
     }
     async loadSettings() {
         const settings = await this.loadData();
-        console.log('main > loadSettings: settings from this.loadData()', settings);
         !settings && (await this.saveData(DEFAULT_SETTINGS));
         settingsStore.update((old) => ({
             ...old,
@@ -56856,13 +56702,17 @@ class DailyNoteFlexPlugin extends obsidian.Plugin {
         }));
     }
     async saveSettings(changeSettings) {
+        console.log('saveSettings() > settingsStore before change: ', get_store_value(settingsStore));
         settingsStore.update((old) => {
-            console.log('INside saveSettings', changeSettings(old));
+            console.log('saveSettings() > old: ', old);
+            console.log('saveSettings() > changeSettings(old): ', changeSettings(old));
             return {
                 ...old,
                 ...changeSettings(old)
             };
         });
+        console.log('saveSettings() > settingsStore: ', get_store_value(settingsStore));
+        console.log('saveSettings() > this.settings: ', this.settings);
         await this.saveData(this.settings);
     }
     handleRibbon() {
@@ -56888,7 +56738,7 @@ class DailyNoteFlexPlugin extends obsidian.Plugin {
                             id: CALENDAR_POPOVER_ID,
                             view: {
                                 Component: View$1
-                            },
+                            }
                         });
                         openPopover({ id: CALENDAR_POPOVER_ID });
                     }
@@ -56975,14 +56825,6 @@ class DailyNoteFlexPlugin extends obsidian.Plugin {
             // 5. crr split collapsed
             this.revealView();
         }
-    }
-    removeLocaleScripts() {
-        console.log('removing locales scripts 🎑');
-        const existingScripts = document.querySelectorAll('script[src^="https://cdn.jsdelivr.net/npm/dayjs@1"]');
-        console.log('exisiting scirpt to remove 🤯', existingScripts);
-        existingScripts.forEach((script) => {
-            script.remove();
-        });
     }
 }
 

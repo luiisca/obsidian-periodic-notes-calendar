@@ -18,4 +18,3 @@ declare global {
 
 export { Calendar };
 export type { ICalendarSource, IDot, IDayMetadata, ISourceSettings };
-export { configureGlobalMomentLocale } from "./localization";

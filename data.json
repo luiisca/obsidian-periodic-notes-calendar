@@ -1,47 +1,18 @@
 {
   "viewOpen": false,
-  "shouldConfirmBeforeCreate": true,
+  "shouldConfirmBeforeCreate": false,
   "yearsRangesStart": 2020,
   "autoHoverPreview": false,
-  "openPopoverOnRibbonHover": false,
+  "openPopoverOnRibbonHover": true,
   "crrNldModalGranularity": "day",
-  "localeData": {
-    "loading": false,
-    "weekStart": "السبت",
+  "localeSettings": {
     "showWeekNums": false,
-    "sysLocaleKey": "en",
-    "localeOverride": "ar",
-    "weekdays": [
-      "الأحد",
-      "الإثنين",
-      "الثلاثاء",
-      "الأربعاء",
-      "الخميس",
-      "الجمعة",
-      "السبت"
-    ],
-    "weekdaysShort": [
-      "أحد",
-      "إثنين",
-      "ثلاثاء",
-      "أربعاء",
-      "خميس",
-      "جمعة",
-      "سبت"
-    ],
-    "localizedWeekdays": [
-      "الأحد",
-      "الإثنين",
-      "الثلاثاء",
-      "الأربعاء",
-      "الخميس",
-      "الجمعة",
-      "السبت"
-    ]
+    "weekStartId": 0,
+    "localeOverride": "en"
   },
   "popoversCloseData": {
-    "closePopoversOneByOneOnClickOut": false,
+    "closePopoversOneByOneOnClickOut": true,
     "closePopoversOneByOneOnEscKeydown": true,
-    "searchInputOnEscKeydown": "close-popover"
+    "searchInputOnEscKeydown": "reset"
   }
 }

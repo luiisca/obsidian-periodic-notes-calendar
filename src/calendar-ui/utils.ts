@@ -1,4 +1,6 @@
+import { localeDataStore, settingsStore } from '@/stores';
 import type { Moment } from 'moment';
+import { get } from 'svelte/store';
 
 export interface IWeek {
 	days: Moment[];
@@ -31,12 +33,12 @@ export function getStartOfWeek(days: Moment[]): Moment {
  * the calendar view.
  */
 export function getMonth(displayedDate: Moment): IMonth {
-	const locale = window.moment().locale();
+	const locale = displayedDate.locale();
 	const month = [];
 	let week: IWeek = { days: [], weekNum: 0 };
 
 	const startOfMonth = displayedDate.clone().locale(locale).date(1);
-	const startOffset = startOfMonth.weekday();
+	const startOffset = get(localeDataStore).weekdays.indexOf(startOfMonth.format('dddd'));
 	let date: Moment = startOfMonth.clone().subtract(startOffset, 'days');
 
 	for (let _day = 0; _day < 42; _day++) {

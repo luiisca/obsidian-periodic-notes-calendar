@@ -13,7 +13,6 @@
 	import type { Moment } from 'moment';
 	import {
 		tryToCreateNote,
-		type IGranularity,
 		getNoteByGranularity,
 		getDateUID
 	} from './calendar-io';
@@ -30,6 +29,7 @@
 	import StickerPopoverComponent from './calendar-ui/components/StickerPopover.svelte';
 	import { CALENDAR_POPOVER_ID, STICKER_POPOVER_ID } from './constants';
 	import type DailyNoteFlexPlugin from './main';
+	import type { ICalendarViewCtx, TOnClick, TOnContextMenu, TOnHover } from './types/view';
 
 	export let popover: boolean = false;
 
@@ -55,45 +55,6 @@
 			rerenderCalendar();
 		}
 	}, 1000 * 60);
-
-	type TOnClick = ({
-		date,
-		isNewSplit,
-		granularity
-	}: {
-		date: Moment;
-		isNewSplit: boolean;
-		granularity: IGranularity;
-	}) => Promise<void>;
-	type TOnHover = ({
-		date,
-		targetEl,
-		isMetaPressed,
-		granularity
-	}: {
-		date: Moment;
-		targetEl: EventTarget | null;
-		isMetaPressed: boolean;
-		granularity: IGranularity;
-	}) => void;
-	type TOnContextMenu = ({
-		date,
-		event,
-		granularity
-	}: {
-		date: Moment;
-		event: MouseEvent;
-		granularity: IGranularity;
-	}) => void;
-
-	interface ICalendarViewCtx {
-		app: App;
-		eventHandlers: {
-			onClick: TOnClick;
-			onHover: TOnHover;
-			onContextMenu: TOnContextMenu;
-		};
-	}
 
 	// Component event handlers
 	const onClick = async ({
@@ -231,7 +192,6 @@
 	};
 
 	setContext<ICalendarViewCtx>(VIEW, {
-		app: window.app,
 		eventHandlers: {
 			onClick,
 			onHover,

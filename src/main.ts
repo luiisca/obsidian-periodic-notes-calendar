@@ -8,7 +8,14 @@ import { tryToCreateNote } from './calendar-io';
 import { getPeriodicityFromGranularity } from './calendar-io/parse';
 import type { IPeriodicites } from './calendar-io/types';
 import { createNldatePickerDialog } from './calendar-ui/modals/nldate-picker';
-import { closePopover, getFloatingEl, openPopover, popoversStore, setupPopover, togglePopover } from './calendar-ui/popovers';
+import {
+	closePopover,
+	getFloatingEl,
+	openPopover,
+	popoversStore,
+	setupPopover,
+	togglePopover
+} from './calendar-ui/popovers';
 import { get } from 'svelte/store';
 import type { SvelteComponent } from 'svelte';
 import { ribbonReferenceElId } from './calendar-ui/popovers/calendar';
@@ -25,7 +32,6 @@ export default class DailyNoteFlexPlugin extends Plugin {
 		this.app.workspace.getLeavesOfType(VIEW_TYPE_CALENDAR).forEach((leaf) => leaf.detach());
 
 		this.popoversCleanups.length > 0 && this.popoversCleanups.forEach((cleanup) => cleanup());
-		this.removeLocaleScripts();
 
 		window.plugin = null;
 	}
@@ -41,8 +47,8 @@ export default class DailyNoteFlexPlugin extends Plugin {
 			})
 		);
 
-		this.addSettingTab(new SettingsTab(this.app, this));
 		await this.loadSettings();
+		this.addSettingTab(new SettingsTab(this.app, this));
 
 		this.handleRibbon();
 
@@ -122,15 +128,14 @@ export default class DailyNoteFlexPlugin extends Plugin {
 					id: CALENDAR_POPOVER_ID,
 					view: {
 						Component: View
-					},
+					}
 				});
 			}
 		});
 	}
 
 	async loadSettings() {
-		const settings = await this.loadData();
-		console.log('main > loadSettings: settings from this.loadData()', settings);
+		const settings = await this.loadData() as ISettings;
 		!settings && (await this.saveData(DEFAULT_SETTINGS));
 
 		settingsStore.update((old) => ({
@@ -140,17 +145,20 @@ export default class DailyNoteFlexPlugin extends Plugin {
 	}
 
 	async saveSettings(changeSettings: (old: ISettings) => Partial<ISettings>) {
+		console.log('saveSettings() > settingsStore before change: ', get(settingsStore));
 		settingsStore.update((old) => {
-			console.log('INside saveSettings', changeSettings(old));
+			console.log('saveSettings() > old: ', old);
+			console.log('saveSettings() > changeSettings(old): ', changeSettings(old));
 			return {
 				...old,
 				...changeSettings(old)
 			};
 		});
 
+		console.log('saveSettings() > settingsStore: ', get(settingsStore));
+		console.log('saveSettings() > this.settings: ', this.settings);
 		await this.saveData(this.settings);
 	}
-
 	handleRibbon() {
 		this.addRibbonIcon('dice', 'Open calendar', () => {
 			if (this.settings.viewOpen) {
@@ -178,9 +186,9 @@ export default class DailyNoteFlexPlugin extends Plugin {
 							id: CALENDAR_POPOVER_ID,
 							view: {
 								Component: View
-							},
+							}
 						});
-						openPopover({id: CALENDAR_POPOVER_ID});
+						openPopover({ id: CALENDAR_POPOVER_ID });
 					} else {
 						togglePopover({ id: CALENDAR_POPOVER_ID });
 					}
@@ -282,14 +290,4 @@ export default class DailyNoteFlexPlugin extends Plugin {
 		}
 	}
 
-	removeLocaleScripts() {
-		console.log('removing locales scripts 🎑');
-		const existingScripts = document.querySelectorAll(
-			'script[src^="https://cdn.jsdelivr.net/npm/dayjs@1"]'
-		);
-		console.log('exisiting scirpt to remove 🤯', existingScripts);
-		existingScripts.forEach((script) => {
-			script.remove();
-		});
-	}
 }
