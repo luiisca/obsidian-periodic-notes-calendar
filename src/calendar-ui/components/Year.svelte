@@ -6,11 +6,11 @@
 	import Dot from './Dot.svelte';
 	import { VIEW } from '../context';
 	import { isMetaPressed } from '../utils';
-	import type { ICalendarViewCtx } from '@/view';
 	import { getDateUID, getNoteByGranularity } from '@/calendar-io';
 	import { displayedDateStore, notesStores, rerenderStore } from '@/stores';
 	import type { Moment } from 'moment';
 	import EmojiSticker from './EmojiSticker.svelte';
+	import type { ICalendarViewCtx } from '@/types/view';
 
 	export let year: number;
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
@@ -22,7 +22,7 @@
 
 	$: date = $displayedDateStore.clone().year(year).startOf('year');
 
-	$: dateUID = getDateUID(date, 'year');
+	$: dateUID = getDateUID({date, granularity: 'year'});
 	$: emoji = $notesStore[dateUID]?.sticker;
 </script>
 

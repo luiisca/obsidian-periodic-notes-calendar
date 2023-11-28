@@ -90,7 +90,7 @@
 			// TODO: improve wording
 			new Notice('Create a note first');
 		} else {
-			const dateUID = getDateUID(date, granularity);
+			const dateUID = getDateUID({date, granularity});
 			const referenceEl = event.target as HTMLElement;
 
 			const calendarPopoverStore = get(popoversStore)?.[CALENDAR_POPOVER_ID];

@@ -19,7 +19,7 @@
 
 	let emoji: string | null = null;
 	const notesStore = notesStores['day'];
-	const dateUID = getDateUID(date, 'day');
+	const dateUID = getDateUID({date, granularity: 'day'});
 	$: emoji = $notesStore[dateUID]?.sticker;
 </script>
 

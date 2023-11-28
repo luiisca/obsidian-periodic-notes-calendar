@@ -35,7 +35,7 @@ export function getNoteByGranularity({
 }): TFile | undefined {
 	const notesStore = get(notesStores[granularity]);
 
-	return notesStore[getDateUID(date, granularity)]?.file;
+	return notesStore[getDateUID({date, granularity})]?.file;
 }
 
 // EXPLAN: only used at store.ts > createNotesStore() to reindex notes every time
@@ -68,7 +68,7 @@ export function getAllNotesByGranularity(
 				const date = getDateFromFile(note, granularity);
 
 				if (date) {
-					const dateUID = getDateUID(date, granularity);
+					const dateUID = getDateUID({date, granularity});
 					window.app.vault.cachedRead(note).then((data) => {
 						// update store separately to avoid possible slow downs
 						const emoji = data.match(/#sticker-([^\s]+)/)?.[1];
@@ -110,19 +110,18 @@ export async function tryToCreateNote({
 	granularity: IGranularity;
 	confirmBeforeCreateOverride?: boolean;
 }) {
-	const settings = get(settingsStore);
-	const openFile = async (file: TFile) => {
+	async function openFile(file: TFile) {
 		file && (await leaf.openFile(file));
-		activeFile.setFile(getDateUID(date, granularity));
+		activeFile.setFile(getDateUID({date, granularity}));
 	};
 
-	let file = getNoteByGranularity({ date, granularity });
-
+	const settings = get(settingsStore);
 	const confirmBeforeCreate =
 		typeof confirmBeforeCreateOverride === 'boolean'
 			? confirmBeforeCreateOverride
 			: settings.shouldConfirmBeforeCreate;
 
+	let file = getNoteByGranularity({ date, granularity });
 	if (!file) {
 		const periodicity = capitalize(getPeriodicityFromGranularity(granularity));
 		const { format } = getNoteSettingsByGranularity(granularity);

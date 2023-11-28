@@ -22,7 +22,7 @@
 
 	$: date = $displayedDateStore.clone().month(monthIndex).startOf('month');
 
-	$: dateUID = getDateUID(date, 'month');
+	$: dateUID = getDateUID({date, granularity: 'month'});
 	$: emoji = $notesStore[dateUID]?.sticker;
 </script>
 

@@ -20,7 +20,7 @@
 
 	let emoji: string | null = null;
 	const notesStore = notesStores['week'];
-	const dateUID = getDateUID(startOfWeekDate, 'week');
+	const dateUID = getDateUID({date: startOfWeekDate, granularity: 'week'});
 	$: emoji = $notesStore[dateUID]?.sticker;
 </script>
 

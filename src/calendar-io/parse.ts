@@ -9,8 +9,20 @@ import { getNoteSettingsByGranularity } from './settings';
  * dateUID is a way of weekly identifying daily/weekly/monthly notes.
  * They are prefixed with the granularity to avoid ambiguity.
  */
-export function getDateUID(date: Moment, granularity: IGranularity = 'day'): string {
-	return `${granularity}-${date.startOf(granularity).format()}`;
+export function getDateUID({
+	date,
+	granularity,
+	localeAware
+}: {
+	date: Moment;
+	granularity: IGranularity;
+	localeAware?: boolean;
+}): string {
+	return `${granularity}-${date
+		.startOf(granularity || 'day')
+		.clone()
+		.locale(localeAware ? window.moment.locale() : 'en')
+		.format()}`;
 }
 
 function removeEscapedCharacters(format: string): string {

@@ -122,7 +122,7 @@ export class CalendarView extends ItemView {
 			);
 
 			if (date && granularity) {
-				const dateUID = getDateUID(date, granularity);
+				const dateUID = getDateUID({date, granularity});
 				const fileExists = get(notesStores[granularity])[dateUID];
 
 				// update matching file in store
@@ -135,7 +135,7 @@ export class CalendarView extends ItemView {
 						}
 					}));
 
-				console.log(`${dateUID} succesfully created`, 'new store: ', get(notesStores[granularity]));
+				console.log(`✅ onFileCreated() > succesfully created new store for ${granularity}`, get(notesStores[granularity]));
 			}
 		}
 	}
@@ -150,7 +150,7 @@ export class CalendarView extends ItemView {
 
 		if (date && granularity) {
 			const notesStore = notesStores[granularity];
-			const dateUID = getDateUID(date, granularity);
+			const dateUID = getDateUID({date, granularity});
 			const fileExists = get(notesStore)[dateUID];
 			const newStore = {
 				...get(notesStore)
@@ -166,35 +166,35 @@ export class CalendarView extends ItemView {
 		this.updateActiveFile();
 	}
 
-	private async onFileRenamed(file: TFile, oldPath: string): Promise<void> {
-		let newDate: Moment | null = null;
+	private async onFileRenamed(renamedFile: TFile, oldPath: string): Promise<void> {
+		let newDate = null as Moment | null;
 		const newGranularity = granularities.find(
-			(granularity) => (newDate = getDateFromFile(file, granularity))
+			(granularity) => (newDate = getDateFromFile(renamedFile, granularity))
 		);
-		let oldDate: Moment | null = null;
+		let oldDate = null as Moment | null;
 		const oldGranularity = granularities.find(
 			(granularity) => (oldDate = getDateFromPath(oldPath, granularity))
 		);
-		const oldIsValid = oldDate && oldGranularity;
-		const newIsValid = newDate && newGranularity;
+		const oldIsValid = Boolean(oldDate && oldGranularity);
+		const newIsValid = Boolean(newDate && newGranularity);
 
 		// OLD filename INVALID ❌ && NEW filename VALID ✅ => update store to add NEW file with null emoji
-		if (!oldIsValid && newIsValid) {
+		if (!oldIsValid && newIsValid && newGranularity) {
 			const notesStore = notesStores[newGranularity];
-			const dateUID = getDateUID(newDate as unknown as Moment, newGranularity);
+			const dateUID = getDateUID({date: newDate as unknown as Moment, granularity: newGranularity});
 			notesStore.update((values) => ({
 				...values,
 				[dateUID]: {
-					file,
+					file: renamedFile,
 					sticker: null
 				}
 			}));
 		}
 
 		// OLD filename VALID ✅ && NEW filename INVALID ❌ => update store to remove OLD
-		if (oldIsValid && !newIsValid) {
+		if (oldIsValid && !newIsValid && oldGranularity && newGranularity) {
 			const notesStore = notesStores[oldGranularity];
-			const dateUID = getDateUID(oldDate as unknown as Moment, newGranularity);
+			const dateUID = getDateUID({date: oldDate as unknown as Moment, granularity: newGranularity});
 
 			const newStore = {
 				...get(notesStore)
@@ -205,12 +205,12 @@ export class CalendarView extends ItemView {
 		}
 
 		// OLD filename CALID ✅ && NEW filename INVALID ✅ => update store to remove OLD and add NEW one with OLD emoji
-		if (oldIsValid && newIsValid) {
+		if (oldIsValid && newIsValid && newGranularity && oldGranularity) {
 			const newNotesStore = notesStores[newGranularity];
-			const newDateUID = getDateUID(newDate as unknown as Moment, newGranularity);
+			const newDateUID = getDateUID({date: newDate as unknown as Moment, granularity: newGranularity});
 
 			const oldNotesStore = notesStores[oldGranularity];
-			const oldDateUID = getDateUID(oldDate as unknown as Moment, newGranularity);
+			const oldDateUID = getDateUID({date: oldDate as unknown as Moment, granularity: newGranularity});
 			const oldEmoji = get(oldNotesStore)[oldDateUID].sticker;
 
 			// remove OLD file
@@ -223,13 +223,13 @@ export class CalendarView extends ItemView {
 			newNotesStore.update((values) => ({
 				...values,
 				[newDateUID]: {
-					file,
+					file: renamedFile,
 					sticker: oldEmoji
 				}
 			}));
 		}
 
-		console.log('‍✏️On file renamed ✏️ > file: ', file, oldPath);
+		console.log('‍✏️On file renamed ✏️ > file: ', renamedFile, oldPath);
 		console.log('new store: ', newGranularity && get(notesStores[newGranularity]));
 		this.view.rerenderCalendar();
 	}
@@ -240,7 +240,7 @@ export class CalendarView extends ItemView {
 		const granularity = granularities.find(
 			(granularity) => (date = getDateFromFile(file, granularity))
 		);
-		const dateUID = date && granularity ? getDateUID(date, granularity) : null;
+		const dateUID = date && granularity ? getDateUID({date, granularity}) : null;
 		const notesStore = (granularity && notesStores[granularity]) || null;
 
 		const oldEmoji = notesStore && dateUID && get(notesStore)[dateUID].sticker;
@@ -315,7 +315,7 @@ export class CalendarView extends ItemView {
 
 				// save file in activeFile store
 				if (noteDate && noteGranularity) {
-					activeFile.setFile(getDateUID(noteDate, noteGranularity));
+					activeFile.setFile(getDateUID({date: noteDate, granularity: noteGranularity}));
 
 					console.log('update active file, running rerenderCalendar()');
 					this.view && this.view.rerenderCalendar();

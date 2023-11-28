@@ -3213,8 +3213,12 @@ const NOTE_FORMATS = {
  * dateUID is a way of weekly identifying daily/weekly/monthly notes.
  * They are prefixed with the granularity to avoid ambiguity.
  */
-function getDateUID(date, granularity = 'day') {
-    return `${granularity}-${date.startOf(granularity).format()}`;
+function getDateUID({ date, granularity, localeAware }) {
+    return `${granularity}-${date
+        .startOf(granularity || 'day')
+        .clone()
+        .locale(localeAware ? window.moment.locale() : 'en')
+        .format()}`;
 }
 function removeEscapedCharacters(format) {
     return format.replace(/\[[^\]]*\]/g, ''); // remove everything within brackets
@@ -9474,7 +9478,7 @@ function createConfirmationDialog(params) {
 
 function getNoteByGranularity({ date, granularity }) {
     const notesStore = get_store_value(notesStores[granularity]);
-    return notesStore[getDateUID(date, granularity)]?.file;
+    return notesStore[getDateUID({ date, granularity })]?.file;
 }
 // EXPLAN: only used at store.ts > createNotesStore() to reindex notes every time
 // a new note is added or deleted or settings change.
@@ -9494,7 +9498,7 @@ function getAllNotesByGranularity(granularity) {
                 // if file name maps to a valid moment date, it is saved in store.
                 const date = getDateFromFile(note, granularity);
                 if (date) {
-                    const dateUID = getDateUID(date, granularity);
+                    const dateUID = getDateUID({ date, granularity });
                     window.app.vault.cachedRead(note).then((data) => {
                         // update store separately to avoid possible slow downs
                         const emoji = data.match(/#sticker-([^\s]+)/)?.[1];
@@ -9522,15 +9526,15 @@ function getAllNotesByGranularity(granularity) {
     }
 }
 async function tryToCreateNote({ leaf, date, granularity, confirmBeforeCreateOverride }) {
-    const settings = get_store_value(settingsStore);
-    const openFile = async (file) => {
+    async function openFile(file) {
         file && (await leaf.openFile(file));
-        activeFile.setFile(getDateUID(date, granularity));
-    };
-    let file = getNoteByGranularity({ date, granularity });
+        activeFile.setFile(getDateUID({ date, granularity }));
+    }
+    const settings = get_store_value(settingsStore);
     const confirmBeforeCreate = typeof confirmBeforeCreateOverride === 'boolean'
         ? confirmBeforeCreateOverride
         : settings.shouldConfirmBeforeCreate;
+    let file = getNoteByGranularity({ date, granularity });
     if (!file) {
         const periodicity = capitalize(getPeriodicityFromGranularity(granularity));
         const { format } = getNoteSettingsByGranularity(granularity);
@@ -10110,7 +10114,7 @@ function instance$c($$self, $$props, $$invalidate) {
 	let emoji = null;
 	const notesStore = notesStores['day'];
 	component_subscribe($$self, notesStore, value => $$invalidate(5, $notesStore = value));
-	const dateUID = getDateUID(date, 'day');
+	const dateUID = getDateUID({ date, granularity: 'day' });
 
 	const click_handler = event => eventHandlers.onClick({
 		date,
@@ -10312,7 +10316,11 @@ function instance$b($$self, $$props, $$invalidate) {
 	let emoji = null;
 	const notesStore = notesStores['week'];
 	component_subscribe($$self, notesStore, value => $$invalidate(6, $notesStore = value));
-	const dateUID = getDateUID(startOfWeekDate, 'week');
+
+	const dateUID = getDateUID({
+		date: startOfWeekDate,
+		granularity: 'week'
+	});
 
 	const click_handler = event => eventHandlers.onClick({
 		date: startOfWeekDate,
@@ -11404,7 +11412,7 @@ function instance$6($$self, $$props, $$invalidate) {
 		}
 
 		if ($$self.$$.dirty & /*date*/ 2) {
-			$$invalidate(6, dateUID = getDateUID(date, 'quarter'));
+			$$invalidate(6, dateUID = getDateUID({ date, granularity: 'quarter' }));
 		}
 
 		if ($$self.$$.dirty & /*$notesStore, dateUID*/ 192) {
@@ -11618,7 +11626,7 @@ function instance$5($$self, $$props, $$invalidate) {
 		}
 
 		if ($$self.$$.dirty & /*date*/ 2) {
-			$$invalidate(7, dateUID = getDateUID(date, 'month'));
+			$$invalidate(7, dateUID = getDateUID({ date, granularity: 'month' }));
 		}
 
 		if ($$self.$$.dirty & /*$notesStore, dateUID*/ 384) {
@@ -11833,7 +11841,7 @@ function instance$4($$self, $$props, $$invalidate) {
 		}
 
 		if ($$self.$$.dirty & /*date*/ 2) {
-			$$invalidate(6, dateUID = getDateUID(date, 'year'));
+			$$invalidate(6, dateUID = getDateUID({ date, granularity: 'year' }));
 		}
 
 		if ($$self.$$.dirty & /*$notesStore, dateUID*/ 192) {
@@ -55882,7 +55890,7 @@ function instance$1($$self, $$props, $$invalidate) {
 			// TODO: improve wording
 			new obsidian.Notice('Create a note first');
 		} else {
-			const dateUID = getDateUID(date, granularity);
+			const dateUID = getDateUID({ date, granularity });
 			const referenceEl = event.target;
 			const calendarPopoverStore = get_store_value(popoversStore)?.[CALENDAR_POPOVER_ID];
 
@@ -56056,7 +56064,7 @@ class CalendarView extends obsidian.ItemView {
             let date = null;
             const granularity = granularities.find((granularity) => (date = getDateFromFile(file, granularity)));
             if (date && granularity) {
-                const dateUID = getDateUID(date, granularity);
+                const dateUID = getDateUID({ date, granularity });
                 const fileExists = get_store_value(notesStores[granularity])[dateUID];
                 // update matching file in store
                 !fileExists &&
@@ -56067,7 +56075,7 @@ class CalendarView extends obsidian.ItemView {
                             sticker: null
                         }
                     }));
-                console.log(`${dateUID} succesfully created`, 'new store: ', get_store_value(notesStores[granularity]));
+                console.log(`✅ onFileCreated() > succesfully created new store for ${granularity}`, get_store_value(notesStores[granularity]));
             }
         }
     }
@@ -56077,7 +56085,7 @@ class CalendarView extends obsidian.ItemView {
         const granularity = granularities.find((granularity) => (date = getDateFromFile(file, granularity)));
         if (date && granularity) {
             const notesStore = notesStores[granularity];
-            const dateUID = getDateUID(date, granularity);
+            const dateUID = getDateUID({ date, granularity });
             const fileExists = get_store_value(notesStore)[dateUID];
             const newStore = {
                 ...get_store_value(notesStore)
@@ -56090,29 +56098,29 @@ class CalendarView extends obsidian.ItemView {
         }
         this.updateActiveFile();
     }
-    async onFileRenamed(file, oldPath) {
+    async onFileRenamed(renamedFile, oldPath) {
         let newDate = null;
-        const newGranularity = granularities.find((granularity) => (newDate = getDateFromFile(file, granularity)));
+        const newGranularity = granularities.find((granularity) => (newDate = getDateFromFile(renamedFile, granularity)));
         let oldDate = null;
         const oldGranularity = granularities.find((granularity) => (oldDate = getDateFromPath(oldPath, granularity)));
-        const oldIsValid = oldDate && oldGranularity;
-        const newIsValid = newDate && newGranularity;
+        const oldIsValid = Boolean(oldDate && oldGranularity);
+        const newIsValid = Boolean(newDate && newGranularity);
         // OLD filename INVALID ❌ && NEW filename VALID ✅ => update store to add NEW file with null emoji
-        if (!oldIsValid && newIsValid) {
+        if (!oldIsValid && newIsValid && newGranularity) {
             const notesStore = notesStores[newGranularity];
-            const dateUID = getDateUID(newDate, newGranularity);
+            const dateUID = getDateUID({ date: newDate, granularity: newGranularity });
             notesStore.update((values) => ({
                 ...values,
                 [dateUID]: {
-                    file,
+                    file: renamedFile,
                     sticker: null
                 }
             }));
         }
         // OLD filename VALID ✅ && NEW filename INVALID ❌ => update store to remove OLD
-        if (oldIsValid && !newIsValid) {
+        if (oldIsValid && !newIsValid && oldGranularity && newGranularity) {
             const notesStore = notesStores[oldGranularity];
-            const dateUID = getDateUID(oldDate, newGranularity);
+            const dateUID = getDateUID({ date: oldDate, granularity: newGranularity });
             const newStore = {
                 ...get_store_value(notesStore)
             };
@@ -56120,11 +56128,11 @@ class CalendarView extends obsidian.ItemView {
             notesStore.set(newStore);
         }
         // OLD filename CALID ✅ && NEW filename INVALID ✅ => update store to remove OLD and add NEW one with OLD emoji
-        if (oldIsValid && newIsValid) {
+        if (oldIsValid && newIsValid && newGranularity && oldGranularity) {
             const newNotesStore = notesStores[newGranularity];
-            const newDateUID = getDateUID(newDate, newGranularity);
+            const newDateUID = getDateUID({ date: newDate, granularity: newGranularity });
             const oldNotesStore = notesStores[oldGranularity];
-            const oldDateUID = getDateUID(oldDate, newGranularity);
+            const oldDateUID = getDateUID({ date: oldDate, granularity: newGranularity });
             const oldEmoji = get_store_value(oldNotesStore)[oldDateUID].sticker;
             // remove OLD file
             ({
@@ -56134,12 +56142,12 @@ class CalendarView extends obsidian.ItemView {
             newNotesStore.update((values) => ({
                 ...values,
                 [newDateUID]: {
-                    file,
+                    file: renamedFile,
                     sticker: oldEmoji
                 }
             }));
         }
-        console.log('‍✏️On file renamed ✏️ > file: ', file, oldPath);
+        console.log('‍✏️On file renamed ✏️ > file: ', renamedFile, oldPath);
         console.log('new store: ', newGranularity && get_store_value(notesStores[newGranularity]));
         this.view.rerenderCalendar();
     }
@@ -56147,7 +56155,7 @@ class CalendarView extends obsidian.ItemView {
         console.log('‍✏️On file modified ✏️ > file: ', file, cache);
         let date = null;
         const granularity = granularities.find((granularity) => (date = getDateFromFile(file, granularity)));
-        const dateUID = date && granularity ? getDateUID(date, granularity) : null;
+        const dateUID = date && granularity ? getDateUID({ date, granularity }) : null;
         const notesStore = (granularity && notesStores[granularity]) || null;
         const oldEmoji = notesStore && dateUID && get_store_value(notesStore)[dateUID].sticker;
         const newEmoji = cache.tags
@@ -56205,7 +56213,7 @@ class CalendarView extends obsidian.ItemView {
                 }
                 // save file in activeFile store
                 if (noteDate && noteGranularity) {
-                    activeFile.setFile(getDateUID(noteDate, noteGranularity));
+                    activeFile.setFile(getDateUID({ date: noteDate, granularity: noteGranularity }));
                     console.log('update active file, running rerenderCalendar()');
                     this.view && this.view.rerenderCalendar();
                 }
