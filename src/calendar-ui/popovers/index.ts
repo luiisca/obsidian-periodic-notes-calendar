@@ -223,9 +223,6 @@ export const setupPopover = ({
 		props: { popover: true, close: () => closePopover({ id }), ...view.props }
 	});
 
-	const emojiPicker = document.querySelector('em-emoji-picker');
-	const shadowRoot = emojiPicker?.shadowRoot;
-
 	popoversStore.update((values) => ({
 		...values,
 		[id]: {

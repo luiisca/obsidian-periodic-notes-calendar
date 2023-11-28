@@ -1,4 +1,4 @@
-import { App, DropdownComponent, PluginSettingTab, Setting } from 'obsidian';
+import { App, PluginSettingTab, Setting } from 'obsidian';
 
 import type DailyNoteFlexPlugin from '@/main';
 import { displayedDateStore, localeDataStore, settingsStore } from '@/stores';
@@ -139,16 +139,16 @@ export class SettingsTab extends PluginSettingTab {
 
 					console.log('setting() > openPopoverOnRibbonHover: ', openPopoverOnRibbonHover);
 
+					await this.plugin.saveSettings(() => ({
+						openPopoverOnRibbonHover
+					}));
+
 					setupPopover({
 						id: CALENDAR_POPOVER_ID,
 						view: {
 							Component: View
 						}
 					});
-
-					await this.plugin.saveSettings(() => ({
-						openPopoverOnRibbonHover
-					}));
 				})
 		);
 	}

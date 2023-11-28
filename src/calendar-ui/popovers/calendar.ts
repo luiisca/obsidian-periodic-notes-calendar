@@ -22,6 +22,7 @@ export const ribbonReferenceElId = `${id}-ribbon-ref-el`;
 const getReferenceEl = () => document.querySelector(`[id=${ribbonReferenceElId}]`) as HTMLElement;
 
 const handleReferenceElHover = () => {
+	console.log("🖱️🖱️🖱️handleReferenceElHover()!!! 🤯🤯🤯")
 	const calendarPopoverStore = get(popoversStore)[id];
 
 	if (!calendarPopoverStore?.opened) {
@@ -160,6 +161,7 @@ export const open = () => {
 	}));
 };
 export const extraSetup = () => {
+	console.log('🤯🤯calendar popover extraSetup()!!')
 	positionFloatingEl({ referenceEl: getReferenceEl(), id });
 
 	if (get(settingsStore).openPopoverOnRibbonHover) {
@@ -167,6 +169,7 @@ export const extraSetup = () => {
 	}
 };
 export const cleanup = () => {
+	console.log("🧹🤯📅📅📅Calendar popover cleanup()")
 	const plugin = window.plugin as DailyNoteFlexPlugin;
 
 	popoversStore.update((values) => ({

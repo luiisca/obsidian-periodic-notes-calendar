@@ -2382,6 +2382,7 @@ const id$1 = CALENDAR_POPOVER_ID;
 const ribbonReferenceElId = `${id$1}-ribbon-ref-el`;
 const getReferenceEl = () => document.querySelector(`[id=${ribbonReferenceElId}]`);
 const handleReferenceElHover = () => {
+    console.log("🖱️🖱️🖱️handleReferenceElHover()!!! 🤯🤯🤯");
     const calendarPopoverStore = get_store_value(popoversStore)[id$1];
     if (!calendarPopoverStore?.opened) {
         openPopover({ id: id$1 });
@@ -2485,12 +2486,14 @@ const open$1 = () => {
     }));
 };
 const extraSetup$1 = () => {
+    console.log('🤯🤯calendar popover extraSetup()!!');
     positionFloatingEl({ referenceEl: getReferenceEl(), id: id$1 });
     if (get_store_value(settingsStore).openPopoverOnRibbonHover) {
         getReferenceEl().addEventListener('mouseover', handleReferenceElHover);
     }
 };
 const cleanup$1 = () => {
+    console.log("🧹🤯📅📅📅Calendar popover cleanup()");
     const plugin = window.plugin;
     popoversStore.update((values) => ({
         ...values,
@@ -2801,8 +2804,6 @@ const setupPopover = ({ id, referenceEl, view }) => {
         target: document.body,
         props: { popover: true, close: () => closePopover({ id }), ...view.props }
     });
-    const emojiPicker = document.querySelector('em-emoji-picker');
-    emojiPicker?.shadowRoot;
     popoversStore.update((values) => ({
         ...values,
         [id]: {
@@ -2923,15 +2924,15 @@ class SettingsTab extends obsidian.PluginSettingTab {
                 this.plugin.popoversCleanups = [];
             }
             console.log('setting() > openPopoverOnRibbonHover: ', openPopoverOnRibbonHover);
+            await this.plugin.saveSettings(() => ({
+                openPopoverOnRibbonHover
+            }));
             setupPopover({
                 id: CALENDAR_POPOVER_ID,
                 view: {
                     Component: View$1
                 }
             });
-            await this.plugin.saveSettings(() => ({
-                openPopoverOnRibbonHover
-            }));
         }));
     }
     addConfirmCreateSetting() {

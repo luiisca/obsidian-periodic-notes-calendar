@@ -14,12 +14,10 @@ import type { ISettings } from './settings';
 import {
 	getDateFromFile,
 	getDateUID,
-	getNoteByGranularity,
 } from './calendar-io';
 import type { Moment } from 'moment';
 import type { IGranularity } from './calendar-io';
 import { granularities } from './constants';
-import { getNoteSettingsByGranularity } from './calendar-io/settings';
 import { getDateFromPath} from './calendar-io/parse';
 import { get} from 'svelte/store';
 import { isMetaPressed } from './calendar-ui/utils';
