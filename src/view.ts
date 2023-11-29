@@ -6,37 +6,38 @@ import {
 	WorkspaceLeaf,
 	type CachedMetadata,
 	type TagCache,
+	debounce
 } from 'obsidian';
 
 import View from './View.svelte';
-import { activeFile, notesStores, settingsStore} from './stores';
-import type { ISettings } from './settings';
-import {
-	getDateFromFile,
-	getDateUID,
-} from './calendar-io';
+import { activeFile, notesStores} from './stores';
+import { getDateFromFile, getDateUID } from './calendar-io';
 import type { Moment } from 'moment';
 import type { IGranularity } from './calendar-io';
 import { granularities } from './constants';
-import { getDateFromPath} from './calendar-io/parse';
-import { get} from 'svelte/store';
+import { getDateFromPath } from './calendar-io/parse';
+import { get } from 'svelte/store';
 import { isMetaPressed } from './calendar-ui/utils';
+import type DailyNoteFlexPlugin from './main';
+import { getNewValidFormats } from './calendar-io/validation';
 
 export const VIEW_TYPE_CALENDAR = 'calendar';
 
-
 export class CalendarView extends ItemView {
 	private view: View;
-	private settings: ISettings;
 	private triggerLinkHover: () => void;
-	private keydownFn: (ev: KeyboardEvent) => void = this.keydownCallback.bind(this);
+	plugin: DailyNoteFlexPlugin;
 
-	constructor(leaf: WorkspaceLeaf) {
+	constructor(leaf: WorkspaceLeaf, plugin: DailyNoteFlexPlugin) {
 		super(leaf);
+		this.plugin = plugin;
 
 		this.registerEvent(
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			(<any>this.app.workspace).on('periodic-notes:settings-updated', this.onNoteSettingsUpdate)
+			(<any>this.app.workspace).on(
+				'periodic-notes:settings-updated',
+				debounce(this.onNoteSettingsUpdate.bind(this), 1000)
+			)
 		);
 
 		this.registerEvent(
@@ -55,12 +56,6 @@ export class CalendarView extends ItemView {
 		// );
 		this.registerEvent(this.app.metadataCache.on('changed', this.onFileModified));
 		this.registerEvent(this.app.workspace.on('file-open', () => this.onFileOpen()));
-
-		this.register(
-			settingsStore.subscribe((settings) => {
-				this.settings = settings;
-			})
-		);
 	}
 
 	onClose(): Promise<void> {
@@ -86,12 +81,11 @@ export class CalendarView extends ItemView {
 		// TODO: move this eventHandlers to store
 
 		this.view = new View({
-			target: this.contentEl,
+			target: this.contentEl
 		});
 
 		// index existing notes
 		if (this.app.workspace.layoutReady && this.view) {
-			console.log("🔥🔥🔥 view.ts > onOpen() > indexing notes 🔥🔥🔥")
 			granularities.forEach((granularity) => {
 				notesStores[granularity].index();
 			});
@@ -100,29 +94,21 @@ export class CalendarView extends ItemView {
 
 	// app.workspace and app.vault event handlers
 	private onNoteSettingsUpdate(): void {
-		// 1. update array of valid formats if there are new ones for any granularity
-		// validFormats = {
-		// 	day: ['format1', 'format2', 'format3'],
-		// 	week: ['format1'],
-		// 	month: ['format1'],
-		// }
-		granularities.forEach((granularity) => {
-			// notesStores[granularity].reindex();
-		});
-		this.updateActiveFile();
+		this.plugin.saveSettings((settings) => ({
+			validFormats: getNewValidFormats(settings.validFormats)
+		}));
+		this.updateActiveFile.bind(this)();
 	}
 
 	private onFileCreated(file: TFile) {
-		console.log('✅ onFileCreated > file: ✅', file);
-
 		if (this.app.workspace.layoutReady && this.view) {
 			let date: Moment | null = null;
 			const granularity = granularities.find(
-				(granularity) => (date = getDateFromFile(file, granularity))
+				(granularity) => (date = getDateFromFile(file, granularity, true))
 			);
 
 			if (date && granularity) {
-				const dateUID = getDateUID({date, granularity});
+				const dateUID = getDateUID({ date, granularity });
 				const fileExists = get(notesStores[granularity])[dateUID];
 
 				// update matching file in store
@@ -134,8 +120,6 @@ export class CalendarView extends ItemView {
 							sticker: null
 						}
 					}));
-
-				console.log(`✅ onFileCreated() > succesfully created new store for ${granularity}`, get(notesStores[granularity]));
 			}
 		}
 	}
@@ -150,7 +134,7 @@ export class CalendarView extends ItemView {
 
 		if (date && granularity) {
 			const notesStore = notesStores[granularity];
-			const dateUID = getDateUID({date, granularity});
+			const dateUID = getDateUID({ date, granularity });
 			const fileExists = get(notesStore)[dateUID];
 			const newStore = {
 				...get(notesStore)
@@ -181,7 +165,10 @@ export class CalendarView extends ItemView {
 		// OLD filename INVALID ❌ && NEW filename VALID ✅ => update store to add NEW file with null emoji
 		if (!oldIsValid && newIsValid && newGranularity) {
 			const notesStore = notesStores[newGranularity];
-			const dateUID = getDateUID({date: newDate as unknown as Moment, granularity: newGranularity});
+			const dateUID = getDateUID({
+				date: newDate as unknown as Moment,
+				granularity: newGranularity
+			});
 			notesStore.update((values) => ({
 				...values,
 				[dateUID]: {
@@ -194,7 +181,10 @@ export class CalendarView extends ItemView {
 		// OLD filename VALID ✅ && NEW filename INVALID ❌ => update store to remove OLD
 		if (oldIsValid && !newIsValid && oldGranularity && newGranularity) {
 			const notesStore = notesStores[oldGranularity];
-			const dateUID = getDateUID({date: oldDate as unknown as Moment, granularity: newGranularity});
+			const dateUID = getDateUID({
+				date: oldDate as unknown as Moment,
+				granularity: newGranularity
+			});
 
 			const newStore = {
 				...get(notesStore)
@@ -207,10 +197,16 @@ export class CalendarView extends ItemView {
 		// OLD filename CALID ✅ && NEW filename INVALID ✅ => update store to remove OLD and add NEW one with OLD emoji
 		if (oldIsValid && newIsValid && newGranularity && oldGranularity) {
 			const newNotesStore = notesStores[newGranularity];
-			const newDateUID = getDateUID({date: newDate as unknown as Moment, granularity: newGranularity});
+			const newDateUID = getDateUID({
+				date: newDate as unknown as Moment,
+				granularity: newGranularity
+			});
 
 			const oldNotesStore = notesStores[oldGranularity];
-			const oldDateUID = getDateUID({date: oldDate as unknown as Moment, granularity: newGranularity});
+			const oldDateUID = getDateUID({
+				date: oldDate as unknown as Moment,
+				granularity: newGranularity
+			});
 			const oldEmoji = get(oldNotesStore)[oldDateUID].sticker;
 
 			// remove OLD file
@@ -240,7 +236,7 @@ export class CalendarView extends ItemView {
 		const granularity = granularities.find(
 			(granularity) => (date = getDateFromFile(file, granularity))
 		);
-		const dateUID = date && granularity ? getDateUID({date, granularity}) : null;
+		const dateUID = date && granularity ? getDateUID({ date, granularity }) : null;
 		const notesStore = (granularity && notesStores[granularity]) || null;
 
 		const oldEmoji = notesStore && dateUID && get(notesStore)[dateUID].sticker;
@@ -315,7 +311,7 @@ export class CalendarView extends ItemView {
 
 				// save file in activeFile store
 				if (noteDate && noteGranularity) {
-					activeFile.setFile(getDateUID({date: noteDate, granularity: noteGranularity}));
+					activeFile.setFile(getDateUID({ date: noteDate, granularity: noteGranularity }));
 
 					console.log('update active file, running rerenderCalendar()');
 					this.view && this.view.rerenderCalendar();

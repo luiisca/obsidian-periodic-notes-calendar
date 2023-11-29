@@ -3,16 +3,35 @@
   "shouldConfirmBeforeCreate": false,
   "yearsRangesStart": 2020,
   "autoHoverPreview": false,
-  "openPopoverOnRibbonHover": true,
+  "openPopoverOnRibbonHover": false,
   "crrNldModalGranularity": "day",
   "localeSettings": {
     "showWeekNums": false,
-    "weekStartId": 0,
-    "localeOverride": "en"
+    "localeOverride": "en",
+    "weekStartId": 0
   },
   "popoversCloseData": {
-    "closePopoversOneByOneOnClickOut": true,
+    "closePopoversOneByOneOnClickOut": false,
     "closePopoversOneByOneOnEscKeydown": true,
-    "searchInputOnEscKeydown": "reset"
+    "searchInputOnEscKeydown": "close-popover"
+  },
+  "validFormats": {
+    "day": [
+      "MMMM, D-Y",
+      "MMMM, D-YY",
+      "MMMM, D Y",
+      "MMMM, D-YYY",
+      "MMMM, D-YYYY"
+    ],
+    "week": [],
+    "month": [
+      "MM"
+    ],
+    "quarter": [
+      "YYYY-[Q]Q"
+    ],
+    "year": [
+      "[Year]-YYYY"
+    ]
   }
 }

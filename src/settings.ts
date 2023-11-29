@@ -8,7 +8,8 @@ import type { IGranularity } from './calendar-io';
 import { setupPopover } from './calendar-ui/popovers';
 import { CALENDAR_POPOVER_ID } from './constants';
 import View from './View.svelte';
-import { defaultWeekdays, sysLocaleKey, sysWeekStartId, sysWeekStartName } from './localization';
+import { defaultWeekdays, sysLocaleKey, sysWeekStartId } from './localization';
+import { getNewValidFormats } from './calendar-io/validation';
 
 export interface ISettings {
 	viewOpen: boolean;
@@ -29,6 +30,8 @@ export interface ISettings {
 		closePopoversOneByOneOnEscKeydown: boolean;
 		searchInputOnEscKeydown: 'close-popover' | 'reset';
 	};
+
+	validFormats: Record<IGranularity, string[]>;
 }
 
 export const DEFAULT_SETTINGS: ISettings = Object.freeze({
@@ -49,7 +52,9 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
 		closePopoversOneByOneOnClickOut: false,
 		closePopoversOneByOneOnEscKeydown: true,
 		searchInputOnEscKeydown: 'close-popover' as 'close-popover' | 'reset'
-	}
+	},
+
+	validFormats: getNewValidFormats()
 });
 
 export class SettingsTab extends PluginSettingTab {

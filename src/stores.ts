@@ -9,7 +9,6 @@ import { defaultWeekdays, defaultWeekdaysShort } from './localization';
 
 export type TNotesStore = Record<string, { file: TFile; sticker: string | null }>;
 function createNotesStore(granularity: IGranularity) {
-	console.log(`🤯🤯🤯 createNotesStore(${granularity}) 🤯🤯🤯`);
 	let hasError = false;
 
 	const store = writable<TNotesStore>({});
@@ -19,7 +18,7 @@ function createNotesStore(granularity: IGranularity) {
 		index: () => {
 			try {
 				const notes = getAllNotesByGranularity(granularity);
-				console.log('createNotesStore() > notes: ', notes);
+				console.log(`createNotesStore(${granularity}) > notes: `, notes);
 				if (Object.keys(notes).length === 0) {
 					throw new Error('No notes found');
 				}
@@ -27,7 +26,7 @@ function createNotesStore(granularity: IGranularity) {
 			} catch (err) {
 				if (!hasError) {
 					// Avoid error being shown multiple times
-					console.log('[Calendar] Failed to find daily notes folder', err);
+					console.warn('[Calendar] Failed to find daily notes folder', err);
 				}
 				store.set({});
 				hasError = true;

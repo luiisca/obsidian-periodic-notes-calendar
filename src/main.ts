@@ -53,7 +53,7 @@ export default class DailyNoteFlexPlugin extends Plugin {
 		this.handleRibbon();
 
 		// register view
-		this.registerView(VIEW_TYPE_CALENDAR, (leaf) => new CalendarView(leaf));
+		this.registerView(VIEW_TYPE_CALENDAR, (leaf) => new CalendarView(leaf, this));
 
 		// Commands
 		this.addCommand({

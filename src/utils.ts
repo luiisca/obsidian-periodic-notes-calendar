@@ -1,13 +1,6 @@
 import { Notice } from 'obsidian';
 import type { IGranularity } from './calendar-io';
 import { getPeriodicityFromGranularity } from './calendar-io/parse';
-import type { Moment } from 'moment';
-import moment from 'moment';
-import { isMetaPressed } from './calendar-ui/utils';
-import { CALENDAR_POPOVER_ID, STICKER_POPOVER_ID } from './constants';
-import { closePopover, popoversStore, removeWindowEventListeners, togglePopover } from './calendar-ui/popovers';
-import { crrFileMenu } from './stores';
-import { get } from 'svelte/store';
 
 export async function fetchWithRetry<T>(url: string, retries = 0): Promise<T | null> {
 	try {

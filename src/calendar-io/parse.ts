@@ -4,6 +4,8 @@ import type { TFile } from 'obsidian';
 import { basename } from './vault';
 import type { IGranularity, IPeriodicites } from './types';
 import { getNoteSettingsByGranularity } from './settings';
+import { get } from 'svelte/store';
+import { settingsStore } from '@/stores';
 
 /**
  * dateUID is a way of weekly identifying daily/weekly/monthly notes.
@@ -39,40 +41,58 @@ function isWeekFormatAmbiguous(format: string) {
 	return /w{1,2}/i.test(cleanFormat) && (/M{1,4}/.test(cleanFormat) || /D{1,4}/.test(cleanFormat));
 }
 
-export function getDateFromFile(file: TFile, granularity: IGranularity): Moment | null {
-	return getDateFromFilename(file.basename, granularity);
+export function getDateFromFile(
+	file: TFile,
+	granularity: IGranularity,
+	useCrrFormat = false
+): Moment | null {
+	return getDateFromFilename(file.basename, granularity, useCrrFormat);
 }
 
 export function getDateFromPath(
 	path: string,
-	granularity: 'day' | 'week' | 'month' | 'quarter' | 'year'
+	granularity: 'day' | 'week' | 'month' | 'quarter' | 'year',
+	useCrrFormat = false
 ): Moment | null {
-	return getDateFromFilename(basename(path), granularity);
+	return getDateFromFilename(basename(path), granularity, useCrrFormat);
 }
 
 function getDateFromFilename(
 	filename: string,
-	granularity: 'day' | 'week' | 'month' | 'quarter' | 'year'
+	granularity: 'day' | 'week' | 'month' | 'quarter' | 'year',
+	useCrrFormat = false
 ): Moment | null {
-	const format = getNoteSettingsByGranularity(granularity).format.split('/').pop();
+	let noteDate = null;
+	let validFormat;
+	if (useCrrFormat) {
+		const { format } = getNoteSettingsByGranularity(granularity);
+		noteDate = window.moment(filename, format, true);
+	} else {
+		for (const format of get(settingsStore).validFormats[granularity]) {
+			const date = window.moment(filename, format, true);
 
-	// TODO: Find a way to validate if a filename represents a valid date without using format to avoid:
-	// every time periodic notes update and format changes only notes created with the new format are stored, the rest are neglected.
-	// evaluate if current format creates a valid date
-	const noteDate = window.moment(filename, format, true);
+			// if date is valid and date represents the exact date described by filename 
+			if (date.isValid() && date.format(format) === filename) {
+				noteDate = date;
+				validFormat = format;
 
-	if (!noteDate.isValid()) {
+				break;
+			}
+		}
+	}
+
+	if (!noteDate) {
 		return null;
 	}
 
 	if (granularity === 'week') {
-		if (format && isWeekFormatAmbiguous(format)) {
-			const cleanFormat = removeEscapedCharacters(format);
+		if (validFormat && isWeekFormatAmbiguous(validFormat)) {
+			const cleanFormat = removeEscapedCharacters(validFormat);
 			if (/w{1,2}/i.test(cleanFormat)) {
 				return window.moment(
 					filename,
 					// If format contains week, remove day & month formatting
-					format.replace(/M{1,4}/g, '').replace(/D{1,4}/g, ''),
+					validFormat.replace(/M{1,4}/g, '').replace(/D{1,4}/g, ''),
 					false
 				);
 			}

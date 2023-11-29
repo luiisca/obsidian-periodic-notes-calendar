@@ -35,22 +35,17 @@ export function getNoteByGranularity({
 }): TFile | undefined {
 	const notesStore = get(notesStores[granularity]);
 
-	return notesStore[getDateUID({date, granularity})]?.file;
+	return notesStore[getDateUID({ date, granularity })]?.file;
 }
 
-// EXPLAN: only used at store.ts > createNotesStore() to reindex notes every time
-// a new note is added or deleted or settings change.
 export function getAllNotesByGranularity(
 	granularity: IGranularity
 ): Record<string, { file: TFile; sticker: string | null }> {
-	// Record<string, {file: TFile; sticker: string}
 	const notes: Record<string, { file: TFile; sticker: string | null }> = {};
-	const { vault } = window.app;
-
 	try {
 		const { folder } = getNoteSettingsByGranularity(granularity);
 
-		const notesFolder = vault.getAbstractFileByPath(normalizePath(folder)) as TFolder;
+		const notesFolder = window.app.vault.getAbstractFileByPath(normalizePath(folder)) as TFolder;
 
 		if (!notesFolder) {
 			throw new Error(
@@ -65,10 +60,11 @@ export function getAllNotesByGranularity(
 
 			if (note instanceof TFile) {
 				// if file name maps to a valid moment date, it is saved in store.
+				// console.log(`getAllNotesByGranularity(${granularity}) > note: `, note.name);
 				const date = getDateFromFile(note, granularity);
 
 				if (date) {
-					const dateUID = getDateUID({date, granularity});
+					const dateUID = getDateUID({ date, granularity });
 					window.app.vault.cachedRead(note).then((data) => {
 						// update store separately to avoid possible slow downs
 						const emoji = data.match(/#sticker-([^\s]+)/)?.[1];
@@ -112,20 +108,27 @@ export async function tryToCreateNote({
 }) {
 	async function openFile(file: TFile) {
 		file && (await leaf.openFile(file));
-		activeFile.setFile(getDateUID({date, granularity}));
-	};
+		activeFile.setFile(getDateUID({ date, granularity }));
+	}
 
-	const settings = get(settingsStore);
 	const confirmBeforeCreate =
 		typeof confirmBeforeCreateOverride === 'boolean'
 			? confirmBeforeCreateOverride
-			: settings.shouldConfirmBeforeCreate;
+			: get(settingsStore).shouldConfirmBeforeCreate;
 
 	let file = getNoteByGranularity({ date, granularity });
 	if (!file) {
 		const periodicity = capitalize(getPeriodicityFromGranularity(granularity));
 		const { format } = getNoteSettingsByGranularity(granularity);
 		const formattedDate = date.format(format);
+
+		const isFormatValid = validateFormat(format, granularity);
+		console.log('tryToCreateNote() > isFormatValid: ', isFormatValid);
+		if (!isFormatValid) {
+			new Notice("Invalid format. Please check your plugin's settings.");
+
+			return;
+		}
 
 		if (confirmBeforeCreate) {
 			createConfirmationDialog<TFile | undefined>({
@@ -144,6 +147,7 @@ export async function tryToCreateNote({
 		} else {
 			file = await noteCreator[granularity](date);
 			file && (await openFile(file));
+			console.log('tryToCreateNote() > notesStore: ', get(notesStores[granularity]));
 		}
 	} else {
 		file && (await openFile(file));
@@ -162,6 +166,7 @@ import { get } from 'svelte/store';
 import { activeFile, notesStores, settingsStore } from '@/stores';
 import { capitalize, getOnCreateNoteDialogNoteFromGranularity } from '@/utils';
 import { createConfirmationDialog } from '@/calendar-ui/modals/confirmation';
+import { getBasename, validateFormat } from './validation';
 
 export { getDateUID, getDateFromFile, getDateFromPath } from './parse';
 export { getTemplateInfo } from './vault';
