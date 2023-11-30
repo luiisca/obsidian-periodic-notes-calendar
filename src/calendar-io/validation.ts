@@ -1,6 +1,7 @@
 import { granularities } from '@/constants';
 import type { IGranularity } from './types';
 import { getNoteSettingsByGranularity } from './settings';
+import { Notice } from 'obsidian';
 
 // https://github.com/liamcain/obsidian-periodic-notes
 function validateFilename(filename: string): boolean {
@@ -64,8 +65,18 @@ export function getNewValidFormats(
 		...existingValidFormats
 	};
 
+	let warningDisplayed = false;
+
 	granularities.forEach((granularity) => {
 		const format = getNoteSettingsByGranularity(granularity).format.split('/').pop();
+
+		if (granularity !== 'day' && /^\d{1,2}$/.test(window.moment().format(format))) {
+			if (!warningDisplayed) {
+				new Notice(
+					'Caution ⚠️: Avoid utilizing formats that yield two-digit numbers, such as "W" or "M", as they can be ambiguous and lead to unexpected behavior.', 5500);
+				warningDisplayed = true;
+			}
+		}
 
 		if (!format) {
 			return;

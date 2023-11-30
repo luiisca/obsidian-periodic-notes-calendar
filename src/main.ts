@@ -145,18 +145,13 @@ export default class DailyNoteFlexPlugin extends Plugin {
 	}
 
 	async saveSettings(changeSettings: (old: ISettings) => Partial<ISettings>) {
-		console.log('saveSettings() > settingsStore before change: ', get(settingsStore));
 		settingsStore.update((old) => {
-			console.log('saveSettings() > old: ', old);
-			console.log('saveSettings() > changeSettings(old): ', changeSettings(old));
 			return {
 				...old,
 				...changeSettings(old)
 			};
 		});
 
-		console.log('saveSettings() > settingsStore: ', get(settingsStore));
-		console.log('saveSettings() > this.settings: ', this.settings);
 		await this.saveData(this.settings);
 	}
 	handleRibbon() {

@@ -3073,8 +3073,15 @@ function getNewValidFormats(existingValidFormats = {
     const validFormats = {
         ...existingValidFormats
     };
+    let warningDisplayed = false;
     granularities.forEach((granularity) => {
         const format = getNoteSettingsByGranularity(granularity).format.split('/').pop();
+        if (granularity !== 'day' && /^\d{1,2}$/.test(window.moment().format(format))) {
+            if (!warningDisplayed) {
+                new obsidian.Notice('Caution ⚠️: Avoid utilizing formats that yield two-digit numbers, such as "W" or "M", as they can be ambiguous and lead to unexpected behavior.', 5500);
+                warningDisplayed = true;
+            }
+        }
         if (!format) {
             return;
         }
@@ -51102,17 +51109,12 @@ class DailyNoteFlexPlugin extends obsidian.Plugin {
         }));
     }
     async saveSettings(changeSettings) {
-        console.log('saveSettings() > settingsStore before change: ', get_store_value(settingsStore));
         settingsStore.update((old) => {
-            console.log('saveSettings() > old: ', old);
-            console.log('saveSettings() > changeSettings(old): ', changeSettings(old));
             return {
                 ...old,
                 ...changeSettings(old)
             };
         });
-        console.log('saveSettings() > settingsStore: ', get_store_value(settingsStore));
-        console.log('saveSettings() > this.settings: ', this.settings);
         await this.saveData(this.settings);
     }
     handleRibbon() {

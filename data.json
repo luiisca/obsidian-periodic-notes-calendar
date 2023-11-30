@@ -17,21 +17,43 @@
   },
   "validFormats": {
     "day": [
-      "MMMM, D-Y",
-      "MMMM, D-YY",
-      "MMMM, D Y",
-      "MMMM, D-YYY",
-      "MMMM, D-YYYY"
+      "MMMM, D-YYYY",
+      "YYYY-MM-DD"
     ],
-    "week": [],
+    "week": [
+      "gggg-[W]ww",
+      "W",
+      "[te",
+      "w",
+      "x",
+      "www",
+      "wwwww",
+      "ww",
+      "wW",
+      "Ww",
+      "WW"
+    ],
     "month": [
-      "MM"
+      "MM",
+      "mm",
+      "m",
+      "YYYY-MM",
+      "mM",
+      "M",
+      "MMMM",
+      "MMMMM"
     ],
     "quarter": [
-      "YYYY-[Q]Q"
+      "YYYY-[Q]Q",
+      "Q"
     ],
     "year": [
-      "[Year]-YYYY"
+      "[Year]-YYYY",
+      "YYYY",
+      "YY",
+      "y",
+      "YYd",
+      "Y"
     ]
   }
 }
