@@ -10,8 +10,10 @@ import { CALENDAR_POPOVER_ID } from './constants';
 import View from './View.svelte';
 import { defaultWeekdays, sysLocaleKey, sysWeekStartId } from './localization';
 import { getNewValidFormats } from './calendar-io/validation';
+import { VIEW_TYPE_CALENDAR } from './view';
 
 export interface ISettings {
+	viewLeafPosition: 'Left' | 'Right';
 	viewOpen: boolean;
 	shouldConfirmBeforeCreate: boolean;
 	yearsRangesStart: 2020;
@@ -35,6 +37,7 @@ export interface ISettings {
 }
 
 export const DEFAULT_SETTINGS: ISettings = Object.freeze({
+	viewLeafPosition: 'Left',
 	viewOpen: false,
 	shouldConfirmBeforeCreate: true,
 	yearsRangesStart: 2020,
@@ -76,6 +79,7 @@ export class SettingsTab extends PluginSettingTab {
 			text: 'General'
 		});
 
+		this.addViewLeafPositionSetting();
 		this.addPopoverSetting();
 		this.addOpenPopoverOnRibbonHoverSetting();
 		this.addConfirmCreateSetting();
@@ -101,6 +105,28 @@ export class SettingsTab extends PluginSettingTab {
 		}
 	}
 
+	addViewLeafPositionSetting() {
+		new Setting(this.containerEl)
+			.setName('Calendar view position')
+			.setDesc('Which sidebar should calendar view be on?')
+			.addDropdown((viewLeafPosition) => {
+				viewLeafPosition
+					.addOption('Left', 'Left')
+					.addOption('Right', 'Right')
+					.setValue(get(settingsStore).viewLeafPosition)
+					.onChange(async (position) => {
+						this.app.workspace.detachLeavesOfType(VIEW_TYPE_CALENDAR);
+
+						await this.app.workspace[`get${position as 'Left' | 'Right'}Leaf`](false).setViewState({
+							type: VIEW_TYPE_CALENDAR,
+							active: false,
+						});
+						await this.plugin.saveSettings(() => ({
+							viewLeafPosition: position as 'Left' | 'Right'
+						}));
+					});
+			});
+	}
 	addPopoverSetting() {
 		// TODO: improve wording
 		new Setting(this.containerEl)

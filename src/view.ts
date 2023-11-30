@@ -20,7 +20,6 @@ import { get } from 'svelte/store';
 import { isMetaPressed } from './calendar-ui/utils';
 import type DailyNoteFlexPlugin from './main';
 import { getNewValidFormats } from './calendar-io/validation';
-import { getNoteSettingsByGranularity } from './calendar-io/settings';
 
 export const VIEW_TYPE_CALENDAR = 'calendar';
 

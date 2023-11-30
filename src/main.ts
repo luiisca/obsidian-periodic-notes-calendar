@@ -135,7 +135,7 @@ export default class DailyNoteFlexPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		const settings = await this.loadData() as ISettings;
+		const settings = (await this.loadData()) as ISettings;
 		!settings && (await this.saveData(DEFAULT_SETTINGS));
 
 		settingsStore.update((old) => ({
@@ -195,7 +195,7 @@ export default class DailyNoteFlexPlugin extends Plugin {
 	async initView({ active }: { active: boolean } = { active: true }) {
 		this.app.workspace.detachLeavesOfType(VIEW_TYPE_CALENDAR);
 
-		await this.app.workspace.getLeftLeaf(false).setViewState({
+		await this.app.workspace[`get${get(settingsStore).viewLeafPosition}Leaf`](false).setViewState({
 			type: VIEW_TYPE_CALENDAR,
 			active
 		});
@@ -284,5 +284,4 @@ export default class DailyNoteFlexPlugin extends Plugin {
 			this.revealView();
 		}
 	}
-
 }

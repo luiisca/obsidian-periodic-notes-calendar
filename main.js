@@ -3094,6 +3094,7 @@ function getNewValidFormats(existingValidFormats = {
 }
 
 const DEFAULT_SETTINGS = Object.freeze({
+    viewLeafPosition: 'Left',
     viewOpen: false,
     shouldConfirmBeforeCreate: true,
     yearsRangesStart: 2020,
@@ -3125,6 +3126,7 @@ class SettingsTab extends obsidian.PluginSettingTab {
         this.containerEl.createEl('h3', {
             text: 'General'
         });
+        this.addViewLeafPositionSetting();
         this.addPopoverSetting();
         this.addOpenPopoverOnRibbonHoverSetting();
         this.addConfirmCreateSetting();
@@ -3145,6 +3147,27 @@ class SettingsTab extends obsidian.PluginSettingTab {
                 this.addSpSearchInputOnEscKeydownSetting();
             }
         }
+    }
+    addViewLeafPositionSetting() {
+        new obsidian.Setting(this.containerEl)
+            .setName('Calendar view position')
+            .setDesc('Which sidebar should calendar view be on?')
+            .addDropdown((viewLeafPosition) => {
+            viewLeafPosition
+                .addOption('Left', 'Left')
+                .addOption('Right', 'Right')
+                .setValue(get_store_value(settingsStore).viewLeafPosition)
+                .onChange(async (position) => {
+                this.app.workspace.detachLeavesOfType(VIEW_TYPE_CALENDAR);
+                await this.app.workspace[`get${position}Leaf`](false).setViewState({
+                    type: VIEW_TYPE_CALENDAR,
+                    active: false,
+                });
+                await this.plugin.saveSettings(() => ({
+                    viewLeafPosition: position
+                }));
+            });
+        });
     }
     addPopoverSetting() {
         // TODO: improve wording
@@ -50866,7 +50889,7 @@ class DailyNoteFlexPlugin extends obsidian.Plugin {
         });
     }
     async loadSettings() {
-        const settings = await this.loadData();
+        const settings = (await this.loadData());
         !settings && (await this.saveData(DEFAULT_SETTINGS));
         settingsStore.update((old) => ({
             ...old,
@@ -50918,7 +50941,7 @@ class DailyNoteFlexPlugin extends obsidian.Plugin {
     }
     async initView({ active } = { active: true }) {
         this.app.workspace.detachLeavesOfType(VIEW_TYPE_CALENDAR);
-        await this.app.workspace.getLeftLeaf(false).setViewState({
+        await this.app.workspace[`get${get_store_value(settingsStore).viewLeafPosition}Leaf`](false).setViewState({
             type: VIEW_TYPE_CALENDAR,
             active
         });
