@@ -1,16 +1,16 @@
 <script lang="ts">
-	import { pluginClassStore, type TNotesStore } from '@/stores';
+	import { pluginClassStore, stickerPopoverNoteDateUIDStore, type TNotesStore } from '@/stores';
 	import { get, type Writable } from 'svelte/store';
 	import { STICKER_POPOVER_ID, STICKER_TAG_PREFIX } from '@/constants';
 	import pickerData from '@emoji-mart/data';
 	import { Picker } from 'emoji-mart';
-	import { popoversStore } from '@/calendar-ui/popovers';
 	import { spInputKeydownHandlerStore } from '../popovers/sticker';
 
 	export let close: () => void;
 	export let noteStore: Writable<TNotesStore>;
-	export let noteDateUID: string;
 	export let popover: boolean = false;
+
+	$: noteDateUID = $stickerPopoverNoteDateUIDStore;
 
 	let pickerContainerEl: HTMLDivElement | null = null;
 
@@ -19,8 +19,6 @@
 	const pickerOptions = {
 		data: pickerData,
 		onEmojiSelect: (emoji: string) => {
-			console.log('EMOJI SELECTED: ', emoji);
-
 			close();
 			// update store note with new emoji
 			noteStore.update((values) => ({
@@ -37,7 +35,6 @@
 				const newTag = `${STICKER_TAG_PREFIX}${emoji.native}`;
 				const prevStickerTag = data.match(/#sticker-[^\s]+/);
 
-				console.log('ABOUT to replace previous tags: ', prevStickerTag, data);
 				if (prevStickerTag) {
 					let firstMatched: boolean = false;
 
@@ -73,7 +70,6 @@
 		const observer = new MutationObserver((mutations) => {
 			mutations.forEach(() => {
 				const input = shadowRoot.querySelector('input') as HTMLElement;
-				console.log('StickerPopover component() > mutation observer > input: ', input);
 
 				if (input) {
 					input.focus();

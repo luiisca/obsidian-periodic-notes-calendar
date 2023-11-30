@@ -4131,6 +4131,7 @@ granularities.forEach((granularity) => {
     notesStores[granularity] = notesExtStore;
 });
 const crrFileMenu = writable(null);
+const stickerPopoverNoteDateUIDStore = writable('');
 
 function isMacOS() {
     return navigator.appVersion.indexOf('Mac') !== -1;
@@ -49908,11 +49909,13 @@ function create_fragment$2(ctx) {
 }
 
 function instance$2($$self, $$props, $$invalidate) {
+	let noteDateUID;
 	let $pluginClassStore;
-	component_subscribe($$self, pluginClassStore, $$value => $$invalidate(6, $pluginClassStore = $$value));
+	let $stickerPopoverNoteDateUIDStore;
+	component_subscribe($$self, pluginClassStore, $$value => $$invalidate(7, $pluginClassStore = $$value));
+	component_subscribe($$self, stickerPopoverNoteDateUIDStore, $$value => $$invalidate(4, $stickerPopoverNoteDateUIDStore = $$value));
 	let { close } = $$props;
 	let { noteStore } = $$props;
-	let { noteDateUID } = $$props;
 	let { popover = false } = $$props;
 	let pickerContainerEl = null;
 
@@ -49923,7 +49926,6 @@ function instance$2($$self, $$props, $$invalidate) {
 	const pickerOptions = {
 		data: pickerData,
 		onEmojiSelect: emoji => {
-			console.log('EMOJI SELECTED: ', emoji);
 			close();
 
 			// update store note with new emoji
@@ -49941,7 +49943,6 @@ function instance$2($$self, $$props, $$invalidate) {
 			window.app.vault.process(file, data => {
 				const newTag = `${STICKER_TAG_PREFIX}${emoji.native}`;
 				const prevStickerTag = data.match(/#sticker-[^\s]+/);
-				console.log('ABOUT to replace previous tags: ', prevStickerTag, data);
 
 				if (prevStickerTag) {
 					let firstMatched = false;
@@ -49980,11 +49981,14 @@ function instance$2($$self, $$props, $$invalidate) {
 	$$self.$$set = $$props => {
 		if ('close' in $$props) $$invalidate(2, close = $$props.close);
 		if ('noteStore' in $$props) $$invalidate(3, noteStore = $$props.noteStore);
-		if ('noteDateUID' in $$props) $$invalidate(4, noteDateUID = $$props.noteDateUID);
 		if ('popover' in $$props) $$invalidate(0, popover = $$props.popover);
 	};
 
 	$$self.$$.update = () => {
+		if ($$self.$$.dirty & /*$stickerPopoverNoteDateUIDStore*/ 16) {
+			noteDateUID = $stickerPopoverNoteDateUIDStore;
+		}
+
 		if ($$self.$$.dirty & /*pickerContainerEl*/ 2) {
 			if (pickerContainerEl) {
 				pickerContainerEl.appendChild(emojiMartEl);
@@ -49993,7 +49997,6 @@ function instance$2($$self, $$props, $$invalidate) {
 				const observer = new MutationObserver(mutations => {
 						mutations.forEach(() => {
 							const input = shadowRoot.querySelector('input');
-							console.log('StickerPopover component() > mutation observer > input: ', input);
 
 							if (input) {
 								input.focus();
@@ -50011,27 +50014,20 @@ function instance$2($$self, $$props, $$invalidate) {
 		}
 	};
 
-	return [popover, pickerContainerEl, close, noteStore, noteDateUID, div0_binding];
+	return [
+		popover,
+		pickerContainerEl,
+		close,
+		noteStore,
+		$stickerPopoverNoteDateUIDStore,
+		div0_binding
+	];
 }
 
 class StickerPopover extends SvelteComponent {
 	constructor(options) {
 		super();
-
-		init(
-			this,
-			options,
-			instance$2,
-			create_fragment$2,
-			safe_not_equal,
-			{
-				close: 2,
-				noteStore: 3,
-				noteDateUID: 4,
-				popover: 0
-			},
-			add_css$2
-		);
+		init(this, options, instance$2, create_fragment$2, safe_not_equal, { close: 2, noteStore: 3, popover: 0 }, add_css$2);
 	}
 }
 
@@ -50041,7 +50037,7 @@ function add_css$1(target) {
 	append_styles(target, "svelte-1fig2o3", ".svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3,.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3::before,.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3::before,.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3::after{--tw-content:''}.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3:-moz-focusring{outline:auto}.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3:-moz-ui-invalid{box-shadow:none}.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3::-webkit-inner-spin-button,.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3::-webkit-outer-spin-button{height:auto}.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3::-webkit-search-decoration{-webkit-appearance:none}.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3:disabled{cursor:default}.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3,.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3::before,.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.container.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{width:100%}@media(min-width: 640px){.container.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{max-width:640px}}@media(min-width: 768px){.container.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{max-width:768px}}@media(min-width: 1024px){.container.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{max-width:1024px}}@media(min-width: 1280px){.container.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{max-width:1280px}}@media(min-width: 1536px){.container.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{max-width:1536px}}.pointer-events-none.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{pointer-events:none}.collapse.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{visibility:collapse}.static.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{position:static}.absolute.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{position:absolute}.relative.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{position:relative}.left-0.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{left:0px}.left-full.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{left:100%}.top-0.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{top:0px}.z-10.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{z-index:10}.z-20.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{z-index:20}.m-0.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{margin:0px}.mx-\\[1px\\].svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{margin-left:1px;margin-right:1px}.ml-\\[5px\\].svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{margin-left:5px}.mt-2.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{margin-top:0.5rem}.mt-3.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{margin-top:0.75rem}.mt-7.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{margin-top:1.75rem}.block.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{display:block}.inline-block.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{display:inline-block}.flex.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{display:flex}.table.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{display:table}.contents.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{display:contents}.h-2.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{height:0.5rem}.h-2\\.5.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{height:0.625rem}.h-3.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{height:0.75rem}.h-\\[6px\\].svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{height:6px}.w-2.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{width:0.5rem}.w-2\\.5.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{width:0.625rem}.w-3.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{width:0.75rem}.w-\\[6px\\].svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{width:6px}.w-full.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{width:100%}.w-max.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{width:-moz-max-content;width:max-content}.border-collapse.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{border-collapse:collapse}.-translate-x-1\\/2.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-y-1\\/2.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-12.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-45.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.transform.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-default.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{cursor:default}.cursor-not-allowed.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{cursor:not-allowed}.cursor-pointer.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{cursor:pointer}.flex-col.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{flex-direction:column}.items-center.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{align-items:center}.justify-between.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{justify-content:space-between}.space-x-1.svelte-1fig2o3>.svelte-1fig2o3:not([hidden])~.svelte-1fig2o3:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(0.25rem * var(--tw-space-x-reverse));margin-left:calc(0.25rem * calc(1 - var(--tw-space-x-reverse)))}.rounded-md.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{border-radius:0.375rem}.rounded-sm.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{border-radius:0.125rem}.border-0.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{border-width:0px}.bg-gray-100.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))}.bg-slate-500.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))}.bg-transparent.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{background-color:transparent}.p-1.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{padding:0.25rem}.p-2.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{padding:0.5rem}.px-4.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{padding-left:1rem;padding-right:1rem}.py-2.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{padding-top:0.5rem;padding-bottom:0.5rem}.pt-4.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{padding-top:1rem}.text-sm.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{font-size:0.875rem;line-height:1.25rem}.text-xs.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{font-size:0.75rem;line-height:1rem}.uppercase.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{text-transform:uppercase}.capitalize.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{text-transform:capitalize}.text-\\[--text-muted\\].svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{color:var(--text-muted)}.text-\\[--text-on-accent\\].svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{color:var(--text-on-accent)}.text-black.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))}.text-white.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))}.opacity-0.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{opacity:0}.opacity-50.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{opacity:0.5}.shadow.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{--tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.blur.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{--tw-blur:blur(8px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.transition.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.\\[all\\:inherit\\].svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3{all:inherit}.hover\\:cursor-pointer.svelte-1fig2o3.svelte-1fig2o3.svelte-1fig2o3:hover{cursor:pointer}");
 }
 
-// (136:0) {#if popover}
+// (138:0) {#if popover}
 function create_if_block_1(ctx) {
 	let div3;
 	let div0;
@@ -50106,7 +50102,7 @@ function create_if_block_1(ctx) {
 	};
 }
 
-// (152:0) {#if !popover}
+// (154:0) {#if !popover}
 function create_if_block(ctx) {
 	let calendar;
 	let current;
@@ -50305,6 +50301,9 @@ function instance$1($$self, $$props, $$invalidate) {
 						}
 					});
 				}
+
+				// update sticker popover's dateUID
+				stickerPopoverNoteDateUIDStore.set(dateUID);
 
 				openPopover({
 					referenceEl,

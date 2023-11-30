@@ -240,3 +240,5 @@ granularities.forEach((granularity) => {
 });
 
 export const crrFileMenu = writable<Menu | null>(null);
+
+export const stickerPopoverNoteDateUIDStore = writable('');

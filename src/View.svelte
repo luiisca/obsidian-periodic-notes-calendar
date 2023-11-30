@@ -8,7 +8,10 @@
 		displayedDateStore,
 		notesStores,
 		rerenderStore,
-		settingsStore
+		settingsStore,
+
+		stickerPopoverNoteDateUIDStore
+
 	} from './stores';
 	import type { Moment } from 'moment';
 	import {
@@ -112,6 +115,10 @@
 						}
 					});
 				}
+
+
+				// update sticker popover's dateUID
+				stickerPopoverNoteDateUIDStore.set(dateUID);
 
 				openPopover({
 					referenceEl,
