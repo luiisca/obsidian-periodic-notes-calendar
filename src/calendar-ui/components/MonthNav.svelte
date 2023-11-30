@@ -88,19 +88,19 @@
 				class="year [all:inherit]"
 				on:click={(event) =>
 					eventHandlers.onClick({
-						date: $displayedDateStore.startOf('year'),
+						date: $displayedDateStore.clone().startOf('year'),
 						isNewSplit: isMetaPressed(event),
 						granularity: 'year'
 					})}
 				on:contextmenu={(event) =>
 					eventHandlers.onContextMenu({
-						date: $displayedDateStore.startOf('year'),
+						date: $displayedDateStore.clone().startOf('year'),
 						event,
 						granularity: 'year'
 					})}
 				on:pointerenter={(event) => {
 					eventHandlers.onHover({
-						date: $displayedDateStore.startOf('year'),
+						date: $displayedDateStore.clone().startOf('year'),
 						targetEl: event.target,
 						isMetaPressed: isMetaPressed(event),
 						granularity: 'year'

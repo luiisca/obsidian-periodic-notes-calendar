@@ -79,8 +79,6 @@ export class CalendarView extends ItemView {
 	async onOpen() {
 		console.log('On open view👐');
 
-		// TODO: move this eventHandlers to store
-
 		this.view = new View({
 			target: this.contentEl
 		});
@@ -236,7 +234,6 @@ export class CalendarView extends ItemView {
 
 		console.log('‍✏️On file renamed ✏️ > file: ', renamedFile, oldPath);
 		console.log('new store: ', newGranularity && get(notesStores[newGranularity]));
-		this.view.rerenderCalendar();
 	}
 	private async onFileModified(file: TFile, data: string, cache: CachedMetadata): Promise<void> {
 		console.log('‍✏️On file modified ✏️ > file: ', file, cache);
@@ -321,9 +318,6 @@ export class CalendarView extends ItemView {
 				// save file in activeFile store
 				if (noteDate && noteGranularity) {
 					activeFile.setFile(getDateUID({ date: noteDate, granularity: noteGranularity }));
-
-					console.log('update active file, running rerenderCalendar()');
-					this.view && this.view.rerenderCalendar();
 				}
 			}
 		}

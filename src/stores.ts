@@ -227,7 +227,6 @@ export const localeDataStore = writable<TLocaleData>({
 export const displayedDateStore = writable<Moment>(window.moment());
 export const activeFile = createSelectedFileStore();
 export const yearsRanges = createYearsRangesStore();
-export const rerenderStore = writable<Record<string, boolean>>({ rerender: true });
 export const pluginClassStore = writable<DailyNoteFlexPlugin>();
 
 type TNotesStores = Record<IGranularity, Writable<TNotesStore> & { index: () => void }>;

@@ -7,9 +7,9 @@
 	import Dot from './Dot.svelte';
 	import { VIEW } from '../context';
 	import { isMetaPressed } from '../utils';
-	import { getDateUID, getNoteByGranularity } from '@/calendar-io';
-	import { notesStores, rerenderStore } from '@/stores';
-	import EmojiSticker from './EmojiSticker.svelte';
+	import { getDateUID } from '@/calendar-io';
+	import { notesStores } from '@/stores';
+	import Sticker from './Sticker.svelte';
 	import type { ICalendarViewCtx } from '@/types/view';
 
 	// Properties
@@ -17,10 +17,10 @@
 
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 
-	let emoji: string | null = null;
 	const notesStore = notesStores['day'];
-	const dateUID = getDateUID({date, granularity: 'day'});
-	$: emoji = $notesStore[dateUID]?.sticker;
+	const dateUID = getDateUID({ date, granularity: 'day' });
+	$: file = $notesStore[dateUID]?.file;
+	$: sticker = $notesStore[dateUID]?.sticker;
 </script>
 
 <td class="relative">
@@ -58,11 +58,9 @@
 		}}
 	>
 		{date.format('D')}
-		{#if $rerenderStore && getNoteByGranularity({ date, granularity: 'day' })}
-			<Dot isFilled />
-		{/if}
+		<Dot isFilled={!!file} isVisible={!!file}/>
 	</button>
-	<EmojiSticker {emoji} />
+	<Sticker {sticker} />
 </td>
 
 <style>

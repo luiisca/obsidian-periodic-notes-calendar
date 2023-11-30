@@ -7,7 +7,6 @@
 		crrFileMenu,
 		displayedDateStore,
 		notesStores,
-		rerenderStore,
 		settingsStore,
 
 		stickerPopoverNoteDateUIDStore
@@ -36,13 +35,6 @@
 
 	export let popover: boolean = false;
 
-	export function rerenderCalendar() {
-		rerenderStore.update((val) => ({
-			...val,
-			rerender: true
-		}));
-	}
-
 	let today: Moment = window.moment();
 
 	let heartbeat = setInterval(() => {
@@ -55,7 +47,6 @@
 			console.log('⚙⚙⚙ RERENDERING CALENdAR ⚙⚙⚙️');
 
 			displayedDateStore.set(today);
-			rerenderCalendar();
 		}
 	}, 1000 * 60);
 

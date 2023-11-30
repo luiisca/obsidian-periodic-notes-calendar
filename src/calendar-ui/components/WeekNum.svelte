@@ -6,11 +6,11 @@
 
 	import Dot from './Dot.svelte';
 	import { isMetaPressed } from '../utils';
-	import { getDateUID, getNoteByGranularity } from '@/calendar-io';
-	import type { ICalendarViewCtx } from '@/view';
+	import { getDateUID } from '@/calendar-io';
 	import { VIEW } from '../context';
-	import { notesStores, rerenderStore } from '@/stores';
-	import EmojiSticker from './EmojiSticker.svelte';
+	import { notesStores } from '@/stores';
+	import Sticker from './Sticker.svelte';
+	import type { ICalendarViewCtx } from '@/types/view';
 
 	// Properties
 	export let weekNum: number;
@@ -18,10 +18,10 @@
 
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 
-	let emoji: string | null = null;
 	const notesStore = notesStores['week'];
-	const dateUID = getDateUID({date: startOfWeekDate, granularity: 'week'});
-	$: emoji = $notesStore[dateUID]?.sticker;
+	const dateUID = getDateUID({ date: startOfWeekDate, granularity: 'week' });
+	$: file = $notesStore[dateUID]?.file;
+	$: sticker = $notesStore[dateUID]?.sticker;
 </script>
 
 <td class="relative">
@@ -62,11 +62,9 @@
 		}}
 	>
 		{weekNum}
-		{#if $rerenderStore && getNoteByGranularity( { date: startOfWeekDate, granularity: 'week' } )}
-			<Dot />
-		{/if}
+		<Dot isFilled={!!file} isVisible={!!file} />
 	</button>
-	<EmojiSticker {emoji} />
+	<Sticker {sticker} />
 </td>
 
 <style>

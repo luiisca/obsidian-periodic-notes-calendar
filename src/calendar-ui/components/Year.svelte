@@ -6,24 +6,21 @@
 	import Dot from './Dot.svelte';
 	import { VIEW } from '../context';
 	import { isMetaPressed } from '../utils';
-	import { getDateUID, getNoteByGranularity } from '@/calendar-io';
-	import { displayedDateStore, notesStores, rerenderStore } from '@/stores';
-	import type { Moment } from 'moment';
-	import EmojiSticker from './EmojiSticker.svelte';
+	import { getDateUID } from '@/calendar-io';
+	import { displayedDateStore, notesStores } from '@/stores';
+	import Sticker from './Sticker.svelte';
 	import type { ICalendarViewCtx } from '@/types/view';
 
 	export let year: number;
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 
-	let date: Moment;
-	let dateUID: string;
-	let emoji: string | null = null;
 	const notesStore = notesStores['year'];
 
 	$: date = $displayedDateStore.clone().year(year).startOf('year');
 
-	$: dateUID = getDateUID({date, granularity: 'year'});
-	$: emoji = $notesStore[dateUID]?.sticker;
+	$: dateUID = getDateUID({ date, granularity: 'year' });
+	$: file = $notesStore[dateUID]?.file;
+	$: sticker = $notesStore[dateUID]?.sticker;
 </script>
 
 <td class="relative">
@@ -50,12 +47,10 @@
 		}}
 	>
 		{year}
-		{#if $rerenderStore && getNoteByGranularity({ date, granularity: 'year' })}
-			<Dot />
-		{/if}
+		<Dot isFilled={!!file} isVisible={!!file} />
 	</button>
 
-	<EmojiSticker {emoji} />
+	<Sticker {sticker} />
 </td>
 
 <style>
