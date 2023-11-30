@@ -10,7 +10,7 @@ import {
 } from 'obsidian';
 
 import View from './View.svelte';
-import { activeFile, notesStores} from './stores';
+import { activeFile, notesStores } from './stores';
 import { getDateFromFile, getDateUID } from './calendar-io';
 import type { Moment } from 'moment';
 import type { IGranularity } from './calendar-io';
@@ -107,9 +107,17 @@ export class CalendarView extends ItemView {
 				(granularity) => (date = getDateFromFile(file, granularity, true))
 			);
 
+			console.log('On file created > date: ', date);
+			console.log('On file created > granularity: ', granularity);
+
 			if (date && granularity) {
 				const dateUID = getDateUID({ date, granularity });
+
+				console.log('On file created > dateUID: ', dateUID);
+
 				const fileExists = get(notesStores[granularity])[dateUID];
+
+				console.log('On file created > fileExists: ', fileExists);
 
 				// update matching file in store
 				!fileExists &&

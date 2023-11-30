@@ -66,7 +66,12 @@ function getDateFromFilename(
 	let validFormat;
 	if (useCrrFormat) {
 		const { format } = getNoteSettingsByGranularity(granularity);
-		noteDate = window.moment(filename, format, true);
+		const date = window.moment(filename, format, true);
+
+		if (date.isValid()) {
+			noteDate = date;
+			validFormat = format;
+		}
 	} else {
 		for (const format of get(settingsStore).validFormats[granularity]) {
 			const date = window.moment(filename, format, true);

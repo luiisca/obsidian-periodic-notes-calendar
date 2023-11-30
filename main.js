@@ -2949,7 +2949,11 @@ function getDateFromFilename(filename, granularity, useCrrFormat = false) {
     let validFormat;
     if (useCrrFormat) {
         const { format } = getNoteSettingsByGranularity(granularity);
-        noteDate = window.moment(filename, format, true);
+        const date = window.moment(filename, format, true);
+        if (date.isValid()) {
+            noteDate = date;
+            validFormat = format;
+        }
     }
     else {
         for (const format of get_store_value(settingsStore).validFormats[granularity]) {
@@ -3937,6 +3941,7 @@ async function tryToCreateNote({ leaf, date, granularity, confirmBeforeCreateOve
         }
         else {
             file = await noteCreator[granularity](date);
+            console.log('🤯🔥🤯 tryToCreateNote() > file: 🤯🔥🤯', file);
             file && (await openFile(file));
             console.log('tryToCreateNote() > notesStore: ', get_store_value(notesStores[granularity]));
         }
@@ -50434,9 +50439,13 @@ class CalendarView extends obsidian.ItemView {
         if (this.app.workspace.layoutReady && this.view) {
             let date = null;
             const granularity = granularities.find((granularity) => (date = getDateFromFile(file, granularity, true)));
+            console.log('On file created > date: ', date);
+            console.log('On file created > granularity: ', granularity);
             if (date && granularity) {
                 const dateUID = getDateUID({ date, granularity });
+                console.log('On file created > dateUID: ', dateUID);
                 const fileExists = get_store_value(notesStores[granularity])[dateUID];
+                console.log('On file created > fileExists: ', fileExists);
                 // update matching file in store
                 !fileExists &&
                     notesStores[granularity].update((values) => ({

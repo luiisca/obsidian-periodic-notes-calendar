@@ -146,6 +146,7 @@ export async function tryToCreateNote({
 			});
 		} else {
 			file = await noteCreator[granularity](date);
+			console.log('🤯🔥🤯 tryToCreateNote() > file: 🤯🔥🤯', file);
 			file && (await openFile(file));
 			console.log('tryToCreateNote() > notesStore: ', get(notesStores[granularity]));
 		}
