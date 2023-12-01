@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { pluginClassStore, stickerPopoverNoteDateUIDStore, type TNotesStore } from '@/stores';
+	import { notesStores, pluginClassStore, stickerPopoverCrrGranularity, stickerPopoverNoteDateUIDStore, type TNotesStore } from '@/stores';
 	import { get, type Writable } from 'svelte/store';
 	import { STICKER_POPOVER_ID, STICKER_TAG_PREFIX } from '@/constants';
 	import pickerData from '@emoji-mart/data';
@@ -7,9 +7,9 @@
 	import { spInputKeydownHandlerStore } from '../popovers/sticker';
 
 	export let close: () => void;
-	export let noteStore: Writable<TNotesStore>;
-	export let popover: boolean = false;
+	let noteStore: Writable<TNotesStore>;
 
+	$: $stickerPopoverCrrGranularity, (noteStore = notesStores[$stickerPopoverCrrGranularity]);
 	$: noteDateUID = $stickerPopoverNoteDateUIDStore;
 
 	let pickerContainerEl: HTMLDivElement | null = null;
@@ -21,6 +21,7 @@
 		onEmojiSelect: (emoji: string) => {
 			close();
 			// update store note with new emoji
+			console.log('💔<StickerPopover /> onEmojiSelect > noteStore: ', noteStore);
 			noteStore.update((values) => ({
 				...values,
 				[noteDateUID]: {
@@ -88,7 +89,7 @@
 
 <div
 	class="bg-transparent z-20 w-max opacity-0 pointer-events-none absolute top-0 left-0"
-	data-popover={popover}
+	data-popover={true}
 	id={STICKER_POPOVER_ID}
 >
 	<div bind:this={pickerContainerEl} />

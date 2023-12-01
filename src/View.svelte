@@ -9,6 +9,8 @@
 		notesStores,
 		settingsStore,
 
+		stickerPopoverCrrGranularity,
+
 		stickerPopoverNoteDateUIDStore
 
 	} from './stores';
@@ -99,17 +101,14 @@
 						referenceEl,
 						view: {
 							Component: StickerPopoverComponent,
-							props: {
-								noteStore: notesStores[granularity],
-								noteDateUID: dateUID
-							}
 						}
 					});
 				}
 
 
-				// update sticker popover's dateUID
+				// update <StickerPopover /> props
 				stickerPopoverNoteDateUIDStore.set(dateUID);
+				stickerPopoverCrrGranularity.set(granularity);
 
 				openPopover({
 					referenceEl,

@@ -240,4 +240,6 @@ granularities.forEach((granularity) => {
 
 export const crrFileMenu = writable<Menu | null>(null);
 
+// update props of static sticker popover component
 export const stickerPopoverNoteDateUIDStore = writable('');
+export const stickerPopoverCrrGranularity = writable<IGranularity>();
