@@ -5,48 +5,21 @@
 	import Arrow from './Arrow.svelte';
 	import { VIEW } from '../context';
 	import Dot from './Dot.svelte';
-	import type { ICalendarViewCtx } from '@/view';
 	import { isMetaPressed } from '../utils';
 	import { displayedDateStore, yearsRanges } from '@/stores';
-	import { YEARS_RANGE_SIZE } from '@/constants';
+	import type { ICalendarViewCtx } from '@/types/view';
 
 	let today: Moment;
 	$: $displayedDateStore, (today = window.moment());
 
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 
-	function decrementdisplayedYear() {
-		let newYear = 0;
-		displayedDateStore.update((date) => {
-			const newDate = date.clone().subtract(1, 'year');
-			newYear = newDate.year();
-
-			return newDate;
-		});
-
-		const { ranges, crrRangeIndex } = $yearsRanges;
-		const crrRange = ranges[crrRangeIndex];
-		const [crrRangeStartYear] = crrRange.split('-');
-		if (newYear < +crrRangeStartYear) {
-			yearsRanges.updateRanges({ action: 'decrement' });
-		}
+	function decrementdisplayedDate() {
+		displayedDateStore.update((date) => date.clone().subtract(1, 'year'));
 	}
 
 	function incrementdisplayedDate() {
-		let newYear = 0;
-		displayedDateStore.update((date) => {
-			const newDate = date.clone().add(1, 'year');
-			newYear = newDate.year();
-
-			return newDate;
-		});
-
-		const { ranges, crrRangeIndex } = $yearsRanges;
-		const crrRange = ranges[crrRangeIndex];
-		const [_, crrRangeEndYear] = crrRange.split('-');
-		if (newYear > +crrRangeEndYear) {
-			yearsRanges.updateRanges({ action: 'increment' });
-		}
+		displayedDateStore.update((date) => date.clone().add(1, 'year'));
 	}
 
 	function resetdisplayedDate() {
@@ -62,7 +35,8 @@
 	$: $displayedDateStore,
 		(() => {
 			showingCurrentYear = $displayedDateStore.isSame(today, 'year');
-			// select or create new range every time displayed date updates
+
+			// add new ranges or update existing ones every time displayed date changes
 			yearsRanges.selectOrCreateRanges();
 		})();
 </script>
@@ -95,15 +69,15 @@
 			>
 				{$displayedDateStore.format('YYYY')}
 			</button>
-			<span class="year cursor-default">
-				{$yearsRanges.ranges?.[$yearsRanges.crrRangeIndex] || ''}
+			<span class="year !cursor-default">
+				{$yearsRanges.ranges[$yearsRanges.crrRangeIndex]}
 			</span>
 		</span>
 	</div>
 
 	<div class="right-nav">
 		<!-- TODO: add tab support -->
-		<Arrow direction="left" onClick={decrementdisplayedYear} tooltip="Previous Year" />
+		<Arrow direction="left" onClick={decrementdisplayedDate} tooltip="Previous Year" />
 		<button
 			aria-label={!showingCurrentYear ? 'Reset to current year' : null}
 			class="reset-button"

@@ -32,7 +32,8 @@
 		(() => {
 			showingCurrentRange =
 				$yearsRanges.todayRange === $yearsRanges.ranges[$yearsRanges.crrRangeIndex];
-			// select or create new range every time displayed date updates
+
+			// add new ranges or update existing ones every time displayed date changes
 			yearsRanges.selectOrCreateRanges();
 		})();
 </script>

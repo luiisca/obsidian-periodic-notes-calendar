@@ -16,35 +16,11 @@
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 
 	function decrementdisplayedDate() {
-		let newYear = 0;
-		displayedDateStore.update((date) => {
-			const newDate = date.clone().subtract(1, 'month');
-			newYear = newDate.year();
-
-			return newDate;
-		});
-
-		const crrRange = $yearsRanges.ranges[$yearsRanges.crrRangeIndex];
-		const crrRangeStartYear = crrRange.split('-')[0];
-		if (newYear < +crrRangeStartYear) {
-			yearsRanges.updateRanges({ action: 'decrement' });
-		}
+		displayedDateStore.update((date) => date.clone().subtract(1, 'month'));
 	}
 
 	function incrementdisplayedDate() {
-		let newYear = 0;
-		displayedDateStore.update((date) => {
-			const newDate = date.clone().add(1, 'month');
-			newYear = newDate.year();
-
-			return newDate;
-		});
-
-		const crrRange = $yearsRanges.ranges[$yearsRanges.crrRangeIndex];
-		const crrRangeEndYear = crrRange.split('-')[1];
-		if (newYear > +crrRangeEndYear) {
-			yearsRanges.updateRanges({ action: 'increment' });
-		}
+		displayedDateStore.update((date) => date.clone().add(1, 'month'));
 	}
 
 	function resetdisplayedDate() {
