@@ -170,7 +170,7 @@ export const extraSetup = () => {
 	positionFloatingEl({ referenceEl: stickerPopoverStore?.referenceEl as HTMLElement, id });
 };
 export const cleanup = () => {
-	const plugin = window.plugin as DailyNoteFlexPlugin;
+	const plugin = get(pluginClassStore);
 
 	popoversStore.update((values) => ({
 		...values,

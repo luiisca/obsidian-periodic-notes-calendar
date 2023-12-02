@@ -188,7 +188,7 @@ export default class DailyNoteFlexPlugin extends Plugin {
 
 					return;
 				} else {
-					const plugin = window.plugin as DailyNoteFlexPlugin;
+					const plugin = get(pluginClassStore);
 
 					if (
 						!getFloatingEl({ id: CALENDAR_POPOVER_ID }) &&

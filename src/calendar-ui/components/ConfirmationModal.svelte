@@ -1,5 +1,5 @@
 <script lang="ts" generics="T">
-	import { settingsStore } from '@/stores/';
+	import { pluginClassStore, settingsStore } from '@/stores/';
 
 	import type { ISettings } from '@/settings';
 
@@ -15,7 +15,7 @@
 	let dontConfirmAgain = false;
 
 	const shouldConfirmBeforeCreate = async () => {
-		if (dontConfirmAgain && window.plugin) {
+		if (dontConfirmAgain && $pluginClassStore) {
 			settingsStore.update((oldSettings: ISettings) => {
 				const newSettings = {
 					...oldSettings,
@@ -25,7 +25,7 @@
 				return newSettings;
 			});
 
-			await window.plugin.saveData(get(settingsStore));
+			await $pluginClassStore.saveData(get(settingsStore));
 		}
 	};
 	const handleCancel = async () => {

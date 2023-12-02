@@ -1,7 +1,6 @@
 import { computePosition, flip, arrow } from '@floating-ui/dom';
 import { get, writable } from 'svelte/store';
-import type DailyNoteFlexPlugin from '../../main';
-import { crrFileMenu } from '../../stores';
+import { crrFileMenu, pluginClassStore } from '../../stores';
 import type { ComponentType } from 'svelte';
 import { popover as calendarPopover } from './calendar';
 import { popover as stickerPopover } from './sticker';
@@ -216,7 +215,7 @@ export const setupPopover = ({
 		props?: Record<string, unknown>;
 	};
 }) => {
-	const plugin = window.plugin as DailyNoteFlexPlugin;
+	const plugin = get(pluginClassStore);
 	// setup View
 	plugin.popovers[id] = new view.Component({
 		target: document.body,

@@ -2498,7 +2498,7 @@ const extraSetup$1 = () => {
 };
 const cleanup$1 = () => {
     console.log('🧹🤯📅📅📅Calendar popover cleanup()');
-    const plugin = window.plugin;
+    const plugin = get_store_value(pluginClassStore$1);
     popoversStore.update((values) => ({
         ...values,
         [id$1]: {
@@ -2652,7 +2652,7 @@ const extraSetup = () => {
     positionFloatingEl({ referenceEl: stickerPopoverStore?.referenceEl, id });
 };
 const cleanup = () => {
-    const plugin = window.plugin;
+    const plugin = get_store_value(pluginClassStore);
     popoversStore.update((values) => ({
         ...values,
         [id]: {
@@ -2802,7 +2802,7 @@ const togglePopover = ({ id }) => {
     }
 };
 const setupPopover = ({ id, referenceEl, view }) => {
-    const plugin = window.plugin;
+    const plugin = get_store_value(pluginClassStore$1);
     // setup View
     plugin.popovers[id] = new view.Component({
         target: document.body,
@@ -3137,15 +3137,9 @@ class SettingsTab extends obsidian.PluginSettingTab {
         this.addConfirmCreateSetting();
         this.addConfirmAutoHoverPreviewSetting();
         this.addShowWeeklyNoteSetting();
-        this.containerEl.createEl('h3', {
-            text: 'Locale'
-        });
-        this.addLocaleOverrideSetting();
-        this.addWeekStartSetting();
-        this.addAllowLocalesSwitchFromCommandPaletteSetting();
         if (!get_store_value(settingsStore).viewOpen) {
             this.containerEl.createEl('h3', {
-                text: 'Popovers close conditions'
+                text: 'Popover behavior'
             });
             this.addClosePopoversOneByOneOnClickOutSetting();
             this.addClosePopoversOneByBoneOnEscKeydownSetting();
@@ -3153,11 +3147,17 @@ class SettingsTab extends obsidian.PluginSettingTab {
                 this.addSpSearchInputOnEscKeydownSetting();
             }
         }
+        this.containerEl.createEl('h3', {
+            text: 'Locale'
+        });
+        this.addLocaleOverrideSetting();
+        this.addWeekStartSetting();
+        this.addAllowLocalesSwitchFromCommandPaletteSetting();
     }
     addViewLeafPositionSetting() {
         new obsidian.Setting(this.containerEl)
-            .setName('Calendar view position')
-            .setDesc('Which sidebar should calendar view be on?')
+            .setName('Calendar pane placement')
+            .setDesc('Select the pane to display the Calendar in')
             .addDropdown((viewLeafPosition) => {
             viewLeafPosition
                 .addOption('Left', 'Left')
@@ -3176,10 +3176,9 @@ class SettingsTab extends obsidian.PluginSettingTab {
         });
     }
     addPopoverSetting() {
-        // TODO: improve wording
         new obsidian.Setting(this.containerEl)
-            .setName('Ribbon icon opens Calendar view')
-            .setDesc('Show Calendar view when clicking on ribbon icon instead of default popover')
+            .setName('Open Calendar pane with Ribbon click')
+            .setDesc('Display Calendar pane upon clicking the ribbon icon instead of the default popover')
             .addToggle((viewOpen) => viewOpen.setValue(get_store_value(settingsStore).viewOpen).onChange(async (viewOpen) => {
             if (this.plugin.popoversCleanups.length > 0) {
                 this.plugin.popoversCleanups.forEach((cleanup) => cleanup());
@@ -3200,8 +3199,9 @@ class SettingsTab extends obsidian.PluginSettingTab {
         }));
     }
     addOpenPopoverOnRibbonHoverSetting() {
-        // TODO: improve wording
-        new obsidian.Setting(this.containerEl).setName('Open popover on Ribbon hover').addToggle((el) => el
+        new obsidian.Setting(this.containerEl)
+            .setName('Open Calendar popover with Ribbon hover')
+            .addToggle((el) => el
             .setValue(get_store_value(settingsStore).openPopoverOnRibbonHover)
             .onChange(async (openPopoverOnRibbonHover) => {
             console.log('setting() > popoversCleanups: 🧹🧹🧹 🌬️ ', this.plugin.popoversCleanups);
@@ -3235,10 +3235,9 @@ class SettingsTab extends obsidian.PluginSettingTab {
         });
     }
     addConfirmAutoHoverPreviewSetting() {
-        // TODO: improve wording
         new obsidian.Setting(this.containerEl)
-            .setName('Automatically preview note on hover')
-            .setDesc('Require special key combination (Shift + mouse hover) to preview note')
+            .setName('Preview note on hover')
+            .setDesc('Preview note automatically on hover, without key combination (Ctrl + mouse hover)')
             .addToggle((toggle) => {
             toggle.setValue(get_store_value(settingsStore).autoHoverPreview);
             toggle.onChange(async (value) => {
@@ -3250,8 +3249,8 @@ class SettingsTab extends obsidian.PluginSettingTab {
     }
     addShowWeeklyNoteSetting() {
         new obsidian.Setting(this.containerEl)
-            .setName('Show week number')
-            .setDesc('Enable this to add a column with the week number')
+            .setName('Show week and quarter numbers')
+            .setDesc('Enable this to add extra columns for week and quarter numbers')
             .addToggle((toggle) => {
             toggle.setValue(get_store_value(settingsStore).localeSettings.showWeekNums);
             toggle.onChange(async (value) => {
@@ -3287,10 +3286,9 @@ class SettingsTab extends obsidian.PluginSettingTab {
     addWeekStartSetting() {
         const { localeSettings } = get_store_value(settingsStore);
         console.log('addWeekStartSetting() > localeSettings: ', localeSettings);
-        // TODO: improve wording
         new obsidian.Setting(this.containerEl)
-            .setName('Start week on:')
-            .setDesc("Choose what day of the week to start. Select 'Locale default' to use the default specified by moment.js")
+            .setName('Week start day')
+            .setDesc("Select the day to begin the week with. Choose 'Locale default' to use moment.js default")
             .addDropdown((dropdown) => {
             dropdown.addOption(defaultWeekdays[window.moment.localeData().firstDayOfWeek()], `Locale default - ${window.moment.localeData().weekdays()[window.moment.localeData().firstDayOfWeek()]}`);
             console.log('addWeekStartSetting() > locale weekdays: ', window.moment.localeData().weekdays());
@@ -3314,9 +3312,8 @@ class SettingsTab extends obsidian.PluginSettingTab {
     }
     addAllowLocalesSwitchFromCommandPaletteSetting() {
         new obsidian.Setting(this.containerEl)
-            // TODO: improve wording
-            .setName('Allow switching locales from command palette')
-            .setDesc('Select a new locale directly from the command palette. Note that this requires you to restart the app.')
+            .setName('Switch locale via Command Palette')
+            .setDesc('Select a different locale directly from the Command Palette. Please note that an app restart is required')
             .addToggle((toggle) => {
             toggle.setValue(get_store_value(settingsStore).allowLocalesSwitchFromCommandPalette);
             toggle.onChange((value) => {
@@ -3328,7 +3325,7 @@ class SettingsTab extends obsidian.PluginSettingTab {
     }
     addClosePopoversOneByOneOnClickOutSetting() {
         const settingEl = new obsidian.Setting(this.containerEl)
-            .setName('Close popovers one by one on click outside')
+            .setName('Dismiss popovers individually on outside click')
             .addToggle((toggle) => {
             toggle.setValue(get_store_value(settingsStore).popoversCloseData.closePopoversOneByOneOnClickOut);
             toggle.onChange((value) => {
@@ -3344,7 +3341,7 @@ class SettingsTab extends obsidian.PluginSettingTab {
     }
     addClosePopoversOneByBoneOnEscKeydownSetting() {
         new obsidian.Setting(this.containerEl)
-            .setName('Close popovers one by one on `Esc` key pressed')
+            .setName('Dismiss popovers individually with `Esc` key')
             .addToggle((toggle) => {
             toggle.setValue(get_store_value(settingsStore).popoversCloseData.closePopoversOneByOneOnEscKeydown);
             toggle.onChange((value) => {
@@ -3361,8 +3358,7 @@ class SettingsTab extends obsidian.PluginSettingTab {
     addSpSearchInputOnEscKeydownSetting() {
         console.log('👟 RUNNING addSpSearchInputOnEscKeydownSetting()');
         new obsidian.Setting(this.containerEl)
-            .setName("On sticker popover's search input `Esc` keydown")
-            .setDesc("Decide what to do when `Esc` pressed in sticker popover's search input")
+            .setName('`Esc` key behavior in Sticker Popover search input')
             .addDropdown((dropdown) => {
             console.log('value in store: ', get_store_value(settingsStore).popoversCloseData.searchInputOnEscKeydown);
             // dropdown.setValue(get(settingsStore).popoversCloseData.searchInputOnEscKeydown);
@@ -3507,7 +3503,7 @@ const localeDataStore = writable({
 function updateLocale(localeKey) {
     window.moment.locale(localeKey);
     // update settings
-    get_store_value(pluginClassStore).saveSettings((settings) => ({
+    get_store_value(pluginClassStore$1).saveSettings((settings) => ({
         localeSettings: {
             ...settings.localeSettings,
             localeOverride: localeKey
@@ -3518,7 +3514,7 @@ function updateLocale(localeKey) {
 }
 function updateWeekStart(weekStartId = window.moment.localeData().firstDayOfWeek()) {
     // update settings
-    window.plugin?.saveSettings((settings) => ({
+    get_store_value(pluginClassStore$1).saveSettings((settings) => ({
         localeSettings: {
             ...settings.localeSettings,
             weekStartId
@@ -3950,13 +3946,15 @@ function create_fragment$f(ctx) {
 }
 
 function instance$f($$self, $$props, $$invalidate) {
+	let $pluginClassStore;
+	component_subscribe($$self, pluginClassStore$1, $$value => $$invalidate(10, $pluginClassStore = $$value));
 	let { config } = $$props;
 	let { modalClass } = $$props;
 	const { title, text, note, cta, onAccept } = config;
 	let dontConfirmAgain = false;
 
 	const shouldConfirmBeforeCreate = async () => {
-		if (dontConfirmAgain && window.plugin) {
+		if (dontConfirmAgain && $pluginClassStore) {
 			settingsStore.update(oldSettings => {
 				const newSettings = {
 					...oldSettings,
@@ -3966,7 +3964,7 @@ function instance$f($$self, $$props, $$invalidate) {
 				return newSettings;
 			});
 
-			await window.plugin.saveData(get_store_value(settingsStore));
+			await $pluginClassStore.saveData(get_store_value(settingsStore));
 		}
 	};
 
@@ -4177,7 +4175,7 @@ const stickerPopoverNoteDateUIDStore = writable('');
 const stickerPopoverCrrGranularity = writable();
 
 const settingsStore = writable(DEFAULT_SETTINGS);
-const pluginClassStore = writable();
+const pluginClassStore$1 = writable();
 const crrFileMenu = writable(null);
 
 function isMacOS() {
@@ -49681,7 +49679,7 @@ function instance$2($$self, $$props, $$invalidate) {
 	let $pluginClassStore;
 	let $stickerPopoverNoteDateUIDStore;
 	let $stickerPopoverCrrGranularity;
-	component_subscribe($$self, pluginClassStore, $$value => $$invalidate(7, $pluginClassStore = $$value));
+	component_subscribe($$self, pluginClassStore$1, $$value => $$invalidate(7, $pluginClassStore = $$value));
 	component_subscribe($$self, stickerPopoverNoteDateUIDStore, $$value => $$invalidate(2, $stickerPopoverNoteDateUIDStore = $$value));
 	component_subscribe($$self, stickerPopoverCrrGranularity, $$value => $$invalidate(3, $stickerPopoverCrrGranularity = $$value));
 	let { close } = $$props;
@@ -49809,7 +49807,7 @@ function add_css$1(target) {
 	append_styles(target, "svelte-fshnug", ".svelte-fshnug.svelte-fshnug.svelte-fshnug,.svelte-fshnug.svelte-fshnug.svelte-fshnug::before,.svelte-fshnug.svelte-fshnug.svelte-fshnug::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-fshnug.svelte-fshnug.svelte-fshnug::before,.svelte-fshnug.svelte-fshnug.svelte-fshnug::after{--tw-content:''}.svelte-fshnug.svelte-fshnug.svelte-fshnug:-moz-focusring{outline:auto}.svelte-fshnug.svelte-fshnug.svelte-fshnug:-moz-ui-invalid{box-shadow:none}.svelte-fshnug.svelte-fshnug.svelte-fshnug::-webkit-inner-spin-button,.svelte-fshnug.svelte-fshnug.svelte-fshnug::-webkit-outer-spin-button{height:auto}.svelte-fshnug.svelte-fshnug.svelte-fshnug::-webkit-search-decoration{-webkit-appearance:none}.svelte-fshnug.svelte-fshnug.svelte-fshnug::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}.svelte-fshnug.svelte-fshnug.svelte-fshnug:disabled{cursor:default}.svelte-fshnug.svelte-fshnug.svelte-fshnug,.svelte-fshnug.svelte-fshnug.svelte-fshnug::before,.svelte-fshnug.svelte-fshnug.svelte-fshnug::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-fshnug.svelte-fshnug.svelte-fshnug::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.container.svelte-fshnug.svelte-fshnug.svelte-fshnug{width:100%}@media(min-width: 640px){.container.svelte-fshnug.svelte-fshnug.svelte-fshnug{max-width:640px}}@media(min-width: 768px){.container.svelte-fshnug.svelte-fshnug.svelte-fshnug{max-width:768px}}@media(min-width: 1024px){.container.svelte-fshnug.svelte-fshnug.svelte-fshnug{max-width:1024px}}@media(min-width: 1280px){.container.svelte-fshnug.svelte-fshnug.svelte-fshnug{max-width:1280px}}@media(min-width: 1536px){.container.svelte-fshnug.svelte-fshnug.svelte-fshnug{max-width:1536px}}.pointer-events-none.svelte-fshnug.svelte-fshnug.svelte-fshnug{pointer-events:none}.collapse.svelte-fshnug.svelte-fshnug.svelte-fshnug{visibility:collapse}.static.svelte-fshnug.svelte-fshnug.svelte-fshnug{position:static}.absolute.svelte-fshnug.svelte-fshnug.svelte-fshnug{position:absolute}.relative.svelte-fshnug.svelte-fshnug.svelte-fshnug{position:relative}.left-0.svelte-fshnug.svelte-fshnug.svelte-fshnug{left:0px}.left-full.svelte-fshnug.svelte-fshnug.svelte-fshnug{left:100%}.top-0.svelte-fshnug.svelte-fshnug.svelte-fshnug{top:0px}.z-10.svelte-fshnug.svelte-fshnug.svelte-fshnug{z-index:10}.z-20.svelte-fshnug.svelte-fshnug.svelte-fshnug{z-index:20}.m-0.svelte-fshnug.svelte-fshnug.svelte-fshnug{margin:0px}.mx-\\[1px\\].svelte-fshnug.svelte-fshnug.svelte-fshnug{margin-left:1px;margin-right:1px}.ml-\\[5px\\].svelte-fshnug.svelte-fshnug.svelte-fshnug{margin-left:5px}.mt-2.svelte-fshnug.svelte-fshnug.svelte-fshnug{margin-top:0.5rem}.mt-3.svelte-fshnug.svelte-fshnug.svelte-fshnug{margin-top:0.75rem}.mt-7.svelte-fshnug.svelte-fshnug.svelte-fshnug{margin-top:1.75rem}.block.svelte-fshnug.svelte-fshnug.svelte-fshnug{display:block}.inline-block.svelte-fshnug.svelte-fshnug.svelte-fshnug{display:inline-block}.flex.svelte-fshnug.svelte-fshnug.svelte-fshnug{display:flex}.table.svelte-fshnug.svelte-fshnug.svelte-fshnug{display:table}.contents.svelte-fshnug.svelte-fshnug.svelte-fshnug{display:contents}.h-2.svelte-fshnug.svelte-fshnug.svelte-fshnug{height:0.5rem}.h-2\\.5.svelte-fshnug.svelte-fshnug.svelte-fshnug{height:0.625rem}.h-3.svelte-fshnug.svelte-fshnug.svelte-fshnug{height:0.75rem}.h-\\[6px\\].svelte-fshnug.svelte-fshnug.svelte-fshnug{height:6px}.w-2.svelte-fshnug.svelte-fshnug.svelte-fshnug{width:0.5rem}.w-2\\.5.svelte-fshnug.svelte-fshnug.svelte-fshnug{width:0.625rem}.w-3.svelte-fshnug.svelte-fshnug.svelte-fshnug{width:0.75rem}.w-\\[6px\\].svelte-fshnug.svelte-fshnug.svelte-fshnug{width:6px}.w-full.svelte-fshnug.svelte-fshnug.svelte-fshnug{width:100%}.w-max.svelte-fshnug.svelte-fshnug.svelte-fshnug{width:-moz-max-content;width:max-content}.border-collapse.svelte-fshnug.svelte-fshnug.svelte-fshnug{border-collapse:collapse}.-translate-x-1\\/2.svelte-fshnug.svelte-fshnug.svelte-fshnug{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-y-1\\/2.svelte-fshnug.svelte-fshnug.svelte-fshnug{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-12.svelte-fshnug.svelte-fshnug.svelte-fshnug{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-45.svelte-fshnug.svelte-fshnug.svelte-fshnug{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.transform.svelte-fshnug.svelte-fshnug.svelte-fshnug{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.\\!cursor-default.svelte-fshnug.svelte-fshnug.svelte-fshnug{cursor:default !important}.cursor-not-allowed.svelte-fshnug.svelte-fshnug.svelte-fshnug{cursor:not-allowed}.cursor-pointer.svelte-fshnug.svelte-fshnug.svelte-fshnug{cursor:pointer}.flex-col.svelte-fshnug.svelte-fshnug.svelte-fshnug{flex-direction:column}.items-center.svelte-fshnug.svelte-fshnug.svelte-fshnug{align-items:center}.justify-between.svelte-fshnug.svelte-fshnug.svelte-fshnug{justify-content:space-between}.space-x-1.svelte-fshnug>.svelte-fshnug:not([hidden])~.svelte-fshnug:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(0.25rem * var(--tw-space-x-reverse));margin-left:calc(0.25rem * calc(1 - var(--tw-space-x-reverse)))}.rounded-md.svelte-fshnug.svelte-fshnug.svelte-fshnug{border-radius:0.375rem}.rounded-sm.svelte-fshnug.svelte-fshnug.svelte-fshnug{border-radius:0.125rem}.border-0.svelte-fshnug.svelte-fshnug.svelte-fshnug{border-width:0px}.bg-gray-100.svelte-fshnug.svelte-fshnug.svelte-fshnug{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))}.bg-slate-500.svelte-fshnug.svelte-fshnug.svelte-fshnug{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))}.bg-transparent.svelte-fshnug.svelte-fshnug.svelte-fshnug{background-color:transparent}.p-1.svelte-fshnug.svelte-fshnug.svelte-fshnug{padding:0.25rem}.p-2.svelte-fshnug.svelte-fshnug.svelte-fshnug{padding:0.5rem}.px-4.svelte-fshnug.svelte-fshnug.svelte-fshnug{padding-left:1rem;padding-right:1rem}.py-2.svelte-fshnug.svelte-fshnug.svelte-fshnug{padding-top:0.5rem;padding-bottom:0.5rem}.pt-4.svelte-fshnug.svelte-fshnug.svelte-fshnug{padding-top:1rem}.text-sm.svelte-fshnug.svelte-fshnug.svelte-fshnug{font-size:0.875rem;line-height:1.25rem}.text-xs.svelte-fshnug.svelte-fshnug.svelte-fshnug{font-size:0.75rem;line-height:1rem}.uppercase.svelte-fshnug.svelte-fshnug.svelte-fshnug{text-transform:uppercase}.capitalize.svelte-fshnug.svelte-fshnug.svelte-fshnug{text-transform:capitalize}.text-\\[--text-muted\\].svelte-fshnug.svelte-fshnug.svelte-fshnug{color:var(--text-muted)}.text-\\[--text-on-accent\\].svelte-fshnug.svelte-fshnug.svelte-fshnug{color:var(--text-on-accent)}.text-black.svelte-fshnug.svelte-fshnug.svelte-fshnug{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))}.text-white.svelte-fshnug.svelte-fshnug.svelte-fshnug{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))}.opacity-0.svelte-fshnug.svelte-fshnug.svelte-fshnug{opacity:0}.opacity-100.svelte-fshnug.svelte-fshnug.svelte-fshnug{opacity:1}.opacity-50.svelte-fshnug.svelte-fshnug.svelte-fshnug{opacity:0.5}.shadow.svelte-fshnug.svelte-fshnug.svelte-fshnug{--tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.blur.svelte-fshnug.svelte-fshnug.svelte-fshnug{--tw-blur:blur(8px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.transition.svelte-fshnug.svelte-fshnug.svelte-fshnug{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.\\[all\\:inherit\\].svelte-fshnug.svelte-fshnug.svelte-fshnug{all:inherit}.hover\\:cursor-pointer.svelte-fshnug.svelte-fshnug.svelte-fshnug:hover{cursor:pointer}");
 }
 
-// (128:0) {#if popover}
+// (127:0) {#if popover}
 function create_if_block_1(ctx) {
 	let div3;
 	let div0;
@@ -49874,7 +49872,7 @@ function create_if_block_1(ctx) {
 	};
 }
 
-// (144:0) {#if !popover}
+// (143:0) {#if !popover}
 function create_if_block(ctx) {
 	let calendar;
 	let current;
@@ -50043,7 +50041,6 @@ function instance$1($$self, $$props, $$invalidate) {
 		const note = getNoteByGranularity({ date, granularity });
 
 		if (!note) {
-			// TODO: improve wording
 			new obsidian.Notice('Create a note first');
 		} else {
 			const dateUID = getDateUID({ date, granularity });
@@ -50051,7 +50048,7 @@ function instance$1($$self, $$props, $$invalidate) {
 			const calendarPopoverStore = get_store_value(popoversStore)?.[CALENDAR_POPOVER_ID];
 
 			const setupStickerPopover = () => {
-				const plugin = window.plugin;
+				const plugin = get_store_value(pluginClassStore);
 				const floatingEl = getFloatingEl({ id: STICKER_POPOVER_ID });
 
 				if (!floatingEl && !plugin.popovers[STICKER_POPOVER_ID]) {
@@ -50781,7 +50778,7 @@ class DailyNoteFlexPlugin extends obsidian.Plugin {
     }
     async onload() {
         console.log('ON Load 🫵');
-        pluginClassStore.set(this);
+        pluginClassStore$1.set(this);
         this.register(settingsStore.subscribe((settings) => {
             this.settings = settings;
         }));
@@ -50896,7 +50893,7 @@ class DailyNoteFlexPlugin extends obsidian.Plugin {
                     return;
                 }
                 else {
-                    const plugin = window.plugin;
+                    const plugin = get_store_value(pluginClassStore$1);
                     if (!getFloatingEl({ id: CALENDAR_POPOVER_ID }) &&
                         !plugin.popovers[CALENDAR_POPOVER_ID]) {
                         setupPopover({

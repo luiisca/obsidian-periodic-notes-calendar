@@ -27,7 +27,7 @@ function updateLocale(localeKey: string) {
 }
 function updateWeekStart(weekStartId: number = window.moment.localeData().firstDayOfWeek()) {
 	// update settings
-	window.plugin?.saveSettings((settings) => ({
+	get(pluginClassStore).saveSettings((settings) => ({
 		localeSettings: {
 			...settings.localeSettings,
 			weekStartId

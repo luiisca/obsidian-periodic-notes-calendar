@@ -12,8 +12,7 @@ import {
 	type TWindowEvents
 } from '.';
 import { get } from 'svelte/store';
-import { crrFileMenu, settingsStore } from '@/stores';
-import type DailyNoteFlexPlugin from '@/main';
+import { crrFileMenu, pluginClassStore, settingsStore } from '@/stores';
 import { autoUpdate } from '@floating-ui/dom';
 
 const id: TPopovers = CALENDAR_POPOVER_ID;
@@ -178,7 +177,7 @@ export const extraSetup = () => {
 };
 export const cleanup = () => {
 	console.log('🧹🤯📅📅📅Calendar popover cleanup()');
-	const plugin = window.plugin as DailyNoteFlexPlugin;
+	const plugin = get(pluginClassStore);
 
 	popoversStore.update((values) => ({
 		...values,

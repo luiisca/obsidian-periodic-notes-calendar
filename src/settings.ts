@@ -10,7 +10,13 @@ import View from './View.svelte';
 import { defaultWeekdays, sysLocaleKey, sysWeekStartId } from './localization';
 import { getNewValidFormats } from './calendar-io/validation';
 import { VIEW_TYPE_CALENDAR } from './view';
-import { settingsStore, setupLocale, updateLocale, updateWeekStart, updateWeekdays } from './stores';
+import {
+	settingsStore,
+	setupLocale,
+	updateLocale,
+	updateWeekStart,
+	updateWeekdays
+} from './stores';
 
 export interface ISettings {
 	viewLeafPosition: 'Left' | 'Right';
@@ -88,16 +94,9 @@ export class SettingsTab extends PluginSettingTab {
 		this.addConfirmAutoHoverPreviewSetting();
 		this.addShowWeeklyNoteSetting();
 
-		this.containerEl.createEl('h3', {
-			text: 'Locale'
-		});
-		this.addLocaleOverrideSetting();
-		this.addWeekStartSetting();
-		this.addAllowLocalesSwitchFromCommandPaletteSetting();
-
 		if (!get(settingsStore).viewOpen) {
 			this.containerEl.createEl('h3', {
-				text: 'Popovers close conditions'
+				text: 'Popover behavior'
 			});
 
 			this.addClosePopoversOneByOneOnClickOutSetting();
@@ -106,12 +105,19 @@ export class SettingsTab extends PluginSettingTab {
 				this.addSpSearchInputOnEscKeydownSetting();
 			}
 		}
+
+		this.containerEl.createEl('h3', {
+			text: 'Locale'
+		});
+		this.addLocaleOverrideSetting();
+		this.addWeekStartSetting();
+		this.addAllowLocalesSwitchFromCommandPaletteSetting();
 	}
 
 	addViewLeafPositionSetting() {
 		new Setting(this.containerEl)
-			.setName('Calendar view position')
-			.setDesc('Which sidebar should calendar view be on?')
+			.setName('Calendar pane placement')
+			.setDesc('Select the pane to display the Calendar in')
 			.addDropdown((viewLeafPosition) => {
 				viewLeafPosition
 					.addOption('Left', 'Left')
@@ -131,10 +137,9 @@ export class SettingsTab extends PluginSettingTab {
 			});
 	}
 	addPopoverSetting() {
-		// TODO: improve wording
 		new Setting(this.containerEl)
-			.setName('Ribbon icon opens Calendar view')
-			.setDesc('Show Calendar view when clicking on ribbon icon instead of default popover')
+			.setName('Open Calendar pane with Ribbon click')
+			.setDesc('Display Calendar pane upon clicking the ribbon icon instead of the default popover')
 			.addToggle((viewOpen) =>
 				viewOpen.setValue(get(settingsStore).viewOpen).onChange(async (viewOpen) => {
 					if (this.plugin.popoversCleanups.length > 0) {
@@ -160,31 +165,32 @@ export class SettingsTab extends PluginSettingTab {
 			);
 	}
 	addOpenPopoverOnRibbonHoverSetting() {
-		// TODO: improve wording
-		new Setting(this.containerEl).setName('Open popover on Ribbon hover').addToggle((el) =>
-			el
-				.setValue(get(settingsStore).openPopoverOnRibbonHover)
-				.onChange(async (openPopoverOnRibbonHover) => {
-					console.log('setting() > popoversCleanups: 🧹🧹🧹 🌬️ ', this.plugin.popoversCleanups);
-					if (this.plugin.popoversCleanups.length > 0) {
-						this.plugin.popoversCleanups.forEach((cleanup) => cleanup());
-						this.plugin.popoversCleanups = [];
-					}
-
-					console.log('setting() > openPopoverOnRibbonHover: ', openPopoverOnRibbonHover);
-
-					await this.plugin.saveSettings(() => ({
-						openPopoverOnRibbonHover
-					}));
-
-					setupPopover({
-						id: CALENDAR_POPOVER_ID,
-						view: {
-							Component: View
+		new Setting(this.containerEl)
+			.setName('Open Calendar popover with Ribbon hover')
+			.addToggle((el) =>
+				el
+					.setValue(get(settingsStore).openPopoverOnRibbonHover)
+					.onChange(async (openPopoverOnRibbonHover) => {
+						console.log('setting() > popoversCleanups: 🧹🧹🧹 🌬️ ', this.plugin.popoversCleanups);
+						if (this.plugin.popoversCleanups.length > 0) {
+							this.plugin.popoversCleanups.forEach((cleanup) => cleanup());
+							this.plugin.popoversCleanups = [];
 						}
-					});
-				})
-		);
+
+						console.log('setting() > openPopoverOnRibbonHover: ', openPopoverOnRibbonHover);
+
+						await this.plugin.saveSettings(() => ({
+							openPopoverOnRibbonHover
+						}));
+
+						setupPopover({
+							id: CALENDAR_POPOVER_ID,
+							view: {
+								Component: View
+							}
+						});
+					})
+			);
 	}
 
 	addConfirmCreateSetting(): void {
@@ -201,10 +207,9 @@ export class SettingsTab extends PluginSettingTab {
 			});
 	}
 	addConfirmAutoHoverPreviewSetting() {
-		// TODO: improve wording
 		new Setting(this.containerEl)
-			.setName('Automatically preview note on hover')
-			.setDesc('Require special key combination (Shift + mouse hover) to preview note')
+			.setName('Preview note on hover')
+			.setDesc('Preview note automatically on hover, without key combination (Ctrl + mouse hover)')
 			.addToggle((toggle) => {
 				toggle.setValue(get(settingsStore).autoHoverPreview);
 				toggle.onChange(async (value) => {
@@ -217,8 +222,8 @@ export class SettingsTab extends PluginSettingTab {
 
 	addShowWeeklyNoteSetting(): void {
 		new Setting(this.containerEl)
-			.setName('Show week number')
-			.setDesc('Enable this to add a column with the week number')
+			.setName('Show week and quarter numbers')
+			.setDesc('Enable this to add extra columns for week and quarter numbers')
 			.addToggle((toggle) => {
 				toggle.setValue(get(settingsStore).localeSettings.showWeekNums);
 				toggle.onChange(async (value) => {
@@ -264,11 +269,10 @@ export class SettingsTab extends PluginSettingTab {
 		const { localeSettings } = get(settingsStore);
 		console.log('addWeekStartSetting() > localeSettings: ', localeSettings);
 
-		// TODO: improve wording
 		new Setting(this.containerEl)
-			.setName('Start week on:')
+			.setName('Week start day')
 			.setDesc(
-				"Choose what day of the week to start. Select 'Locale default' to use the default specified by moment.js"
+				"Select the day to begin the week with. Choose 'Locale default' to use moment.js default"
 			)
 			.addDropdown((dropdown) => {
 				dropdown.addOption(
@@ -307,10 +311,9 @@ export class SettingsTab extends PluginSettingTab {
 	}
 	addAllowLocalesSwitchFromCommandPaletteSetting() {
 		new Setting(this.containerEl)
-			// TODO: improve wording
-			.setName('Allow switching locales from command palette')
+			.setName('Switch locale via Command Palette')
 			.setDesc(
-				'Select a new locale directly from the command palette. Note that this requires you to restart the app.'
+				'Select a different locale directly from the Command Palette. Please note that an app restart is required'
 			)
 			.addToggle((toggle) => {
 				toggle.setValue(get(settingsStore).allowLocalesSwitchFromCommandPalette);
@@ -318,14 +321,13 @@ export class SettingsTab extends PluginSettingTab {
 					this.plugin.saveSettings(() => ({
 						allowLocalesSwitchFromCommandPalette: value
 					}));
-
 				});
 			});
 	}
 
 	addClosePopoversOneByOneOnClickOutSetting() {
 		const settingEl = new Setting(this.containerEl)
-			.setName('Close popovers one by one on click outside')
+			.setName('Dismiss popovers individually on outside click')
 			.addToggle((toggle) => {
 				toggle.setValue(get(settingsStore).popoversCloseData.closePopoversOneByOneOnClickOut);
 				toggle.onChange((value) => {
@@ -342,7 +344,7 @@ export class SettingsTab extends PluginSettingTab {
 
 	addClosePopoversOneByBoneOnEscKeydownSetting() {
 		new Setting(this.containerEl)
-			.setName('Close popovers one by one on `Esc` key pressed')
+			.setName('Dismiss popovers individually with `Esc` key')
 			.addToggle((toggle) => {
 				toggle.setValue(get(settingsStore).popoversCloseData.closePopoversOneByOneOnEscKeydown);
 				toggle.onChange((value) => {
@@ -361,8 +363,7 @@ export class SettingsTab extends PluginSettingTab {
 		console.log('👟 RUNNING addSpSearchInputOnEscKeydownSetting()');
 
 		new Setting(this.containerEl)
-			.setName("On sticker popover's search input `Esc` keydown")
-			.setDesc("Decide what to do when `Esc` pressed in sticker popover's search input")
+			.setName('`Esc` key behavior in Sticker Popover search input')
 			.addDropdown((dropdown) => {
 				console.log(
 					'value in store: ',

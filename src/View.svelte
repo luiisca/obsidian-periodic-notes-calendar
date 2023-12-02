@@ -83,7 +83,6 @@
 		const note = getNoteByGranularity({ date, granularity });
 
 		if (!note) {
-			// TODO: improve wording
 			new Notice('Create a note first');
 		} else {
 			const dateUID = getDateUID({date, granularity});
@@ -92,7 +91,7 @@
 			const calendarPopoverStore = get(popoversStore)?.[CALENDAR_POPOVER_ID];
 
 			const setupStickerPopover = () => {
-				const plugin = window.plugin as DailyNoteFlexPlugin;
+				const plugin = get(pluginClassStore);
 				const floatingEl = getFloatingEl({ id: STICKER_POPOVER_ID });
 
 				if (!floatingEl && !plugin.popovers[STICKER_POPOVER_ID]) {
