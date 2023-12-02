@@ -22,7 +22,7 @@ export const ribbonReferenceElId = `${id}-ribbon-ref-el`;
 const getReferenceEl = () => document.querySelector(`[id=${ribbonReferenceElId}]`) as HTMLElement;
 
 const handleReferenceElHover = () => {
-	console.log("🖱️🖱️🖱️handleReferenceElHover()!!! 🤯🤯🤯")
+	console.log('🖱️🖱️🖱️handleReferenceElHover()!!! 🤯🤯🤯');
 	const calendarPopoverStore = get(popoversStore)[id];
 
 	if (!calendarPopoverStore?.opened) {
@@ -80,7 +80,11 @@ const handleWindowClick = (event: MouseEvent) => {
 	const targetOut = !calendarElTouched && !menuElTouched && !stickerElTouched;
 
 	// ensures popovers could be closed one by one
-	if (calendarPopoverStore?.opened && stickerPopoverStore?.opened && settings.popoversCloseData.closePopoversOneByOneOnClickOut ) {
+	if (
+		calendarPopoverStore?.opened &&
+		stickerPopoverStore?.opened &&
+		settings.popoversCloseData.closePopoversOneByOneOnClickOut
+	) {
 		return;
 	}
 
@@ -120,7 +124,11 @@ const handleWindowKeydown = (event: KeyboardEvent) => {
 	}
 
 	// ensures popovers could be closed one by one
-	if (calendarPopoverStore?.opened && stickerPopoverStore?.opened && settings.popoversCloseData.closePopoversOneByOneOnEscKeydown) {
+	if (
+		calendarPopoverStore?.opened &&
+		stickerPopoverStore?.opened &&
+		settings.popoversCloseData.closePopoversOneByOneOnEscKeydown
+	) {
 		return;
 	}
 
@@ -161,7 +169,7 @@ export const open = () => {
 	}));
 };
 export const extraSetup = () => {
-	console.log('🤯🤯calendar popover extraSetup()!!')
+	console.log('🤯🤯calendar popover extraSetup()!!');
 	positionFloatingEl({ referenceEl: getReferenceEl(), id });
 
 	if (get(settingsStore).openPopoverOnRibbonHover) {
@@ -169,7 +177,7 @@ export const extraSetup = () => {
 	}
 };
 export const cleanup = () => {
-	console.log("🧹🤯📅📅📅Calendar popover cleanup()")
+	console.log('🧹🤯📅📅📅Calendar popover cleanup()');
 	const plugin = window.plugin as DailyNoteFlexPlugin;
 
 	popoversStore.update((values) => ({

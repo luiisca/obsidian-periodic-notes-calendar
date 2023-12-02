@@ -1,7 +1,6 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
 
 import type DailyNoteFlexPlugin from '@/main';
-import { displayedDateStore, localeDataStore, settingsStore } from '@/stores';
 import { get } from 'svelte/store';
 import locales from './locales';
 import type { IGranularity } from './calendar-io';
@@ -11,6 +10,7 @@ import View from './View.svelte';
 import { defaultWeekdays, sysLocaleKey, sysWeekStartId } from './localization';
 import { getNewValidFormats } from './calendar-io/validation';
 import { VIEW_TYPE_CALENDAR } from './view';
+import { settingsStore, setupLocale, updateLocale, updateWeekStart, updateWeekdays } from './stores';
 
 export interface ISettings {
 	viewLeafPosition: 'Left' | 'Right';
@@ -34,6 +34,7 @@ export interface ISettings {
 	};
 
 	validFormats: Record<IGranularity, string[]>;
+	allowLocalesSwitchFromCommandPalette: boolean;
 }
 
 export const DEFAULT_SETTINGS: ISettings = Object.freeze({
@@ -57,7 +58,8 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
 		searchInputOnEscKeydown: 'close-popover' as 'close-popover' | 'reset'
 	},
 
-	validFormats: getNewValidFormats()
+	validFormats: getNewValidFormats(),
+	allowLocalesSwitchFromCommandPalette: false
 });
 
 export class SettingsTab extends PluginSettingTab {
@@ -67,7 +69,7 @@ export class SettingsTab extends PluginSettingTab {
 		super(app, plugin);
 		this.plugin = plugin;
 
-		this.setupLocale();
+		setupLocale();
 	}
 
 	display() {
@@ -91,6 +93,7 @@ export class SettingsTab extends PluginSettingTab {
 		});
 		this.addLocaleOverrideSetting();
 		this.addWeekStartSetting();
+		this.addAllowLocalesSwitchFromCommandPaletteSetting();
 
 		if (!get(settingsStore).viewOpen) {
 			this.containerEl.createEl('h3', {
@@ -119,7 +122,7 @@ export class SettingsTab extends PluginSettingTab {
 
 						await this.app.workspace[`get${position as 'Left' | 'Right'}Leaf`](false).setViewState({
 							type: VIEW_TYPE_CALENDAR,
-							active: false,
+							active: false
 						});
 						await this.plugin.saveSettings(() => ({
 							viewLeafPosition: position as 'Left' | 'Right'
@@ -248,9 +251,9 @@ export class SettingsTab extends PluginSettingTab {
 				dropdown.setValue(localeSettings.localeOverride);
 
 				dropdown.onChange((localeKey) => {
-					this.updateLocale(localeKey);
-					this.updateWeekStart();
-					this.updateWeekdays();
+					updateLocale(localeKey);
+					updateWeekStart();
+					updateWeekdays();
 
 					this.display();
 				});
@@ -297,8 +300,25 @@ export class SettingsTab extends PluginSettingTab {
 					const newWeekStartId = defaultWeekdays.indexOf(weekday);
 					console.log('setting() > newWeekStartId: ', newWeekStartId);
 
-					this.updateWeekStart(newWeekStartId);
-					this.updateWeekdays();
+					updateWeekStart(newWeekStartId);
+					updateWeekdays();
+				});
+			});
+	}
+	addAllowLocalesSwitchFromCommandPaletteSetting() {
+		new Setting(this.containerEl)
+			// TODO: improve wording
+			.setName('Allow switching locales from command palette')
+			.setDesc(
+				'Select a new locale directly from the command palette. Note that this requires you to restart the app.'
+			)
+			.addToggle((toggle) => {
+				toggle.setValue(get(settingsStore).allowLocalesSwitchFromCommandPalette);
+				toggle.onChange((value) => {
+					this.plugin.saveSettings(() => ({
+						allowLocalesSwitchFromCommandPalette: value
+					}));
+
 				});
 			});
 	}
@@ -364,59 +384,5 @@ export class SettingsTab extends PluginSettingTab {
 					}));
 				});
 			});
-	}
-
-	// helpers
-	private updateLocale(localeKey: string) {
-		window.moment.locale(localeKey);
-
-		// update settings
-		this.plugin.saveSettings((settings) => ({
-			localeSettings: {
-				...settings.localeSettings,
-				localeOverride: localeKey
-			}
-		}));
-
-		// update UI
-		displayedDateStore.set(window.moment());
-	}
-	private updateWeekStart(weekStartId: number = window.moment.localeData().firstDayOfWeek()) {
-		// update settings
-		this.plugin.saveSettings((settings) => ({
-			localeSettings: {
-				...settings.localeSettings,
-				weekStartId
-			}
-		}));
-
-		// update UI
-		displayedDateStore.set(window.moment());
-	}
-	private updateWeekdays() {
-		const weekStartId = get(settingsStore).localeSettings.weekStartId;
-
-		const localizedWeekdays = window.moment.localeData().weekdays();
-		const localizedWeekdaysShort = window.moment.localeData().weekdaysMin();
-		const weekdays = [
-			...localizedWeekdays.slice(weekStartId),
-			...localizedWeekdays.slice(0, weekStartId)
-		];
-		const weekdaysShort = [
-			...localizedWeekdaysShort.slice(weekStartId),
-			...localizedWeekdaysShort.slice(0, weekStartId)
-		];
-
-		// update UI
-		localeDataStore.update((data) => ({
-			...data,
-			weekdays,
-			weekdaysShort
-		}));
-		displayedDateStore.set(window.moment());
-	}
-	private setupLocale() {
-		window.moment.locale(get(settingsStore).localeSettings.localeOverride);
-		this.updateWeekdays();
 	}
 }

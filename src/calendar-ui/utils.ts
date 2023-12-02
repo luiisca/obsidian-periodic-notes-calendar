@@ -1,4 +1,4 @@
-import { localeDataStore, settingsStore } from '@/stores';
+import { localeDataStore, settingsStore } from '@/stores/stores';
 import type { Moment } from 'moment';
 import { get } from 'svelte/store';
 

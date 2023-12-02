@@ -1,9 +1,10 @@
 <script lang="ts" generics="T">
+	import { settingsStore } from '@/stores/';
+
 	import type { ISettings } from '@/settings';
 
 	import { get } from 'svelte/store';
 
-	import { settingsStore } from '@/stores';
 	import type { ConfirmationModal, IConfirmationDialogParams } from '../modals/confirmation';
 
 	export let config: IConfirmationDialogParams<T>;

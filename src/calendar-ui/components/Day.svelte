@@ -8,7 +8,7 @@
 	import { VIEW } from '../context';
 	import { isMetaPressed } from '../utils';
 	import { getDateUID } from '@/calendar-io';
-	import { notesStores } from '@/stores';
+	import { notesStores } from '@/stores/';
 	import Sticker from './Sticker.svelte';
 	import type { ICalendarViewCtx } from '@/types/view';
 

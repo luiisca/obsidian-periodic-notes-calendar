@@ -1,7 +1,7 @@
 import { Plugin, WorkspaceLeaf, WorkspaceRoot } from 'obsidian';
 import { CalendarView, VIEW_TYPE_CALENDAR } from './view';
 import View from './View.svelte';
-import { pluginClassStore, settingsStore } from './stores';
+import { pluginClassStore, settingsStore, updateLocale, updateWeekStart, updateWeekdays } from './stores';
 import { SettingsTab, type ISettings, DEFAULT_SETTINGS } from './settings';
 import { CALENDAR_POPOVER_ID, granularities } from './constants';
 import { tryToCreateNote } from './calendar-io';
@@ -19,6 +19,7 @@ import {
 import { get } from 'svelte/store';
 import type { SvelteComponent } from 'svelte';
 import { ribbonReferenceElId } from './calendar-ui/popovers/calendar';
+import locales from './locales';
 
 export default class DailyNoteFlexPlugin extends Plugin {
 	public settings: ISettings;
@@ -32,15 +33,13 @@ export default class DailyNoteFlexPlugin extends Plugin {
 		this.app.workspace.getLeavesOfType(VIEW_TYPE_CALENDAR).forEach((leaf) => leaf.detach());
 
 		this.popoversCleanups.length > 0 && this.popoversCleanups.forEach((cleanup) => cleanup());
-
-		window.plugin = null;
 	}
 
 	async onload() {
 		console.log('ON Load 🫵');
-		window.plugin = this; // access plugin methods globally
 
 		pluginClassStore.set(this);
+
 		this.register(
 			settingsStore.subscribe((settings) => {
 				this.settings = settings;
@@ -115,8 +114,22 @@ export default class DailyNoteFlexPlugin extends Plugin {
 				}
 			});
 		}
-		// const parsedResult = nldatesPlugin.parseDate('next year');
-		// console.log(parsedResult.moment.format('YYYY')); // This should return 2021
+		// add quick locales switch commands
+		if (this.settings.allowLocalesSwitchFromCommandPalette) {
+			window.moment.locales().forEach((momentLocale) => {
+				// dropdown.addOption(momentLocale, locales.get(momentLocale) || momentLocale);
+
+				this.addCommand({
+					id: 'switch-locale',
+					name: 'Switch locales',
+					callback: () => {
+						updateLocale(momentLocale);
+						updateWeekStart();
+						updateWeekdays();
+					}
+				});
+			});
+		}
 
 		this.app.workspace.onLayoutReady(() => {
 			console.log('ON Layout REady 🙌');
@@ -284,4 +297,7 @@ export default class DailyNoteFlexPlugin extends Plugin {
 			this.revealView();
 		}
 	}
+
+	// locale helpers
+
 }

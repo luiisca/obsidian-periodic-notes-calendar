@@ -1,40 +1,7 @@
-import { get, writable, type Writable } from 'svelte/store';
-import { DEFAULT_SETTINGS, type ISettings } from './settings';
-import type { Menu, TFile } from 'obsidian';
-import { getAllNotesByGranularity, type IGranularity } from './calendar-io';
-import { YEARS_RANGE_SIZE, granularities } from './constants';
+import { YEARS_RANGE_SIZE } from '@/constants';
+import { DEFAULT_SETTINGS } from '@/settings';
 import type { Moment } from 'moment';
-import type DailyNoteFlexPlugin from './main';
-import { defaultWeekdays, defaultWeekdaysShort } from './localization';
-
-export type TNotesStore = Record<string, { file: TFile; sticker: string | null }>;
-function createNotesStore(granularity: IGranularity) {
-	let hasError = false;
-
-	const store = writable<TNotesStore>({});
-
-	// index all existing notes
-	return {
-		index: () => {
-			try {
-				const notes = getAllNotesByGranularity(granularity);
-				console.log(`createNotesStore(${granularity}) > notes: `, notes);
-				if (Object.keys(notes).length === 0) {
-					throw new Error('No notes found');
-				}
-				store.set(notes);
-			} catch (err) {
-				if (!hasError) {
-					// Avoid error being shown multiple times
-					console.warn('[Calendar] Failed to find daily notes folder', err);
-				}
-				store.set({});
-				hasError = true;
-			}
-		},
-		...store
-	};
-}
+import { get, writable } from 'svelte/store';
 
 type IRanges = `${string}-${string}`[];
 function createYearsRangesStore() {
@@ -203,43 +170,7 @@ function createYearsRangesStore() {
 	};
 }
 
-function createSelectedFileStore() {
-	const store = writable<string | null>(null);
+const displayedDateStore = writable<Moment>(window.moment());
+const yearsRanges = createYearsRangesStore();
 
-	return {
-		setFile: (id: string) => {
-			store.set(id);
-			// console.log('createSelectedFileStore > setFile > activeFileUID: ', get(store));
-		},
-		...store
-	};
-}
-
-export const settingsStore = writable<ISettings>(DEFAULT_SETTINGS);
-type TLocaleData = {
-	weekdays: string[];
-	weekdaysShort: string[];
-};
-export const localeDataStore = writable<TLocaleData>({
-	weekdays: defaultWeekdays,
-	weekdaysShort: defaultWeekdaysShort
-});
-export const displayedDateStore = writable<Moment>(window.moment());
-export const activeFile = createSelectedFileStore();
-export const yearsRanges = createYearsRangesStore();
-export const pluginClassStore = writable<DailyNoteFlexPlugin>();
-
-type TNotesStores = Record<IGranularity, Writable<TNotesStore> & { index: () => void }>;
-export const notesStores: TNotesStores = {} as TNotesStores;
-
-granularities.forEach((granularity) => {
-	const notesExtStore = createNotesStore(granularity);
-
-	notesStores[granularity] = notesExtStore;
-});
-
-export const crrFileMenu = writable<Menu | null>(null);
-
-// update props of static sticker popover component
-export const stickerPopoverNoteDateUIDStore = writable('');
-export const stickerPopoverCrrGranularity = writable<IGranularity>();
+export { displayedDateStore, yearsRanges };
