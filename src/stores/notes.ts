@@ -31,7 +31,8 @@ function createNotesStore(granularity: IGranularity) {
 		...store
 	};
 }
-let notesStores: Record<IGranularity, Writable<TNotesStore> & { index: () => void }>;
+type TNotesStores = Record<IGranularity, ReturnType<typeof createNotesStore>>;
+const notesStores: TNotesStores = {} as TNotesStores;
 granularities.forEach((granularity) => {
 	const notesExtStore = createNotesStore(granularity);
 
@@ -50,7 +51,6 @@ function createSelectedFileStore() {
 	};
 }
 const activeFile = createSelectedFileStore();
-
 
 export type { TNotesStore };
 export { notesStores, activeFile };

@@ -164,7 +164,7 @@ import { createYearlyNote } from './yearly';
 import { getDateFromFile, getDateUID, getPeriodicityFromGranularity } from './parse';
 import { getNoteSettingsByGranularity } from './settings';
 import { get } from 'svelte/store';
-import { activeFile, notesStores, settingsStore } from '@/stores/stores';
+import { activeFile, notesStores, settingsStore } from '@/stores';
 import { capitalize, getOnCreateNoteDialogNoteFromGranularity } from '@/utils';
 import { createConfirmationDialog } from '@/calendar-ui/modals/confirmation';
 import { getBasename, validateFormat } from './validation';

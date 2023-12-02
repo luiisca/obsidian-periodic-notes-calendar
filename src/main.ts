@@ -1,7 +1,13 @@
 import { Plugin, WorkspaceLeaf, WorkspaceRoot } from 'obsidian';
 import { CalendarView, VIEW_TYPE_CALENDAR } from './view';
 import View from './View.svelte';
-import { pluginClassStore, settingsStore, updateLocale, updateWeekStart, updateWeekdays } from './stores';
+import {
+	pluginClassStore,
+	settingsStore,
+	updateLocale,
+	updateWeekStart,
+	updateWeekdays
+} from './stores';
 import { SettingsTab, type ISettings, DEFAULT_SETTINGS } from './settings';
 import { CALENDAR_POPOVER_ID, granularities } from './constants';
 import { tryToCreateNote } from './calendar-io';
@@ -117,11 +123,9 @@ export default class DailyNoteFlexPlugin extends Plugin {
 		// add quick locales switch commands
 		if (this.settings.allowLocalesSwitchFromCommandPalette) {
 			window.moment.locales().forEach((momentLocale) => {
-				// dropdown.addOption(momentLocale, locales.get(momentLocale) || momentLocale);
-
 				this.addCommand({
-					id: 'switch-locale',
-					name: 'Switch locales',
+					id: `switch-to-${momentLocale}-locale`,
+					name: `Switch to ${locales.get(momentLocale) || momentLocale} locale`,
 					callback: () => {
 						updateLocale(momentLocale);
 						updateWeekStart();
@@ -299,5 +303,4 @@ export default class DailyNoteFlexPlugin extends Plugin {
 	}
 
 	// locale helpers
-
 }

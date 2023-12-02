@@ -2382,7 +2382,7 @@ const id$1 = CALENDAR_POPOVER_ID;
 const ribbonReferenceElId = `${id$1}-ribbon-ref-el`;
 const getReferenceEl = () => document.querySelector(`[id=${ribbonReferenceElId}]`);
 const handleReferenceElHover = () => {
-    console.log("🖱️🖱️🖱️handleReferenceElHover()!!! 🤯🤯🤯");
+    console.log('🖱️🖱️🖱️handleReferenceElHover()!!! 🤯🤯🤯');
     const calendarPopoverStore = get_store_value(popoversStore)[id$1];
     if (!calendarPopoverStore?.opened) {
         openPopover({ id: id$1 });
@@ -2425,7 +2425,9 @@ const handleWindowClick$1 = (event) => {
     const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
     const targetOut = !calendarElTouched && !menuElTouched && !stickerElTouched;
     // ensures popovers could be closed one by one
-    if (calendarPopoverStore?.opened && stickerPopoverStore?.opened && settings.popoversCloseData.closePopoversOneByOneOnClickOut) {
+    if (calendarPopoverStore?.opened &&
+        stickerPopoverStore?.opened &&
+        settings.popoversCloseData.closePopoversOneByOneOnClickOut) {
         return;
     }
     // close CP if user clicked anywhere but either CP, context menu or SP
@@ -2452,7 +2454,9 @@ const handleWindowKeydown$1 = (event) => {
         return;
     }
     // ensures popovers could be closed one by one
-    if (calendarPopoverStore?.opened && stickerPopoverStore?.opened && settings.popoversCloseData.closePopoversOneByOneOnEscKeydown) {
+    if (calendarPopoverStore?.opened &&
+        stickerPopoverStore?.opened &&
+        settings.popoversCloseData.closePopoversOneByOneOnEscKeydown) {
         return;
     }
     if (event.key === 'Escape') {
@@ -2493,7 +2497,7 @@ const extraSetup$1 = () => {
     }
 };
 const cleanup$1 = () => {
-    console.log("🧹🤯📅📅📅Calendar popover cleanup()");
+    console.log('🧹🤯📅📅📅Calendar popover cleanup()');
     const plugin = window.plugin;
     popoversStore.update((values) => ({
         ...values,
@@ -3111,14 +3115,15 @@ const DEFAULT_SETTINGS = Object.freeze({
         closePopoversOneByOneOnEscKeydown: true,
         searchInputOnEscKeydown: 'close-popover'
     },
-    validFormats: getNewValidFormats()
+    validFormats: getNewValidFormats(),
+    allowLocalesSwitchFromCommandPalette: false
 });
 class SettingsTab extends obsidian.PluginSettingTab {
     plugin;
     constructor(app, plugin) {
         super(app, plugin);
         this.plugin = plugin;
-        this.setupLocale();
+        setupLocale();
     }
     display() {
         console.log('Displaying setttings ⚙️');
@@ -3137,6 +3142,7 @@ class SettingsTab extends obsidian.PluginSettingTab {
         });
         this.addLocaleOverrideSetting();
         this.addWeekStartSetting();
+        this.addAllowLocalesSwitchFromCommandPaletteSetting();
         if (!get_store_value(settingsStore).viewOpen) {
             this.containerEl.createEl('h3', {
                 text: 'Popovers close conditions'
@@ -3161,7 +3167,7 @@ class SettingsTab extends obsidian.PluginSettingTab {
                 this.app.workspace.detachLeavesOfType(VIEW_TYPE_CALENDAR);
                 await this.app.workspace[`get${position}Leaf`](false).setViewState({
                     type: VIEW_TYPE_CALENDAR,
-                    active: false,
+                    active: false
                 });
                 await this.plugin.saveSettings(() => ({
                     viewLeafPosition: position
@@ -3271,9 +3277,9 @@ class SettingsTab extends obsidian.PluginSettingTab {
             });
             dropdown.setValue(localeSettings.localeOverride);
             dropdown.onChange((localeKey) => {
-                this.updateLocale(localeKey);
-                this.updateWeekStart();
-                this.updateWeekdays();
+                updateLocale(localeKey);
+                updateWeekStart();
+                updateWeekdays();
                 this.display();
             });
         });
@@ -3301,8 +3307,22 @@ class SettingsTab extends obsidian.PluginSettingTab {
             dropdown.onChange((weekday) => {
                 const newWeekStartId = defaultWeekdays.indexOf(weekday);
                 console.log('setting() > newWeekStartId: ', newWeekStartId);
-                this.updateWeekStart(newWeekStartId);
-                this.updateWeekdays();
+                updateWeekStart(newWeekStartId);
+                updateWeekdays();
+            });
+        });
+    }
+    addAllowLocalesSwitchFromCommandPaletteSetting() {
+        new obsidian.Setting(this.containerEl)
+            // TODO: improve wording
+            .setName('Allow switching locales from command palette')
+            .setDesc('Select a new locale directly from the command palette. Note that this requires you to restart the app.')
+            .addToggle((toggle) => {
+            toggle.setValue(get_store_value(settingsStore).allowLocalesSwitchFromCommandPalette);
+            toggle.onChange((value) => {
+                this.plugin.saveSettings(() => ({
+                    allowLocalesSwitchFromCommandPalette: value
+                }));
             });
         });
     }
@@ -3361,54 +3381,175 @@ class SettingsTab extends obsidian.PluginSettingTab {
             });
         });
     }
-    // helpers
-    updateLocale(localeKey) {
-        window.moment.locale(localeKey);
-        // update settings
-        this.plugin.saveSettings((settings) => ({
-            localeSettings: {
-                ...settings.localeSettings,
-                localeOverride: localeKey
+}
+
+function createYearsRangesStore() {
+    const defaultRange = `${DEFAULT_SETTINGS.yearsRangesStart}-${DEFAULT_SETTINGS.yearsRangesStart + YEARS_RANGE_SIZE - 1}`;
+    const store = writable({
+        ranges: [defaultRange],
+        todayRange: defaultRange,
+        crrRangeIndex: 0
+    });
+    const addNewRange = ({ startYear, action }) => {
+        store.update((values) => {
+            const newRanges = values.ranges;
+            newRanges[action === 'increment' ? 'push' : 'unshift'](`${startYear}-${startYear + YEARS_RANGE_SIZE - 1}`);
+            return {
+                ...values,
+                ranges: newRanges
+            };
+        });
+    };
+    const updateRanges = ({ action, displayedDateModifier }) => {
+        const { ranges, crrRangeIndex } = get_store_value(store);
+        const crrRange = ranges[crrRangeIndex];
+        const [crrRangeStartYear, crrRangeEndYear] = crrRange.split('-');
+        const todayMoment = window.moment().clone();
+        if (action === 'decrement') {
+            const prevRange = ranges[crrRangeIndex - 1];
+            displayedDateStore.set(todayMoment.year(+crrRangeStartYear + (displayedDateModifier || -1)).startOf('year'));
+            !prevRange &&
+                addNewRange({
+                    startYear: +crrRangeStartYear - YEARS_RANGE_SIZE,
+                    action: 'decrement'
+                });
+            if (crrRangeIndex > 0) {
+                updateCrrRangeIndex({ modifier: -1 });
             }
+        }
+        if (action === 'increment') {
+            const nextRange = ranges[crrRangeIndex + 1];
+            displayedDateStore.set(todayMoment.year(+crrRangeEndYear + 1).startOf('year'));
+            !nextRange && addNewRange({ startYear: +crrRangeEndYear + 1, action: 'increment' });
+            updateCrrRangeIndex({ modifier: +1 });
+        }
+    };
+    const updateCrrRangeIndex = ({ modifier }) => {
+        store.update((values) => ({
+            ...values,
+            crrRangeIndex: values.crrRangeIndex + modifier
         }));
-        // update UI
-        displayedDateStore.set(window.moment());
-    }
-    updateWeekStart(weekStartId = window.moment.localeData().firstDayOfWeek()) {
-        // update settings
-        this.plugin.saveSettings((settings) => ({
-            localeSettings: {
-                ...settings.localeSettings,
-                weekStartId
+    };
+    const selectOrCreateRanges = () => {
+        const { ranges, crrRangeIndex, todayRange } = get_store_value(store);
+        const crrDisplayedYear = get_store_value(displayedDateStore).year();
+        const todayYear = window.moment().clone().year();
+        console.log('selectOrCreateRnages(), todayRange: ', todayRange);
+        const firstRange = ranges[0];
+        const lastRange = ranges[ranges.length - 1];
+        const firstRangeStartYear = firstRange.split('-')[0];
+        const lastRangeEndYear = lastRange.split('-')[1];
+        const newRanges = [...ranges];
+        let newCrrRangeIndex = crrRangeIndex;
+        let newTodayRange = todayRange;
+        if (+firstRangeStartYear > crrDisplayedYear) {
+            // push new ranges at the start of ranges
+            let newFirstRangeStartYear = +firstRangeStartYear;
+            while (+newFirstRangeStartYear > crrDisplayedYear) {
+                newRanges.unshift(`${newFirstRangeStartYear - YEARS_RANGE_SIZE}-${newFirstRangeStartYear - 1}`);
+                newFirstRangeStartYear -= YEARS_RANGE_SIZE;
             }
+            newCrrRangeIndex = 0;
+        }
+        // push new ranges at the end of ranges
+        if (+lastRangeEndYear < crrDisplayedYear) {
+            let newLastRangeEndYear = +lastRangeEndYear;
+            while (+newLastRangeEndYear < crrDisplayedYear) {
+                newRanges.push(`${+newLastRangeEndYear + 1}-${newLastRangeEndYear + YEARS_RANGE_SIZE}`);
+                newLastRangeEndYear += YEARS_RANGE_SIZE;
+            }
+            newCrrRangeIndex = newRanges.length - 1;
+        }
+        // search for range containing crrDisplayedYear and set it as current range
+        if (crrDisplayedYear >= +firstRangeStartYear && crrDisplayedYear <= +lastRangeEndYear) {
+            for (const [i, range] of newRanges.entries()) {
+                const [start, end] = range.split('-');
+                if (crrDisplayedYear >= +start && crrDisplayedYear <= +end) {
+                    newCrrRangeIndex = i;
+                    break;
+                }
+            }
+        }
+        // update todayRange if it doesnt include todayYear anymore
+        const [todayRangeStartYear, todayRangeEndYear] = todayRange.split('-');
+        if (!(todayYear >= +todayRangeStartYear && todayYear <= +todayRangeEndYear)) {
+            for (const [_, range] of newRanges.entries()) {
+                const [start, end] = range.split('-');
+                if (todayYear >= +start && todayYear <= +end) {
+                    newTodayRange = range;
+                    break;
+                }
+            }
+        }
+        // update store
+        store.update((values) => ({
+            ...values,
+            ranges: newRanges,
+            crrRangeIndex: newCrrRangeIndex,
+            todayRange: newTodayRange
         }));
-        // update UI
-        displayedDateStore.set(window.moment());
-    }
-    updateWeekdays() {
-        const weekStartId = get_store_value(settingsStore).localeSettings.weekStartId;
-        const localizedWeekdays = window.moment.localeData().weekdays();
-        const localizedWeekdaysShort = window.moment.localeData().weekdaysMin();
-        const weekdays = [
-            ...localizedWeekdays.slice(weekStartId),
-            ...localizedWeekdays.slice(0, weekStartId)
-        ];
-        const weekdaysShort = [
-            ...localizedWeekdaysShort.slice(weekStartId),
-            ...localizedWeekdaysShort.slice(0, weekStartId)
-        ];
-        // update UI
-        localeDataStore.update((data) => ({
-            ...data,
-            weekdays,
-            weekdaysShort
-        }));
-        displayedDateStore.set(window.moment());
-    }
-    setupLocale() {
-        window.moment.locale(get_store_value(settingsStore).localeSettings.localeOverride);
-        this.updateWeekdays();
-    }
+    };
+    return {
+        addNewRange,
+        updateRanges,
+        updateCrrRangeIndex,
+        selectOrCreateRanges,
+        ...store
+    };
+}
+const displayedDateStore = writable(window.moment());
+const yearsRanges = createYearsRangesStore();
+
+const localeDataStore = writable({
+    weekdays: defaultWeekdays,
+    weekdaysShort: defaultWeekdaysShort
+});
+function updateLocale(localeKey) {
+    window.moment.locale(localeKey);
+    // update settings
+    get_store_value(pluginClassStore).saveSettings((settings) => ({
+        localeSettings: {
+            ...settings.localeSettings,
+            localeOverride: localeKey
+        }
+    }));
+    // update UI
+    displayedDateStore.set(window.moment());
+}
+function updateWeekStart(weekStartId = window.moment.localeData().firstDayOfWeek()) {
+    // update settings
+    window.plugin?.saveSettings((settings) => ({
+        localeSettings: {
+            ...settings.localeSettings,
+            weekStartId
+        }
+    }));
+    // update UI
+    displayedDateStore.set(window.moment());
+}
+function updateWeekdays() {
+    const weekStartId = get_store_value(settingsStore).localeSettings.weekStartId;
+    const localizedWeekdays = window.moment.localeData().weekdays();
+    const localizedWeekdaysShort = window.moment.localeData().weekdaysMin();
+    const weekdays = [
+        ...localizedWeekdays.slice(weekStartId),
+        ...localizedWeekdays.slice(0, weekStartId)
+    ];
+    const weekdaysShort = [
+        ...localizedWeekdaysShort.slice(weekStartId),
+        ...localizedWeekdaysShort.slice(0, weekStartId)
+    ];
+    // update UI
+    localeDataStore.update((data) => ({
+        ...data,
+        weekdays,
+        weekdaysShort
+    }));
+    displayedDateStore.set(window.moment());
+}
+function setupLocale() {
+    window.moment.locale(get_store_value(settingsStore).localeSettings.localeOverride);
+    updateWeekdays();
 }
 
 /**
@@ -3688,7 +3829,7 @@ function getOnCreateNoteDialogNoteFromGranularity(granularity) {
 /* src/calendar-ui/components/ConfirmationModal.svelte generated by Svelte v4.2.0 */
 
 function add_css$f(target) {
-	append_styles(target, "svelte-1fqz78w", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.m-0.svelte-1fqz78w{margin:0px\n}.mt-2.svelte-1fqz78w{margin-top:0.5rem\n}.mt-3.svelte-1fqz78w{margin-top:0.75rem\n}.mt-7.svelte-1fqz78w{margin-top:1.75rem\n}.flex.svelte-1fqz78w{display:flex\n}.items-center.svelte-1fqz78w{align-items:center\n}.text-sm.svelte-1fqz78w{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-1fqz78w{font-size:0.75rem;line-height:1rem\n}.text-\\[--text-muted\\].svelte-1fqz78w{color:var(--text-muted)\n}.hover\\:cursor-pointer.svelte-1fqz78w:hover{cursor:pointer\n}");
+	append_styles(target, "svelte-iffyui", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.m-0.svelte-iffyui{margin:0px\n}.mt-2.svelte-iffyui{margin-top:0.5rem\n}.mt-3.svelte-iffyui{margin-top:0.75rem\n}.mt-7.svelte-iffyui{margin-top:1.75rem\n}.flex.svelte-iffyui{display:flex\n}.items-center.svelte-iffyui{align-items:center\n}.text-sm.svelte-iffyui{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-iffyui{font-size:0.75rem;line-height:1rem\n}.text-\\[--text-muted\\].svelte-iffyui{color:var(--text-muted)\n}.hover\\:cursor-pointer.svelte-iffyui:hover{cursor:pointer\n}");
 }
 
 // (36:1) {#if note}
@@ -3699,7 +3840,7 @@ function create_if_block$3(ctx) {
 		c() {
 			p = element("p");
 			p.textContent = `${/*note*/ ctx[3]}`;
-			attr(p, "class", "m-0 mt-2 text-xs text-[--text-muted] svelte-1fqz78w");
+			attr(p, "class", "m-0 mt-2 text-xs text-[--text-muted] svelte-iffyui");
 		},
 		m(target, anchor) {
 			insert(target, p, anchor);
@@ -3754,10 +3895,10 @@ function create_fragment$f(ctx) {
 			button1 = element("button");
 			button1.textContent = `${/*cta*/ ctx[4]}`;
 			attr(input, "type", "checkbox");
-			attr(input, "class", "hover:cursor-pointer svelte-1fqz78w");
-			attr(label, "class", "flex items-center hover:cursor-pointer text-sm mt-7 svelte-1fqz78w");
+			attr(input, "class", "hover:cursor-pointer svelte-iffyui");
+			attr(label, "class", "flex items-center hover:cursor-pointer text-sm mt-7 svelte-iffyui");
 			attr(button1, "class", "mod-cta");
-			attr(div0, "class", "modal-button-container mt-3 svelte-1fqz78w");
+			attr(div0, "class", "modal-button-container mt-3 svelte-iffyui");
 		},
 		m(target, anchor) {
 			insert(target, div1, anchor);
@@ -4014,120 +4155,11 @@ function createNotesStore(granularity) {
         ...store
     };
 }
-function createYearsRangesStore() {
-    const defaultRange = `${DEFAULT_SETTINGS.yearsRangesStart}-${DEFAULT_SETTINGS.yearsRangesStart + YEARS_RANGE_SIZE - 1}`;
-    const store = writable({
-        ranges: [defaultRange],
-        todayRange: defaultRange,
-        crrRangeIndex: 0
-    });
-    const addNewRange = ({ startYear, action }) => {
-        store.update((values) => {
-            const newRanges = values.ranges;
-            newRanges[action === 'increment' ? 'push' : 'unshift'](`${startYear}-${startYear + YEARS_RANGE_SIZE - 1}`);
-            return {
-                ...values,
-                ranges: newRanges
-            };
-        });
-    };
-    const updateRanges = ({ action, displayedDateModifier }) => {
-        const { ranges, crrRangeIndex } = get_store_value(store);
-        const crrRange = ranges[crrRangeIndex];
-        const [crrRangeStartYear, crrRangeEndYear] = crrRange.split('-');
-        const todayMoment = window.moment().clone();
-        if (action === 'decrement') {
-            const prevRange = ranges[crrRangeIndex - 1];
-            displayedDateStore.set(todayMoment.year(+crrRangeStartYear + (displayedDateModifier || -1)).startOf('year'));
-            !prevRange &&
-                addNewRange({
-                    startYear: +crrRangeStartYear - YEARS_RANGE_SIZE,
-                    action: 'decrement'
-                });
-            if (crrRangeIndex > 0) {
-                updateCrrRangeIndex({ modifier: -1 });
-            }
-        }
-        if (action === 'increment') {
-            const nextRange = ranges[crrRangeIndex + 1];
-            displayedDateStore.set(todayMoment.year(+crrRangeEndYear + 1).startOf('year'));
-            !nextRange && addNewRange({ startYear: +crrRangeEndYear + 1, action: 'increment' });
-            updateCrrRangeIndex({ modifier: +1 });
-        }
-    };
-    const updateCrrRangeIndex = ({ modifier }) => {
-        store.update((values) => ({
-            ...values,
-            crrRangeIndex: values.crrRangeIndex + modifier
-        }));
-    };
-    const selectOrCreateRanges = () => {
-        const { ranges, crrRangeIndex, todayRange } = get_store_value(store);
-        const crrDisplayedYear = get_store_value(displayedDateStore).year();
-        const todayYear = window.moment().clone().year();
-        console.log('selectOrCreateRnages(), todayRange: ', todayRange);
-        const firstRange = ranges[0];
-        const lastRange = ranges[ranges.length - 1];
-        const firstRangeStartYear = firstRange.split('-')[0];
-        const lastRangeEndYear = lastRange.split('-')[1];
-        const newRanges = [...ranges];
-        let newCrrRangeIndex = crrRangeIndex;
-        let newTodayRange = todayRange;
-        if (+firstRangeStartYear > crrDisplayedYear) {
-            // push new ranges at the start of ranges
-            let newFirstRangeStartYear = +firstRangeStartYear;
-            while (+newFirstRangeStartYear > crrDisplayedYear) {
-                newRanges.unshift(`${newFirstRangeStartYear - YEARS_RANGE_SIZE}-${newFirstRangeStartYear - 1}`);
-                newFirstRangeStartYear -= YEARS_RANGE_SIZE;
-            }
-            newCrrRangeIndex = 0;
-        }
-        // push new ranges at the end of ranges
-        if (+lastRangeEndYear < crrDisplayedYear) {
-            let newLastRangeEndYear = +lastRangeEndYear;
-            while (+newLastRangeEndYear < crrDisplayedYear) {
-                newRanges.push(`${+newLastRangeEndYear + 1}-${newLastRangeEndYear + YEARS_RANGE_SIZE}`);
-                newLastRangeEndYear += YEARS_RANGE_SIZE;
-            }
-            newCrrRangeIndex = newRanges.length - 1;
-        }
-        // search for range containing crrDisplayedYear and set it as current range
-        if (crrDisplayedYear >= +firstRangeStartYear && crrDisplayedYear <= +lastRangeEndYear) {
-            for (const [i, range] of newRanges.entries()) {
-                const [start, end] = range.split('-');
-                if (crrDisplayedYear >= +start && crrDisplayedYear <= +end) {
-                    newCrrRangeIndex = i;
-                    break;
-                }
-            }
-        }
-        // update todayRange if it doesnt include todayYear anymore
-        const [todayRangeStartYear, todayRangeEndYear] = todayRange.split('-');
-        if (!(todayYear >= +todayRangeStartYear && todayYear <= +todayRangeEndYear)) {
-            for (const [_, range] of newRanges.entries()) {
-                const [start, end] = range.split('-');
-                if (todayYear >= +start && todayYear <= +end) {
-                    newTodayRange = range;
-                    break;
-                }
-            }
-        }
-        // update store
-        store.update((values) => ({
-            ...values,
-            ranges: newRanges,
-            crrRangeIndex: newCrrRangeIndex,
-            todayRange: newTodayRange
-        }));
-    };
-    return {
-        addNewRange,
-        updateRanges,
-        updateCrrRangeIndex,
-        selectOrCreateRanges,
-        ...store
-    };
-}
+const notesStores = {};
+granularities.forEach((granularity) => {
+    const notesExtStore = createNotesStore(granularity);
+    notesStores[granularity] = notesExtStore;
+});
 function createSelectedFileStore() {
     const store = writable(null);
     return {
@@ -4138,24 +4170,15 @@ function createSelectedFileStore() {
         ...store
     };
 }
-const settingsStore = writable(DEFAULT_SETTINGS);
-const localeDataStore = writable({
-    weekdays: defaultWeekdays,
-    weekdaysShort: defaultWeekdaysShort
-});
-const displayedDateStore = writable(window.moment());
 const activeFile = createSelectedFileStore();
-const yearsRanges = createYearsRangesStore();
-const pluginClassStore = writable();
-const notesStores = {};
-granularities.forEach((granularity) => {
-    const notesExtStore = createNotesStore(granularity);
-    notesStores[granularity] = notesExtStore;
-});
-const crrFileMenu = writable(null);
+
 // update props of static sticker popover component
 const stickerPopoverNoteDateUIDStore = writable('');
 const stickerPopoverCrrGranularity = writable();
+
+const settingsStore = writable(DEFAULT_SETTINGS);
+const pluginClassStore = writable();
+const crrFileMenu = writable(null);
 
 function isMacOS() {
     return navigator.appVersion.indexOf('Mac') !== -1;
@@ -4210,7 +4233,7 @@ function getYears({ startRangeYear }) {
 /* src/calendar-ui/components/Dot.svelte generated by Svelte v4.2.0 */
 
 function add_css$e(target) {
-	append_styles(target, "svelte-1fqz78w", ".container.svelte-1fqz78w{width:100%\n}@media(min-width: 640px){.container.svelte-1fqz78w{max-width:640px\n    }}@media(min-width: 768px){.container.svelte-1fqz78w{max-width:768px\n    }}@media(min-width: 1024px){.container.svelte-1fqz78w{max-width:1024px\n    }}@media(min-width: 1280px){.container.svelte-1fqz78w{max-width:1280px\n    }}@media(min-width: 1536px){.container.svelte-1fqz78w{max-width:1536px\n    }}.pointer-events-none.svelte-1fqz78w{pointer-events:none\n}.collapse.svelte-1fqz78w{visibility:collapse\n}.static.svelte-1fqz78w{position:static\n}.absolute.svelte-1fqz78w{position:absolute\n}.relative.svelte-1fqz78w{position:relative\n}.left-0.svelte-1fqz78w{left:0px\n}.left-full.svelte-1fqz78w{left:100%\n}.top-0.svelte-1fqz78w{top:0px\n}.z-10.svelte-1fqz78w{z-index:10\n}.z-20.svelte-1fqz78w{z-index:20\n}.m-0.svelte-1fqz78w{margin:0px\n}.mx-\\[1px\\].svelte-1fqz78w{margin-left:1px;margin-right:1px\n}.ml-\\[5px\\].svelte-1fqz78w{margin-left:5px\n}.mt-2.svelte-1fqz78w{margin-top:0.5rem\n}.mt-3.svelte-1fqz78w{margin-top:0.75rem\n}.mt-7.svelte-1fqz78w{margin-top:1.75rem\n}.block.svelte-1fqz78w{display:block\n}.inline-block.svelte-1fqz78w{display:inline-block\n}.flex.svelte-1fqz78w{display:flex\n}.table.svelte-1fqz78w{display:table\n}.contents.svelte-1fqz78w{display:contents\n}.h-2.svelte-1fqz78w{height:0.5rem\n}.h-2\\.5.svelte-1fqz78w{height:0.625rem\n}.h-3.svelte-1fqz78w{height:0.75rem\n}.h-\\[6px\\].svelte-1fqz78w{height:6px\n}.w-2.svelte-1fqz78w{width:0.5rem\n}.w-2\\.5.svelte-1fqz78w{width:0.625rem\n}.w-3.svelte-1fqz78w{width:0.75rem\n}.w-\\[6px\\].svelte-1fqz78w{width:6px\n}.w-full.svelte-1fqz78w{width:100%\n}.w-max.svelte-1fqz78w{width:-moz-max-content;width:max-content\n}.border-collapse.svelte-1fqz78w{border-collapse:collapse\n}.-translate-x-1\\/2.svelte-1fqz78w{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.-translate-y-1\\/2.svelte-1fqz78w{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.rotate-12.svelte-1fqz78w{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.rotate-45.svelte-1fqz78w{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.transform.svelte-1fqz78w{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.cursor-default.svelte-1fqz78w{cursor:default\n}.cursor-not-allowed.svelte-1fqz78w{cursor:not-allowed\n}.cursor-pointer.svelte-1fqz78w{cursor:pointer\n}.\\!cursor-default.svelte-1fqz78w{cursor:default !important\n}.flex-col.svelte-1fqz78w{flex-direction:column\n}.items-center.svelte-1fqz78w{align-items:center\n}.justify-between.svelte-1fqz78w{justify-content:space-between\n}.rounded-md.svelte-1fqz78w{border-radius:0.375rem\n}.rounded-sm.svelte-1fqz78w{border-radius:0.125rem\n}.border-0.svelte-1fqz78w{border-width:0px\n}.bg-gray-100.svelte-1fqz78w{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))\n}.bg-slate-500.svelte-1fqz78w{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))\n}.bg-transparent.svelte-1fqz78w{background-color:transparent\n}.p-1.svelte-1fqz78w{padding:0.25rem\n}.p-2.svelte-1fqz78w{padding:0.5rem\n}.px-4.svelte-1fqz78w{padding-left:1rem;padding-right:1rem\n}.py-2.svelte-1fqz78w{padding-top:0.5rem;padding-bottom:0.5rem\n}.pt-4.svelte-1fqz78w{padding-top:1rem\n}.text-sm.svelte-1fqz78w{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-1fqz78w{font-size:0.75rem;line-height:1rem\n}.uppercase.svelte-1fqz78w{text-transform:uppercase\n}.capitalize.svelte-1fqz78w{text-transform:capitalize\n}.text-\\[--text-muted\\].svelte-1fqz78w{color:var(--text-muted)\n}.text-\\[--text-on-accent\\].svelte-1fqz78w{color:var(--text-on-accent)\n}.text-black.svelte-1fqz78w{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))\n}.text-white.svelte-1fqz78w{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))\n}.opacity-0.svelte-1fqz78w{opacity:0\n}.opacity-100.svelte-1fqz78w{opacity:1\n}.opacity-50.svelte-1fqz78w{opacity:0.5\n}.shadow.svelte-1fqz78w{--tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)\n}.blur.svelte-1fqz78w{--tw-blur:blur(8px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)\n}.transition.svelte-1fqz78w{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms\n}.\\[all\\:inherit\\].svelte-1fqz78w{all:inherit\n}.hover\\:cursor-pointer.svelte-1fqz78w:hover{cursor:pointer\n}");
+	append_styles(target, "svelte-iffyui", ".container.svelte-iffyui{width:100%\n}@media(min-width: 640px){.container.svelte-iffyui{max-width:640px\n    }}@media(min-width: 768px){.container.svelte-iffyui{max-width:768px\n    }}@media(min-width: 1024px){.container.svelte-iffyui{max-width:1024px\n    }}@media(min-width: 1280px){.container.svelte-iffyui{max-width:1280px\n    }}@media(min-width: 1536px){.container.svelte-iffyui{max-width:1536px\n    }}.pointer-events-none.svelte-iffyui{pointer-events:none\n}.collapse.svelte-iffyui{visibility:collapse\n}.static.svelte-iffyui{position:static\n}.absolute.svelte-iffyui{position:absolute\n}.relative.svelte-iffyui{position:relative\n}.left-0.svelte-iffyui{left:0px\n}.left-full.svelte-iffyui{left:100%\n}.top-0.svelte-iffyui{top:0px\n}.z-10.svelte-iffyui{z-index:10\n}.z-20.svelte-iffyui{z-index:20\n}.m-0.svelte-iffyui{margin:0px\n}.mx-\\[1px\\].svelte-iffyui{margin-left:1px;margin-right:1px\n}.ml-\\[5px\\].svelte-iffyui{margin-left:5px\n}.mt-2.svelte-iffyui{margin-top:0.5rem\n}.mt-3.svelte-iffyui{margin-top:0.75rem\n}.mt-7.svelte-iffyui{margin-top:1.75rem\n}.block.svelte-iffyui{display:block\n}.inline-block.svelte-iffyui{display:inline-block\n}.flex.svelte-iffyui{display:flex\n}.table.svelte-iffyui{display:table\n}.contents.svelte-iffyui{display:contents\n}.h-2.svelte-iffyui{height:0.5rem\n}.h-2\\.5.svelte-iffyui{height:0.625rem\n}.h-3.svelte-iffyui{height:0.75rem\n}.h-\\[6px\\].svelte-iffyui{height:6px\n}.w-2.svelte-iffyui{width:0.5rem\n}.w-2\\.5.svelte-iffyui{width:0.625rem\n}.w-3.svelte-iffyui{width:0.75rem\n}.w-\\[6px\\].svelte-iffyui{width:6px\n}.w-full.svelte-iffyui{width:100%\n}.w-max.svelte-iffyui{width:-moz-max-content;width:max-content\n}.border-collapse.svelte-iffyui{border-collapse:collapse\n}.-translate-x-1\\/2.svelte-iffyui{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.-translate-y-1\\/2.svelte-iffyui{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.rotate-12.svelte-iffyui{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.rotate-45.svelte-iffyui{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.transform.svelte-iffyui{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.\\!cursor-default.svelte-iffyui{cursor:default !important\n}.cursor-not-allowed.svelte-iffyui{cursor:not-allowed\n}.cursor-pointer.svelte-iffyui{cursor:pointer\n}.flex-col.svelte-iffyui{flex-direction:column\n}.items-center.svelte-iffyui{align-items:center\n}.justify-between.svelte-iffyui{justify-content:space-between\n}.rounded-md.svelte-iffyui{border-radius:0.375rem\n}.rounded-sm.svelte-iffyui{border-radius:0.125rem\n}.border-0.svelte-iffyui{border-width:0px\n}.bg-gray-100.svelte-iffyui{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))\n}.bg-slate-500.svelte-iffyui{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))\n}.bg-transparent.svelte-iffyui{background-color:transparent\n}.p-1.svelte-iffyui{padding:0.25rem\n}.p-2.svelte-iffyui{padding:0.5rem\n}.px-4.svelte-iffyui{padding-left:1rem;padding-right:1rem\n}.py-2.svelte-iffyui{padding-top:0.5rem;padding-bottom:0.5rem\n}.pt-4.svelte-iffyui{padding-top:1rem\n}.text-sm.svelte-iffyui{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-iffyui{font-size:0.75rem;line-height:1rem\n}.uppercase.svelte-iffyui{text-transform:uppercase\n}.capitalize.svelte-iffyui{text-transform:capitalize\n}.text-\\[--text-muted\\].svelte-iffyui{color:var(--text-muted)\n}.text-\\[--text-on-accent\\].svelte-iffyui{color:var(--text-on-accent)\n}.text-black.svelte-iffyui{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))\n}.text-white.svelte-iffyui{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))\n}.opacity-0.svelte-iffyui{opacity:0\n}.opacity-100.svelte-iffyui{opacity:1\n}.opacity-50.svelte-iffyui{opacity:0.5\n}.shadow.svelte-iffyui{--tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)\n}.blur.svelte-iffyui{--tw-blur:blur(8px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)\n}.transition.svelte-iffyui{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms\n}.\\[all\\:inherit\\].svelte-iffyui{all:inherit\n}.hover\\:cursor-pointer.svelte-iffyui:hover{cursor:pointer\n}");
 }
 
 function create_fragment$e(ctx) {
@@ -4229,7 +4252,7 @@ function create_fragment$e(ctx) {
 			attr(circle, "cx", "3");
 			attr(circle, "cy", "3");
 			attr(circle, "r", "2");
-			attr(svg, "class", svg_class_value = "" + (null_to_empty(`${/*$$restProps*/ ctx[4].class} inline-block h-[6px] w-[6px] mx-[1px] ${/*isActive*/ ctx[3] ? 'text-[--text-on-accent]' : ''} ${/*isVisible*/ ctx[2] ? 'opacity-100' : 'opacity-0'}`) + " svelte-1fqz78w"));
+			attr(svg, "class", svg_class_value = "" + (null_to_empty(`${/*$$restProps*/ ctx[4].class} inline-block h-[6px] w-[6px] mx-[1px] ${/*isActive*/ ctx[3] ? 'text-[--text-on-accent]' : ''} ${/*isVisible*/ ctx[2] ? 'opacity-100' : 'opacity-0'}`) + " svelte-iffyui"));
 			set_style(svg, "color", /*color*/ ctx[0]);
 			attr(svg, "viewBox", "0 0 6 6");
 			attr(svg, "xmlns", "http://www.w3.org/2000/svg");
@@ -4247,7 +4270,7 @@ function create_fragment$e(ctx) {
 				attr(circle, "fill", circle_fill_value);
 			}
 
-			if (dirty & /*$$restProps, isActive, isVisible*/ 28 && svg_class_value !== (svg_class_value = "" + (null_to_empty(`${/*$$restProps*/ ctx[4].class} inline-block h-[6px] w-[6px] mx-[1px] ${/*isActive*/ ctx[3] ? 'text-[--text-on-accent]' : ''} ${/*isVisible*/ ctx[2] ? 'opacity-100' : 'opacity-0'}`) + " svelte-1fqz78w"))) {
+			if (dirty & /*$$restProps, isActive, isVisible*/ 28 && svg_class_value !== (svg_class_value = "" + (null_to_empty(`${/*$$restProps*/ ctx[4].class} inline-block h-[6px] w-[6px] mx-[1px] ${/*isActive*/ ctx[3] ? 'text-[--text-on-accent]' : ''} ${/*isVisible*/ ctx[2] ? 'opacity-100' : 'opacity-0'}`) + " svelte-iffyui"))) {
 				attr(svg, "class", svg_class_value);
 			}
 
@@ -4311,7 +4334,7 @@ const VIEW = Symbol('view');
 /* src/calendar-ui/components/Sticker.svelte generated by Svelte v4.2.0 */
 
 function add_css$d(target) {
-	append_styles(target, "svelte-axr5a9", ".svelte-axr5a9,.svelte-axr5a9::before,.svelte-axr5a9::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-axr5a9::before,.svelte-axr5a9::after{--tw-content:''}.svelte-axr5a9:-moz-focusring{outline:auto}.svelte-axr5a9:-moz-ui-invalid{box-shadow:none}.svelte-axr5a9::-webkit-inner-spin-button,.svelte-axr5a9::-webkit-outer-spin-button{height:auto}.svelte-axr5a9::-webkit-search-decoration{-webkit-appearance:none}.svelte-axr5a9::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}.svelte-axr5a9:disabled{cursor:default}.svelte-axr5a9,.svelte-axr5a9::before,.svelte-axr5a9::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-axr5a9::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.absolute.svelte-axr5a9{position:absolute}.left-full.svelte-axr5a9{left:100%}.top-0.svelte-axr5a9{top:0px}.-translate-x-1\\/2.svelte-axr5a9{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-y-1\\/2.svelte-axr5a9{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-12.svelte-axr5a9{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}");
+	append_styles(target, "svelte-fshnug", ".svelte-fshnug,.svelte-fshnug::before,.svelte-fshnug::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-fshnug::before,.svelte-fshnug::after{--tw-content:''}.svelte-fshnug:-moz-focusring{outline:auto}.svelte-fshnug:-moz-ui-invalid{box-shadow:none}.svelte-fshnug::-webkit-inner-spin-button,.svelte-fshnug::-webkit-outer-spin-button{height:auto}.svelte-fshnug::-webkit-search-decoration{-webkit-appearance:none}.svelte-fshnug::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}.svelte-fshnug:disabled{cursor:default}.svelte-fshnug,.svelte-fshnug::before,.svelte-fshnug::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-fshnug::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.absolute.svelte-fshnug{position:absolute}.left-full.svelte-fshnug{left:100%}.top-0.svelte-fshnug{top:0px}.-translate-x-1\\/2.svelte-fshnug{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-y-1\\/2.svelte-fshnug{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-12.svelte-fshnug{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}");
 }
 
 // (4:0) {#if sticker}
@@ -4323,7 +4346,7 @@ function create_if_block$2(ctx) {
 		c() {
 			div = element("div");
 			t = text(/*sticker*/ ctx[0]);
-			attr(div, "class", "rotate-12 absolute top-0 left-full -translate-x-1/2 -translate-y-1/2 svelte-axr5a9");
+			attr(div, "class", "rotate-12 absolute top-0 left-full -translate-x-1/2 -translate-y-1/2 svelte-fshnug");
 		},
 		m(target, anchor) {
 			insert(target, div, anchor);
@@ -4399,7 +4422,7 @@ class Sticker extends SvelteComponent {
 /* src/calendar-ui/components/Day.svelte generated by Svelte v4.2.0 */
 
 function add_css$c(target) {
-	append_styles(target, "svelte-1erb5qd", ".svelte-1erb5qd,.svelte-1erb5qd::before,.svelte-1erb5qd::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-1erb5qd::before,.svelte-1erb5qd::after{--tw-content:''}button.svelte-1erb5qd{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-1erb5qd{text-transform:none}button.svelte-1erb5qd{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-1erb5qd:-moz-focusring{outline:auto}.svelte-1erb5qd:-moz-ui-invalid{box-shadow:none}.svelte-1erb5qd::-webkit-inner-spin-button,.svelte-1erb5qd::-webkit-outer-spin-button{height:auto}.svelte-1erb5qd::-webkit-search-decoration{-webkit-appearance:none}.svelte-1erb5qd::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-1erb5qd{cursor:pointer}.svelte-1erb5qd:disabled{cursor:default}.svelte-1erb5qd,.svelte-1erb5qd::before,.svelte-1erb5qd::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-1erb5qd::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-1erb5qd{position:relative}.flex.svelte-1erb5qd{display:flex}.w-full.svelte-1erb5qd{width:100%}.flex-col.svelte-1erb5qd{flex-direction:column}.day.svelte-1erb5qd{background-color:var(--color-background-day);border-radius:4px;color:var(--color-text-day);cursor:pointer;font-size:0.8em;height:100%;padding:4px;position:relative;text-align:center;transition:background-color 0.1s ease-in, color 0.1s ease-in;vertical-align:baseline}.day.svelte-1erb5qd:hover{background-color:var(--interactive-hover)}.day.svelte-1erb5qd:active{color:var(--text-on-accent);background-color:var(--interactive-accent)}");
+	append_styles(target, "svelte-8p0e84", ".svelte-8p0e84,.svelte-8p0e84::before,.svelte-8p0e84::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-8p0e84::before,.svelte-8p0e84::after{--tw-content:''}button.svelte-8p0e84{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-8p0e84{text-transform:none}button.svelte-8p0e84{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-8p0e84:-moz-focusring{outline:auto}.svelte-8p0e84:-moz-ui-invalid{box-shadow:none}.svelte-8p0e84::-webkit-inner-spin-button,.svelte-8p0e84::-webkit-outer-spin-button{height:auto}.svelte-8p0e84::-webkit-search-decoration{-webkit-appearance:none}.svelte-8p0e84::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-8p0e84{cursor:pointer}.svelte-8p0e84:disabled{cursor:default}.svelte-8p0e84,.svelte-8p0e84::before,.svelte-8p0e84::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-8p0e84::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-8p0e84{position:relative}.flex.svelte-8p0e84{display:flex}.w-full.svelte-8p0e84{width:100%}.flex-col.svelte-8p0e84{flex-direction:column}.day.svelte-8p0e84{background-color:var(--color-background-day);border-radius:4px;color:var(--color-text-day);cursor:pointer;font-size:0.8em;height:100%;padding:4px;position:relative;text-align:center;transition:background-color 0.1s ease-in, color 0.1s ease-in;vertical-align:baseline}.day.svelte-8p0e84:hover{background-color:var(--interactive-hover)}.day.svelte-8p0e84:active{color:var(--text-on-accent);background-color:var(--interactive-accent)}");
 }
 
 function create_fragment$c(ctx) {
@@ -4433,8 +4456,8 @@ function create_fragment$c(ctx) {
 			create_component(dot.$$.fragment);
 			t2 = space();
 			create_component(sticker_1.$$.fragment);
-			attr(button, "class", "day w-full flex flex-col svelte-1erb5qd");
-			attr(td, "class", "relative svelte-1erb5qd");
+			attr(button, "class", "day w-full flex flex-col svelte-8p0e84");
+			attr(td, "class", "relative svelte-8p0e84");
 		},
 		m(target, anchor) {
 			insert(target, td, anchor);
@@ -4554,7 +4577,7 @@ class Day extends SvelteComponent {
 /* src/calendar-ui/components/WeekNum.svelte generated by Svelte v4.2.0 */
 
 function add_css$b(target) {
-	append_styles(target, "svelte-esola3", ".svelte-esola3,.svelte-esola3::before,.svelte-esola3::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-esola3::before,.svelte-esola3::after{--tw-content:''}button.svelte-esola3{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-esola3{text-transform:none}button.svelte-esola3{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-esola3:-moz-focusring{outline:auto}.svelte-esola3:-moz-ui-invalid{box-shadow:none}.svelte-esola3::-webkit-inner-spin-button,.svelte-esola3::-webkit-outer-spin-button{height:auto}.svelte-esola3::-webkit-search-decoration{-webkit-appearance:none}.svelte-esola3::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-esola3{cursor:pointer}.svelte-esola3:disabled{cursor:default}.svelte-esola3,.svelte-esola3::before,.svelte-esola3::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-esola3::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-esola3{position:relative}td.svelte-esola3{border-right:1px solid var(--background-modifier-border)}");
+	append_styles(target, "svelte-1msxo72", ".svelte-1msxo72,.svelte-1msxo72::before,.svelte-1msxo72::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-1msxo72::before,.svelte-1msxo72::after{--tw-content:''}button.svelte-1msxo72{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-1msxo72{text-transform:none}button.svelte-1msxo72{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-1msxo72:-moz-focusring{outline:auto}.svelte-1msxo72:-moz-ui-invalid{box-shadow:none}.svelte-1msxo72::-webkit-inner-spin-button,.svelte-1msxo72::-webkit-outer-spin-button{height:auto}.svelte-1msxo72::-webkit-search-decoration{-webkit-appearance:none}.svelte-1msxo72::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-1msxo72{cursor:pointer}.svelte-1msxo72:disabled{cursor:default}.svelte-1msxo72,.svelte-1msxo72::before,.svelte-1msxo72::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-1msxo72::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-1msxo72{position:relative}td.svelte-1msxo72{border-right:1px solid var(--background-modifier-border)}");
 }
 
 function create_fragment$b(ctx) {
@@ -4587,8 +4610,8 @@ function create_fragment$b(ctx) {
 			create_component(dot.$$.fragment);
 			t2 = space();
 			create_component(sticker_1.$$.fragment);
-			attr(button, "class", "day svelte-esola3");
-			attr(td, "class", "relative svelte-esola3");
+			attr(button, "class", "day svelte-1msxo72");
+			attr(td, "class", "relative svelte-1msxo72");
 		},
 		m(target, anchor) {
 			insert(target, td, anchor);
@@ -4719,7 +4742,7 @@ class WeekNum extends SvelteComponent {
 /* src/calendar-ui/components/Arrow.svelte generated by Svelte v4.2.0 */
 
 function add_css$a(target) {
-	append_styles(target, "svelte-e6dwfx", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.arrow.svelte-e6dwfx.svelte-e6dwfx{all:inherit;align-items:center;cursor:pointer;display:flex;justify-content:center;width:24px}.arrow.is-mobile.svelte-e6dwfx.svelte-e6dwfx{width:32px}.right.svelte-e6dwfx.svelte-e6dwfx{transform:rotate(180deg)}.arrow.svelte-e6dwfx svg.svelte-e6dwfx{color:var(--color-arrow);height:16px;width:16px}");
+	append_styles(target, "svelte-g03yyi", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.arrow.svelte-g03yyi.svelte-g03yyi{all:inherit;align-items:center;cursor:pointer;display:flex;justify-content:center;width:24px}.arrow.is-mobile.svelte-g03yyi.svelte-g03yyi{width:32px}.right.svelte-g03yyi.svelte-g03yyi{transform:rotate(180deg)}.arrow.svelte-g03yyi svg.svelte-g03yyi{color:var(--color-arrow);height:16px;width:16px}");
 }
 
 function create_fragment$a(ctx) {
@@ -4740,8 +4763,8 @@ function create_fragment$a(ctx) {
 			attr(svg, "role", "img");
 			attr(svg, "xmlns", "http://www.w3.org/2000/svg");
 			attr(svg, "viewBox", "0 0 320 512");
-			attr(svg, "class", "svelte-e6dwfx");
-			attr(button, "class", "arrow svelte-e6dwfx");
+			attr(svg, "class", "svelte-g03yyi");
+			attr(button, "class", "arrow svelte-g03yyi");
 			attr(button, "aria-label", /*tooltip*/ ctx[1]);
 			toggle_class(button, "is-mobile", /*isMobile*/ ctx[3]);
 			toggle_class(button, "right", /*direction*/ ctx[2] === 'right');
@@ -4810,7 +4833,7 @@ class Arrow extends SvelteComponent {
 /* src/calendar-ui/components/MonthNav.svelte generated by Svelte v4.2.0 */
 
 function add_css$9(target) {
-	append_styles(target, "svelte-j4kwcw", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.flex.svelte-j4kwcw{display:flex}.justify-between.svelte-j4kwcw{justify-content:space-between}.\\[all\\:inherit\\].svelte-j4kwcw{all:inherit}.nav.svelte-j4kwcw{align-items:baseline;display:flex;margin:0.6em 0 1em;padding:0 8px;width:100%}.title.svelte-j4kwcw{color:var(--color-text-title);cursor:pointer;display:flex;font-size:1.4em;gap:0.3em;margin:0}.month.svelte-j4kwcw{font-weight:500}.year.svelte-j4kwcw{color:var(--interactive-accent)}.right-nav.svelte-j4kwcw{align-items:center;display:flex;justify-content:center;margin-left:auto}.reset-button.svelte-j4kwcw{all:inherit;cursor:pointer;align-items:center;color:var(--color-arrow);display:flex;opacity:0.4;padding:0.5em}.reset-button.active.svelte-j4kwcw{cursor:pointer;opacity:1}");
+	append_styles(target, "svelte-cm8mz1", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.flex.svelte-cm8mz1{display:flex}.justify-between.svelte-cm8mz1{justify-content:space-between}.\\[all\\:inherit\\].svelte-cm8mz1{all:inherit}.nav.svelte-cm8mz1{align-items:baseline;display:flex;margin:0.6em 0 1em;padding:0 8px;width:100%}.title.svelte-cm8mz1{color:var(--color-text-title);cursor:pointer;display:flex;font-size:1.4em;gap:0.3em;margin:0}.month.svelte-cm8mz1{font-weight:500}.year.svelte-cm8mz1{color:var(--interactive-accent)}.right-nav.svelte-cm8mz1{align-items:center;display:flex;justify-content:center;margin-left:auto}.reset-button.svelte-cm8mz1{all:inherit;cursor:pointer;align-items:center;color:var(--color-arrow);display:flex;opacity:0.4;padding:0.5em}.reset-button.active.svelte-cm8mz1{cursor:pointer;opacity:1}");
 }
 
 function create_fragment$9(ctx) {
@@ -4878,18 +4901,18 @@ function create_fragment$9(ctx) {
 			create_component(dot.$$.fragment);
 			t5 = space();
 			create_component(arrow1.$$.fragment);
-			attr(button0, "class", "month [all:inherit] svelte-j4kwcw");
-			attr(button1, "class", "year [all:inherit] svelte-j4kwcw");
-			attr(span, "class", "flex justify-between title svelte-j4kwcw");
+			attr(button0, "class", "month [all:inherit] svelte-cm8mz1");
+			attr(button1, "class", "year [all:inherit] svelte-cm8mz1");
+			attr(span, "class", "flex justify-between title svelte-cm8mz1");
 
 			attr(button2, "aria-label", button2_aria_label_value = !/*showingCurrentMonth*/ ctx[1]
 			? 'Reset to current month'
 			: null);
 
-			attr(button2, "class", "reset-button svelte-j4kwcw");
+			attr(button2, "class", "reset-button svelte-cm8mz1");
 			toggle_class(button2, "active", /*showingCurrentMonth*/ ctx[1]);
-			attr(div1, "class", "right-nav svelte-j4kwcw");
-			attr(div2, "class", "nav svelte-j4kwcw");
+			attr(div1, "class", "right-nav svelte-cm8mz1");
+			attr(div2, "class", "nav svelte-cm8mz1");
 		},
 		m(target, anchor) {
 			insert(target, div2, anchor);
@@ -5315,7 +5338,7 @@ class YearNav extends SvelteComponent {
 /* src/calendar-ui/components/YearsNav.svelte generated by Svelte v4.2.0 */
 
 function add_css$7(target) {
-	append_styles(target, "svelte-701zs6", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.flex.svelte-701zs6{display:flex}.justify-between.svelte-701zs6{justify-content:space-between}.nav.svelte-701zs6{align-items:baseline;display:flex;margin:0.6em 0 1em;padding:0 8px;width:100%}.title.svelte-701zs6{color:var(--color-text-title);display:flex;font-size:1.4em;gap:0.3em;margin:0}.month.svelte-701zs6{font-weight:500}.right-nav.svelte-701zs6{align-items:center;display:flex;justify-content:center;margin-left:auto}.reset-button.svelte-701zs6{all:inherit;cursor:pointer;align-items:center;color:var(--color-arrow);display:flex;opacity:0.4;padding:0.5em}.reset-button.active.svelte-701zs6{cursor:pointer;opacity:1}");
+	append_styles(target, "svelte-1ypvuof", "@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.flex.svelte-1ypvuof{display:flex}.justify-between.svelte-1ypvuof{justify-content:space-between}.nav.svelte-1ypvuof{align-items:baseline;display:flex;margin:0.6em 0 1em;padding:0 8px;width:100%}.title.svelte-1ypvuof{color:var(--color-text-title);display:flex;font-size:1.4em;gap:0.3em;margin:0}.month.svelte-1ypvuof{font-weight:500}.right-nav.svelte-1ypvuof{align-items:center;display:flex;justify-content:center;margin-left:auto}.reset-button.svelte-1ypvuof{all:inherit;cursor:pointer;align-items:center;color:var(--color-arrow);display:flex;opacity:0.4;padding:0.5em}.reset-button.active.svelte-1ypvuof{cursor:pointer;opacity:1}");
 }
 
 function create_fragment$7(ctx) {
@@ -5376,17 +5399,17 @@ function create_fragment$7(ctx) {
 			create_component(dot.$$.fragment);
 			t3 = space();
 			create_component(arrow1.$$.fragment);
-			attr(span0, "class", "month svelte-701zs6");
-			attr(span1, "class", "flex justify-between title svelte-701zs6");
+			attr(span0, "class", "month svelte-1ypvuof");
+			attr(span1, "class", "flex justify-between title svelte-1ypvuof");
 
 			attr(button, "aria-label", button_aria_label_value = !/*showingCurrentRange*/ ctx[1]
 			? 'Reset to current year'
 			: null);
 
-			attr(button, "class", "reset-button svelte-701zs6");
+			attr(button, "class", "reset-button svelte-1ypvuof");
 			toggle_class(button, "active", /*showingCurrentRange*/ ctx[1]);
-			attr(div1, "class", "right-nav svelte-701zs6");
-			attr(div2, "class", "nav svelte-701zs6");
+			attr(div1, "class", "right-nav svelte-1ypvuof");
+			attr(div2, "class", "nav svelte-1ypvuof");
 		},
 		m(target, anchor) {
 			insert(target, div2, anchor);
@@ -5515,7 +5538,7 @@ class YearsNav extends SvelteComponent {
 /* src/calendar-ui/components/QuarterNum.svelte generated by Svelte v4.2.0 */
 
 function add_css$6(target) {
-	append_styles(target, "svelte-axr5a9", ".svelte-axr5a9,.svelte-axr5a9::before,.svelte-axr5a9::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-axr5a9::before,.svelte-axr5a9::after{--tw-content:''}button.svelte-axr5a9{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-axr5a9{text-transform:none}button.svelte-axr5a9{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-axr5a9:-moz-focusring{outline:auto}.svelte-axr5a9:-moz-ui-invalid{box-shadow:none}.svelte-axr5a9::-webkit-inner-spin-button,.svelte-axr5a9::-webkit-outer-spin-button{height:auto}.svelte-axr5a9::-webkit-search-decoration{-webkit-appearance:none}.svelte-axr5a9::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-axr5a9{cursor:pointer}.svelte-axr5a9:disabled{cursor:default}.svelte-axr5a9,.svelte-axr5a9::before,.svelte-axr5a9::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-axr5a9::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-axr5a9{position:relative}");
+	append_styles(target, "svelte-fshnug", ".svelte-fshnug,.svelte-fshnug::before,.svelte-fshnug::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-fshnug::before,.svelte-fshnug::after{--tw-content:''}button.svelte-fshnug{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-fshnug{text-transform:none}button.svelte-fshnug{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-fshnug:-moz-focusring{outline:auto}.svelte-fshnug:-moz-ui-invalid{box-shadow:none}.svelte-fshnug::-webkit-inner-spin-button,.svelte-fshnug::-webkit-outer-spin-button{height:auto}.svelte-fshnug::-webkit-search-decoration{-webkit-appearance:none}.svelte-fshnug::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-fshnug{cursor:pointer}.svelte-fshnug:disabled{cursor:default}.svelte-fshnug,.svelte-fshnug::before,.svelte-fshnug::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-fshnug::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-fshnug{position:relative}");
 }
 
 function create_fragment$6(ctx) {
@@ -5550,8 +5573,8 @@ function create_fragment$6(ctx) {
 			create_component(dot.$$.fragment);
 			t3 = space();
 			create_component(sticker_1.$$.fragment);
-			attr(button, "class", "svelte-axr5a9");
-			attr(td, "class", "relative svelte-axr5a9");
+			attr(button, "class", "svelte-fshnug");
+			attr(td, "class", "relative svelte-fshnug");
 		},
 		m(target, anchor) {
 			insert(target, td, anchor);
@@ -5684,7 +5707,7 @@ class QuarterNum extends SvelteComponent {
 /* src/calendar-ui/components/Month.svelte generated by Svelte v4.2.0 */
 
 function add_css$5(target) {
-	append_styles(target, "svelte-axr5a9", ".svelte-axr5a9,.svelte-axr5a9::before,.svelte-axr5a9::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-axr5a9::before,.svelte-axr5a9::after{--tw-content:''}button.svelte-axr5a9{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-axr5a9{text-transform:none}button.svelte-axr5a9{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-axr5a9:-moz-focusring{outline:auto}.svelte-axr5a9:-moz-ui-invalid{box-shadow:none}.svelte-axr5a9::-webkit-inner-spin-button,.svelte-axr5a9::-webkit-outer-spin-button{height:auto}.svelte-axr5a9::-webkit-search-decoration{-webkit-appearance:none}.svelte-axr5a9::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-axr5a9{cursor:pointer}.svelte-axr5a9:disabled{cursor:default}.svelte-axr5a9,.svelte-axr5a9::before,.svelte-axr5a9::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-axr5a9::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-axr5a9{position:relative}");
+	append_styles(target, "svelte-fshnug", ".svelte-fshnug,.svelte-fshnug::before,.svelte-fshnug::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-fshnug::before,.svelte-fshnug::after{--tw-content:''}button.svelte-fshnug{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-fshnug{text-transform:none}button.svelte-fshnug{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-fshnug:-moz-focusring{outline:auto}.svelte-fshnug:-moz-ui-invalid{box-shadow:none}.svelte-fshnug::-webkit-inner-spin-button,.svelte-fshnug::-webkit-outer-spin-button{height:auto}.svelte-fshnug::-webkit-search-decoration{-webkit-appearance:none}.svelte-fshnug::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-fshnug{cursor:pointer}.svelte-fshnug:disabled{cursor:default}.svelte-fshnug,.svelte-fshnug::before,.svelte-fshnug::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-fshnug::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-fshnug{position:relative}");
 }
 
 function create_fragment$5(ctx) {
@@ -5718,8 +5741,8 @@ function create_fragment$5(ctx) {
 			create_component(dot.$$.fragment);
 			t2 = space();
 			create_component(sticker_1.$$.fragment);
-			attr(button, "class", "svelte-axr5a9");
-			attr(td, "class", "relative svelte-axr5a9");
+			attr(button, "class", "svelte-fshnug");
+			attr(td, "class", "relative svelte-fshnug");
 		},
 		m(target, anchor) {
 			insert(target, td, anchor);
@@ -5851,7 +5874,7 @@ class Month extends SvelteComponent {
 /* src/calendar-ui/components/Year.svelte generated by Svelte v4.2.0 */
 
 function add_css$4(target) {
-	append_styles(target, "svelte-axr5a9", ".svelte-axr5a9,.svelte-axr5a9::before,.svelte-axr5a9::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-axr5a9::before,.svelte-axr5a9::after{--tw-content:''}button.svelte-axr5a9{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-axr5a9{text-transform:none}button.svelte-axr5a9{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-axr5a9:-moz-focusring{outline:auto}.svelte-axr5a9:-moz-ui-invalid{box-shadow:none}.svelte-axr5a9::-webkit-inner-spin-button,.svelte-axr5a9::-webkit-outer-spin-button{height:auto}.svelte-axr5a9::-webkit-search-decoration{-webkit-appearance:none}.svelte-axr5a9::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-axr5a9{cursor:pointer}.svelte-axr5a9:disabled{cursor:default}.svelte-axr5a9,.svelte-axr5a9::before,.svelte-axr5a9::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-axr5a9::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-axr5a9{position:relative}");
+	append_styles(target, "svelte-fshnug", ".svelte-fshnug,.svelte-fshnug::before,.svelte-fshnug::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-fshnug::before,.svelte-fshnug::after{--tw-content:''}button.svelte-fshnug{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-fshnug{text-transform:none}button.svelte-fshnug{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-fshnug:-moz-focusring{outline:auto}.svelte-fshnug:-moz-ui-invalid{box-shadow:none}.svelte-fshnug::-webkit-inner-spin-button,.svelte-fshnug::-webkit-outer-spin-button{height:auto}.svelte-fshnug::-webkit-search-decoration{-webkit-appearance:none}.svelte-fshnug::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-fshnug{cursor:pointer}.svelte-fshnug:disabled{cursor:default}.svelte-fshnug,.svelte-fshnug::before,.svelte-fshnug::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-fshnug::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }@media(min-width: 640px){}@media(min-width: 768px){}@media(min-width: 1024px){}@media(min-width: 1280px){}@media(min-width: 1536px){}.relative.svelte-fshnug{position:relative}");
 }
 
 function create_fragment$4(ctx) {
@@ -5884,8 +5907,8 @@ function create_fragment$4(ctx) {
 			create_component(dot.$$.fragment);
 			t2 = space();
 			create_component(sticker_1.$$.fragment);
-			attr(button, "class", "svelte-axr5a9");
-			attr(td, "class", "relative svelte-axr5a9");
+			attr(button, "class", "svelte-fshnug");
+			attr(td, "class", "relative svelte-fshnug");
 		},
 		m(target, anchor) {
 			insert(target, td, anchor);
@@ -6019,7 +6042,7 @@ class Year extends SvelteComponent {
 /* src/calendar-ui/components/Calendar.svelte generated by Svelte v4.2.0 */
 
 function add_css$3(target) {
-	append_styles(target, "svelte-i9u4xp", ".svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp,.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp::before,.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp::before,.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp::after{--tw-content:''}table.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{text-indent:0;border-color:inherit;border-collapse:collapse}button.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{text-transform:none}button.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp:-moz-focusring{outline:auto}.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp:-moz-ui-invalid{box-shadow:none}.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp::-webkit-inner-spin-button,.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp::-webkit-outer-spin-button{height:auto}.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp::-webkit-search-decoration{-webkit-appearance:none}.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{cursor:pointer}.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp:disabled{cursor:default}.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp,.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp::before,.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.container.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{width:100%}@media(min-width: 640px){.container.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{max-width:640px}}@media(min-width: 768px){.container.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{max-width:768px}}@media(min-width: 1024px){.container.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{max-width:1024px}}@media(min-width: 1280px){.container.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{max-width:1280px}}@media(min-width: 1536px){.container.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{max-width:1536px}}.pointer-events-none.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{pointer-events:none}.collapse.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{visibility:collapse}.static.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{position:static}.absolute.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{position:absolute}.relative.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{position:relative}.left-0.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{left:0px}.left-full.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{left:100%}.top-0.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{top:0px}.z-10.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{z-index:10}.z-20.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{z-index:20}.m-0.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{margin:0px}.mx-\\[1px\\].svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{margin-left:1px;margin-right:1px}.ml-\\[5px\\].svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{margin-left:5px}.mt-2.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{margin-top:0.5rem}.mt-3.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{margin-top:0.75rem}.mt-7.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{margin-top:1.75rem}.block.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{display:block}.inline-block.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{display:inline-block}.flex.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{display:flex}.table.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{display:table}.contents.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{display:contents}.h-2.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{height:0.5rem}.h-2\\.5.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{height:0.625rem}.h-3.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{height:0.75rem}.h-\\[6px\\].svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{height:6px}.w-2.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{width:0.5rem}.w-2\\.5.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{width:0.625rem}.w-3.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{width:0.75rem}.w-\\[6px\\].svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{width:6px}.w-full.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{width:100%}.w-max.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{width:-moz-max-content;width:max-content}.border-collapse.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{border-collapse:collapse}.-translate-x-1\\/2.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-y-1\\/2.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-12.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-45.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.transform.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-default.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{cursor:default}.cursor-not-allowed.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{cursor:not-allowed}.cursor-pointer.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{cursor:pointer}.\\!cursor-default.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{cursor:default !important}.flex-col.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{flex-direction:column}.items-center.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{align-items:center}.justify-between.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{justify-content:space-between}.space-x-1.svelte-i9u4xp>.svelte-i9u4xp:not([hidden])~.svelte-i9u4xp:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(0.25rem * var(--tw-space-x-reverse));margin-left:calc(0.25rem * calc(1 - var(--tw-space-x-reverse)))}.rounded-md.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{border-radius:0.375rem}.rounded-sm.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{border-radius:0.125rem}.border-0.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{border-width:0px}.bg-gray-100.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))}.bg-slate-500.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))}.bg-transparent.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{background-color:transparent}.p-1.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{padding:0.25rem}.p-2.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{padding:0.5rem}.px-4.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{padding-left:1rem;padding-right:1rem}.py-2.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{padding-top:0.5rem;padding-bottom:0.5rem}.pt-4.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{padding-top:1rem}.text-sm.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{font-size:0.875rem;line-height:1.25rem}.text-xs.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{font-size:0.75rem;line-height:1rem}.uppercase.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{text-transform:uppercase}.capitalize.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{text-transform:capitalize}.text-\\[--text-muted\\].svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{color:var(--text-muted)}.text-\\[--text-on-accent\\].svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{color:var(--text-on-accent)}.text-black.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))}.text-white.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))}.opacity-0.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{opacity:0}.opacity-100.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{opacity:1}.opacity-50.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{opacity:0.5}.shadow.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{--tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.blur.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{--tw-blur:blur(8px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.transition.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.\\[all\\:inherit\\].svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{all:inherit}.container.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{--color-background-heading:transparent;--color-background-day:transparent;--color-background-weeknum:transparent;--color-background-weekend:transparent;--color-dot:var(--text-muted);--color-arrow:var(--text-muted);--color-button:var(--text-muted);--color-text-title:var(--text-normal);--color-text-heading:var(--text-muted);--color-text-day:var(--text-normal);--color-text-today:var(--interactive-accent);--color-text-weeknum:var(--text-muted);padding:0 8px}.weekend.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{background-color:var(--color-background-weekend)}.calendar.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{border-collapse:collapse;width:100%}th.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp{background-color:var(--color-background-heading);color:var(--color-text-heading);font-size:0.6em;letter-spacing:1px;padding:4px;text-align:center;text-transform:uppercase}.hover\\:cursor-pointer.svelte-i9u4xp.svelte-i9u4xp.svelte-i9u4xp:hover{cursor:pointer}");
+	append_styles(target, "svelte-1jhu44c", ".svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c,.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c::before,.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c::before,.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c::after{--tw-content:''}table.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{text-indent:0;border-color:inherit;border-collapse:collapse}button.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{text-transform:none}button.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{-webkit-appearance:button;background-color:transparent;background-image:none}.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c:-moz-focusring{outline:auto}.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c:-moz-ui-invalid{box-shadow:none}.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c::-webkit-inner-spin-button,.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c::-webkit-outer-spin-button{height:auto}.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c::-webkit-search-decoration{-webkit-appearance:none}.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}button.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{cursor:pointer}.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c:disabled{cursor:default}.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c,.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c::before,.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x:  ;--tw-pan-y:  ;--tw-pinch-zoom:  ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position:  ;--tw-gradient-via-position:  ;--tw-gradient-to-position:  ;--tw-ordinal:  ;--tw-slashed-zero:  ;--tw-numeric-figure:  ;--tw-numeric-spacing:  ;--tw-numeric-fraction:  ;--tw-ring-inset:  ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur:  ;--tw-brightness:  ;--tw-contrast:  ;--tw-grayscale:  ;--tw-hue-rotate:  ;--tw-invert:  ;--tw-saturate:  ;--tw-sepia:  ;--tw-drop-shadow:  ;--tw-backdrop-blur:  ;--tw-backdrop-brightness:  ;--tw-backdrop-contrast:  ;--tw-backdrop-grayscale:  ;--tw-backdrop-hue-rotate:  ;--tw-backdrop-invert:  ;--tw-backdrop-opacity:  ;--tw-backdrop-saturate:  ;--tw-backdrop-sepia:  }.container.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{width:100%}@media(min-width: 640px){.container.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{max-width:640px}}@media(min-width: 768px){.container.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{max-width:768px}}@media(min-width: 1024px){.container.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{max-width:1024px}}@media(min-width: 1280px){.container.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{max-width:1280px}}@media(min-width: 1536px){.container.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{max-width:1536px}}.pointer-events-none.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{pointer-events:none}.collapse.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{visibility:collapse}.static.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{position:static}.absolute.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{position:absolute}.relative.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{position:relative}.left-0.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{left:0px}.left-full.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{left:100%}.top-0.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{top:0px}.z-10.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{z-index:10}.z-20.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{z-index:20}.m-0.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{margin:0px}.mx-\\[1px\\].svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{margin-left:1px;margin-right:1px}.ml-\\[5px\\].svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{margin-left:5px}.mt-2.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{margin-top:0.5rem}.mt-3.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{margin-top:0.75rem}.mt-7.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{margin-top:1.75rem}.block.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{display:block}.inline-block.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{display:inline-block}.flex.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{display:flex}.table.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{display:table}.contents.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{display:contents}.h-2.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{height:0.5rem}.h-2\\.5.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{height:0.625rem}.h-3.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{height:0.75rem}.h-\\[6px\\].svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{height:6px}.w-2.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{width:0.5rem}.w-2\\.5.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{width:0.625rem}.w-3.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{width:0.75rem}.w-\\[6px\\].svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{width:6px}.w-full.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{width:100%}.w-max.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{width:-moz-max-content;width:max-content}.border-collapse.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{border-collapse:collapse}.-translate-x-1\\/2.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-y-1\\/2.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-12.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-45.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.transform.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.\\!cursor-default.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{cursor:default !important}.cursor-not-allowed.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{cursor:not-allowed}.cursor-pointer.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{cursor:pointer}.flex-col.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{flex-direction:column}.items-center.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{align-items:center}.justify-between.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{justify-content:space-between}.space-x-1.svelte-1jhu44c>.svelte-1jhu44c:not([hidden])~.svelte-1jhu44c:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(0.25rem * var(--tw-space-x-reverse));margin-left:calc(0.25rem * calc(1 - var(--tw-space-x-reverse)))}.rounded-md.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{border-radius:0.375rem}.rounded-sm.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{border-radius:0.125rem}.border-0.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{border-width:0px}.bg-gray-100.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))}.bg-slate-500.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))}.bg-transparent.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{background-color:transparent}.p-1.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{padding:0.25rem}.p-2.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{padding:0.5rem}.px-4.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{padding-left:1rem;padding-right:1rem}.py-2.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{padding-top:0.5rem;padding-bottom:0.5rem}.pt-4.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{padding-top:1rem}.text-sm.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{font-size:0.875rem;line-height:1.25rem}.text-xs.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{font-size:0.75rem;line-height:1rem}.uppercase.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{text-transform:uppercase}.capitalize.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{text-transform:capitalize}.text-\\[--text-muted\\].svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{color:var(--text-muted)}.text-\\[--text-on-accent\\].svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{color:var(--text-on-accent)}.text-black.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))}.text-white.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))}.opacity-0.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{opacity:0}.opacity-100.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{opacity:1}.opacity-50.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{opacity:0.5}.shadow.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{--tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.blur.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{--tw-blur:blur(8px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.transition.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.\\[all\\:inherit\\].svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{all:inherit}.container.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{--color-background-heading:transparent;--color-background-day:transparent;--color-background-weeknum:transparent;--color-background-weekend:transparent;--color-dot:var(--text-muted);--color-arrow:var(--text-muted);--color-button:var(--text-muted);--color-text-title:var(--text-normal);--color-text-heading:var(--text-muted);--color-text-day:var(--text-normal);--color-text-today:var(--interactive-accent);--color-text-weeknum:var(--text-muted);padding:0 8px}.weekend.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{background-color:var(--color-background-weekend)}.calendar.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{border-collapse:collapse;width:100%}th.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c{background-color:var(--color-background-heading);color:var(--color-text-heading);font-size:0.6em;letter-spacing:1px;padding:4px;text-align:center;text-transform:uppercase}.hover\\:cursor-pointer.svelte-1jhu44c.svelte-1jhu44c.svelte-1jhu44c:hover{cursor:pointer}");
 }
 
 function get_each_context$1(ctx, list, i) {
@@ -6097,7 +6120,7 @@ function create_each_block_8(ctx) {
 
 			attr(button, "class", button_class_value = "" + (null_to_empty(`w-full cursor-pointer rounded-md px-4 py-2 text-black ${/*crrView*/ ctx[0] === /*period*/ ctx[33]
 			? 'bg-gray-100'
-			: 'text-white'}`) + " svelte-i9u4xp"));
+			: 'text-white'}`) + " svelte-1jhu44c"));
 		},
 		m(target, anchor) {
 			insert(target, button, anchor);
@@ -6113,7 +6136,7 @@ function create_each_block_8(ctx) {
 
 			if (dirty[0] & /*crrView*/ 1 && button_class_value !== (button_class_value = "" + (null_to_empty(`w-full cursor-pointer rounded-md px-4 py-2 text-black ${/*crrView*/ ctx[0] === /*period*/ ctx[33]
 			? 'bg-gray-100'
-			: 'text-white'}`) + " svelte-i9u4xp"))) {
+			: 'text-white'}`) + " svelte-1jhu44c"))) {
 				attr(button, "class", button_class_value);
 			}
 		},
@@ -6200,11 +6223,11 @@ function create_if_block_3(ctx) {
 				each_blocks[i].c();
 			}
 
-			attr(colgroup, "class", "svelte-i9u4xp");
-			attr(tr, "class", "svelte-i9u4xp");
-			attr(thead, "class", "svelte-i9u4xp");
-			attr(tbody, "class", "svelte-i9u4xp");
-			attr(table, "class", "calendar svelte-i9u4xp");
+			attr(colgroup, "class", "svelte-1jhu44c");
+			attr(tr, "class", "svelte-1jhu44c");
+			attr(thead, "class", "svelte-1jhu44c");
+			attr(tbody, "class", "svelte-1jhu44c");
+			attr(table, "class", "calendar svelte-1jhu44c");
 		},
 		m(target, anchor) {
 			mount_component(monthnav, target, anchor);
@@ -6364,7 +6387,7 @@ function create_if_block_6(ctx) {
 	return {
 		c() {
 			col = element("col");
-			attr(col, "class", "svelte-i9u4xp");
+			attr(col, "class", "svelte-1jhu44c");
 		},
 		m(target, anchor) {
 			insert(target, col, anchor);
@@ -6384,7 +6407,7 @@ function create_each_block_7(ctx) {
 	return {
 		c() {
 			col = element("col");
-			attr(col, "class", "svelte-i9u4xp");
+			attr(col, "class", "svelte-1jhu44c");
 			toggle_class(col, "weekend", isWeekend(/*date*/ ctx[30]));
 		},
 		m(target, anchor) {
@@ -6411,7 +6434,7 @@ function create_if_block_5(ctx) {
 		c() {
 			th = element("th");
 			th.textContent = "W";
-			attr(th, "class", "svelte-i9u4xp");
+			attr(th, "class", "svelte-1jhu44c");
 		},
 		m(target, anchor) {
 			insert(target, th, anchor);
@@ -6434,7 +6457,7 @@ function create_each_block_6(ctx) {
 		c() {
 			th = element("th");
 			t = text(t_value);
-			attr(th, "class", "svelte-i9u4xp");
+			attr(th, "class", "svelte-1jhu44c");
 		},
 		m(target, anchor) {
 			insert(target, th, anchor);
@@ -6568,7 +6591,7 @@ function create_each_block_4(key_1, ctx) {
 			}
 
 			t1 = space();
-			attr(tr, "class", "svelte-i9u4xp");
+			attr(tr, "class", "svelte-1jhu44c");
 			this.first = tr;
 		},
 		m(target, anchor) {
@@ -6681,8 +6704,8 @@ function create_if_block_1$1(ctx) {
 				each_blocks[i].c();
 			}
 
-			attr(tbody, "class", "svelte-i9u4xp");
-			attr(table, "class", "calendar svelte-i9u4xp");
+			attr(tbody, "class", "svelte-1jhu44c");
+			attr(table, "class", "calendar svelte-1jhu44c");
 		},
 		m(target, anchor) {
 			mount_component(yearnav, target, anchor);
@@ -6845,7 +6868,7 @@ function create_each_block_2(ctx) {
 			}
 
 			t1 = space();
-			attr(tr, "class", "svelte-i9u4xp");
+			attr(tr, "class", "svelte-1jhu44c");
 		},
 		m(target, anchor) {
 			insert(target, tr, anchor);
@@ -6948,8 +6971,8 @@ function create_if_block$1(ctx) {
 				each_blocks[i].c();
 			}
 
-			attr(tbody, "class", "svelte-i9u4xp");
-			attr(table, "class", "calendar svelte-i9u4xp");
+			attr(tbody, "class", "svelte-1jhu44c");
+			attr(table, "class", "calendar svelte-1jhu44c");
 		},
 		m(target, anchor) {
 			mount_component(yearsnav, target, anchor);
@@ -7087,7 +7110,7 @@ function create_each_block$1(ctx) {
 			}
 
 			t = space();
-			attr(tr, "class", "svelte-i9u4xp");
+			attr(tr, "class", "svelte-1jhu44c");
 		},
 		m(target, anchor) {
 			insert(target, tr, anchor);
@@ -7190,9 +7213,9 @@ function create_fragment$3(ctx) {
 			if (if_block1) if_block1.c();
 			t2 = space();
 			if (if_block2) if_block2.c();
-			attr(div0, "class", "flex rounded-md space-x-1 p-1 w-full svelte-i9u4xp");
+			attr(div0, "class", "flex rounded-md space-x-1 p-1 w-full svelte-1jhu44c");
 			attr(div1, "id", "calendar-container");
-			attr(div1, "class", "container svelte-i9u4xp");
+			attr(div1, "class", "container svelte-1jhu44c");
 		},
 		m(target, anchor) {
 			insert(target, div1, anchor);
@@ -50359,7 +50382,7 @@ class CalendarView extends obsidian.ItemView {
 /* src/calendar-ui/components/Nldatepicker.svelte generated by Svelte v4.2.0 */
 
 function add_css(target) {
-	append_styles(target, "svelte-1fqz78w", ".container.svelte-1fqz78w{width:100%\n}@media(min-width: 640px){.container.svelte-1fqz78w{max-width:640px\n    }}@media(min-width: 768px){.container.svelte-1fqz78w{max-width:768px\n    }}@media(min-width: 1024px){.container.svelte-1fqz78w{max-width:1024px\n    }}@media(min-width: 1280px){.container.svelte-1fqz78w{max-width:1280px\n    }}@media(min-width: 1536px){.container.svelte-1fqz78w{max-width:1536px\n    }}.pointer-events-none.svelte-1fqz78w{pointer-events:none\n}.collapse.svelte-1fqz78w{visibility:collapse\n}.static.svelte-1fqz78w{position:static\n}.absolute.svelte-1fqz78w{position:absolute\n}.relative.svelte-1fqz78w{position:relative\n}.left-0.svelte-1fqz78w{left:0px\n}.left-full.svelte-1fqz78w{left:100%\n}.top-0.svelte-1fqz78w{top:0px\n}.z-10.svelte-1fqz78w{z-index:10\n}.z-20.svelte-1fqz78w{z-index:20\n}.m-0.svelte-1fqz78w{margin:0px\n}.mx-\\[1px\\].svelte-1fqz78w{margin-left:1px;margin-right:1px\n}.ml-\\[5px\\].svelte-1fqz78w{margin-left:5px\n}.mt-2.svelte-1fqz78w{margin-top:0.5rem\n}.mt-3.svelte-1fqz78w{margin-top:0.75rem\n}.mt-7.svelte-1fqz78w{margin-top:1.75rem\n}.block.svelte-1fqz78w{display:block\n}.inline-block.svelte-1fqz78w{display:inline-block\n}.flex.svelte-1fqz78w{display:flex\n}.table.svelte-1fqz78w{display:table\n}.contents.svelte-1fqz78w{display:contents\n}.h-2.svelte-1fqz78w{height:0.5rem\n}.h-2\\.5.svelte-1fqz78w{height:0.625rem\n}.h-3.svelte-1fqz78w{height:0.75rem\n}.h-\\[6px\\].svelte-1fqz78w{height:6px\n}.w-2.svelte-1fqz78w{width:0.5rem\n}.w-2\\.5.svelte-1fqz78w{width:0.625rem\n}.w-3.svelte-1fqz78w{width:0.75rem\n}.w-\\[6px\\].svelte-1fqz78w{width:6px\n}.w-full.svelte-1fqz78w{width:100%\n}.w-max.svelte-1fqz78w{width:-moz-max-content;width:max-content\n}.border-collapse.svelte-1fqz78w{border-collapse:collapse\n}.-translate-x-1\\/2.svelte-1fqz78w{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.-translate-y-1\\/2.svelte-1fqz78w{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.rotate-12.svelte-1fqz78w{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.rotate-45.svelte-1fqz78w{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.transform.svelte-1fqz78w{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.cursor-default.svelte-1fqz78w{cursor:default\n}.cursor-not-allowed.svelte-1fqz78w{cursor:not-allowed\n}.cursor-pointer.svelte-1fqz78w{cursor:pointer\n}.\\!cursor-default.svelte-1fqz78w{cursor:default !important\n}.flex-col.svelte-1fqz78w{flex-direction:column\n}.items-center.svelte-1fqz78w{align-items:center\n}.justify-between.svelte-1fqz78w{justify-content:space-between\n}.rounded-md.svelte-1fqz78w{border-radius:0.375rem\n}.rounded-sm.svelte-1fqz78w{border-radius:0.125rem\n}.border-0.svelte-1fqz78w{border-width:0px\n}.bg-gray-100.svelte-1fqz78w{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))\n}.bg-slate-500.svelte-1fqz78w{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))\n}.bg-transparent.svelte-1fqz78w{background-color:transparent\n}.p-1.svelte-1fqz78w{padding:0.25rem\n}.p-2.svelte-1fqz78w{padding:0.5rem\n}.px-4.svelte-1fqz78w{padding-left:1rem;padding-right:1rem\n}.py-2.svelte-1fqz78w{padding-top:0.5rem;padding-bottom:0.5rem\n}.pt-4.svelte-1fqz78w{padding-top:1rem\n}.text-sm.svelte-1fqz78w{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-1fqz78w{font-size:0.75rem;line-height:1rem\n}.uppercase.svelte-1fqz78w{text-transform:uppercase\n}.capitalize.svelte-1fqz78w{text-transform:capitalize\n}.text-\\[--text-muted\\].svelte-1fqz78w{color:var(--text-muted)\n}.text-\\[--text-on-accent\\].svelte-1fqz78w{color:var(--text-on-accent)\n}.text-black.svelte-1fqz78w{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))\n}.text-white.svelte-1fqz78w{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))\n}.opacity-0.svelte-1fqz78w{opacity:0\n}.opacity-100.svelte-1fqz78w{opacity:1\n}.opacity-50.svelte-1fqz78w{opacity:0.5\n}.shadow.svelte-1fqz78w{--tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)\n}.blur.svelte-1fqz78w{--tw-blur:blur(8px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)\n}.transition.svelte-1fqz78w{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms\n}.\\[all\\:inherit\\].svelte-1fqz78w{all:inherit\n}.hover\\:cursor-pointer.svelte-1fqz78w:hover{cursor:pointer\n}");
+	append_styles(target, "svelte-iffyui", ".container.svelte-iffyui{width:100%\n}@media(min-width: 640px){.container.svelte-iffyui{max-width:640px\n    }}@media(min-width: 768px){.container.svelte-iffyui{max-width:768px\n    }}@media(min-width: 1024px){.container.svelte-iffyui{max-width:1024px\n    }}@media(min-width: 1280px){.container.svelte-iffyui{max-width:1280px\n    }}@media(min-width: 1536px){.container.svelte-iffyui{max-width:1536px\n    }}.pointer-events-none.svelte-iffyui{pointer-events:none\n}.collapse.svelte-iffyui{visibility:collapse\n}.static.svelte-iffyui{position:static\n}.absolute.svelte-iffyui{position:absolute\n}.relative.svelte-iffyui{position:relative\n}.left-0.svelte-iffyui{left:0px\n}.left-full.svelte-iffyui{left:100%\n}.top-0.svelte-iffyui{top:0px\n}.z-10.svelte-iffyui{z-index:10\n}.z-20.svelte-iffyui{z-index:20\n}.m-0.svelte-iffyui{margin:0px\n}.mx-\\[1px\\].svelte-iffyui{margin-left:1px;margin-right:1px\n}.ml-\\[5px\\].svelte-iffyui{margin-left:5px\n}.mt-2.svelte-iffyui{margin-top:0.5rem\n}.mt-3.svelte-iffyui{margin-top:0.75rem\n}.mt-7.svelte-iffyui{margin-top:1.75rem\n}.block.svelte-iffyui{display:block\n}.inline-block.svelte-iffyui{display:inline-block\n}.flex.svelte-iffyui{display:flex\n}.table.svelte-iffyui{display:table\n}.contents.svelte-iffyui{display:contents\n}.h-2.svelte-iffyui{height:0.5rem\n}.h-2\\.5.svelte-iffyui{height:0.625rem\n}.h-3.svelte-iffyui{height:0.75rem\n}.h-\\[6px\\].svelte-iffyui{height:6px\n}.w-2.svelte-iffyui{width:0.5rem\n}.w-2\\.5.svelte-iffyui{width:0.625rem\n}.w-3.svelte-iffyui{width:0.75rem\n}.w-\\[6px\\].svelte-iffyui{width:6px\n}.w-full.svelte-iffyui{width:100%\n}.w-max.svelte-iffyui{width:-moz-max-content;width:max-content\n}.border-collapse.svelte-iffyui{border-collapse:collapse\n}.-translate-x-1\\/2.svelte-iffyui{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.-translate-y-1\\/2.svelte-iffyui{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.rotate-12.svelte-iffyui{--tw-rotate:12deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.rotate-45.svelte-iffyui{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.transform.svelte-iffyui{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))\n}.\\!cursor-default.svelte-iffyui{cursor:default !important\n}.cursor-not-allowed.svelte-iffyui{cursor:not-allowed\n}.cursor-pointer.svelte-iffyui{cursor:pointer\n}.flex-col.svelte-iffyui{flex-direction:column\n}.items-center.svelte-iffyui{align-items:center\n}.justify-between.svelte-iffyui{justify-content:space-between\n}.rounded-md.svelte-iffyui{border-radius:0.375rem\n}.rounded-sm.svelte-iffyui{border-radius:0.125rem\n}.border-0.svelte-iffyui{border-width:0px\n}.bg-gray-100.svelte-iffyui{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity))\n}.bg-slate-500.svelte-iffyui{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity))\n}.bg-transparent.svelte-iffyui{background-color:transparent\n}.p-1.svelte-iffyui{padding:0.25rem\n}.p-2.svelte-iffyui{padding:0.5rem\n}.px-4.svelte-iffyui{padding-left:1rem;padding-right:1rem\n}.py-2.svelte-iffyui{padding-top:0.5rem;padding-bottom:0.5rem\n}.pt-4.svelte-iffyui{padding-top:1rem\n}.text-sm.svelte-iffyui{font-size:0.875rem;line-height:1.25rem\n}.text-xs.svelte-iffyui{font-size:0.75rem;line-height:1rem\n}.uppercase.svelte-iffyui{text-transform:uppercase\n}.capitalize.svelte-iffyui{text-transform:capitalize\n}.text-\\[--text-muted\\].svelte-iffyui{color:var(--text-muted)\n}.text-\\[--text-on-accent\\].svelte-iffyui{color:var(--text-on-accent)\n}.text-black.svelte-iffyui{--tw-text-opacity:1;color:rgb(0 0 0 / var(--tw-text-opacity))\n}.text-white.svelte-iffyui{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity))\n}.opacity-0.svelte-iffyui{opacity:0\n}.opacity-100.svelte-iffyui{opacity:1\n}.opacity-50.svelte-iffyui{opacity:0.5\n}.shadow.svelte-iffyui{--tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)\n}.blur.svelte-iffyui{--tw-blur:blur(8px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)\n}.transition.svelte-iffyui{transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms\n}.\\[all\\:inherit\\].svelte-iffyui{all:inherit\n}.hover\\:cursor-pointer.svelte-iffyui:hover{cursor:pointer\n}");
 }
 
 function get_each_context(ctx, list, i) {
@@ -50478,7 +50501,7 @@ function create_fragment(ctx) {
 			attr(input0, "spellcheck", "false");
 			attr(input0, "placeholder", "Today");
 			attr(div3, "class", "setting-item-control");
-			attr(div4, "class", "setting-item border-0 svelte-1fqz78w");
+			attr(div4, "class", "setting-item border-0 svelte-iffyui");
 			attr(div7, "class", "setting-item-info");
 			attr(input1, "type", "text");
 			attr(input1, "spellcheck", "false");
@@ -50490,16 +50513,16 @@ function create_fragment(ctx) {
 			if (/*granularity*/ ctx[3] === void 0) add_render_callback(() => /*select_change_handler*/ ctx[11].call(select));
 			attr(div13, "class", "setting-item-control");
 			attr(div14, "class", "setting-item");
-			attr(button0, "class", "cursor-pointer svelte-1fqz78w");
+			attr(button0, "class", "cursor-pointer svelte-iffyui");
 
 			attr(button1, "class", button1_class_value = "" + (null_to_empty(`mod-cta ${/*parsedDate*/ ctx[4]
 			? 'cursor-pointer'
-			: 'cursor-not-allowed opacity-50'}`) + " svelte-1fqz78w"));
+			: 'cursor-not-allowed opacity-50'}`) + " svelte-iffyui"));
 
 			attr(button1, "aria-disabled", button1_aria_disabled_value = !Boolean(/*parsedDate*/ ctx[4]));
 			button1.disabled = button1_disabled_value = !Boolean(/*parsedDate*/ ctx[4]);
-			attr(div15, "class", "modal-button-container mt-3 svelte-1fqz78w");
-			attr(div16, "class", "pt-4 svelte-1fqz78w");
+			attr(div15, "class", "modal-button-container mt-3 svelte-iffyui");
+			attr(div16, "class", "pt-4 svelte-iffyui");
 		},
 		m(target, anchor) {
 			insert(target, div16, anchor);
@@ -50571,7 +50594,7 @@ function create_fragment(ctx) {
 
 			if (dirty & /*parsedDate*/ 16 && button1_class_value !== (button1_class_value = "" + (null_to_empty(`mod-cta ${/*parsedDate*/ ctx[4]
 			? 'cursor-pointer'
-			: 'cursor-not-allowed opacity-50'}`) + " svelte-1fqz78w"))) {
+			: 'cursor-not-allowed opacity-50'}`) + " svelte-iffyui"))) {
 				attr(button1, "class", button1_class_value);
 			}
 
@@ -50755,11 +50778,9 @@ class DailyNoteFlexPlugin extends obsidian.Plugin {
         console.log('ON Unload ⛰️');
         this.app.workspace.getLeavesOfType(VIEW_TYPE_CALENDAR).forEach((leaf) => leaf.detach());
         this.popoversCleanups.length > 0 && this.popoversCleanups.forEach((cleanup) => cleanup());
-        window.plugin = null;
     }
     async onload() {
         console.log('ON Load 🫵');
-        window.plugin = this; // access plugin methods globally
         pluginClassStore.set(this);
         this.register(settingsStore.subscribe((settings) => {
             this.settings = settings;
@@ -50815,8 +50836,20 @@ class DailyNoteFlexPlugin extends obsidian.Plugin {
                 }
             });
         }
-        // const parsedResult = nldatesPlugin.parseDate('next year');
-        // console.log(parsedResult.moment.format('YYYY')); // This should return 2021
+        // add quick locales switch commands
+        if (this.settings.allowLocalesSwitchFromCommandPalette) {
+            window.moment.locales().forEach((momentLocale) => {
+                this.addCommand({
+                    id: `switch-to-${momentLocale}-locale`,
+                    name: `Switch to ${localesMap.get(momentLocale) || momentLocale} locale`,
+                    callback: () => {
+                        updateLocale(momentLocale);
+                        updateWeekStart();
+                        updateWeekdays();
+                    }
+                });
+            });
+        }
         this.app.workspace.onLayoutReady(() => {
             console.log('ON Layout REady 🙌');
             this.initView({ active: false });

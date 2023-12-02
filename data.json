@@ -74,5 +74,6 @@
       "YYYY - [",
       "YYYY - [YEar] "
     ]
-  }
+  },
+  "allowLocalesSwitchFromCommandPalette": true
 }

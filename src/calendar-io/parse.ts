@@ -5,7 +5,7 @@ import { basename } from './vault';
 import type { IGranularity, IPeriodicites } from './types';
 import { getNoteSettingsByGranularity } from './settings';
 import { get } from 'svelte/store';
-import { settingsStore } from '@/stores/stores';
+import { settingsStore } from '@/stores/';
 
 /**
  * dateUID is a way of weekly identifying daily/weekly/monthly notes.

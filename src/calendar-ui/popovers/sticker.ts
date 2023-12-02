@@ -13,7 +13,7 @@ import {
 import { get, writable } from 'svelte/store';
 import type DailyNoteFlexPlugin from '@/main';
 import { autoUpdate } from '@floating-ui/dom';
-import { settingsStore } from '@/stores/stores';
+import { settingsStore } from '@/stores/';
 
 const id: TPopovers = STICKER_POPOVER_ID;
 export const spInputKeydownHandlerStore = writable((ev: KeyboardEvent) => {
