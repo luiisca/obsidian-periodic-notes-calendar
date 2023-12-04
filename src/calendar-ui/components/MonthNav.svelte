@@ -87,7 +87,6 @@
 	</div>
 
 	<div class="flex items-center -ml-1">
-		<!-- TODO: add tab support -->
 		<Arrow direction="left" onClick={decrementdisplayedDate} tooltip="Previous Month" />
 		<button
 			class="[&:not(:focus-visible)]:shadow-none text-[--color-arrow] flex items-center p-2 {showingCurrentMonth
