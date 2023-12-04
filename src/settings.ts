@@ -29,6 +29,7 @@ export interface ISettings {
 
 	localeSettings: {
 		showWeekNums: boolean;
+		showQuarterNums: boolean;
 		localeOverride: string;
 		weekStartId: number;
 	};
@@ -54,6 +55,7 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
 
 	localeSettings: {
 		showWeekNums: false,
+		showQuarterNums: false,
 		localeOverride: sysLocaleKey,
 		weekStartId: sysWeekStartId
 	},
@@ -93,6 +95,7 @@ export class SettingsTab extends PluginSettingTab {
 		this.addConfirmCreateSetting();
 		this.addConfirmAutoHoverPreviewSetting();
 		this.addShowWeeklyNoteSetting();
+		this.addShowQuarterlyNoteSetting();
 
 		if (!get(settingsStore).viewOpen) {
 			this.containerEl.createEl('h3', {
@@ -222,8 +225,8 @@ export class SettingsTab extends PluginSettingTab {
 
 	addShowWeeklyNoteSetting(): void {
 		new Setting(this.containerEl)
-			.setName('Show week and quarter numbers')
-			.setDesc('Enable this to add extra columns for week and quarter numbers')
+			.setName('Show week numbers')
+			.setDesc('Enable this to add an extra column for week numbers')
 			.addToggle((toggle) => {
 				toggle.setValue(get(settingsStore).localeSettings.showWeekNums);
 				toggle.onChange(async (value) => {
@@ -231,6 +234,22 @@ export class SettingsTab extends PluginSettingTab {
 						localeSettings: {
 							...settings.localeSettings,
 							showWeekNums: value
+						}
+					}));
+				});
+			});
+	}
+	addShowQuarterlyNoteSetting(): void {
+		new Setting(this.containerEl)
+			.setName('Show quarter numbers')
+			.setDesc('Enable this to add an extra column for quarter numbers')
+			.addToggle((toggle) => {
+				toggle.setValue(get(settingsStore).localeSettings.showQuarterNums);
+				toggle.onChange(async (value) => {
+					this.plugin.saveSettings((settings) => ({
+						localeSettings: {
+							...settings.localeSettings,
+							showQuarterNums: value
 						}
 					}));
 				});

@@ -3107,6 +3107,7 @@ const DEFAULT_SETTINGS = Object.freeze({
     crrNldModalGranularity: 'day',
     localeSettings: {
         showWeekNums: false,
+        showQuarterNums: false,
         localeOverride: sysLocaleKey,
         weekStartId: sysWeekStartId
     },
@@ -3137,6 +3138,7 @@ class SettingsTab extends obsidian.PluginSettingTab {
         this.addConfirmCreateSetting();
         this.addConfirmAutoHoverPreviewSetting();
         this.addShowWeeklyNoteSetting();
+        this.addShowQuarterlyNoteSetting();
         if (!get_store_value(settingsStore).viewOpen) {
             this.containerEl.createEl('h3', {
                 text: 'Popover behavior'
@@ -3249,8 +3251,8 @@ class SettingsTab extends obsidian.PluginSettingTab {
     }
     addShowWeeklyNoteSetting() {
         new obsidian.Setting(this.containerEl)
-            .setName('Show week and quarter numbers')
-            .setDesc('Enable this to add extra columns for week and quarter numbers')
+            .setName('Show week numbers')
+            .setDesc('Enable this to add an extra column for week numbers')
             .addToggle((toggle) => {
             toggle.setValue(get_store_value(settingsStore).localeSettings.showWeekNums);
             toggle.onChange(async (value) => {
@@ -3258,6 +3260,22 @@ class SettingsTab extends obsidian.PluginSettingTab {
                     localeSettings: {
                         ...settings.localeSettings,
                         showWeekNums: value
+                    }
+                }));
+            });
+        });
+    }
+    addShowQuarterlyNoteSetting() {
+        new obsidian.Setting(this.containerEl)
+            .setName('Show quarter numbers')
+            .setDesc('Enable this to add an extra column for quarter numbers')
+            .addToggle((toggle) => {
+            toggle.setValue(get_store_value(settingsStore).localeSettings.showQuarterNums);
+            toggle.onChange(async (value) => {
+                this.plugin.saveSettings((settings) => ({
+                    localeSettings: {
+                        ...settings.localeSettings,
+                        showQuarterNums: value
                     }
                 }));
             });
@@ -6045,70 +6063,70 @@ function add_css$3(target) {
 
 function get_each_context$1(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[9] = list[i];
+	child_ctx[10] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_1(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[12] = list[i];
+	child_ctx[13] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_2(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[15] = list[i];
-	child_ctx[17] = i;
+	child_ctx[16] = list[i];
+	child_ctx[18] = i;
 	return child_ctx;
 }
 
 function get_each_context_3(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[18] = list[i];
+	child_ctx[19] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_4(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[21] = list[i];
+	child_ctx[22] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_5(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[24] = list[i];
+	child_ctx[25] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_6(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[27] = list[i];
+	child_ctx[28] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_7(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[30] = list[i];
+	child_ctx[31] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_8(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[33] = list[i];
+	child_ctx[34] = list[i];
 	return child_ctx;
 }
 
 // (26:2) {#each togglePeriods as period}
 function create_each_block_8(ctx) {
 	let button;
-	let t_value = capitalize(/*period*/ ctx[33]) + "";
+	let t_value = capitalize(/*period*/ ctx[34]) + "";
 	let t;
 	let button_class_value;
 	let mounted;
 	let dispose;
 
 	function click_handler() {
-		return /*click_handler*/ ctx[8](/*period*/ ctx[33]);
+		return /*click_handler*/ ctx[9](/*period*/ ctx[34]);
 	}
 
 	return {
@@ -6116,7 +6134,7 @@ function create_each_block_8(ctx) {
 			button = element("button");
 			t = text(t_value);
 
-			attr(button, "class", button_class_value = "" + (null_to_empty(`w-full cursor-pointer rounded-md px-4 py-2 text-black ${/*crrView*/ ctx[0] === /*period*/ ctx[33]
+			attr(button, "class", button_class_value = "" + (null_to_empty(`w-full cursor-pointer rounded-md px-4 py-2 text-black ${/*crrView*/ ctx[0] === /*period*/ ctx[34]
 			? 'bg-gray-100'
 			: 'text-white'}`) + " svelte-1jhu44c"));
 		},
@@ -6132,7 +6150,7 @@ function create_each_block_8(ctx) {
 		p(new_ctx, dirty) {
 			ctx = new_ctx;
 
-			if (dirty[0] & /*crrView*/ 1 && button_class_value !== (button_class_value = "" + (null_to_empty(`w-full cursor-pointer rounded-md px-4 py-2 text-black ${/*crrView*/ ctx[0] === /*period*/ ctx[33]
+			if (dirty[0] & /*crrView*/ 1 && button_class_value !== (button_class_value = "" + (null_to_empty(`w-full cursor-pointer rounded-md px-4 py-2 text-black ${/*crrView*/ ctx[0] === /*period*/ ctx[34]
 			? 'bg-gray-100'
 			: 'text-white'}`) + " svelte-1jhu44c"))) {
 				attr(button, "class", button_class_value);
@@ -6166,7 +6184,7 @@ function create_if_block_3(ctx) {
 	let each2_lookup = new Map();
 	let current;
 	monthnav = new MonthNav({});
-	let if_block0 = /*showWeekNums*/ ctx[3] && create_if_block_6();
+	let if_block0 = /*showWeekNums*/ ctx[4] && create_if_block_6();
 	let each_value_7 = ensure_array_like(/*month*/ ctx[1][1].days);
 	let each_blocks_2 = [];
 
@@ -6174,7 +6192,7 @@ function create_if_block_3(ctx) {
 		each_blocks_2[i] = create_each_block_7(get_each_context_7(ctx, each_value_7, i));
 	}
 
-	let if_block1 = /*showWeekNums*/ ctx[3] && create_if_block_5();
+	let if_block1 = /*showWeekNums*/ ctx[4] && create_if_block_5();
 	let each_value_6 = ensure_array_like(/*weekdaysShort*/ ctx[2]);
 	let each_blocks_1 = [];
 
@@ -6183,7 +6201,7 @@ function create_if_block_3(ctx) {
 	}
 
 	let each_value_4 = ensure_array_like(/*month*/ ctx[1]);
-	const get_key = ctx => /*week*/ ctx[21].weekNum;
+	const get_key = ctx => /*week*/ ctx[22].weekNum;
 
 	for (let i = 0; i < each_value_4.length; i += 1) {
 		let child_ctx = get_each_context_4(ctx, each_value_4, i);
@@ -6265,7 +6283,7 @@ function create_if_block_3(ctx) {
 			current = true;
 		},
 		p(ctx, dirty) {
-			if (/*showWeekNums*/ ctx[3]) {
+			if (/*showWeekNums*/ ctx[4]) {
 				if (if_block0) ; else {
 					if_block0 = create_if_block_6();
 					if_block0.c();
@@ -6299,7 +6317,7 @@ function create_if_block_3(ctx) {
 				each_blocks_2.length = each_value_7.length;
 			}
 
-			if (/*showWeekNums*/ ctx[3]) {
+			if (/*showWeekNums*/ ctx[4]) {
 				if (if_block1) ; else {
 					if_block1 = create_if_block_5();
 					if_block1.c();
@@ -6333,7 +6351,7 @@ function create_if_block_3(ctx) {
 				each_blocks_1.length = each_value_6.length;
 			}
 
-			if (dirty[0] & /*month, showWeekNums*/ 10) {
+			if (dirty[0] & /*month, showWeekNums*/ 18) {
 				each_value_4 = ensure_array_like(/*month*/ ctx[1]);
 				group_outros();
 				each_blocks = update_keyed_each(each_blocks, dirty, get_key, 1, ctx, each_value_4, each2_lookup, tbody, outro_and_destroy_block, create_each_block_4, null, get_each_context_4);
@@ -6406,14 +6424,14 @@ function create_each_block_7(ctx) {
 		c() {
 			col = element("col");
 			attr(col, "class", "svelte-1jhu44c");
-			toggle_class(col, "weekend", isWeekend(/*date*/ ctx[30]));
+			toggle_class(col, "weekend", isWeekend(/*date*/ ctx[31]));
 		},
 		m(target, anchor) {
 			insert(target, col, anchor);
 		},
 		p(ctx, dirty) {
 			if (dirty[0] & /*month*/ 2) {
-				toggle_class(col, "weekend", isWeekend(/*date*/ ctx[30]));
+				toggle_class(col, "weekend", isWeekend(/*date*/ ctx[31]));
 			}
 		},
 		d(detaching) {
@@ -6448,7 +6466,7 @@ function create_if_block_5(ctx) {
 // (51:5) {#each weekdaysShort as dayOfWeek}
 function create_each_block_6(ctx) {
 	let th;
-	let t_value = /*dayOfWeek*/ ctx[27] + "";
+	let t_value = /*dayOfWeek*/ ctx[28] + "";
 	let t;
 
 	return {
@@ -6462,7 +6480,7 @@ function create_each_block_6(ctx) {
 			append(th, t);
 		},
 		p(ctx, dirty) {
-			if (dirty[0] & /*weekdaysShort*/ 4 && t_value !== (t_value = /*dayOfWeek*/ ctx[27] + "")) set_data(t, t_value);
+			if (dirty[0] & /*weekdaysShort*/ 4 && t_value !== (t_value = /*dayOfWeek*/ ctx[28] + "")) set_data(t, t_value);
 		},
 		d(detaching) {
 			if (detaching) {
@@ -6479,8 +6497,8 @@ function create_if_block_4(ctx) {
 
 	weeknum = new WeekNum({
 			props: {
-				weekNum: /*week*/ ctx[21].weekNum,
-				startOfWeekDate: getStartOfWeek(/*week*/ ctx[21].days)
+				weekNum: /*week*/ ctx[22].weekNum,
+				startOfWeekDate: getStartOfWeek(/*week*/ ctx[22].days)
 			}
 		});
 
@@ -6494,8 +6512,8 @@ function create_if_block_4(ctx) {
 		},
 		p(ctx, dirty) {
 			const weeknum_changes = {};
-			if (dirty[0] & /*month*/ 2) weeknum_changes.weekNum = /*week*/ ctx[21].weekNum;
-			if (dirty[0] & /*month*/ 2) weeknum_changes.startOfWeekDate = getStartOfWeek(/*week*/ ctx[21].days);
+			if (dirty[0] & /*month*/ 2) weeknum_changes.weekNum = /*week*/ ctx[22].weekNum;
+			if (dirty[0] & /*month*/ 2) weeknum_changes.startOfWeekDate = getStartOfWeek(/*week*/ ctx[22].days);
 			weeknum.$set(weeknum_changes);
 		},
 		i(local) {
@@ -6518,7 +6536,7 @@ function create_each_block_5(key_1, ctx) {
 	let first;
 	let day_1;
 	let current;
-	day_1 = new Day({ props: { date: /*day*/ ctx[24] } });
+	day_1 = new Day({ props: { date: /*day*/ ctx[25] } });
 
 	return {
 		key: key_1,
@@ -6536,7 +6554,7 @@ function create_each_block_5(key_1, ctx) {
 		p(new_ctx, dirty) {
 			ctx = new_ctx;
 			const day_1_changes = {};
-			if (dirty[0] & /*month*/ 2) day_1_changes.date = /*day*/ ctx[24];
+			if (dirty[0] & /*month*/ 2) day_1_changes.date = /*day*/ ctx[25];
 			day_1.$set(day_1_changes);
 		},
 		i(local) {
@@ -6566,9 +6584,9 @@ function create_each_block_4(key_1, ctx) {
 	let each_1_lookup = new Map();
 	let t1;
 	let current;
-	let if_block = /*showWeekNums*/ ctx[3] && create_if_block_4(ctx);
-	let each_value_5 = ensure_array_like(/*week*/ ctx[21].days);
-	const get_key = ctx => /*day*/ ctx[24].format();
+	let if_block = /*showWeekNums*/ ctx[4] && create_if_block_4(ctx);
+	let each_value_5 = ensure_array_like(/*week*/ ctx[22].days);
+	const get_key = ctx => /*day*/ ctx[25].format();
 
 	for (let i = 0; i < each_value_5.length; i += 1) {
 		let child_ctx = get_each_context_5(ctx, each_value_5, i);
@@ -6609,11 +6627,11 @@ function create_each_block_4(key_1, ctx) {
 		p(new_ctx, dirty) {
 			ctx = new_ctx;
 
-			if (/*showWeekNums*/ ctx[3]) {
+			if (/*showWeekNums*/ ctx[4]) {
 				if (if_block) {
 					if_block.p(ctx, dirty);
 
-					if (dirty[0] & /*showWeekNums*/ 8) {
+					if (dirty[0] & /*showWeekNums*/ 16) {
 						transition_in(if_block, 1);
 					}
 				} else {
@@ -6633,7 +6651,7 @@ function create_each_block_4(key_1, ctx) {
 			}
 
 			if (dirty[0] & /*month*/ 2) {
-				each_value_5 = ensure_array_like(/*week*/ ctx[21].days);
+				each_value_5 = ensure_array_like(/*week*/ ctx[22].days);
 				group_outros();
 				each_blocks = update_keyed_each(each_blocks, dirty, get_key, 1, ctx, each_value_5, each_1_lookup, tr, outro_and_destroy_block, create_each_block_5, t1, get_each_context_5);
 				check_outros();
@@ -6720,7 +6738,7 @@ function create_if_block_1$1(ctx) {
 			current = true;
 		},
 		p(ctx, dirty) {
-			if (dirty[0] & /*showWeekNums*/ 8) {
+			if (dirty[0] & /*showQuarterNums*/ 8) {
 				each_value_2 = ensure_array_like(monthsIndexesInQuarters);
 				let i;
 
@@ -6779,11 +6797,11 @@ function create_if_block_1$1(ctx) {
 	};
 }
 
-// (78:6) {#if showWeekNums}
+// (78:6) {#if showQuarterNums}
 function create_if_block_2(ctx) {
 	let quarternum;
 	let current;
-	quarternum = new QuarterNum({ props: { quarterNum: /*i*/ ctx[17] + 1 } });
+	quarternum = new QuarterNum({ props: { quarterNum: /*i*/ ctx[18] + 1 } });
 
 	return {
 		c() {
@@ -6814,7 +6832,7 @@ function create_each_block_3(ctx) {
 	let current;
 
 	month_1 = new Month({
-			props: { monthIndex: /*monthIndex*/ ctx[18] }
+			props: { monthIndex: /*monthIndex*/ ctx[19] }
 		});
 
 	return {
@@ -6847,8 +6865,8 @@ function create_each_block_2(ctx) {
 	let t0;
 	let t1;
 	let current;
-	let if_block = /*showWeekNums*/ ctx[3] && create_if_block_2(ctx);
-	let each_value_3 = ensure_array_like(/*quarterMonthsIndexes*/ ctx[15]);
+	let if_block = /*showQuarterNums*/ ctx[3] && create_if_block_2(ctx);
+	let each_value_3 = ensure_array_like(/*quarterMonthsIndexes*/ ctx[16]);
 	let each_blocks = [];
 
 	for (let i = 0; i < each_value_3.length; i += 1) {
@@ -6883,9 +6901,9 @@ function create_each_block_2(ctx) {
 			current = true;
 		},
 		p(ctx, dirty) {
-			if (/*showWeekNums*/ ctx[3]) {
+			if (/*showQuarterNums*/ ctx[3]) {
 				if (if_block) {
-					if (dirty[0] & /*showWeekNums*/ 8) {
+					if (dirty[0] & /*showQuarterNums*/ 8) {
 						transition_in(if_block, 1);
 					}
 				} else {
@@ -6945,7 +6963,7 @@ function create_if_block$1(ctx) {
 	yearsnav = new YearsNav({});
 
 	let each_value = ensure_array_like(getYears({
-		startRangeYear: +/*$yearsRanges*/ ctx[4].ranges[/*$yearsRanges*/ ctx[4].crrRangeIndex].split('-')[0]
+		startRangeYear: +/*$yearsRanges*/ ctx[5].ranges[/*$yearsRanges*/ ctx[5].crrRangeIndex].split('-')[0]
 	}));
 
 	let each_blocks = [];
@@ -6987,9 +7005,9 @@ function create_if_block$1(ctx) {
 			current = true;
 		},
 		p(ctx, dirty) {
-			if (dirty[0] & /*$yearsRanges*/ 16) {
+			if (dirty[0] & /*$yearsRanges*/ 32) {
 				each_value = ensure_array_like(getYears({
-					startRangeYear: +/*$yearsRanges*/ ctx[4].ranges[/*$yearsRanges*/ ctx[4].crrRangeIndex].split('-')[0]
+					startRangeYear: +/*$yearsRanges*/ ctx[5].ranges[/*$yearsRanges*/ ctx[5].crrRangeIndex].split('-')[0]
 				}));
 
 				let i;
@@ -7053,7 +7071,7 @@ function create_if_block$1(ctx) {
 function create_each_block_1(ctx) {
 	let year_1;
 	let current;
-	year_1 = new Year({ props: { year: /*year*/ ctx[12] } });
+	year_1 = new Year({ props: { year: /*year*/ ctx[13] } });
 
 	return {
 		c() {
@@ -7065,7 +7083,7 @@ function create_each_block_1(ctx) {
 		},
 		p(ctx, dirty) {
 			const year_1_changes = {};
-			if (dirty[0] & /*$yearsRanges*/ 16) year_1_changes.year = /*year*/ ctx[12];
+			if (dirty[0] & /*$yearsRanges*/ 32) year_1_changes.year = /*year*/ ctx[13];
 			year_1.$set(year_1_changes);
 		},
 		i(local) {
@@ -7088,7 +7106,7 @@ function create_each_block$1(ctx) {
 	let tr;
 	let t;
 	let current;
-	let each_value_1 = ensure_array_like(/*rowYearsRange*/ ctx[9]);
+	let each_value_1 = ensure_array_like(/*rowYearsRange*/ ctx[10]);
 	let each_blocks = [];
 
 	for (let i = 0; i < each_value_1.length; i += 1) {
@@ -7123,8 +7141,8 @@ function create_each_block$1(ctx) {
 			current = true;
 		},
 		p(ctx, dirty) {
-			if (dirty[0] & /*$yearsRanges*/ 16) {
-				each_value_1 = ensure_array_like(/*rowYearsRange*/ ctx[9]);
+			if (dirty[0] & /*$yearsRanges*/ 32) {
+				each_value_1 = ensure_array_like(/*rowYearsRange*/ ctx[10]);
 				let i;
 
 				for (i = 0; i < each_value_1.length; i += 1) {
@@ -7354,29 +7372,30 @@ function create_fragment$3(ctx) {
 
 function instance$3($$self, $$props, $$invalidate) {
 	let showWeekNums;
+	let showQuarterNums;
 	let weekdaysShort;
 	let month;
 	let $displayedDateStore;
 	let $localeDataStore;
 	let $settingsStore;
 	let $yearsRanges;
-	component_subscribe($$self, displayedDateStore, $$value => $$invalidate(5, $displayedDateStore = $$value));
-	component_subscribe($$self, localeDataStore, $$value => $$invalidate(6, $localeDataStore = $$value));
-	component_subscribe($$self, settingsStore, $$value => $$invalidate(7, $settingsStore = $$value));
-	component_subscribe($$self, yearsRanges, $$value => $$invalidate(4, $yearsRanges = $$value));
+	component_subscribe($$self, displayedDateStore, $$value => $$invalidate(6, $displayedDateStore = $$value));
+	component_subscribe($$self, localeDataStore, $$value => $$invalidate(7, $localeDataStore = $$value));
+	component_subscribe($$self, settingsStore, $$value => $$invalidate(8, $settingsStore = $$value));
+	component_subscribe($$self, yearsRanges, $$value => $$invalidate(5, $yearsRanges = $$value));
 	let crrView = 'days';
 	const click_handler = period => $$invalidate(0, crrView = period);
 
 	$$self.$$.update = () => {
-		if ($$self.$$.dirty[0] & /*$settingsStore*/ 128) {
-			$$invalidate(3, { localeSettings: { showWeekNums } } = $settingsStore, showWeekNums);
+		if ($$self.$$.dirty[0] & /*$settingsStore*/ 256) {
+			$$invalidate(4, { localeSettings: { showWeekNums, showQuarterNums } } = $settingsStore, showWeekNums, ($$invalidate(3, showQuarterNums), $$invalidate(8, $settingsStore)));
 		}
 
-		if ($$self.$$.dirty[0] & /*$localeDataStore*/ 64) {
+		if ($$self.$$.dirty[0] & /*$localeDataStore*/ 128) {
 			$$invalidate(2, { weekdaysShort } = $localeDataStore, weekdaysShort);
 		}
 
-		if ($$self.$$.dirty[0] & /*$displayedDateStore*/ 32) {
+		if ($$self.$$.dirty[0] & /*$displayedDateStore*/ 64) {
 			$$invalidate(1, month = getMonth($displayedDateStore));
 		}
 	};
@@ -7385,6 +7404,7 @@ function instance$3($$self, $$props, $$invalidate) {
 		crrView,
 		month,
 		weekdaysShort,
+		showQuarterNums,
 		showWeekNums,
 		$yearsRanges,
 		$displayedDateStore,

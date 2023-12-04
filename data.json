@@ -7,9 +7,10 @@
   "openPopoverOnRibbonHover": false,
   "crrNldModalGranularity": "day",
   "localeSettings": {
-    "showWeekNums": true,
+    "showWeekNums": false,
     "localeOverride": "en",
-    "weekStartId": 0
+    "weekStartId": 0,
+    "showQuarterNums": false
   },
   "popoversCloseData": {
     "closePopoversOneByOneOnClickOut": false,

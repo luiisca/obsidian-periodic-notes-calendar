@@ -18,7 +18,7 @@
 	import Year from './Year.svelte';
 
 	$: ({
-		localeSettings: { showWeekNums}
+		localeSettings: { showWeekNums, showQuarterNums}
 	} = $settingsStore);
 	$: ({
 		weekdaysShort
@@ -83,7 +83,7 @@
 			<tbody>
 				{#each monthsIndexesInQuarters as quarterMonthsIndexes, i}
 					<tr>
-						{#if showWeekNums}
+						{#if showQuarterNums}
 							<QuarterNum quarterNum={i + 1} />
 						{/if}
 						{#each quarterMonthsIndexes as monthIndex}
