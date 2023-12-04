@@ -95,7 +95,7 @@
 			on:click={resetdisplayedDate}
 			aria-label={!showingCurrentMonth ? 'Display Current Month' : null}
 		>
-			<Dot class="h-[8px] w-[8px]" isFilled={showingCurrentMonth} isActive={true}/>
+			<Dot class="h-[8px] w-[8px]" isFilled={showingCurrentMonth} />
 		</button>
 		<Arrow direction="right" onClick={incrementdisplayedDate} tooltip="Next Month" />
 	</div>
