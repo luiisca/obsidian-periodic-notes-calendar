@@ -28,7 +28,7 @@
 	let crrView: (typeof togglePeriods)[number] = 'days';
 </script>
 
-<div id="calendar-container" class="container">
+<div id="calendar-container" class="container font-['Inter']">
 	<!-- TODO: replace tw colors with theme variables -->
 	<div class="flex rounded-md space-x-1 p-1 w-full">
 		{#each togglePeriods as period}

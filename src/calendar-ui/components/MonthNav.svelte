@@ -36,121 +36,78 @@
 	$: showingCurrentMonth = $displayedDateStore.isSame(today, 'month');
 </script>
 
-<div class="nav">
-	<div>
-		<span class="flex justify-between title">
-			<button
-				class="month [all:inherit]"
-				on:click={(event) =>
-					eventHandlers.onClick({
-						date: $displayedDateStore,
-						isNewSplit: isMetaPressed(event),
-						granularity: 'month'
-					})}
-				on:contextmenu={(event) =>
-					eventHandlers.onContextMenu({ date: $displayedDateStore, event, granularity: 'month' })}
-				on:pointerenter={(event) => {
-					eventHandlers.onHover({
-						date: $displayedDateStore,
-						targetEl: event.target,
-						isMetaPressed: isMetaPressed(event),
-						granularity: 'month'
-					});
-				}}
-			>
-				{$displayedDateStore.format('MMMM')}
-			</button>
-			<button
-				class="year [all:inherit]"
-				on:click={(event) =>
-					eventHandlers.onClick({
-						date: $displayedDateStore.clone().startOf('year'),
-						isNewSplit: isMetaPressed(event),
-						granularity: 'year'
-					})}
-				on:contextmenu={(event) =>
-					eventHandlers.onContextMenu({
-						date: $displayedDateStore.clone().startOf('year'),
-						event,
-						granularity: 'year'
-					})}
-				on:pointerenter={(event) => {
-					eventHandlers.onHover({
-						date: $displayedDateStore.clone().startOf('year'),
-						targetEl: event.target,
-						isMetaPressed: isMetaPressed(event),
-						granularity: 'year'
-					});
-				}}
-			>
-				{$displayedDateStore.format('YYYY')}
-			</button>
-		</span>
+<div class="flex flex-col space-y-1 mt-2.5 px-2">
+	<div class="flex justify-between items-end text-[--color-text-title]">
+		<button
+			class="h-auto text-7xl [&:not(:focus-visible)]:shadow-none font-semibold"
+			on:click={(event) =>
+				eventHandlers.onClick({
+					date: $displayedDateStore,
+					isNewSplit: isMetaPressed(event),
+					granularity: 'month'
+				})}
+			on:contextmenu={(event) =>
+				eventHandlers.onContextMenu({ date: $displayedDateStore, event, granularity: 'month' })}
+			on:pointerenter={(event) => {
+				eventHandlers.onHover({
+					date: $displayedDateStore,
+					targetEl: event.target,
+					isMetaPressed: isMetaPressed(event),
+					granularity: 'month'
+				});
+			}}
+		>
+			{$displayedDateStore.format('MMM')}
+		</button>
+		<button
+			class="[&:not(:focus-visible)]:shadow-none text-[--interactive-accent] font-medium opacity-60"
+			on:click={(event) =>
+				eventHandlers.onClick({
+					date: $displayedDateStore.clone().startOf('year'),
+					isNewSplit: isMetaPressed(event),
+					granularity: 'year'
+				})}
+			on:contextmenu={(event) =>
+				eventHandlers.onContextMenu({
+					date: $displayedDateStore.clone().startOf('year'),
+					event,
+					granularity: 'year'
+				})}
+			on:pointerenter={(event) => {
+				eventHandlers.onHover({
+					date: $displayedDateStore.clone().startOf('year'),
+					targetEl: event.target,
+					isMetaPressed: isMetaPressed(event),
+					granularity: 'year'
+				});
+			}}
+		>
+			{$displayedDateStore.format('YYYY')}
+		</button>
 	</div>
 
-	<div class="right-nav">
+	<div class="flex items-center -ml-1">
 		<!-- TODO: add tab support -->
 		<Arrow direction="left" onClick={decrementdisplayedDate} tooltip="Previous Month" />
 		<button
-			aria-label={!showingCurrentMonth ? 'Reset to current month' : null}
-			class="reset-button"
-			class:active={showingCurrentMonth}
+			class="[&:not(:focus-visible)]:shadow-none text-[--color-arrow] flex items-center p-2 {showingCurrentMonth
+				? 'opacity-100'
+				: 'opacity-60 '}"
 			on:click={resetdisplayedDate}
+			aria-label={!showingCurrentMonth ? 'Display Current Month' : null}
 		>
-			<Dot class="h-3 w-3" isFilled={showingCurrentMonth} />
+			<Dot class="h-[8px] w-[8px]" isFilled={showingCurrentMonth} isActive={true}/>
 		</button>
 		<Arrow direction="right" onClick={incrementdisplayedDate} tooltip="Next Month" />
 	</div>
 </div>
 
 <style>
+	@tailwind base;
 	@tailwind components;
 	@tailwind utilities;
 
-	.nav {
-		align-items: baseline;
-		display: flex;
-		margin: 0.6em 0 1em;
-		padding: 0 8px;
-		width: 100%;
-	}
-
-	.title {
-		color: var(--color-text-title);
-		cursor: pointer;
-		display: flex;
-		font-size: 1.4em;
-		gap: 0.3em;
-		margin: 0;
-	}
-
-	.month {
-		font-weight: 500;
-	}
-
-	.year {
-		color: var(--interactive-accent);
-	}
-
-	.right-nav {
-		align-items: center;
-		display: flex;
-		justify-content: center;
-		margin-left: auto;
-	}
-
-	.reset-button {
-		all: inherit;
-		cursor: pointer;
-		align-items: center;
-		color: var(--color-arrow);
-		display: flex;
-		opacity: 0.4;
-		padding: 0.5em;
-	}
-
-	.reset-button.active {
-		cursor: pointer;
-		opacity: 1;
+	button {
+		background-color: transparent;
 	}
 </style>

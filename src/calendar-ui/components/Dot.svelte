@@ -2,20 +2,17 @@
 	export let color: string = '';
 	export let isFilled: boolean = false;
 	export let isVisible: boolean = true;
-	export let isActive: boolean = false;
 </script>
 
 <svg
-	class={`${$$restProps.class} inline-block h-[6px] w-[6px] mx-[1px] ${
-		isActive ? 'text-[--text-on-accent]' : ''
-	} ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+	class="{$$restProps.class} inline-block h-[6px] w-[6px] mx-[1px] {isVisible ? 'opacity-100' : 'opacity-0'}"
 	style="color:{color}"
 	viewBox="0 0 6 6"
 	xmlns="http://www.w3.org/2000/svg"
 >
 	<circle
-		stroke={!isFilled ? 'currentColor' : 'none'}
-		fill={isFilled ? 'currentColor' : 'none'}
+		stroke={!isFilled ? 'var(--color-dot)' : 'none'}
+		fill={isFilled ? 'var(--color-dot)' : 'none'}
 		cx="3"
 		cy="3"
 		r="2"
