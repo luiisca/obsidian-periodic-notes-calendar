@@ -44,7 +44,7 @@
     </div>
   </MetadataResolver> -->
 	<button
-		class="day w-full flex flex-col"
+		class="day [&:not(:focus-visible)]:shadow-none w-full flex flex-col"
 		on:click={(event) =>
 			eventHandlers.onClick({ date, isNewSplit: isMetaPressed(event), granularity: 'day' })}
 		on:contextmenu={(event) => eventHandlers.onContextMenu({ date, event, granularity: 'day' })}

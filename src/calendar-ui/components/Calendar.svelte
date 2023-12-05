@@ -1,11 +1,6 @@
 <script lang="ts">
 	import { getMonth, getStartOfWeek, getYears, isMetaPressed, isWeekend } from '../utils';
-	import {
-		displayedDateStore,
-		localeDataStore,
-		settingsStore,
-		yearsRanges
-	} from '@/stores';
+	import { displayedDateStore, localeDataStore, settingsStore, yearsRanges } from '@/stores';
 	import Day from './Day.svelte';
 	import WeekNum from './WeekNum.svelte';
 	import { monthsIndexesInQuarters, togglePeriods } from '@/constants';
@@ -16,26 +11,28 @@
 	import QuarterNum from './QuarterNum.svelte';
 	import Month from './Month.svelte';
 	import Year from './Year.svelte';
+	import clsx from 'clsx';
 
 	$: ({
-		localeSettings: { showWeekNums, showQuarterNums}
+		localeSettings: { showWeekNums, showQuarterNums }
 	} = $settingsStore);
-	$: ({
-		weekdaysShort
-	} = $localeDataStore)
+	$: ({ weekdaysShort } = $localeDataStore);
 	$: month = getMonth($displayedDateStore);
 
 	let crrView: (typeof togglePeriods)[number] = 'days';
 </script>
 
-<div id="calendar-container" class="container font-['Inter']">
+<div id="calendar-container" class="container font-['Inter'] px-4 !pt-2">
 	<!-- TODO: replace tw colors with theme variables -->
-	<div class="flex rounded-md space-x-1 p-1 w-full">
+	<div class="flex rounded-[--tab-curve] space-x-1 p-1 w-full bg-[--background-modifier-hover]">
 		{#each togglePeriods as period}
 			<button
-				class={`w-full cursor-pointer rounded-md px-4 py-2 text-black ${
-					crrView === period ? 'bg-gray-100' : 'text-white'
-				}`}
+				class={clsx(
+					'[&:not(:focus-visible)]:shadow-none w-full rounded-[--radius-s] px-4 py-2 transition',
+					crrView === period
+						? 'text-[--text-on-accent] bg-[--color-accent]'
+						: 'text-[--tab-text-color] hover:text-[--text-on-accent]'
+				)}
 				on:click={() => (crrView = period)}>{capitalize(period)}</button
 			>
 		{/each}
@@ -87,7 +84,7 @@
 							<QuarterNum quarterNum={i + 1} />
 						{/if}
 						{#each quarterMonthsIndexes as monthIndex}
-							<Month monthIndex={monthIndex} />
+							<Month {monthIndex} />
 						{/each}
 					</tr>
 				{/each}
@@ -130,10 +127,6 @@
 		--color-text-day: var(--text-normal);
 		--color-text-today: var(--interactive-accent);
 		--color-text-weeknum: var(--text-muted);
-	}
-
-	.container {
-		padding: 0 8px;
 	}
 
 	.weekend {
