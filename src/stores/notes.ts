@@ -39,7 +39,7 @@ granularities.forEach((granularity) => {
 	notesStores[granularity] = notesExtStore;
 });
 
-function createSelectedFileStore() {
+function createSelectedFileIdStore() {
 	const store = writable<string | null>(null);
 
 	return {
@@ -50,7 +50,7 @@ function createSelectedFileStore() {
 		...store
 	};
 }
-const activeFile = createSelectedFileStore();
+const activeFileIdStore = createSelectedFileIdStore();
 
 export type { TNotesStore };
-export { notesStores, activeFile };
+export { notesStores, activeFileIdStore };

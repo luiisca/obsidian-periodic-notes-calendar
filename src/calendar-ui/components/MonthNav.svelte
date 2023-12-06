@@ -60,7 +60,7 @@
 			{$displayedDateStore.format('MMM')}
 		</button>
 		<button
-			class="[&:not(:focus-visible)]:shadow-none text-[--interactive-accent] font-medium opacity-60"
+			class="[&:not(:focus-visible)]:shadow-none text-[--interactive-accent] font-medium text-lg"
 			on:click={(event) =>
 				eventHandlers.onClick({
 					date: $displayedDateStore.clone().startOf('year'),

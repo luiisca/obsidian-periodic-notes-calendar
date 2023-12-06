@@ -8,7 +8,7 @@
 	import { VIEW } from '../context';
 	import { isMetaPressed } from '../utils';
 	import { getDateUID } from '@/calendar-io';
-	import { notesStores } from '@/stores/';
+	import { activeFileIdStore, displayedDateStore, notesStores } from '@/stores/';
 	import Sticker from './Sticker.svelte';
 	import type { ICalendarViewCtx } from '@/types/view';
 
@@ -17,34 +17,26 @@
 
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 
+	// update today value in case the displayed date changes and the current date is no longer today
+	let today: Moment;
+	$: $displayedDateStore, (today = window.moment());
+
 	const notesStore = notesStores['day'];
 	const dateUID = getDateUID({ date, granularity: 'day' });
 	$: file = $notesStore[dateUID]?.file;
 	$: sticker = $notesStore[dateUID]?.sticker;
+
+	$: isActive = $activeFileIdStore === dateUID;
+	$: isToday = date.isSame(today, 'day');
+	$: isAdjacentMonth = !date.isSame($displayedDateStore, 'month');
 </script>
 
 <td class="relative">
-	<!-- <MetadataResolver metadata="{metadata}" let:metadata>
-    <div
-      class="day"
-      class:active="{selectedId === getDateUID(date, 'day')}"
-      class:adjacent-month="{!date.isSame($displayedDateStore, 'month')}"
-      class:has-note="{!!file}"
-      class:today="{date.isSame(today, 'day')}"
-      draggable="{true}"
-      {...getAttributes(metadata)}
-      on:click="{(event) => handleClick(event, metadata)}"
-      on:contextmenu="{handleContextmenu}"
-      on:pointerenter="{(event) => handleHover(event, metadata)}"
-      on:pointerleave="{endHover}"
-      on:dragstart="{(event) => fileCache.onDragStart(event, file)}"
-    >
-      {date.format("D")}
-      <Dots metadata="{metadata}" />
-    </div>
-  </MetadataResolver> -->
 	<button
-		class="day [&:not(:focus-visible)]:shadow-none w-full flex flex-col"
+		class:active={isActive}
+		class:today={isToday}
+		class:adjacent-month={isAdjacentMonth}
+		class="[&:not(:focus-visible)]:shadow-none !h-auto w-full flex flex-col font-semibold rounded-[--radius-s] text-sm px-1 py-3 relative text-center tabular-nums transition-colors day"
 		on:click={(event) =>
 			eventHandlers.onClick({ date, isNewSplit: isMetaPressed(event), granularity: 'day' })}
 		on:contextmenu={(event) => eventHandlers.onContextMenu({ date, event, granularity: 'day' })}
@@ -58,48 +50,29 @@
 		}}
 	>
 		{date.format('D')}
-		<Dot isFilled={!!file} isVisible={!!file}/>
+		<Dot class="absolute bottom-1" isFilled={!!file} isVisible={!!file} />
 	</button>
 	<Sticker {sticker} />
 </td>
 
-<style>
+<style lang="postcss">
 	@tailwind base;
 	@tailwind components;
 	@tailwind utilities;
+
 	.day {
-		background-color: var(--color-background-day);
-		border-radius: 4px;
-		color: var(--color-text-day);
-		cursor: pointer;
-		font-size: 0.8em;
-		height: 100%;
-		padding: 4px;
-		position: relative;
-		text-align: center;
-		transition: background-color 0.1s ease-in, color 0.1s ease-in;
-		vertical-align: baseline;
+		@apply text-[--text-normal] hover:bg-[--interactive-hover];
 	}
-	.day:hover {
-		background-color: var(--interactive-hover);
+	.day.active {
+		@apply text-[--text-on-accent] bg-[--interactive-accent] hover:bg-[--interactive-accent-hover];
 	}
-
-	.day.active:hover {
-		background-color: var(--interactive-accent-hover);
+	.day.today {
+		@apply text-[--color-text-today];
 	}
-
-	.adjacent-month {
-		opacity: 0.25;
+	.day.active.today {
+		@apply text-[--text-on-accent];
 	}
-
-	.today {
-		color: var(--color-text-today);
-	}
-
-	.day:active,
-	.active,
-	.active.today {
-		color: var(--text-on-accent);
-		background-color: var(--interactive-accent);
+	.day.adjacent-month {
+		@apply opacity-25;
 	}
 </style>

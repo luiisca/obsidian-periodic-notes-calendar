@@ -108,7 +108,7 @@ export async function tryToCreateNote({
 }) {
 	async function openFile(file: TFile) {
 		file && (await leaf.openFile(file));
-		activeFile.setFile(getDateUID({ date, granularity }));
+		activeFileIdStore.setFile(getDateUID({ date, granularity }));
 	}
 
 	const confirmBeforeCreate =
@@ -164,10 +164,10 @@ import { createYearlyNote } from './yearly';
 import { getDateFromFile, getDateUID, getPeriodicityFromGranularity } from './parse';
 import { getNoteSettingsByGranularity } from './settings';
 import { get } from 'svelte/store';
-import { activeFile, notesStores, settingsStore } from '@/stores';
+import { activeFileIdStore, notesStores, settingsStore } from '@/stores';
 import { capitalize, getOnCreateNoteDialogNoteFromGranularity } from '@/utils';
 import { createConfirmationDialog } from '@/calendar-ui/modals/confirmation';
-import { getBasename, validateFormat } from './validation';
+import { validateFormat } from './validation';
 
 export { getDateUID, getDateFromFile, getDateFromPath } from './parse';
 export { getTemplateInfo } from './vault';

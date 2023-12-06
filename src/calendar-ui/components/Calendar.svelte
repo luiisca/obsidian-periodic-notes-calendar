@@ -30,7 +30,7 @@
 				class={clsx(
 					'[&:not(:focus-visible)]:shadow-none w-full rounded-[--radius-s] px-4 py-2 transition',
 					crrView === period
-						? 'text-[--text-on-accent] bg-[--color-accent]'
+						? 'text-[--text-on-accent] bg-[--interactive-accent] hover:bg-[--interactive-accent-hover]'
 						: 'text-[--tab-text-color] hover:text-[--text-on-accent]'
 				)}
 				on:click={() => (crrView = period)}>{capitalize(period)}</button

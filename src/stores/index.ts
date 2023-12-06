@@ -11,7 +11,7 @@ export {
 	updateWeekdays,
 	setupLocale
 } from './locale';
-export { notesStores, activeFile } from './notes';
+export { notesStores, activeFileIdStore } from './notes';
 export type { TNotesStore } from './notes';
 export { stickerPopoverCrrGranularity, stickerPopoverNoteDateUIDStore } from './popovers';
 

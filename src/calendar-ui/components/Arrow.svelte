@@ -1,4 +1,6 @@
 <script lang="ts">
+	import clsx from 'clsx';
+
 	export let onClick: () => void;
 	export let tooltip: string;
 	export let direction: 'left' | 'right';
@@ -8,9 +10,11 @@
 </script>
 
 <button
-	class="[&:not(:focus-visible)]:shadow-none flex items-center {direction === 'right'
-		? 'rotate-180'
-		: ''} {isMobile ? 'w-8' : 'w-6'}"
+	class={clsx(
+		'[&:not(:focus-visible)]:shadow-none flex items-center',
+		direction === 'right' && 'rotate-180',
+		isMobile ? 'w-8' : 'w-6'
+	)}
 	on:click={onClick}
 	aria-label={tooltip}
 >

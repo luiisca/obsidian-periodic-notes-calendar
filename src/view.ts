@@ -10,7 +10,7 @@ import {
 } from 'obsidian';
 
 import View from './View.svelte';
-import { activeFile, notesStores } from './stores';
+import { activeFileIdStore, notesStores } from './stores';
 import { getDateFromFile, getDateUID } from './calendar-io';
 import type { Moment } from 'moment';
 import type { IGranularity } from './calendar-io';
@@ -316,7 +316,7 @@ export class CalendarView extends ItemView {
 
 				// save file in activeFile store
 				if (noteDate && noteGranularity) {
-					activeFile.setFile(getDateUID({ date: noteDate, granularity: noteGranularity }));
+					activeFileIdStore.setFile(getDateUID({ date: noteDate, granularity: noteGranularity }));
 				}
 			}
 		}
