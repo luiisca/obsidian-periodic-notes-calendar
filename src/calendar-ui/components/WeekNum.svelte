@@ -25,25 +25,8 @@
 </script>
 
 <td class="relative">
-	<!-- <MetadataResolver metadata="{metadata}" let:metadata>
-    <div
-      class="week-num"
-      class:active="{selectedId === getDateUID(days[0], 'week')}"
-      draggable="{true}"
-      on:click="{onClick &&
-        ((e) => onClick('week', startOfWeek, file, isMetaPressed(e)))}"
-      on:contextmenu="{onContextMenu &&
-        ((e) => onContextMenu('week', days[0], file, e))}"
-      on:dragstart="{(event) => fileCache.onDragStart(event, file)}"
-      on:pointerenter="{(event) => handleHover(event, metadata)}"
-      on:pointerleave="{endHover}"
-    >
-      {weekNum}
-      <Dots metadata="{metadata}" />
-    </div>
-  </MetadataResolver> -->
 	<button
-		class="day"
+		id="period-num"
 		on:click={(event) =>
 			eventHandlers.onClick({
 				date: startOfWeekDate,
@@ -74,31 +57,5 @@
 
 	td {
 		border-right: 1px solid var(--background-modifier-border);
-	}
-
-	.week-num {
-		background-color: var(--color-background-weeknum);
-		border-radius: 4px;
-		color: var(--color-text-weeknum);
-		cursor: pointer;
-		font-size: 0.65em;
-		height: 100%;
-		padding: 4px;
-		text-align: center;
-		transition: background-color 0.1s ease-in, color 0.1s ease-in;
-		vertical-align: baseline;
-	}
-
-	.week-num:hover {
-		background-color: var(--interactive-hover);
-	}
-
-	.week-num.active:hover {
-		background-color: var(--interactive-accent-hover);
-	}
-
-	.active {
-		color: var(--text-on-accent);
-		background-color: var(--interactive-accent);
 	}
 </style>

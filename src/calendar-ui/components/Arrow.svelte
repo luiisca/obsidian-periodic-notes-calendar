@@ -15,6 +15,7 @@
 		direction === 'right' && 'rotate-180',
 		isMobile ? 'w-8' : 'w-6'
 	)}
+	id='arrow'
 	on:click={onClick}
 	aria-label={tooltip}
 >

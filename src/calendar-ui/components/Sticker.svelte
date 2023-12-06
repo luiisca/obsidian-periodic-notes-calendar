@@ -3,7 +3,9 @@
 </script>
 
 {#if sticker}
-	<div class="rotate-12 absolute top-0 left-full -translate-x-1/2 -translate-y-1/2">{sticker}</div>
+	<div class="rotate-12 absolute top-0 left-full -translate-x-1/2 -translate-y-1/2" id="sticker">
+		{sticker}
+	</div>
 {/if}
 
 <style>

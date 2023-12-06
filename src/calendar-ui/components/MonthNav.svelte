@@ -36,10 +36,11 @@
 	$: showingCurrentMonth = $displayedDateStore.isSame(today, 'month');
 </script>
 
-<div class="flex flex-col space-y-1 mt-2.5 px-2">
-	<div class="flex justify-between items-end text-[--color-text-title]">
+<div class="flex flex-col space-y-1 mt-2.5 px-2" id="nav">
+	<div class="flex justify-between items-end text-[--color-text-title]" id="title">
 		<button
 			class="h-auto text-7xl [&:not(:focus-visible)]:shadow-none font-semibold"
+			id="month"
 			on:click={(event) =>
 				eventHandlers.onClick({
 					date: $displayedDateStore,
@@ -61,6 +62,7 @@
 		</button>
 		<button
 			class="[&:not(:focus-visible)]:shadow-none text-[--interactive-accent] font-medium text-lg"
+			id="year"
 			on:click={(event) =>
 				eventHandlers.onClick({
 					date: $displayedDateStore.clone().startOf('year'),
@@ -86,12 +88,13 @@
 		</button>
 	</div>
 
-	<div class="flex items-center -ml-1">
+	<div class="flex items-center -ml-1" id="bottom-nav">
 		<Arrow direction="left" onClick={decrementdisplayedDate} tooltip="Previous Month" />
 		<button
 			class="[&:not(:focus-visible)]:shadow-none text-[--color-arrow] flex items-center p-2 {showingCurrentMonth
 				? 'opacity-100'
 				: 'opacity-60 '}"
+			id="reset-button"
 			on:click={resetdisplayedDate}
 			aria-label={!showingCurrentMonth ? 'Display Current Month' : null}
 		>

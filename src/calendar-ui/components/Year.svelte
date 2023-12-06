@@ -25,6 +25,7 @@
 
 <td class="relative">
 	<button
+		id="year"
 		on:click={(event) =>
 			eventHandlers.onClick({
 				date,

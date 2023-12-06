@@ -6,6 +6,7 @@
 
 <svg
 	class="{$$restProps.class} inline-block h-[6px] w-[6px] mx-[1px] {isVisible ? 'opacity-100' : 'opacity-0'}"
+	id='dot'
 	style="color:{color}"
 	viewBox="0 0 6 6"
 	xmlns="http://www.w3.org/2000/svg"

@@ -22,8 +22,11 @@
 	let crrView: (typeof togglePeriods)[number] = 'days';
 </script>
 
-<div id="calendar-container" class="container font-['Inter'] px-4 !pt-2">
-	<div class="flex rounded-[--tab-curve] ml-auto w-max space-x-1 p-1 bg-[--background-modifier-hover]">
+<div id="dailyflex-calendar-container" class="container font-['Inter'] px-4 !pt-2">
+	<div
+		class="flex rounded-[--tab-curve] ml-auto w-full max-w-xs space-x-1 p-1 bg-[--background-modifier-hover]"
+		id="periods-container"
+	>
 		{#each togglePeriods as period}
 			<button
 				class={clsx(
@@ -32,13 +35,14 @@
 						? 'text-[--text-on-accent] bg-[--interactive-accent] hover:bg-[--interactive-accent-hover]'
 						: 'text-[--tab-text-color] hover:text-[--text-on-accent]'
 				)}
+				id="period"
 				on:click={() => (crrView = period)}>{capitalize(period)}</button
 			>
 		{/each}
 	</div>
 	{#if crrView === 'days'}
 		<MonthNav />
-		<table class="calendar">
+		<table class="calendar" id="calendar">
 			<colgroup>
 				{#if showWeekNums}
 					<col />
@@ -75,7 +79,7 @@
 	{/if}
 	{#if crrView === 'months'}
 		<YearNav />
-		<table class="calendar">
+		<table class="calendar" id="calendar">
 			<tbody>
 				{#each monthsIndexesInQuarters as quarterMonthsIndexes, i}
 					<tr>
@@ -92,7 +96,7 @@
 	{/if}
 	{#if crrView === 'years'}
 		<YearsNav />
-		<table class="calendar">
+		<table class="calendar" id="calendar">
 			<tbody>
 				{#each getYears( { startRangeYear: +$yearsRanges.ranges[$yearsRanges.crrRangeIndex].split('-')[0] } ) as rowYearsRange}
 					<tr>
@@ -135,6 +139,7 @@
 	.calendar {
 		border-collapse: collapse;
 		width: 100%;
+		min-width: 100%;
 	}
 
 	th {

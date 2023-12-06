@@ -37,6 +37,7 @@
 		class:today={isToday}
 		class:adjacent-month={isAdjacentMonth}
 		class="[&:not(:focus-visible)]:shadow-none !h-auto w-full flex flex-col font-semibold rounded-[--radius-s] text-sm px-1 py-3 relative text-center tabular-nums transition-colors day"
+		id='day'
 		on:click={(event) =>
 			eventHandlers.onClick({ date, isNewSplit: isMetaPressed(event), granularity: 'day' })}
 		on:contextmenu={(event) => eventHandlers.onContextMenu({ date, event, granularity: 'day' })}

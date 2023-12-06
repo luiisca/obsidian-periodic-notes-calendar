@@ -24,6 +24,7 @@
 
 <td class="relative">
 	<button
+		id="period-num"
 		on:click={(event) =>
 			eventHandlers.onClick({
 				date,
