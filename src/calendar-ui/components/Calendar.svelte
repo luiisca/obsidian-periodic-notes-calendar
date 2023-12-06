@@ -23,12 +23,11 @@
 </script>
 
 <div id="calendar-container" class="container font-['Inter'] px-4 !pt-2">
-	<!-- TODO: replace tw colors with theme variables -->
-	<div class="flex rounded-[--tab-curve] space-x-1 p-1 w-full bg-[--background-modifier-hover]">
+	<div class="flex rounded-[--tab-curve] ml-auto w-max space-x-1 p-1 bg-[--background-modifier-hover]">
 		{#each togglePeriods as period}
 			<button
 				class={clsx(
-					'[&:not(:focus-visible)]:shadow-none w-full rounded-[--radius-s] px-4 py-2 transition',
+					'[&:not(:focus-visible)]:shadow-none w-full rounded-[--radius-s] py-2 transition',
 					crrView === period
 						? 'text-[--text-on-accent] bg-[--interactive-accent] hover:bg-[--interactive-accent-hover]'
 						: 'text-[--tab-text-color] hover:text-[--text-on-accent]'
