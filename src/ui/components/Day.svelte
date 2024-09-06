@@ -7,7 +7,7 @@
 	import Dot from './Dot.svelte';
 	import { VIEW } from '../context';
 	import { isMetaPressed } from '../utils';
-	import { getDateUID } from '@/calendar-io';
+	import { getDateUID } from '@/io';
 	import { activeFileIdStore, displayedDateStore, notesStores } from '@/stores/';
 	import Sticker from './Sticker.svelte';
 	import type { ICalendarViewCtx } from '@/types/view';

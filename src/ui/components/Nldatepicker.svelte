@@ -2,19 +2,19 @@
 	import { get } from 'svelte/store';
 
 	import { settingsStore } from '@/stores';
-	import { tryToCreateNote, type IGranularity } from '@/calendar-io';
-	import { getNoteSettingsByGranularity } from '@/calendar-io/settings';
+	import { tryCreatingNote, type IGranularity } from '@/io';
+	import { getNoteSettingsByGranularity } from '@/io/settings';
 	import type { Moment } from 'moment';
 	import { debounce } from 'obsidian';
 	import { granularities } from '@/constants';
-	import { getPeriodicityFromGranularity } from '@/calendar-io/parse';
+	import { getPeriodicityFromGranularity } from '@/io/parse';
 	import { capitalize } from '@/utils';
 	import type NldatePickerModal from '../modals/nldate-picker';
 	import { onMount } from 'svelte';
-	import type DailyNoteFlexPlugin from '@/main';
+	import type PeriodicNotesCalendarPlugin from '@/main';
 
 	export let modalClass: NldatePickerModal;
-	export let pluginClass: DailyNoteFlexPlugin;
+	export let pluginClass: PeriodicNotesCalendarPlugin;
 
 	interface NldPlugin {
 		parseDate: (dateString: string) => NldResult;
@@ -83,7 +83,7 @@
 			const { workspace } = window.app;
 			const leaf = workspace.getUnpinnedLeaf();
 
-			tryToCreateNote({ leaf, date: parsedDate, granularity, confirmBeforeCreateOverride: false });
+			tryCreatingNote({ leaf, date: parsedDate, granularity, confirmBeforeCreateOverride: false });
 		}
 		window.removeEventListener('keydown', enterKeyCb);
 	};
@@ -93,7 +93,7 @@
 	});
 </script>
 
-<div class='pt-4'>
+<div class="pt-4">
 	<div class="setting-item border-0">
 		<div class="setting-item-info">
 			<div class="setting-item-name">Date</div>

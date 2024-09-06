@@ -39,7 +39,7 @@
 	$: crrRange = $yearsRanges.ranges[$yearsRanges.crrRangeIndex].split('-');
 </script>
 
-<div class="flex flex-col space-y-1 mt-2.5 px-2" id="nav">
+<div class="flex flex-col space-y-1 mt-3 mb-1.5 px-2" id="nav">
 	<div
 		class="text-[--color-text-title] text-7xl [&:not(:focus-visible)]:shadow-none font-semibold"
 		id="title"
@@ -48,18 +48,18 @@
 	</div>
 
 	<div class="flex items-center -ml-1" id="bottom-nav">
-		<Arrow direction="left" onClick={decrementdisplayedYearRange} tooltip="Previous Year" />
+		<Arrow direction="left" onClick={decrementdisplayedYearRange} tooltip="Previous Range" />
 		<button
 			class="[&:not(:focus-visible)]:shadow-none text-[--color-arrow] flex items-center p-2 {showingCurrentRange
 				? 'opacity-100'
 				: 'opacity-60 '}"
 			id="reset-button"
 			on:click={resetdisplayedDate}
-			aria-label={!showingCurrentRange ? 'Reset to current year' : null}
+			aria-label={!showingCurrentRange ? 'Current Range' : null}
 		>
 			<Dot class="h-[8px] w-[8px]" isFilled={showingCurrentRange} />
 		</button>
-		<Arrow direction="right" onClick={incrementdisplayedDate} tooltip="Next Year" />
+		<Arrow direction="right" onClick={incrementdisplayedDate} tooltip="Next Range" />
 	</div>
 </div>
 

@@ -1,12 +1,12 @@
 import { Modal } from 'obsidian';
 import NldatepickerComponent from '../components/Nldatepicker.svelte';
-import type DailyNoteFlexPlugin from '@/main';
+import type PeriodicNotesCalendarPlugin from '@/main';
 
 export default class NldatePickerModal extends Modal {
-	constructor(plugin: DailyNoteFlexPlugin) {
+	constructor(plugin: PeriodicNotesCalendarPlugin) {
 		super(window.app);
 
-        const {contentEl} = this;
+		const { contentEl } = this;
 
 		// Create a div to mount the Svelte component
 		const svelteContainer = contentEl.createDiv();
@@ -22,6 +22,6 @@ export default class NldatePickerModal extends Modal {
 	}
 }
 
-export function createNldatePickerDialog(plugin: DailyNoteFlexPlugin) {
+export function createNldatePickerDialog(plugin: PeriodicNotesCalendarPlugin) {
 	new NldatePickerModal(plugin).open();
 }

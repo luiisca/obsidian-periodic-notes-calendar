@@ -1,23 +1,25 @@
 <svelte:options immutable />
 
 <script lang="ts">
+	import type { Moment } from 'moment';
 	import { getContext } from 'svelte';
 
 	import Dot from './Dot.svelte';
 	import { isMetaPressed } from '../utils';
-	import { getDateUID } from '@/calendar-io';
+	import { getDateUID } from '@/io';
 	import { VIEW } from '../context';
-	import { displayedDateStore, notesStores } from '@/stores';
+	import { notesStores } from '@/stores';
 	import Sticker from './Sticker.svelte';
 	import type { ICalendarViewCtx } from '@/types/view';
 
-	export let quarterNum: number;
+	// Properties
+	export let weekNum: number;
+	export let startOfWeekDate: Moment;
+
 	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 
-	const notesStore = notesStores['quarter'];
-
-	$: date = $displayedDateStore.clone().quarter(quarterNum).startOf('quarter');
-	$: dateUID = getDateUID({ date, granularity: 'quarter' });
+	const notesStore = notesStores['week'];
+	const dateUID = getDateUID({ date: startOfWeekDate, granularity: 'week' });
 	$: file = $notesStore[dateUID]?.file;
 	$: sticker = $notesStore[dateUID]?.sticker;
 </script>
@@ -27,28 +29,24 @@
 		id="period-num"
 		on:click={(event) =>
 			eventHandlers.onClick({
-				date,
+				date: startOfWeekDate,
 				isNewSplit: isMetaPressed(event),
-				granularity: 'quarter'
+				granularity: 'week'
 			})}
 		on:contextmenu={(event) =>
-			eventHandlers.onContextMenu({
-				date,
-				event,
-				granularity: 'quarter'
-			})}
-		on:pointerenter={(event) =>
+			eventHandlers.onContextMenu({ date: startOfWeekDate, event, granularity: 'week' })}
+		on:pointerenter={(event) => {
 			eventHandlers.onHover({
-				date,
+				date: startOfWeekDate,
 				targetEl: event.target,
 				isMetaPressed: isMetaPressed(event),
-				granularity: 'quarter'
-			})}
+				granularity: 'week'
+			});
+		}}
 	>
-		Q{quarterNum}
+		{weekNum}
 		<Dot isFilled={!!file} isVisible={!!file} />
 	</button>
-
 	<Sticker {sticker} />
 </td>
 
@@ -56,4 +54,8 @@
 	@tailwind base;
 	@tailwind components;
 	@tailwind utilities;
+
+	td {
+		border-right: 1px solid var(--background-modifier-border);
+	}
 </style>

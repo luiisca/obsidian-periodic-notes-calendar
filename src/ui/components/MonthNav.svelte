@@ -36,7 +36,7 @@
 	$: showingCurrentMonth = $displayedDateStore.isSame(today, 'month');
 </script>
 
-<div class="flex flex-col space-y-1 mt-2.5 px-2" id="nav">
+<div class="flex flex-col space-y-1 mt-3 mb-1.5 px-2" id="nav">
 	<div class="flex justify-between items-end text-[--color-text-title]" id="title">
 		<button
 			class="h-auto text-7xl [&:not(:focus-visible)]:shadow-none font-semibold"
@@ -96,7 +96,7 @@
 				: 'opacity-60 '}"
 			id="reset-button"
 			on:click={resetdisplayedDate}
-			aria-label={!showingCurrentMonth ? 'Display Current Month' : null}
+			aria-label={!showingCurrentMonth ? 'Current Month' : null}
 		>
 			<Dot class="h-[8px] w-[8px]" isFilled={showingCurrentMonth} />
 		</button>
