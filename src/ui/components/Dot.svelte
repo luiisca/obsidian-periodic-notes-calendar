@@ -1,51 +1,38 @@
 <script lang="ts">
-  export let className: string = "";
-  export let isFilled: boolean;
-  export let isActive: boolean;
+	export let className: string = '';
+	export let isFilled: boolean = false;
+	export let isActive: boolean = false;
 </script>
 
-{#if isFilled}
-  <svg
-    class="{`dot filled ${className}`}"
-    class:active="{isActive}"
-    viewBox="0 0 6 6"
-    xmlns="http://www.w3.org/2000/svg">
-    <circle cx="3" cy="3" r="2"></circle>
-  </svg>
-{:else}
-  <svg
-    class="{`hollow ${className}`}"
-    class:active="{isActive}"
-    viewBox="0 0 6 6"
-    xmlns="http://www.w3.org/2000/svg">
-    <circle cx="3" cy="3" r="2"></circle>
-  </svg>
-{/if}
+<svg
+	class={`dot ${className}`}
+	class:isFilled
+	class:isActive
+	viewBox="0 0 6 6"
+	xmlns="http://www.w3.org/2000/svg"
+>
+	<circle cx="3" cy="3" r="2" />
+</svg>
 
 <style>
-  .dot,
-  .hollow {
-    display: inline-block;
-    height: 6px;
-    width: 6px;
-    margin: 0 1px;
-  }
+	.dot {
+		display: inline-block;
+		height: 6px;
+		width: 6px;
+		margin: 0 1px;
+		fill: none;
+		stroke: var(--color-dot);
+	}
 
-  .filled {
-    fill: var(--color-dot);
-  }
+	.active {
+		stroke: var(--text-on-accent);
+	}
 
-  .active.filled {
-    fill: var(--text-on-accent);
-  }
+	.filled {
+		fill: var(--color-dot);
+	}
 
-  .hollow {
-    fill: none;
-    stroke: var(--color-dot);
-  }
-
-  .active.hollow {
-    fill: none;
-    stroke: var(--text-on-accent);
-  }
+	.active.filled {
+		fill: var(--text-on-accent);
+	}
 </style>
