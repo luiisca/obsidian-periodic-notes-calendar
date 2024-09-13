@@ -1,41 +1,31 @@
 <script lang="ts">
-	import { Notice, type App, Menu } from 'obsidian';
 	import clsx from 'clsx';
-	import { onDestroy, setContext } from 'svelte';
-	import Calendar from './calendar-ui/components/Calendar.svelte';
-	import {
-		crrFileMenu,
-		displayedDateStore,
-		notesStores,
-		settingsStore,
-
-		stickerPopoverCrrGranularity,
-
-		stickerPopoverNoteDateUIDStore
-
-	} from './stores';
 	import type { Moment } from 'moment';
+	import { Notice, type App } from 'obsidian';
+	import { onDestroy, setContext } from 'svelte';
+	import { CALENDAR_POPOVER_ID, FILE_MENU_POPOVER_ID } from './constants';
 	import {
-		tryToCreateNote,
-		getNoteByGranularity,
-		getDateUID
-	} from './calendar-io';
-	import { VIEW } from './calendar-ui/context';
-	import { getNoteSettingsByGranularity } from './calendar-io/settings';
-	import {
-		openPopover,
-		popoversStore,
-		setupPopover,
-		getFloatingEl,
-		popovers
-	} from './calendar-ui/popovers';
-	import { get, writable } from 'svelte/store';
-	import StickerPopoverComponent from './calendar-ui/components/StickerPopover.svelte';
-	import { CALENDAR_POPOVER_ID, STICKER_POPOVER_ID } from './constants';
-	import type DailyNoteFlexPlugin from './main';
-	import type { ICalendarViewCtx, TOnClick, TOnContextMenu, TOnHover } from './types/view';
+		createOrOpenNote,
+		getNoteFromStore,
+		getPeriodicityFromGranularity,
+		type IGranularity
+	} from './io';
+	import { getNoteSettingsByPeriodicity } from './io/settings';
+	import { displayedDateStore } from './stores';
+	import Calendar from './ui/components/Calendar.svelte';
+	import { VIEW } from './ui/context';
+	import { Popover } from './ui/popovers';
+	import { settingsStore } from '@/settings';
 
 	export let popover: boolean = false;
+
+	export function rerenderCalendar() {
+		// TODO: reimplement
+		// rerenderStore.update((val) => ({
+		// 	...val,
+		// 	rerender: true
+		// }));
+	}
 
 	let today: Moment = window.moment();
 
@@ -49,19 +39,58 @@
 			console.log('⚙⚙⚙ RERENDERING CALENdAR ⚙⚙⚙️');
 
 			displayedDateStore.set(today);
+			rerenderCalendar();
 		}
 	}, 1000 * 60);
+
+	type TOnClick = ({
+		date,
+		createNewSplitLeaf,
+		granularity
+	}: {
+		date: Moment;
+		createNewSplitLeaf: boolean;
+		granularity: IGranularity;
+	}) => Promise<void>;
+	type TOnHover = ({
+		date,
+		targetEl,
+		isMetaPressed,
+		granularity
+	}: {
+		date: Moment;
+		targetEl: EventTarget | null;
+		isMetaPressed: boolean;
+		granularity: IGranularity;
+	}) => void;
+	type TOnContextMenu = ({
+		date,
+		event,
+		granularity
+	}: {
+		date: Moment;
+		event: MouseEvent;
+		granularity: IGranularity;
+	}) => void;
+
+	interface ICalendarViewCtx {
+		app: App;
+		eventHandlers: {
+			onClick: TOnClick;
+			onHover: TOnHover;
+			onContextMenu: TOnContextMenu;
+		};
+	}
 
 	// Component event handlers
 	const onClick = async ({
 		date,
-		isNewSplit,
+		createNewSplitLeaf,
 		granularity
 	}: Parameters<TOnClick>[0]): Promise<void> => {
-		const { workspace } = window.app;
-		const leaf = isNewSplit ? workspace.splitActiveLeaf() : workspace.getUnpinnedLeaf();
+		const leaf = window.app.workspace.getLeaf(createNewSplitLeaf);
 
-		tryToCreateNote({ leaf, date, granularity });
+		createOrOpenNote({ leaf, date, granularity });
 	};
 
 	const onHover = ({
@@ -70,124 +99,33 @@
 		isMetaPressed,
 		granularity
 	}: Parameters<TOnHover>[0]): void => {
-		const { format } = getNoteSettingsByGranularity(granularity);
-		const note = getNoteByGranularity({ date, granularity });
+		const { format } = getNoteSettingsByPeriodicity(getPeriodicityFromGranularity(granularity));
+		const note = getNoteFromStore({ date, granularity });
 
 		if (isMetaPressed || $settingsStore.autoHoverPreview) {
 			window.app.workspace.trigger('link-hover', targetEl, date.format(format), note?.path);
 		}
 	};
 
-	const cpMouseoverCbStore = writable<((event: MouseEvent) => void) | null>(null);
 	const onContextMenu = ({ date, event, granularity }: Parameters<TOnContextMenu>[0]): void => {
-		const note = getNoteByGranularity({ date, granularity });
+		const note = getNoteFromStore({ date, granularity });
 
-		if (!note) {
-			new Notice('Create a note first');
+		if (note) {
+			Popover.create({
+				id: FILE_MENU_POPOVER_ID,
+				note,
+				event,
+				date,
+				granularity
+			}).open();
 		} else {
-			const dateUID = getDateUID({date, granularity});
-			const referenceEl = event.target as HTMLElement;
-
-			const calendarPopoverStore = get(popoversStore)?.[CALENDAR_POPOVER_ID];
-
-			const setupStickerPopover = () => {
-				const plugin = get(pluginClassStore);
-				const floatingEl = getFloatingEl({ id: STICKER_POPOVER_ID });
-
-				if (!floatingEl && !plugin.popovers[STICKER_POPOVER_ID]) {
-					setupPopover({
-						id: STICKER_POPOVER_ID,
-						referenceEl,
-						view: {
-							Component: StickerPopoverComponent,
-						}
-					});
-				}
-
-
-				// update <StickerPopover /> props
-				stickerPopoverNoteDateUIDStore.set(dateUID);
-				stickerPopoverCrrGranularity.set(granularity);
-
-				openPopover({
-					referenceEl,
-					id: STICKER_POPOVER_ID,
-					customX: event.pageX,
-					customY: event.pageY
-				});
-			};
-
-			(function setupFileMenu() {
-				const fileMenu = new Menu();
-				crrFileMenu.set(fileMenu);
-
-				fileMenu.addItem((item) =>
-					item.setTitle('Add Sticker').setIcon('smile-plus').onClick(setupStickerPopover)
-				);
-				fileMenu.addItem((item) =>
-					item
-						.setTitle('Delete')
-						.setIcon('trash')
-						.onClick(() => {
-							// eslint-disable-next-line @typescript-eslint/no-explicit-any
-							(<any>app).fileManager.promptForFileDeletion(note);
-						})
-				);
-
-				app.workspace.trigger('file-menu', fileMenu, note, 'calendar-context-menu', null);
-				fileMenu.showAtPosition({
-					x: event.pageX,
-					y: event.pageY
-				});
-			})();
-
-			if ($settingsStore.openPopoverOnRibbonHover && calendarPopoverStore) {
-				(function removeCpCloseMechanism() {
-					window.removeEventListener(
-						'mouseover',
-						popovers[CALENDAR_POPOVER_ID].windowEvents?.mouseover as () => void
-					);
-				})();
-
-				(function setupGiveCpCloseMechanismBack() {
-					const handleCpMouseoverEv = () => {
-						const calendarPopoverStore = get(popoversStore)[CALENDAR_POPOVER_ID];
-						const stickerPopoverStore = get(popoversStore)[STICKER_POPOVER_ID];
-
-						const isOnlyCPOpen =
-							calendarPopoverStore?.opened &&
-							!stickerPopoverStore?.opened &&
-							!document.querySelector('.menu');
-
-						if (isOnlyCPOpen) {
-							// add window.mouseover ev listener back once CP is hovered
-							window.addEventListener(
-								'mouseover',
-								popovers[CALENDAR_POPOVER_ID].windowEvents?.mouseover as () => void
-							);
-
-							calendarPopoverStore.floatingEl?.removeEventListener(
-								'mouseover',
-								handleCpMouseoverEv
-							);
-						}
-					};
-
-					// cleanup previous callback
-					if ($cpMouseoverCbStore) {
-						calendarPopoverStore.floatingEl?.removeEventListener('mouseover', $cpMouseoverCbStore);
-					}
-
-					// store callback to ensure later cleanup points to right place in memory
-					cpMouseoverCbStore.set(handleCpMouseoverEv);
-
-					calendarPopoverStore.floatingEl?.addEventListener('mouseover', handleCpMouseoverEv);
-				})();
-			}
+			// TODO: improve wording
+			new Notice('Create a note first');
 		}
 	};
 
 	setContext<ICalendarViewCtx>(VIEW, {
+		app: window.app,
 		eventHandlers: {
 			onClick,
 			onHover,
@@ -220,8 +158,13 @@
 	<Calendar />
 {/if}
 
-<style>
+<style lang="postcss">
 	@tailwind base;
 	@tailwind components;
 	@tailwind utilities;
+
+	body {
+		background-color: red;
+		font-size: xx-large;
+	}
 </style>

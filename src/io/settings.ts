@@ -1,34 +1,34 @@
-import { DEFAULT_FORMATS } from '@/formats/settings';
-import { getPeriodicityFromGranularity } from './parse';
-import type { IGranularity } from './types';
-import { Notice } from 'obsidian';
+import { DAILY_NOTES_PLUGIN_ID, DEFAULT_FORMATS, PERIODIC_NOTES_PLUGIN_ID } from '@/constants';
+import type { IPeriodicity } from './types';
 
 /**
  * Read user settings from periodic-notes and daily-notes plugins
  * to keep behavior of creating a new note in-sync.
+ * @note only call after periodic notes plugin is fully loaded 
  */
-export function getNoteSettingsByGranularity(granularity: IGranularity) {
-    const periodicity = getPeriodicityFromGranularity(granularity);
+export function getNoteSettingsByPeriodicity(periodicity: IPeriodicity) {
+    let pluginSettings = null;
+    const plugins = (<any>window.app).plugins;
+    const internalPlugins = (<any>window.app).internalPlugins;
 
-    let settings = null;
-    const periodicNotesPlugin = (<any>window.app).plugins?.getPlugin('periodic-notes');
-    if (periodicNotesPlugin?.settings?.[periodicity]?.enabled) {
-        settings = periodicNotesPlugin?.settings?.[periodicity];
+    const pnSettingsByPeriodicity = plugins.getPlugin(PERIODIC_NOTES_PLUGIN_ID)?.settings?.[periodicity];
+    if (pnSettingsByPeriodicity?.enabled) {
+        pluginSettings = pnSettingsByPeriodicity;
     } else if (periodicity === 'daily') {
-        const dailyNotesPlugin = (<any>window.app).internalPlugins?.getPluginById('daily-notes');
-        settings = dailyNotesPlugin?.instance?.options;
+        const dailyNotesPlugin = internalPlugins?.getPluginById(DAILY_NOTES_PLUGIN_ID);
+        pluginSettings = dailyNotesPlugin?.instance?.options;
     }
 
-    if (settings) {
+    if (pluginSettings) {
+        console.log("using plugin settings", pluginSettings)
+
         return {
-            format: settings.format?.trim() || DEFAULT_FORMATS[periodicity],
-            folder: settings.folder?.trim() || '/',
-            template: settings.template?.trim() || ''
+            format: pluginSettings.format?.trim() || DEFAULT_FORMATS[periodicity],
+            folder: pluginSettings.folder?.trim() || '/',
+            template: pluginSettings.template?.trim() || ''
         };
     } else {
-        new Notice(
-            `No custom ${periodicity === 'daily' ? 'daily' : 'periodic'} note settings found! Ensure the ${periodicity == 'daily' ? 'Daily notes' : 'Periodic Notes'} plugin is active.`
-        );
+        console.log("using default settings", DEFAULT_FORMATS[periodicity])
 
         return {
             format: DEFAULT_FORMATS[periodicity],
