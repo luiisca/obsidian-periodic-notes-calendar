@@ -1,7 +1,7 @@
-import DailyNoteFlexPlugin from "./main";
+import PeriodicNotesCalendarPlugin from "./main";
 
 declare global {
 	interface Window {
-        plugin: DailyNoteFlexPlugin | null;
+        plugin: PeriodicNotesCalendarPlugin | null;
 	}
 }
