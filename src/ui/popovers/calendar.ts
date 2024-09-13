@@ -1,217 +1,168 @@
-import { CALENDAR_POPOVER_ID, STICKER_POPOVER_ID } from '@/constants';
-import {
-	closePopover,
-	getFloatingEl,
-	openPopover,
-	popoversStore,
-	positionFloatingEl,
-	revealFloatingEl,
-	setFloatingElInteractivity,
-	type IPopoverUtils,
-	type TPopovers,
-	type TWindowEvents
-} from '.';
+import { CALENDAR_POPOVER_ID, FILE_MENU_POPOVER_ID, STICKER_POPOVER_ID } from '@/constants';
+import { settingsStore }  from "@/settings";
+import { ComponentType } from 'svelte';
 import { get } from 'svelte/store';
-import { crrFileMenu, pluginClassStore, settingsStore } from '@/stores';
-import { autoUpdate } from '@floating-ui/dom';
+import { TWindowEvents } from '../types';
+import { getPopoverInstance } from './base';
+import { BaseComponentBehavior } from './base-component-behavior';
 
-const id: TPopovers = CALENDAR_POPOVER_ID;
-export const ribbonReferenceElId = `${id}-ribbon-ref-el`;
+function getRefHtmlEl() {
+    return document.querySelector(`[id=${CALENDAR_POPOVER_ID}-ribbon-ref-el]`) as HTMLElement
+}
 
-const getReferenceEl = () => document.querySelector(`[id=${ribbonReferenceElId}]`) as HTMLElement;
+export type TCalendarPopoverParams = {
+    id: typeof CALENDAR_POPOVER_ID,
+    view: {
+        Component: ComponentType;
+        props?: Record<string, unknown>;
+    }
+}
 
-const handleReferenceElHover = () => {
-	console.log('🖱️🖱️🖱️handleReferenceElHover()!!! 🤯🤯🤯');
-	const calendarPopoverStore = get(popoversStore)[id];
+export class CalendarPopoverBehavior extends BaseComponentBehavior {
+    constructor(
+        private params: TCalendarPopoverParams,
+    ) {
+        super(params.id, params.view, getRefHtmlEl());
 
-	if (!calendarPopoverStore?.opened) {
-		openPopover({ id });
-	}
-};
+        if (get(settingsStore).openPopoverOnRibbonHover) {
+            this.refHtmlEl.addEventListener('mouseover', this.handleReferenceElHover);
+        }
+    }
 
-const handleWindowMouseover = (event: MouseEvent) => {
-	if (get(settingsStore).openPopoverOnRibbonHover) {
-		const ev = event as MouseEvent & { target: HTMLElement | null };
+    public open() {
+        super.open();
+        this.addWindowListeners(this.getWindowEvents());
+    }
 
-		const calendarPopoverStore = get(popoversStore)[id];
-		const stickerPopoverStore = get(popoversStore)[STICKER_POPOVER_ID];
-		const menuEl = document.querySelector('.menu');
+    public close() {
+        super.close();
+        this.removeWindowListeners(this.getWindowEvents());
+    }
+    public cleanup() {
+        this.close();
+        this.refHtmlEl.removeEventListener('mouseover', this.handleReferenceElHover);
+        this.component.$destroy();
+    }
 
-		const calendarElTouched =
-			calendarPopoverStore?.floatingEl?.contains(ev.target) ||
-			ev.target?.id.includes(CALENDAR_POPOVER_ID);
-		const stickerElTouched =
-			stickerPopoverStore?.floatingEl?.contains(ev.target) ||
-			ev.target?.id.includes(STICKER_POPOVER_ID);
-		const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
-		const referenceElTouched = calendarPopoverStore?.referenceEl?.contains(event.target as Node);
+    private getWindowEvents(): TWindowEvents {
+        return {
+            click: this.handleWindowClick,
+            auxclick: this.handleWindowClick,
+            keydown: this.handleWindowKeydown,
+            mouseover: this.handleWindowMouseover
+        }
+    }
+    public handleWindowClick(event: MouseEvent) {
+        const ev = event as MouseEvent & { target: HTMLElement | null };
 
-		const targetOut = !calendarElTouched && !menuElTouched && !stickerElTouched;
-		const fileMenu = get(crrFileMenu);
+        const settings = get(settingsStore);
+        const menuEl = document.querySelector('.menu');
+        const stickerEl = document.querySelector(`#${STICKER_POPOVER_ID}[data-popover="true"]`) as HTMLElement | undefined;
 
-		if (referenceElTouched) return;
+        const calendarElTouched =
+            this.componentHtmlEl.contains(ev.target) ||
+            ev.target?.id.includes(CALENDAR_POPOVER_ID);
+        const stickerElTouched =
+            stickerEl?.contains(ev.target) ||
+            ev.target?.id.includes(STICKER_POPOVER_ID);
+        const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
 
-		// close CP if only CP opened and user hovered anywhere but it
-		if (calendarPopoverStore?.opened && !stickerPopoverStore?.opened && !menuEl && targetOut) {
-			closePopover({ id: CALENDAR_POPOVER_ID });
+        const targetOut = !calendarElTouched && !menuElTouched && !stickerElTouched;
 
-			// close crr open ctx menu
-			fileMenu?.close();
-		}
-	}
-};
-const handleWindowClick = (event: MouseEvent) => {
-	const ev = event as MouseEvent & { target: HTMLElement | null };
+        // avoids closing calendar if sticker is open too 
+        if (
+            getPopoverInstance(this.params.id)?.opened &&
+            getPopoverInstance(STICKER_POPOVER_ID)?.opened &&
+            settings.popoversClosing.closePopoversOneByOneOnClickOut
+        ) {
+            return;
+        }
 
-	const settings = get(settingsStore);
-	const calendarPopoverStore = get(popoversStore)[id];
-	const stickerPopoverStore = get(popoversStore)[STICKER_POPOVER_ID];
-	const menuEl = document.querySelector('.menu');
+        // close calendar popover if user clicked anywhere but either calendar popover, context menu or SP
+        if (targetOut) {
+            this.close();
+        }
+    };
 
-	const calendarElTouched =
-		calendarPopoverStore?.floatingEl?.contains(ev.target) ||
-		ev.target?.id.includes(CALENDAR_POPOVER_ID);
-	const stickerElTouched =
-		stickerPopoverStore?.floatingEl?.contains(ev.target) ||
-		ev.target?.id.includes(STICKER_POPOVER_ID);
-	const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
+    public handleWindowKeydown(event: KeyboardEvent) {
+        const settings = get(settingsStore);
 
-	const targetOut = !calendarElTouched && !menuElTouched && !stickerElTouched;
+        const focusableSelectors =
+            ':is(a[href], button, input, textarea, select, details, [tabindex]):not([tabindex="-1"])';
 
-	// ensures popovers could be closed one by one
-	if (
-		calendarPopoverStore?.opened &&
-		stickerPopoverStore?.opened &&
-		settings.popoversCloseData.closePopoversOneByOneOnClickOut
-	) {
-		return;
-	}
+        const focusablePopoverElements: HTMLElement[] = Array.from(
+            this.componentHtmlEl.querySelectorAll(focusableSelectors)
+        );
 
-	// close CP if user clicked anywhere but either CP, context menu or SP
-	if (targetOut) {
-		closePopover({ id: CALENDAR_POPOVER_ID });
-	}
-};
+        const referenceElFocused: boolean =
+            (getPopoverInstance(this.params.id)?.opened && document.activeElement === this.refHtmlEl) || false;
+        // When the user focuses on 'referenceEl' and then presses the Tab or ArrowDown key, the first element inside the view should receive focus.
+        // TODO: make it work!
+        if (
+            referenceElFocused &&
+            (event.key === 'ArrowDown' || event.key === 'Tab') &&
+            focusablePopoverElements.length > 0
+        ) {
+            focusablePopoverElements[0].focus();
 
-// Accessibility Keyboard Interactions
-const handleWindowKeydown = (event: KeyboardEvent) => {
-	const settings = get(settingsStore);
-	const calendarPopoverStore = get(popoversStore)[id];
-	const stickerPopoverStore = get(popoversStore)[STICKER_POPOVER_ID];
-	const floatingEl = getFloatingEl({ id });
-	const referenceEl = getReferenceEl();
+            return;
+        }
 
-	const focusableAllowedList =
-		':is(a[href], button, input, textarea, select, details, [tabindex]):not([tabindex="-1"])';
+        // avoids closing calendar if sticker is open too 
+        if (
+            getPopoverInstance(this.params.id)?.opened &&
+            getPopoverInstance(STICKER_POPOVER_ID)?.opened &&
+            settings.popoversClosing.closePopoversOneByOneOnEscKeydown
+        ) {
+            return;
+        }
 
-	const focusablePopoverElements: HTMLElement[] = Array.from(
-		floatingEl?.querySelectorAll(focusableAllowedList)
-	);
+        if (event.key === 'Escape') {
+            this.refHtmlEl?.focus();
+            this.close();
 
-	const referenceElFocused: boolean =
-		(calendarPopoverStore?.opened && document.activeElement === referenceEl) || false;
-	// When the user focuses on 'referenceEl' and then presses the Tab or ArrowDown key, the first element inside the view should receive focus.
-	// TODO: make it work!
-	if (
-		referenceElFocused &&
-		(event.key === 'ArrowDown' || event.key === 'Tab') &&
-		focusablePopoverElements.length > 0
-	) {
-		focusablePopoverElements[0].focus();
+            return;
+        }
+    };
 
-		return;
-	}
+    public handleWindowMouseover(event: MouseEvent) {
+        if (get(settingsStore).openPopoverOnRibbonHover) {
+            const ev = event as MouseEvent & { target: HTMLElement | null };
 
-	// ensures popovers could be closed one by one
-	if (
-		calendarPopoverStore?.opened &&
-		stickerPopoverStore?.opened &&
-		settings.popoversCloseData.closePopoversOneByOneOnEscKeydown
-	) {
-		return;
-	}
+            const calendarPopover = getPopoverInstance(CALENDAR_POPOVER_ID);
+            const stickerPopover = getPopoverInstance(STICKER_POPOVER_ID);
+            const fileMenuPopover = getPopoverInstance(FILE_MENU_POPOVER_ID);
 
-	if (event.key === 'Escape') {
-		referenceEl?.focus();
-		closePopover({ id });
+            const menuEl = document.querySelector('.menu');
+            const stickerEl = document.querySelector(`#${STICKER_POPOVER_ID}[data-popover="true"]`) as HTMLElement | undefined;
 
-		return;
-	}
-};
-const windowEvents: TWindowEvents = {
-	click: handleWindowClick,
-	auxclick: handleWindowClick,
-	keydown: handleWindowKeydown,
-	mouseover: handleWindowMouseover
-};
+            const calendarElTouched =
+                this.componentHtmlEl.contains(ev.target) ||
+                ev.target?.id.includes(CALENDAR_POPOVER_ID);
+            const stickerElTouched =
+                stickerEl?.contains(ev.target) ||
+                ev.target?.id.includes(STICKER_POPOVER_ID);
+            const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
+            const referenceElTouched = this.refHtmlEl.contains(event.target as Node);
 
-export const open = () => {
-	const floatingEl = getFloatingEl({ id });
-	const referenceEl = getReferenceEl();
+            const targetOut = !calendarElTouched && !menuElTouched && !stickerElTouched;
 
-	revealFloatingEl({ floatingEl });
-	setFloatingElInteractivity({ floatingEl, enabled: true });
+            if (referenceElTouched) return;
 
-	popoversStore.update((values) => ({
-		...values,
-		[id]: {
-			...values[id],
-			opened: true,
-			floatingEl,
-			referenceEl,
-			// Trigger Floating UI autoUpdate (open only)
-			// https://floating-ui.com/docs/autoUpdate
-			cleanupPopoverAutoUpdate: autoUpdate(referenceEl, floatingEl, () =>
-				positionFloatingEl({ referenceEl, id })
-			)
-		}
-	}));
-};
-export const extraSetup = () => {
-	console.log('🤯🤯calendar popover extraSetup()!!');
-	positionFloatingEl({ referenceEl: getReferenceEl(), id });
+            const isOnlyCalendarPopoverOpen =
+                calendarPopover?.opened && !stickerPopover?.opened && !fileMenuPopover?.opened;
 
-	if (get(settingsStore).openPopoverOnRibbonHover) {
-		getReferenceEl().addEventListener('mouseover', handleReferenceElHover);
-	}
-};
-export const cleanup = () => {
-	console.log('🧹🤯📅📅📅Calendar popover cleanup()');
-	const plugin = get(pluginClassStore);
+            // close calendar popover if opened and user hovered anywhere but calendar popover
+            if (isOnlyCalendarPopoverOpen && targetOut) {
+                this.close();
+            }
+        }
+    };
+    public handleReferenceElHover() {
+        console.log('🖱️🖱️🖱️handleReferenceElHover()!!! 🤯🤯🤯');
 
-	popoversStore.update((values) => ({
-		...values,
-		[id]: {
-			opened: false,
-			referenceEl: null,
-			floatingEl: null,
-			cleanupPopoverAutoUpdate: () => ({})
-		}
-	}));
-
-	getReferenceEl().removeEventListener('mouseover', handleReferenceElHover);
-	popover.removeWindowEvents();
-
-	if (plugin.popovers) {
-		Object.values(plugin.popovers).forEach((popover) => popover?.$destroy());
-		plugin.popovers = {};
-	}
-};
-
-const popover: IPopoverUtils = {
-	open,
-	extraSetup,
-	cleanup,
-	windowEvents,
-	addWindowEvents: () => {
-		for (const [evName, cb] of Object.entries(windowEvents)) {
-			window.addEventListener(evName, cb);
-		}
-	},
-	removeWindowEvents: () => {
-		for (const [evName, cb] of Object.entries(windowEvents)) {
-			window.removeEventListener(evName, cb);
-		}
-	}
-};
-export { popover };
+        if (!getPopoverInstance(this.params.id)?.opened) {
+            this.open();
+        }
+    }
+}

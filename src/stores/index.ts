@@ -1,20 +1,14 @@
-import { writable } from 'svelte/store';
-import { DEFAULT_SETTINGS, type ISettings } from '../settings';
 import type { Menu } from 'obsidian';
-import type DailyNoteFlexPlugin from '../main';
+import { writable } from 'svelte/store';
+import type PeriodicNotesCalendarPlugin from '../main';
 
 export { displayedDateStore, yearsRanges } from './dates';
 export {
-	localeDataStore,
-	updateLocale,
-	updateWeekStart,
-	updateWeekdays,
-	setupLocale
+    localeDataStore, setupLocale, updateLocale, updateWeekdays, updateWeekStart
 } from './locale';
-export { notesStores, activeFileIdStore } from './notes';
+export { activeFileIdStore, notesStores } from './notes';
 export type { TNotesStore } from './notes';
-export { stickerPopoverCrrGranularity, stickerPopoverNoteDateUIDStore } from './popovers';
-
-export const settingsStore = writable<ISettings>(DEFAULT_SETTINGS);
-export const pluginClassStore = writable<DailyNoteFlexPlugin>();
+export * from './popovers';
+export const pluginClassStore = writable<PeriodicNotesCalendarPlugin>();
 export const crrFileMenu = writable<Menu | null>(null);
+export const rerenderStore = writable({ rerender: false });

@@ -1,207 +1,147 @@
-import { CALENDAR_POPOVER_ID, STICKER_POPOVER_ID } from '@/constants';
-import {
-	closePopover,
-	getFloatingEl,
-	popoversStore,
-	positionFloatingEl,
-	revealFloatingEl,
-	setFloatingElInteractivity,
-	type IPopoverUtils,
-	type TPopovers,
-	type TWindowEvents
-} from '.';
-import { get, writable } from 'svelte/store';
-import type DailyNoteFlexPlugin from '@/main';
-import { autoUpdate } from '@floating-ui/dom';
-import { settingsStore } from '@/stores/';
+import { STICKER_POPOVER_ID } from '@/constants';
+import { settingsStore } from '@/settings';
+import { ComponentType } from 'svelte';
+import { get } from 'svelte/store';
+import { TWindowEvents } from '../types';
+import { BaseComponentBehavior } from './base-component-behavior';
+import { getPopoverInstance, Popover } from './base';
 
-const id: TPopovers = STICKER_POPOVER_ID;
-export const spInputKeydownHandlerStore = writable((ev: KeyboardEvent) => {
-	const spInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
-	const settings = get(settingsStore);
-	const searchInputOnEscKeydown = settings.popoversCloseData.searchInputOnEscKeydown;
+// export const spInputKeydownHandlerStore = writable((ev: KeyboardEvent) => {
+//     const spInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
+//     const settings = get(settingsStore);
+//
+//     if (ev.key === 'Escape') {
+//         if (settings.popoversClosing.closePopoversOneByOneOnEscKeydown) {
+//             spInput && spInput.blur();
+//             if (settings.popoversClosing.closeOnEscStickerSearchInput) {
+//                 closePopover({ id });
+//             }
+//
+//             return
+//         } else {
+//             // close all popovers
+//             Popover.instances.forEach((instance) => instance?.close());
+//         }
+//     }
+// });
 
-	if (ev.key === 'Escape') {
-		if (settings.popoversCloseData.closePopoversOneByOneOnEscKeydown) {
-			if (searchInputOnEscKeydown === 'close-popover') {
-				closePopover({ id });
 
-				return;
-			}
+export type TStickerPopoverParams = {
+    id: typeof STICKER_POPOVER_ID,
+    view: {
+        Component: ComponentType;
+        props?: Record<string, unknown>;
+    },
+    refHtmlEl: HTMLElement,
+}
 
-			if (spInput && searchInputOnEscKeydown === 'reset') {
-				if (spInput.value.trim().length > 0) {
-					// reset input
-					spInput.value = '';
-				} else {
-					closePopover({ id });
-				}
-			}
-		} else {
-			// close all popover from capturing-phase-added search input event handler as it stops propagation and window event handlers will not be triggered
-			closePopover({ id });
-			closePopover({ id: CALENDAR_POPOVER_ID });
-		}
-	}
-});
+export class StickerPopoverBehavior extends BaseComponentBehavior {
+    constructor(private params: TStickerPopoverParams) {
+        super(params.id, params.view, params.refHtmlEl)
+    }
 
-const handleWindowClick = (event: MouseEvent) => {
-	const ev = event as MouseEvent & { target: HTMLElement | null };
+    public open() {
+        super.open();
 
-	const stickerPopoverStore = get(popoversStore)[STICKER_POPOVER_ID];
-	const menuEl = document.querySelector('.menu');
+        this.getSearchInput()?.focus();
+        // TODO: is it neccessary? or would window event listener be enough
+        // // ensure event is fired in the capturing phase
+        // searchInput?.addEventListener('keydown', get(spInputKeydownHandlerStore), true);
 
-	const stickerElTouched =
-		stickerPopoverStore?.floatingEl?.contains(ev.target) ||
-		ev.target?.id.includes(STICKER_POPOVER_ID);
-	const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
+        this.addWindowListeners(this.getWindowEvents());
+    }
 
-	// close SP if user clicks anywhere but SP
-	// && !menuElTouched is only relevant for first call
-	if (stickerPopoverStore?.opened && !stickerElTouched && !menuElTouched) {
-		closePopover({ id });
+    public close() {
+        super.close();
 
-		return;
-	}
-};
+        this.getSearchInput()?.blur();
+        // TODO: solve this.open's TODO first
+        // spInput?.removeEventListener('keydown', get(spInputKeydownHandlerStore), true);
 
-// Accessibility Keyboard Interactions
-const handleWindowKeydown = (event: KeyboardEvent) => {
-	const settings = get(settingsStore);
-	const stickerPopoverStore = get(popoversStore)[id];
-	const floatingEl = getFloatingEl({ id });
+        this.removeWindowListeners(this.getWindowEvents());
+    }
+    public cleanup() {
+        this.close();
+        this.component.$destroy();
+    }
 
-	const focusableAllowedList =
-		':is(a[href], button, input, textarea, select, details, [tabindex]):not([tabindex="-1"])';
+    private getWindowEvents(): TWindowEvents {
+        return {
+            click: this.handleWindowClick,
+            auxclick: this.handleWindowClick,
+            keydown: this.handleWindowKeydown
+        }
+    }
+    public handleWindowClick(event: MouseEvent) {
+        const ev = event as MouseEvent & { target: HTMLElement | null };
 
-	const focusablePopoverElements: HTMLElement[] = Array.from(
-		floatingEl?.querySelectorAll(focusableAllowedList)
-	);
+        const menuEl = document.querySelector('.menu');
 
-	const referenceElFocused: boolean =
-		(stickerPopoverStore?.opened && document.activeElement === stickerPopoverStore?.referenceEl) ||
-		false;
-	// When the user focuses on 'referenceEl' and then presses the Tab or ArrowDown key, the first element inside the view should receive focus.
-	// TODO: make it work!
-	if (
-		referenceElFocused &&
-		(event.key === 'ArrowDown' || event.key === 'Tab') &&
-		focusablePopoverElements.length > 0
-	) {
-		focusablePopoverElements[0].focus();
+        const stickerElTouched =
+            this.componentHtmlEl.contains(ev.target) ||
+            ev.target?.id.includes(STICKER_POPOVER_ID);
+        const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
 
-		return;
-	}
+        // close SP if user clicks anywhere but SP
+        // && !menuElTouched is only relevant for first call
+        if (getPopoverInstance(this.params.id)?.opened && !stickerElTouched && !menuElTouched) {
+            this.close();
 
-	if (event.key === 'Escape') {
-		const spInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
+            return;
+        }
+    };
 
-		if (
-			spInput &&
-			spInput.isActiveElement() &&
-			settings.popoversCloseData.searchInputOnEscKeydown
-		) {
-			if (settings.popoversCloseData.searchInputOnEscKeydown === 'close-popover') {
-				spInput.blur();
-				closePopover({ id });
+    public handleWindowKeydown(event: KeyboardEvent) {
+        const settings = get(settingsStore);
 
-				return;
-			}
+        const focusableSelectors =
+            ':is(a[href], button, input, textarea, select, details, [tabindex]):not([tabindex="-1"])';
 
-			if (settings.popoversCloseData.searchInputOnEscKeydown === 'reset') {
-				spInput.value = '';
+        const focusablePopoverElements: HTMLElement[] = Array.from(
+            this.componentHtmlEl.querySelectorAll(focusableSelectors)
+        );
 
-				return;
-			}
-		}
+        const referenceElFocused: boolean =
+            (getPopoverInstance(this.params.id)?.opened && document.activeElement === this.refHtmlEl) || false;
+        // When the user focuses on 'referenceEl' and then presses the Tab or ArrowDown key, the first element inside the view should receive focus.
+        // TODO: make it work!
+        if (
+            referenceElFocused &&
+            (event.key === 'ArrowDown' || event.key === 'Tab') &&
+            focusablePopoverElements.length > 0
+        ) {
+            focusablePopoverElements[0].focus();
 
-		stickerPopoverStore?.referenceEl?.focus();
-		closePopover({ id });
+            return;
+        }
 
-		return;
-	}
-};
+        if (event.key === 'Escape') {
+            const searchInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
 
-const windowEvents: TWindowEvents = {
-	click: handleWindowClick,
-	auxclick: handleWindowClick,
-	keydown: handleWindowKeydown
-};
+            if (
+                searchInput &&
+                searchInput.isActiveElement()
+            ) {
+                searchInput.blur();
+                if (settings.popoversClosing.closeOnEscStickerSearchInput) {
+                    this.close();
+                }
 
-export const open = ({ customX, customY }: { customX?: number; customY?: number }) => {
-	const floatingEl = getFloatingEl({ id });
+                return
+            }
 
-	revealFloatingEl({ floatingEl });
-	setFloatingElInteractivity({ floatingEl, enabled: true });
+            if (settings.popoversClosing.closePopoversOneByOneOnEscKeydown) {
+                this.close();
+            } else {
+                Popover.instances.forEach((instance) => instance?.close());
+            }
+            this.refHtmlEl.focus();
 
-	const spInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
-	spInput?.focus();
-	// ensure event is fired in the capturing phase
-	spInput?.addEventListener('keydown', get(spInputKeydownHandlerStore), true);
+            return;
+        }
+    };
 
-	popoversStore.update((values) => ({
-		...values,
-		[id]: {
-			...values[id],
-			opened: true,
-			floatingEl,
-			// Trigger Floating UI autoUpdate (open only)
-			// https://floating-ui.com/docs/autoUpdate
-			cleanupPopoverAutoUpdate: autoUpdate(values[id]?.referenceEl as HTMLElement, floatingEl, () =>
-				positionFloatingEl({
-					referenceEl: values[id]?.referenceEl as HTMLElement,
-					id,
-					customX,
-					customY
-				})
-			)
-		}
-	}));
-};
-const close = () => {
-	// remove spInput keydown event handler
-	const spInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
-
-	spInput?.blur();
-	spInput?.removeEventListener('keydown', get(spInputKeydownHandlerStore), true);
-};
-export const extraSetup = () => {
-	const stickerPopoverStore = get(popoversStore)[id];
-	positionFloatingEl({ referenceEl: stickerPopoverStore?.referenceEl as HTMLElement, id });
-};
-export const cleanup = () => {
-	const plugin = get(pluginClassStore);
-
-	popoversStore.update((values) => ({
-		...values,
-		[id]: {
-			opened: false,
-			referenceEl: null,
-			floatingEl: null,
-			cleanupPopoverAutoUpdate: () => ({})
-		}
-	}));
-
-	if (plugin.popovers) {
-		Object.values(plugin.popovers).forEach((popover) => popover?.$destroy());
-		plugin.popovers = {};
-	}
-};
-
-const popover: IPopoverUtils = {
-	open,
-	close,
-	extraSetup,
-	cleanup,
-	addWindowEvents: () => {
-		for (const [evName, cb] of Object.entries(windowEvents)) {
-			window.addEventListener(evName, cb);
-		}
-	},
-	removeWindowEvents: () => {
-		for (const [evName, cb] of Object.entries(windowEvents)) {
-			window.removeEventListener(evName, cb);
-		}
-	}
-};
-export { popover };
+    private getSearchInput() {
+        return document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
+    }
+}

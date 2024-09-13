@@ -1,11 +1,15 @@
-import type { IGranularity } from "@/calendar-io";
+import type { IGranularity } from "@/io";
+import { Moment } from "moment";
+import { TFile } from "obsidian";
 import { writable } from "svelte/store";
 
-// update props of static sticker popover component
-const stickerPopoverNoteDateUIDStore = writable('');
-const stickerPopoverCrrGranularity = writable<IGranularity>();
-
-export {
-    stickerPopoverNoteDateUIDStore,
-    stickerPopoverCrrGranularity
+export type TStickerComponentProps = {
+    note: TFile | undefined | null,
+    date: Moment | null,
+    granularity: IGranularity | null
 }
+export const stickerComponentPropsStore = writable<TStickerComponentProps>({
+    note: null,
+    date: null,
+    granularity: null
+});
