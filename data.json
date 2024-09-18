@@ -1,6 +1,6 @@
 {
   "viewLeafPosition": "Right",
-  "viewOpen": true,
+  "leafViewEnabled": false,
   "shouldConfirmBeforeCreate": false,
   "yearsRangesStart": 2020,
   "autoHoverPreview": false,
@@ -12,10 +12,10 @@
     "weekStartId": 0,
     "showQuarterNums": false
   },
-  "popoversCloseData": {
+  "popoversClosing": {
     "closePopoversOneByOneOnClickOut": false,
     "closePopoversOneByOneOnEscKeydown": true,
-    "searchInputOnEscKeydown": "close-popover"
+    "closeOnEscStickerSearchInput": "close-popover"
   },
   "validFormats": {
     "day": [
@@ -23,7 +23,8 @@
       "YYYY-MM-DD",
       "Y-D-M",
       "YY,M,DDDD",
-      "YY,M,dddd D"
+      "YY,M,dddd D",
+      "MMMM DD, Y"
     ],
     "week": [
       "gggg-[W]ww",
@@ -39,7 +40,11 @@
       "WW",
       "W - ",
       "W - [week]",
-      "w - [week]"
+      "w - [week]",
+      "[W",
+      "[WEEK]W",
+      "[WEEK-TEST]W",
+      "[TEST]w"
     ],
     "month": [
       "MM",
@@ -76,5 +81,6 @@
       "YYYY - [YEar] "
     ]
   },
-  "allowLocalesSwitchFromCommandPalette": true
+  "allowLocalesSwitchFromCommandPalette": true,
+  "viewOpen": true
 }

@@ -78,3 +78,4 @@ export function getYears({ startRangeYear }: { startRangeYear: number }): IYears
 }
 
 export * from './picker';
+export * from './event-handlers';

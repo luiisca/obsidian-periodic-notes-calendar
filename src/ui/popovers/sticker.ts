@@ -6,59 +6,35 @@ import { TWindowEvents } from '../types';
 import { BaseComponentBehavior } from './base-component-behavior';
 import { getPopoverInstance, Popover } from './base';
 
-// export const spInputKeydownHandlerStore = writable((ev: KeyboardEvent) => {
-//     const spInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
-//     const settings = get(settingsStore);
-//
-//     if (ev.key === 'Escape') {
-//         if (settings.popoversClosing.closePopoversOneByOneOnEscKeydown) {
-//             spInput && spInput.blur();
-//             if (settings.popoversClosing.closeOnEscStickerSearchInput) {
-//                 closePopover({ id });
-//             }
-//
-//             return
-//         } else {
-//             // close all popovers
-//             Popover.instances.forEach((instance) => instance?.close());
-//         }
-//     }
-// });
-
-
 export type TStickerPopoverParams = {
     id: typeof STICKER_POPOVER_ID,
     view: {
         Component: ComponentType;
         props?: Record<string, unknown>;
     },
-    refHtmlEl: HTMLElement,
 }
 
 export class StickerPopoverBehavior extends BaseComponentBehavior {
-    constructor(private params: TStickerPopoverParams) {
-        super(params.id, params.view, params.refHtmlEl)
+    public refHtmlEl: HTMLElement | null = null;
+    public boundCallbacks = new Map();
+
+    constructor(public params: TStickerPopoverParams) {
+        super(params.id, params.view)
     }
 
-    public open() {
-        super.open();
+    public open(refHtmlEl: HTMLElement) {
+        this.refHtmlEl = refHtmlEl;
+        super.open(refHtmlEl);
 
         this.getSearchInput()?.focus();
-        // TODO: is it neccessary? or would window event listener be enough
-        // // ensure event is fired in the capturing phase
-        // searchInput?.addEventListener('keydown', get(spInputKeydownHandlerStore), true);
-
-        this.addWindowListeners(this.getWindowEvents());
+        this.addWindowListeners(this.getWindowEvents(), this, this.boundCallbacks);
     }
 
     public close() {
         super.close();
 
         this.getSearchInput()?.blur();
-        // TODO: solve this.open's TODO first
-        // spInput?.removeEventListener('keydown', get(spInputKeydownHandlerStore), true);
-
-        this.removeWindowListeners(this.getWindowEvents());
+        this.removeWindowListeners(this.getWindowEvents(), this.boundCallbacks);
     }
     public cleanup() {
         this.close();
@@ -78,13 +54,12 @@ export class StickerPopoverBehavior extends BaseComponentBehavior {
         const menuEl = document.querySelector('.menu');
 
         const stickerElTouched =
-            this.componentHtmlEl.contains(ev.target) ||
+            this.componentHtmlEl?.contains(ev.target) ||
             ev.target?.id.includes(STICKER_POPOVER_ID);
         const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
 
         // close SP if user clicks anywhere but SP
-        // && !menuElTouched is only relevant for first call
-        if (getPopoverInstance(this.params.id)?.opened && !stickerElTouched && !menuElTouched) {
+        if (getPopoverInstance(this.params?.id)?.opened && !stickerElTouched && !menuElTouched) {
             this.close();
 
             return;
@@ -117,25 +92,14 @@ export class StickerPopoverBehavior extends BaseComponentBehavior {
 
         if (event.key === 'Escape') {
             const searchInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
-
-            if (
-                searchInput &&
-                searchInput.isActiveElement()
-            ) {
-                searchInput.blur();
-                if (settings.popoversClosing.closeOnEscStickerSearchInput) {
-                    this.close();
-                }
-
-                return
-            }
+            console.log("searchInput active and event: ", event, searchInput, searchInput?.isActiveElement());
 
             if (settings.popoversClosing.closePopoversOneByOneOnEscKeydown) {
                 this.close();
             } else {
                 Popover.instances.forEach((instance) => instance?.close());
             }
-            this.refHtmlEl.focus();
+            this.refHtmlEl?.focus();
 
             return;
         }

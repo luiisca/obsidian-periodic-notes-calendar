@@ -1,11 +1,13 @@
 <script lang="ts">
 	export let className: string = '';
+	export let isVisible: boolean = true;
 	export let isFilled: boolean = false;
 	export let isActive: boolean = false;
 </script>
 
 <svg
 	class={`dot ${className}`}
+	class:isVisible
 	class:isFilled
 	class:isActive
 	viewBox="0 0 6 6"
@@ -14,25 +16,27 @@
 	<circle cx="3" cy="3" r="2" />
 </svg>
 
-<style>
+<style lang="postcss">
 	.dot {
 		display: inline-block;
 		height: 6px;
 		width: 6px;
 		margin: 0 1px;
 		fill: none;
+	}
+	.isVisible {
 		stroke: var(--color-dot);
 	}
 
-	.active {
+	.isActive {
 		stroke: var(--text-on-accent);
 	}
 
-	.filled {
+	.isFilled {
 		fill: var(--color-dot);
 	}
 
-	.active.filled {
+	.isActive.isFilled {
 		fill: var(--text-on-accent);
 	}
 </style>

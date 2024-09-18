@@ -2,20 +2,15 @@
 
 <script lang="ts">
 	import type { Moment } from 'moment';
-	import { getContext } from 'svelte';
 
-	import Dot from './Dot.svelte';
-	import { VIEW } from '../context';
-	import { isMetaPressed } from '../utils';
 	import { getDateUID } from '@/io';
 	import { activeFileIdStore, displayedDateStore, notesStores } from '@/stores/';
+	import { eventHandlers, isControlPressed } from '../utils';
+	import Dot from './Dot.svelte';
 	import Sticker from './Sticker.svelte';
-	import type { ICalendarViewCtx } from '@/types/view';
 
 	// Properties
 	export let date: Moment;
-
-	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 
 	// update today value in case the displayed date changes and the current date is no longer today
 	let today: Moment;
@@ -36,22 +31,26 @@
 		class:active={isActive}
 		class:today={isToday}
 		class:adjacent-month={isAdjacentMonth}
-		class="[&:not(:focus-visible)]:shadow-none !h-auto w-full flex flex-col font-semibold rounded-[--radius-s] text-sm px-1 py-3 relative text-center tabular-nums transition-colors day"
-		id='day'
+		class="[&:not(:focus-visible)]:shadow-none !h-auto w-full flex flex-col font-medium rounded-[--radius-s] text-sm px-1 py-3 relative text-center tabular-nums transition-colors day"
+		id="day"
 		on:click={(event) =>
-			eventHandlers.onClick({ date, isNewSplit: isMetaPressed(event), granularity: 'day' })}
+			eventHandlers.onClick({
+				date,
+				createNewSplitLeaf: isControlPressed(event),
+				granularity: 'day'
+			})}
 		on:contextmenu={(event) => eventHandlers.onContextMenu({ date, event, granularity: 'day' })}
 		on:pointerenter={(event) => {
 			eventHandlers.onHover({
 				date,
 				targetEl: event.target,
-				isMetaPressed: isMetaPressed(event),
+				isControlPressed: isControlPressed(event),
 				granularity: 'day'
 			});
 		}}
 	>
 		{date.format('D')}
-		<Dot class="absolute bottom-1" isFilled={!!file} isVisible={!!file} />
+		<Dot className="absolute bottom-1" isVisible={!!file} isFilled={!!file} isActive={!!file} />
 	</button>
 	<Sticker {sticker} />
 </td>

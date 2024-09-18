@@ -4,7 +4,7 @@ import { arrow, autoUpdate, computePosition, flip } from "@floating-ui/dom";
 import { CALENDAR_POPOVER_ID, MODAL_CLASS, STICKER_POPOVER_ID } from "@/constants";
 import { TWindowEvents, WindowEventHandler } from "../types";
 import { get } from "svelte/store";
-import { settingsStore }  from "@/settings";
+import { settingsStore } from "@/settings";
 
 export class BaseComponentBehavior {
     public componentHtmlEl: HTMLElement;
@@ -17,7 +17,6 @@ export class BaseComponentBehavior {
             Component: ComponentType;
             props?: Record<string, unknown>;
         },
-        public refHtmlEl: HTMLElement
     ) {
         this.component = new view.Component({
             target: document.body,
@@ -30,7 +29,7 @@ export class BaseComponentBehavior {
         this.componentHtmlEl = document.querySelector(`#${id}[data-popover="true"]`) as HTMLElement;
     }
 
-    public open() {
+    public open(refHtmlEl: Element) {
         // close all popovers when a new modal is displayed to prevent overlapping
         if (!Popover.mutationObserverStarted) {
             const cb = (mutationRecords: MutationRecord[]) => {
@@ -57,9 +56,9 @@ export class BaseComponentBehavior {
 
         this.show()
         this.setInteractivity(true);
-        this.positionComponent({ refHtmlEl: this.refHtmlEl });
-        this.autoUpdateCleanup = autoUpdate(this.refHtmlEl, this.componentHtmlEl, () => {
-            this.positionComponent({ refHtmlEl: this.refHtmlEl!! });
+        this.positionComponent({ refHtmlEl });
+        this.autoUpdateCleanup = autoUpdate(refHtmlEl, this.componentHtmlEl, () => {
+            this.positionComponent({ refHtmlEl });
         })
     }
     public close() {
@@ -76,18 +75,18 @@ export class BaseComponentBehavior {
         customX,
         customY
     }: {
-        refHtmlEl: HTMLElement;
+        refHtmlEl: Element;
         customX?: number;
         customY?: number;
     }) {
         const arrowEl = document.querySelector(`#${this.id}-arrow`) as HTMLDivElement;
         computePosition(refHtmlEl, this.componentHtmlEl, {
-            placement: 'right',
+            placement: 'right-start',
             middleware: [flip(), arrow({ element: arrowEl })]
         }).then(({ x, y, placement, middlewareData }) => {
             Object.assign(this.componentHtmlEl!!.style, {
-                left: `${customX || x} px`,
-                top: `${customY || y} px`
+                left: `${customX || x}px`,
+                top: `${customY || y}px`
             });
             // Handle Arrow Placement:
             // https://floating-ui.com/docs/arrow
@@ -103,8 +102,8 @@ export class BaseComponentBehavior {
 
                 staticSide &&
                     Object.assign(arrowEl.style, {
-                        left: arrowX != null ? `${arrowX} px` : '',
-                        top: arrowY != null ? `${arrowY} px` : '',
+                        left: arrowX != null ? `${arrowX}px` : '',
+                        top: arrowY != null ? `${arrowY}px` : '',
                         right: '',
                         bottom: '',
                         [staticSide]: '9px'
@@ -113,22 +112,25 @@ export class BaseComponentBehavior {
         });
     }
 
-    public addWindowListeners(windowEvents: TWindowEvents) {
+    public addWindowListeners(windowEvents: TWindowEvents, popoverInstance: BaseComponentBehavior, boundCallbacks: Map<keyof WindowEventMap, WindowEventHandler<keyof WindowEventMap>>) {
         (Object.entries(windowEvents) as [keyof WindowEventMap, WindowEventHandler<keyof WindowEventMap>][]).forEach(
             ([evName, cb]) => {
                 if (cb) {
                     if (evName === 'mouseover' && !get(settingsStore).openPopoverOnRibbonHover) {
                         return;
                     }
+                    const boundCallback = cb.bind(popoverInstance);
+                    boundCallbacks.set(evName, boundCallback);
 
-                    window.addEventListener(evName, cb);
+                    window.addEventListener(evName, boundCallback);
                 }
             }
         );
     }
-    public removeWindowListeners(windowEvents: TWindowEvents) {
+    public removeWindowListeners(windowEvents: TWindowEvents, boundCallbacks: Map<keyof WindowEventMap, WindowEventHandler<keyof WindowEventMap>>) {
         (Object.entries(windowEvents) as [keyof WindowEventMap, WindowEventHandler<keyof WindowEventMap>][]).forEach(
-            ([evName, cb]) => {
+            ([evName]) => {
+                const cb = boundCallbacks.get(evName);
                 if (cb) {
                     window.removeEventListener(evName, cb);
                 }

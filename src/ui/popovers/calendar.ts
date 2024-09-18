@@ -1,5 +1,5 @@
 import { CALENDAR_POPOVER_ID, FILE_MENU_POPOVER_ID, STICKER_POPOVER_ID } from '@/constants';
-import { settingsStore }  from "@/settings";
+import { settingsStore } from "@/settings";
 import { ComponentType } from 'svelte';
 import { get } from 'svelte/store';
 import { TWindowEvents } from '../types';
@@ -7,7 +7,7 @@ import { getPopoverInstance } from './base';
 import { BaseComponentBehavior } from './base-component-behavior';
 
 function getRefHtmlEl() {
-    return document.querySelector(`[id=${CALENDAR_POPOVER_ID}-ribbon-ref-el]`) as HTMLElement
+    return document.querySelector(`[id=${CALENDAR_POPOVER_ID}-ribbon-ref-el]`) as HTMLElement | undefined
 }
 
 export type TCalendarPopoverParams = {
@@ -19,28 +19,33 @@ export type TCalendarPopoverParams = {
 }
 
 export class CalendarPopoverBehavior extends BaseComponentBehavior {
+    public refHtmlEl: HTMLElement | undefined;
+    public boundCallbacks = new Map();
+
     constructor(
         private params: TCalendarPopoverParams,
     ) {
-        super(params.id, params.view, getRefHtmlEl());
+        super(params.id, params.view);
+        this.refHtmlEl = getRefHtmlEl();
 
-        if (get(settingsStore).openPopoverOnRibbonHover) {
+        if (this.refHtmlEl && get(settingsStore).openPopoverOnRibbonHover) {
             this.refHtmlEl.addEventListener('mouseover', this.handleReferenceElHover);
         }
     }
 
     public open() {
-        super.open();
-        this.addWindowListeners(this.getWindowEvents());
+        this.refHtmlEl = getRefHtmlEl();
+        this.refHtmlEl && super.open(this.refHtmlEl);
+        this.addWindowListeners(this.getWindowEvents(), this, this.boundCallbacks);
     }
 
     public close() {
         super.close();
-        this.removeWindowListeners(this.getWindowEvents());
+        this.removeWindowListeners(this.getWindowEvents(), this.boundCallbacks);
     }
     public cleanup() {
         this.close();
-        this.refHtmlEl.removeEventListener('mouseover', this.handleReferenceElHover);
+        this.refHtmlEl?.removeEventListener('mouseover', this.handleReferenceElHover);
         this.component.$destroy();
     }
 
@@ -143,7 +148,7 @@ export class CalendarPopoverBehavior extends BaseComponentBehavior {
                 stickerEl?.contains(ev.target) ||
                 ev.target?.id.includes(STICKER_POPOVER_ID);
             const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
-            const referenceElTouched = this.refHtmlEl.contains(event.target as Node);
+            const referenceElTouched = this.refHtmlEl?.contains(event.target as Node);
 
             const targetOut = !calendarElTouched && !menuElTouched && !stickerElTouched;
 

@@ -12,3 +12,4 @@ export * from './popovers';
 export const pluginClassStore = writable<PeriodicNotesCalendarPlugin>();
 export const crrFileMenu = writable<Menu | null>(null);
 export const rerenderStore = writable({ rerender: false });
+export const themeStore = writable<"light" | "dark" | null>(null);

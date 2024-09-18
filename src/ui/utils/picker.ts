@@ -1,10 +1,12 @@
-import { Picker } from "emoji-mart";
-import pickerData from '@emoji-mart/data';
-import { notesStores, TStickerComponentProps } from "@/stores";
-import PeriodicNotesCalendarPlugin from "@/main";
+import { STICKER_POPOVER_ID, STICKER_TAG_PREFIX } from "@/constants";
 import { getDateUID } from "@/io";
+import { notesStores, pluginClassStore, stickerComponentPropsStore } from "@/stores";
+import { getEmojiDataFromNative, Picker } from "emoji-mart";
+import data from "@emoji-mart/data";
 import { get } from "svelte/store";
-import { STICKER_TAG_PREFIX } from "@/constants";
+import { settingsStore } from "@/settings";
+import { getBehaviorInstance, getPopoverInstance, Popover } from "../popovers";
+import { MetadataCache, TFile } from "obsidian";
 
 type TEmoji = {
     aliases?: string[],
@@ -16,22 +18,39 @@ type TEmoji = {
     skin?: number,
     unified: string,
 }
-export function initializePicker(
-    container: HTMLElement | null,
-    stickerComponentProps: TStickerComponentProps,
-    pluginClass: PeriodicNotesCalendarPlugin,
-) {
-    const { note, date, granularity } = stickerComponentProps
-    const noteStore = granularity !== null ? notesStores[granularity] : null;
-    const noteDateUID = date !== null && granularity != null ? getDateUID({ date, granularity }) : null;
-    const theme = (pluginClass.getTheme() as unknown as string) === 'moonstone' ? 'light' : 'dark';
 
+export const onInputKeydown = (ev: KeyboardEvent) => {
+    const input = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
+    const settings = get(settingsStore);
+    const stickerInstance = getPopoverInstance(STICKER_POPOVER_ID);
+    const stickerBehaviorInstance = getBehaviorInstance(STICKER_POPOVER_ID);
+
+    if (ev.key === 'Escape') {
+        if (settings.popoversClosing.closePopoversOneByOneOnEscKeydown) {
+            input && input.blur();
+            stickerInstance?.close()
+        } else {
+            Popover.instances.forEach((instance) => instance?.close());
+        }
+        stickerBehaviorInstance?.refHtmlEl?.focus();
+    }
+};
+
+export function initializePicker(
+    container: HTMLElement,
+    theme: "light" | "dark" | null,
+) {
     const pickerOptions = {
-        // TODO: test pickerData offline
-        onEmojiSelect: (emoji: TEmoji) => {
-            close();
+        data,
+        onEmojiSelect: async (emoji: TEmoji) => {
+            const stickerInstance = getPopoverInstance(STICKER_POPOVER_ID);
+            stickerInstance?.close()
+
+            const { date, granularity } = get(stickerComponentPropsStore);
+            const noteStore = granularity ? notesStores[granularity] : null;
+            const noteDateUID = date && granularity ? getDateUID({ date, granularity }) : null;
+
             if (noteStore && noteDateUID) {
-                console.log('💔<StickerPopover /> onEmojiSelect > noteStore: ', noteStore);
                 // update store with new emoji
                 noteStore.update((values) => ({
                     ...values,
@@ -43,50 +62,66 @@ export function initializePicker(
 
                 // update note with new emoji tag
                 const file = get(noteStore)[noteDateUID].file;
-                window.app.vault.process(file, (data) => {
-                    // TODO: simplify match with EmojiMart.getEmojiDataFromNative check
-                    // to allow user to add a new emoji by just doing: #✅
-                    const newTag = `${STICKER_TAG_PREFIX}${emoji.native}`;
-                    const prevStickerTag = data.match(/#sticker-[^\s]+/);
+                const tags = window.app.metadataCache.getFileCache(file)?.tags;
+                const content = await window.app.vault.read(file)
+                let updatedContent = content
+                let hasEmoji: { startOffset: number, endOffset: number } | null = null
 
-                    if (prevStickerTag) {
-                        let firstMatched: boolean = false;
+                if (tags) {
+                    for (let index = 0; index < tags.length; index++) {
+                        const tagObj = tags[index];
 
-                        return data
-                            .replace(/#sticker-[^\s]+/g, () => {
-                                if (!firstMatched) {
-                                    firstMatched = true;
+                        if (/\p{RGI_Emoji}/v.test(tagObj.tag)) {
+                            hasEmoji = { startOffset: tagObj.position.start.offset, endOffset: tagObj.position.end.offset }
+                            const bef = updatedContent.slice(0, hasEmoji.startOffset)
+                            const aft = updatedContent.slice(hasEmoji.endOffset)
+                            updatedContent = `${bef}#${emoji.native}${aft}`;
 
-                                    return newTag;
-                                }
-                                return '';
-                            })
-                            .replace(/\s+/g, ' ');
-                    } else {
-                        return `${newTag} ${data}`;
+                            window.app.vault.modify(file, updatedContent)
+
+                            break;
+                        } else {
+                            continue;
+                        }
                     }
-                });
-            }
+                }
+
+                if (!tags || !hasEmoji) {
+                    const firstLine = updatedContent.split('\n')[0].trim();
+                    window.app.vault.modify(file, `#${emoji.native}${firstLine !== "" ? " \n" : ""}${updatedContent} `)
+                }
+            };
         },
         autoFocus: true,
+        emojiButtonColors: ['color-mix(in srgb, var(--interactive-accent) 20%, transparent)'],
         theme,
     };
 
     const pickerEl = new Picker(pickerOptions);
-    // add custom styles
+    const style = getComputedStyle(document.body)
+    var h = parseInt(style.getPropertyValue('--accent-h'));
+    var s = parseInt(style.getPropertyValue('--accent-s'));
+    var l = parseInt(style.getPropertyValue('--accent-l'));
+
+    const accentRgb = hslToRgb(h / 360, s / 100, l / 100)
     pickerEl.injectStyles(`
-      section#root {
-        font-family: inherit;
-        background-color: pink;
-      }
+        section#root {
+            font-family: var(--font-interface);
+            font-weight: 400 !important;
+            --rgb-accent: ${accentRgb[0]}, ${accentRgb[1]}, ${accentRgb[2]};
+            --color-a: var(--interactive-accent-hover);
+            --color-b: var(--text-muted);
+        }
+        .sticky {
+            font-weight: 400!important;
+        }
     `);
 
-    if (container) {
-        const pickerHtmlEl = pickerEl as unknown as HTMLElement
-        container.appendChild(pickerHtmlEl);
+    const pickerHtmlEl = pickerEl as unknown as HTMLElement
+    container.firstChild && container.removeChild(container.firstChild);
+    container.appendChild(pickerHtmlEl);
 
-        handleMutationObserver(pickerHtmlEl.shadowRoot);
-    }
+    handleMutationObserver(pickerHtmlEl.shadowRoot);
 }
 
 function handleMutationObserver(shadowRoot: ShadowRoot | null) {
@@ -95,10 +130,7 @@ function handleMutationObserver(shadowRoot: ShadowRoot | null) {
             const input = shadowRoot?.querySelector('input');
 
             if (input) {
-                // input.focus();
-                // TODO: may not be needed, since a global keydown handler might take care of bluring focus on escape
-                // input.addEventListener('keydown', get(spInputKeydownHandlerStore), true);
-                input.addEventListener('keydown', console.log, true);
+                input.addEventListener('keydown', onInputKeydown, true);
 
                 // Stop observing once the element is found
                 observer.disconnect();
@@ -108,4 +140,40 @@ function handleMutationObserver(shadowRoot: ShadowRoot | null) {
 
     // Start observing changes in the shadow DOM
     shadowRoot && observer.observe(shadowRoot, { subtree: true, childList: true });
+}
+
+/**
+ * Converts an HSL color value to RGB. Conversion formula
+ * adapted from https://en.wikipedia.org/wiki/HSL_color_space.
+ * Assumes h, s, and l are contained in the set [0, 1] and
+ * returns r, g, and b in the set [0, 255].
+ *
+ * @param   {number}  h       The hue
+ * @param   {number}  s       The saturation
+ * @param   {number}  l       The lightness
+ * @return  {Array}           The RGB representation
+ */
+function hslToRgb(h: number, s: number, l: number): Array<number> {
+    let r, g, b;
+
+    if (s === 0) {
+        r = g = b = l; // achromatic
+    } else {
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hueToRgb(p, q, h + 1 / 3);
+        g = hueToRgb(p, q, h);
+        b = hueToRgb(p, q, h - 1 / 3);
+    }
+
+    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+
+function hueToRgb(p: number, q: number, t: number) {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1 / 6) return p + (q - p) * 6 * t;
+    if (t < 1 / 2) return q;
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+    return p;
 }

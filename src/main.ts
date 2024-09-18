@@ -9,6 +9,7 @@ import locales from './locales';
 import { DEFAULT_SETTINGS, settingsStore, SettingsTab, type ISettings } from '@/settings';
 import {
     pluginClassStore,
+    themeStore,
     updateLocale,
     updateWeekdays,
     updateWeekStart
@@ -38,6 +39,8 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         await this.loadSettings();
         console.log('ON Load 🫵');
         pluginClassStore.set(this);
+        const crrTheme = this.getTheme();
+        themeStore.set((crrTheme === 'moonstone' || crrTheme === "light") ? 'light' : 'dark');
 
         await getPlugin(PERIODIC_NOTES_PLUGIN_ID);
         await getDailyNotesPlugin()
@@ -168,7 +171,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         await this.saveData(this.settings);
     }
     handleRibbon() {
-        const ribbonEl = this.addRibbonIcon('dice', 'Open calendar', () => {
+        const ribbonEl = this.addRibbonIcon('dice', 'Open calendar', (ev) => {
             const calendarPopover = getPopoverInstance(CALENDAR_POPOVER_ID);
 
             if (this.settings.leafViewEnabled) {
@@ -180,31 +183,27 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
 
                 return;
             } else {
-                if (this.settings.openPopoverOnRibbonHover) {
-                    calendarPopover?.toggle()
+                const calendarEl = document.querySelector(`#${CALENDAR_POPOVER_ID}[data-popover="true"]`) as HTMLElement | undefined;
+                const target = ev.target as Element
 
-                    return;
+                if (
+                    !calendarEl &&
+                    !calendarPopover &&
+                    target
+                ) {
+                    Popover.create({
+                        id: CALENDAR_POPOVER_ID,
+                        view: {
+                            Component: View
+                        }
+                    }).open(target);
                 } else {
-                    const calendarEl = document.querySelector(`#${CALENDAR_POPOVER_ID} [data - popover="true"]`) as HTMLElement | undefined;
-
-                    if (
-                        !calendarEl &&
-                        !getPopoverInstance(CALENDAR_POPOVER_ID)
-                    ) {
-                        Popover.create({
-                            id: CALENDAR_POPOVER_ID,
-                            view: {
-                                Component: View
-                            }
-                        }).open();
-                    } else {
-                        getPopoverInstance(CALENDAR_POPOVER_ID)?.toggle()
-                    }
+                    calendarPopover?.toggle(target)
                 }
             }
         });
 
-        ribbonEl.id = `${CALENDAR_POPOVER_ID} -ribbon - ref - el`
+        ribbonEl.id = `${CALENDAR_POPOVER_ID}-ribbon-ref-el`
     }
 
     async initView({ active }: { active: boolean } = { active: true }) {
@@ -301,6 +300,6 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
     }
 
     public getTheme() {
-        this.getTheme()
+        return (this.app as any).getTheme() as string
     }
 }

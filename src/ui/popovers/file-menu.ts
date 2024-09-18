@@ -5,11 +5,11 @@ import { Menu, TFile } from "obsidian";
 import { Popover } from "./base";
 import StickerPopoverComponent from "../components/StickerPopover.svelte"
 import { stickerComponentPropsStore } from "@/stores/popovers";
+import { logger } from "@/utils";
 
 export type TFileMenuPopoverParams = {
     id: typeof FILE_MENU_POPOVER_ID,
     note: TFile | undefined,
-    event: MouseEvent,
     date: Moment,
     granularity: IGranularity,
 }
@@ -17,19 +17,21 @@ export type TFileMenuPopoverParams = {
 export class FileMenuPopoverBehavior {
     private menu: Menu;
     private note: TFile | undefined
+    private refHtmlEl: Element | null = null;
 
-    constructor({ note, event, date, granularity }: TFileMenuPopoverParams) {
+    constructor({ note, date, granularity }: TFileMenuPopoverParams) {
         this.note = note
         this.menu = new Menu();
         this.menu.addItem((item) =>
             item.setTitle('Add Sticker').setIcon('smile-plus').onClick(() => {
-                Popover.create({
-                    id: STICKER_POPOVER_ID,
-                    view: {
-                        Component: StickerPopoverComponent,
-                    },
-                    refHtmlEl: event.target as HTMLElement
-                }).open()
+                if (this.refHtmlEl) {
+                    Popover.create({
+                        id: STICKER_POPOVER_ID,
+                        view: {
+                            Component: StickerPopoverComponent,
+                        },
+                    }).open(this.refHtmlEl)
+                }
 
                 stickerComponentPropsStore.set({
                     note,
@@ -47,14 +49,15 @@ export class FileMenuPopoverBehavior {
                     (<any>window.app).fileManager.promptForFileDeletion(note);
                 })
         );
+        window.app.workspace.trigger('file-menu', this.menu, this.note, 'calendar-context-menu', null);
+    }
+
+    public open(event: MouseEvent) {
+        this.refHtmlEl = event.target as Element;
         this.menu.showAtPosition({
             x: event.pageX,
             y: event.pageY
         });
-    }
-
-    public open() {
-        window.app.workspace.trigger('file-menu', this.menu, this.note, 'calendar-context-menu', null);
     }
     public close() {
         this.menu.close()

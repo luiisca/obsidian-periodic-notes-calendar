@@ -1,18 +1,13 @@
 <svelte:options immutable />
 
 <script lang="ts">
-	import { getContext } from 'svelte';
-
-	import Dot from './Dot.svelte';
-	import { isMetaPressed } from '../utils';
 	import { getDateUID } from '@/io';
-	import { VIEW } from '../context';
 	import { displayedDateStore, notesStores } from '@/stores';
+	import { eventHandlers, isControlPressed } from '../utils';
+	import Dot from './Dot.svelte';
 	import Sticker from './Sticker.svelte';
-	import type { ICalendarViewCtx } from '@/types/view';
 
 	export let quarterNum: number;
-	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 
 	const notesStore = notesStores['quarter'];
 
@@ -28,7 +23,7 @@
 		on:click={(event) =>
 			eventHandlers.onClick({
 				date,
-				isNewSplit: isMetaPressed(event),
+				createNewSplitLeaf: isControlPressed(event),
 				granularity: 'quarter'
 			})}
 		on:contextmenu={(event) =>
@@ -41,18 +36,18 @@
 			eventHandlers.onHover({
 				date,
 				targetEl: event.target,
-				isMetaPressed: isMetaPressed(event),
+				isControlPressed: isControlPressed(event),
 				granularity: 'quarter'
 			})}
 	>
 		Q{quarterNum}
-		<Dot isFilled={!!file} isVisible={!!file} />
+		<Dot isFilled={!!file} isActive={!!file} />
 	</button>
 
 	<Sticker {sticker} />
 </td>
 
-<style>
+<style lang="postcss">
 	@tailwind base;
 	@tailwind components;
 	@tailwind utilities;

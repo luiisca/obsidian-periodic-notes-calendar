@@ -10,7 +10,7 @@ import {
 } from 'obsidian';
 
 import View from './View.svelte';
-import { activeFileIdStore, notesStores } from './stores';
+import { activeFileIdStore, notesStores, themeStore } from './stores';
 import { getDateFromFile, getDateUID } from './io';
 import type { Moment } from 'moment';
 import type { IGranularity } from './io';
@@ -39,6 +39,14 @@ export class CalendarView extends ItemView {
             )
         );
 
+        this.registerEvent(
+            this.app.workspace.on('css-change', () => {
+                const crrTheme = this.plugin.getTheme();
+                console.log(this);
+
+                themeStore.set((crrTheme === 'moonstone' || crrTheme === "light") ? 'light' : 'dark')
+            })
+        )
         this.registerEvent(
             this.app.vault.on('create', (file: TAbstractFile) => this.onFileCreated(file as TFile))
         );
@@ -239,26 +247,21 @@ export class CalendarView extends ItemView {
         console.log('new store: ', newGranularity && get(notesStores[newGranularity]));
     }
     private async onFileModified(file: TFile, data: string, cache: CachedMetadata): Promise<void> {
-        console.log('‍✏️On file modified ✏️ > file: ', file, cache);
-
         let date: Moment | null = null;
         const granularity = granularities.find(
             (granularity) => (date = getDateFromFile(file, granularity))
         );
-        const dateUID = date && granularity ? getDateUID({ date, granularity }) : null;
-        const notesStore = (granularity && notesStores[granularity]) || null;
+        const noteStore = granularity ? notesStores[granularity] : null;
+        const noteDateUID = date && granularity ? getDateUID({ date, granularity }) : null;
 
-        const oldEmoji = notesStore && dateUID && get(notesStore)[dateUID].sticker;
+        const oldEmoji = noteStore && noteDateUID && get(noteStore)[noteDateUID].sticker;
         const newEmoji =
-            cache.tags
-                ?.find((el: TagCache) => el.tag.contains('sticker-'))
-                ?.tag.match(/#sticker-([^\s]+)/)?.[1] || null;
+            cache.tags?.find((tagObj: TagCache) => /\p{RGI_Emoji}/v.test(tagObj.tag))?.tag.slice(1) || null;
 
-        if (oldEmoji !== newEmoji && notesStore && granularity && dateUID) {
-            console.log('updating EMOJI 🏳️‍🌈');
-            notesStores[granularity].update((values) => ({
+        if (oldEmoji !== newEmoji && noteStore && noteDateUID) {
+            noteStore.update((values) => ({
                 ...values,
-                [dateUID]: {
+                [noteDateUID]: {
                     file,
                     sticker: newEmoji
                 }

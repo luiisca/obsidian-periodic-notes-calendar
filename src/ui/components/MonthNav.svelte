@@ -1,19 +1,13 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
-	import type { Writable } from 'svelte/store';
 	import type { Moment } from 'moment';
 
-	import Arrow from './Arrow.svelte';
-	import { VIEW } from '../context';
-	import Dot from './Dot.svelte';
-	import { isMetaPressed } from '../utils';
 	import { displayedDateStore, yearsRanges } from '@/stores';
-	import type { ICalendarViewCtx } from '@/types/view';
+	import { eventHandlers, isControlPressed } from '../utils';
+	import Arrow from './Arrow.svelte';
+	import Dot from './Dot.svelte';
 
 	let today: Moment;
 	$: $displayedDateStore, (today = window.moment());
-
-	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 
 	function decrementdisplayedDate() {
 		displayedDateStore.update((date) => date.clone().subtract(1, 'month'));
@@ -44,16 +38,20 @@
 			on:click={(event) =>
 				eventHandlers.onClick({
 					date: $displayedDateStore,
-					isNewSplit: isMetaPressed(event),
+					createNewSplitLeaf: isControlPressed(event),
 					granularity: 'month'
 				})}
 			on:contextmenu={(event) =>
-				eventHandlers.onContextMenu({ date: $displayedDateStore, event, granularity: 'month' })}
+				eventHandlers.onContextMenu({
+					date: $displayedDateStore,
+					event,
+					granularity: 'month'
+				})}
 			on:pointerenter={(event) => {
 				eventHandlers.onHover({
 					date: $displayedDateStore,
 					targetEl: event.target,
-					isMetaPressed: isMetaPressed(event),
+					isControlPressed: isControlPressed(event),
 					granularity: 'month'
 				});
 			}}
@@ -66,7 +64,7 @@
 			on:click={(event) =>
 				eventHandlers.onClick({
 					date: $displayedDateStore.clone().startOf('year'),
-					isNewSplit: isMetaPressed(event),
+					createNewSplitLeaf: isControlPressed(event),
 					granularity: 'year'
 				})}
 			on:contextmenu={(event) =>
@@ -79,7 +77,7 @@
 				eventHandlers.onHover({
 					date: $displayedDateStore.clone().startOf('year'),
 					targetEl: event.target,
-					isMetaPressed: isMetaPressed(event),
+					isControlPressed: isControlPressed(event),
 					granularity: 'year'
 				});
 			}}
@@ -98,13 +96,13 @@
 			on:click={resetdisplayedDate}
 			aria-label={!showingCurrentMonth ? 'Current Month' : null}
 		>
-			<Dot class="h-[8px] w-[8px]" isFilled={showingCurrentMonth} />
+			<Dot className="h-[8px] w-[8px]" isFilled={showingCurrentMonth} />
 		</button>
 		<Arrow direction="right" onClick={incrementdisplayedDate} tooltip="Next Month" />
 	</div>
 </div>
 
-<style>
+<style lang="postcss">
 	@tailwind base;
 	@tailwind components;
 	@tailwind utilities;

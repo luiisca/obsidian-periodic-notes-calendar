@@ -20,7 +20,7 @@ export function getNoteSettingsByPeriodicity(periodicity: IPeriodicity) {
     }
 
     if (pluginSettings) {
-        console.log("using plugin settings", pluginSettings)
+        // console.log("using plugin settings", pluginSettings)
 
         return {
             format: pluginSettings.format?.trim() || DEFAULT_FORMATS[periodicity],

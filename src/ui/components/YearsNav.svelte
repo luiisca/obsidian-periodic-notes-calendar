@@ -57,13 +57,13 @@
 			on:click={resetdisplayedDate}
 			aria-label={!showingCurrentRange ? 'Current Range' : null}
 		>
-			<Dot class="h-[8px] w-[8px]" isFilled={showingCurrentRange} />
+			<Dot className="h-[8px] w-[8px]" isFilled={showingCurrentRange} />
 		</button>
 		<Arrow direction="right" onClick={incrementdisplayedDate} tooltip="Next Range" />
 	</div>
 </div>
 
-<style>
+<style lang="postcss">
 	@tailwind base;
 	@tailwind components;
 	@tailwind utilities;

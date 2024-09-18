@@ -1,21 +1,10 @@
 <script lang="ts">
 	import clsx from 'clsx';
 	import type { Moment } from 'moment';
-	import { Notice, type App } from 'obsidian';
-	import { onDestroy, setContext } from 'svelte';
-	import { CALENDAR_POPOVER_ID, FILE_MENU_POPOVER_ID } from './constants';
-	import {
-		createOrOpenNote,
-		getNoteFromStore,
-		getPeriodicityFromGranularity,
-		type IGranularity
-	} from './io';
-	import { getNoteSettingsByPeriodicity } from './io/settings';
+	import { onDestroy } from 'svelte';
+	import { CALENDAR_POPOVER_ID } from './constants';
 	import { displayedDateStore } from './stores';
 	import Calendar from './ui/components/Calendar.svelte';
-	import { VIEW } from './ui/context';
-	import { Popover } from './ui/popovers';
-	import { settingsStore } from '@/settings';
 
 	export let popover: boolean = false;
 
@@ -42,96 +31,6 @@
 			rerenderCalendar();
 		}
 	}, 1000 * 60);
-
-	type TOnClick = ({
-		date,
-		createNewSplitLeaf,
-		granularity
-	}: {
-		date: Moment;
-		createNewSplitLeaf: boolean;
-		granularity: IGranularity;
-	}) => Promise<void>;
-	type TOnHover = ({
-		date,
-		targetEl,
-		isMetaPressed,
-		granularity
-	}: {
-		date: Moment;
-		targetEl: EventTarget | null;
-		isMetaPressed: boolean;
-		granularity: IGranularity;
-	}) => void;
-	type TOnContextMenu = ({
-		date,
-		event,
-		granularity
-	}: {
-		date: Moment;
-		event: MouseEvent;
-		granularity: IGranularity;
-	}) => void;
-
-	interface ICalendarViewCtx {
-		app: App;
-		eventHandlers: {
-			onClick: TOnClick;
-			onHover: TOnHover;
-			onContextMenu: TOnContextMenu;
-		};
-	}
-
-	// Component event handlers
-	const onClick = async ({
-		date,
-		createNewSplitLeaf,
-		granularity
-	}: Parameters<TOnClick>[0]): Promise<void> => {
-		const leaf = window.app.workspace.getLeaf(createNewSplitLeaf);
-
-		createOrOpenNote({ leaf, date, granularity });
-	};
-
-	const onHover = ({
-		date,
-		targetEl,
-		isMetaPressed,
-		granularity
-	}: Parameters<TOnHover>[0]): void => {
-		const { format } = getNoteSettingsByPeriodicity(getPeriodicityFromGranularity(granularity));
-		const note = getNoteFromStore({ date, granularity });
-
-		if (isMetaPressed || $settingsStore.autoHoverPreview) {
-			window.app.workspace.trigger('link-hover', targetEl, date.format(format), note?.path);
-		}
-	};
-
-	const onContextMenu = ({ date, event, granularity }: Parameters<TOnContextMenu>[0]): void => {
-		const note = getNoteFromStore({ date, granularity });
-
-		if (note) {
-			Popover.create({
-				id: FILE_MENU_POPOVER_ID,
-				note,
-				event,
-				date,
-				granularity
-			}).open();
-		} else {
-			// TODO: improve wording
-			new Notice('Create a note first');
-		}
-	};
-
-	setContext<ICalendarViewCtx>(VIEW, {
-		app: window.app,
-		eventHandlers: {
-			onClick,
-			onHover,
-			onContextMenu
-		}
-	});
 
 	onDestroy(() => {
 		clearInterval(heartbeat);

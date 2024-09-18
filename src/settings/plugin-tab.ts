@@ -41,7 +41,6 @@ export class SettingsTab extends PluginSettingTab {
 
             this.addClosePopoversOneByOneOnClickOutSetting();
             this.addClosePopoversOneByBoneOnEscKeydownSetting();
-            this.addCloseOnEscStickerSearchInputSetting();
         }
 
         this.containerEl.createEl('h3', {
@@ -325,26 +324,6 @@ export class SettingsTab extends PluginSettingTab {
 
                     this.display();
                 });
-            });
-    }
-    addCloseOnEscStickerSearchInputSetting() {
-        console.log('👟 RUNNING addCloseOnEscStickerSearchInputSetting()');
-
-        new Setting(this.containerEl)
-            .setName('Esc Key Behavior in Sticker Popover Search')
-            // TODO: rewrite
-            .setDesc('Close the popover when pressing Esc in the search input instead of the default blur')
-            .addToggle((enabled) => {
-                enabled
-                    .setValue(get(settingsStore).popoversClosing.closeOnEscStickerSearchInput)
-                    .onChange((enabled) => {
-                        this.plugin.saveSettings((settings) => ({
-                            popoversClosing: {
-                                ...settings.popoversClosing,
-                                closeOnEscStickerSearchInput: enabled,
-                            }
-                        }));
-                    });
             });
     }
 }

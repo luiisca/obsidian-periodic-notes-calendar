@@ -2,21 +2,16 @@
 
 <script lang="ts">
 	import type { Moment } from 'moment';
-	import { getContext } from 'svelte';
 
-	import Dot from './Dot.svelte';
-	import { isMetaPressed } from '../utils';
 	import { getDateUID } from '@/io';
-	import { VIEW } from '../context';
 	import { notesStores } from '@/stores';
+	import { eventHandlers, isControlPressed } from '../utils';
+	import Dot from './Dot.svelte';
 	import Sticker from './Sticker.svelte';
-	import type { ICalendarViewCtx } from '@/types/view';
 
 	// Properties
 	export let weekNum: number;
 	export let startOfWeekDate: Moment;
-
-	const { eventHandlers } = getContext<ICalendarViewCtx>(VIEW);
 
 	const notesStore = notesStores['week'];
 	const dateUID = getDateUID({ date: startOfWeekDate, granularity: 'week' });
@@ -30,7 +25,7 @@
 		on:click={(event) =>
 			eventHandlers.onClick({
 				date: startOfWeekDate,
-				isNewSplit: isMetaPressed(event),
+				createNewSplitLeaf: isControlPressed(event),
 				granularity: 'week'
 			})}
 		on:contextmenu={(event) =>
@@ -39,18 +34,18 @@
 			eventHandlers.onHover({
 				date: startOfWeekDate,
 				targetEl: event.target,
-				isMetaPressed: isMetaPressed(event),
+				isControlPressed: isControlPressed(event),
 				granularity: 'week'
 			});
 		}}
 	>
 		{weekNum}
-		<Dot isFilled={!!file} isVisible={!!file} />
+		<Dot isFilled={!!file} isActive={!!file} />
 	</button>
 	<Sticker {sticker} />
 </td>
 
-<style>
+<style lang="postcss">
 	@tailwind base;
 	@tailwind components;
 	@tailwind utilities;

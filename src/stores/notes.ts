@@ -33,7 +33,7 @@ function createNotesStore(granularity: IGranularity) {
         ...store
     };
 }
-type TNotesStores = Record<IGranularity, ReturnType<typeof createNotesStore>>;
+export type TNotesStores = Record<IGranularity, ReturnType<typeof createNotesStore>>;
 const notesStores: TNotesStores = {} as TNotesStores;
 granularities.forEach((granularity) => {
     const notesExtStore = createNotesStore(granularity);
