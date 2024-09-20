@@ -1,11 +1,13 @@
+import { granularities } from "@/constants";
 import { notesStores } from "@/stores";
+import { doTagsIncludeEmoji } from "@/ui/utils";
 import { Moment } from "moment";
 import { normalizePath, Notice, TFile, TFolder, Vault } from "obsidian";
 import { get } from "svelte/store";
-import { getDateFromFile, getDateUID, getPeriodicityFromGranularity } from "./parse";
-import { getNoteSettingsByPeriodicity } from "./settings";
+import { getNoteDateUID, getPeriodicityFromGranularity } from "./parse";
+import { getNoteSettings } from "./settings";
 import { IGranularity } from "./types";
-import { logger } from "@/utils";
+import { isValidPeriodicNote } from "./validation";
 
 export function getNoteFromStore({
     date,
@@ -16,74 +18,60 @@ export function getNoteFromStore({
 }): TFile | undefined {
     const notesStore = get(notesStores[granularity]);
 
-    return notesStore[getDateUID({ date, granularity })]?.file;
+    return notesStore[getNoteDateUID({ date, granularity })]?.file;
 }
 
 /**
-    * @note dependent on `getNoteSettingsByPeriodicity`, must only be called after periodic notes plugin is fully loaded
+    * @note dependent on `getNoteSettings`, must only be called after periodic notes plugin is fully loaded
 */
-export function getAllVaultNotes(
-    granularity: IGranularity
-): Record<string, { file: TFile; sticker: string | null }> {
-    const notes: Record<string, { file: TFile; sticker: string | null }> = {};
-    try {
-        const { folder, format } = getNoteSettingsByPeriodicity(getPeriodicityFromGranularity(granularity));
-        logger("io-utils-getAllVaultNotes", granularity, format);
-
-        const notesFolder = window.app.vault.getAbstractFileByPath(normalizePath(folder)) as TFolder;
-
-        if (!notesFolder) {
-            throw new Error(
-                `Unable to locate the ${getPeriodicityFromGranularity(
-                    granularity
-                )} notes folder. Check your plugin's settings or restart calendar plugin.`
-            );
+export function storeAllVaultPeriodicNotes() {
+    const noteSettings = getNoteSettings();
+    let uniqueFolders: Record<string, IGranularity[]> = {};
+    granularities.forEach((granularity) => {
+        const crrGranularityFolder = noteSettings[granularity].folder;
+        if (!uniqueFolders[crrGranularityFolder]) {
+            uniqueFolders[crrGranularityFolder] = []
         }
+        uniqueFolders[crrGranularityFolder].push(granularity)
+    })
 
-        Vault.recurseChildren(notesFolder, (note) => {
-            // console.log(`getAllVaultNotes() > Vault.recurseChildren(${notesFolder}) > note: `, note)
+    console.log("📂 uniqueFolders", uniqueFolders)
 
-            if (note instanceof TFile) {
-                // if file name maps to a valid moment date, it is saved in store.
-                // console.log(`getAllVaultNotes(${granularity}) > note: `, note.name);
-                const date = getDateFromFile(note, granularity);
+    Object.entries(uniqueFolders).forEach(([uniqueFolder, granularities]) => {
+        try {
+            const notesFolder = window.app.vault.getAbstractFileByPath(normalizePath(uniqueFolder)) as TFolder;
 
-                if (date) {
-                    const dateUID = getDateUID({ date, granularity });
-                    window.app.vault.cachedRead(note).then((data) => {
-                        // update store separately to avoid possible slow downs
-                        const emoji = data.match(/#sticker-([^\s]+)/)?.[1];
-
-                        if (emoji) {
-                            // update notes object from crr context with resolved data in case they resolve before vault operation is done
-                            notes[dateUID] = {
-                                file: note,
-                                sticker: emoji
-                            }
-
-                            notesStores[granularity].update((values) => ({
-                                ...values,
-                                [dateUID]: {
-                                    file: note,
-                                    sticker: emoji
-                                }
-                            }));
-                        }
-                    });
-
-                    notes[dateUID] = {
-                        file: note,
-                        sticker: null
-                    };
-                }
+            if (!notesFolder) {
+                throw new Error(
+                    `Unable to locate ${granularities.map((g) => getPeriodicityFromGranularity(g)).join(', ')} 
+                    notes folder. Check your plugin's settings or restart calendar plugin.`
+                );
             }
-        });
 
-        return notes;
-    } catch (error) {
-        typeof error === 'string' && new Notice(error);
+            Vault.recurseChildren(notesFolder, (note) => {
+                if (note instanceof TFile) {
+                    const { isValid, granularity, date } = isValidPeriodicNote(note.basename, granularities);
 
-        return notes;
-    }
+                    if (isValid) {
+                        const noteDateUID = getNoteDateUID({ date, granularity });
+                        const hasEmoji = doTagsIncludeEmoji(window.app.metadataCache.getFileCache(note)?.tags);
+
+                        // update store
+                        notesStores[granularity].update((values) => ({
+                            ...values,
+                            [noteDateUID]: {
+                                file: note,
+                                sticker: hasEmoji ? hasEmoji.emoji : null
+                            }
+                        }))
+                    }
+                }
+            });
+        } catch (error) {
+            typeof error === 'string' && new Notice(error);
+        }
+    })
+
+    console.log("✅ all store notes ✅ \n", Object.values(notesStores).map((s) => get(s)));
 }
 

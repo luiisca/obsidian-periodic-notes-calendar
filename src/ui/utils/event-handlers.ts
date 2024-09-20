@@ -1,7 +1,7 @@
 import { FILE_MENU_POPOVER_ID } from '@/constants';
 import type { IGranularity } from '@/io';
 import { createOrOpenNote, getNoteFromStore, getPeriodicityFromGranularity } from "@/io";
-import { getNoteSettingsByPeriodicity } from '@/io/settings';
+import { getNoteSettings } from '@/io/settings';
 import { settingsStore } from '@/settings';
 import type { Moment } from 'moment';
 import { get } from 'svelte/store';
@@ -54,7 +54,7 @@ const onHover = ({
     isControlPressed,
     granularity
 }: Parameters<TOnHover>[0]): void => {
-    const { format } = getNoteSettingsByPeriodicity(getPeriodicityFromGranularity(granularity));
+    const { format } = getNoteSettings()[granularity];
     const note = getNoteFromStore({ date, granularity });
 
     if (isControlPressed || get(settingsStore).autoHoverPreview) {
@@ -63,9 +63,9 @@ const onHover = ({
 };
 
 const onContextMenu = ({ date, event, granularity }: Parameters<TOnContextMenu>[0]): void => {
-    console.log("about to show context menu for granularity", granularity);
+    console.log("🌿 about to show context menu for granularity and date", granularity, date);
     const note = getNoteFromStore({ date, granularity });
-    console.log("note: ", note);
+    console.log("🌿 note from store: ", note);
 
     Popover.create({
         id: FILE_MENU_POPOVER_ID

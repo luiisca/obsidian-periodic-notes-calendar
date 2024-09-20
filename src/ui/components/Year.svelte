@@ -1,7 +1,7 @@
 <svelte:options immutable />
 
 <script lang="ts">
-	import { getDateUID } from '@/io';
+	import { getNoteDateUID } from '@/io';
 	import { displayedDateStore, notesStores } from '@/stores';
 	import { eventHandlers, isControlPressed } from '../utils';
 	import Dot from './Dot.svelte';
@@ -13,9 +13,9 @@
 
 	$: date = $displayedDateStore.clone().year(year).startOf('year');
 
-	$: dateUID = getDateUID({ date, granularity: 'year' });
-	$: file = $notesStore[dateUID]?.file;
-	$: sticker = $notesStore[dateUID]?.sticker;
+	$: noteDateUID = getNoteDateUID({ date, granularity: 'year' });
+	$: file = $notesStore[noteDateUID]?.file;
+	$: sticker = $notesStore[noteDateUID]?.sticker;
 </script>
 
 <td class="relative">

@@ -3,7 +3,7 @@
 <script lang="ts">
 	import type { Moment } from 'moment';
 
-	import { getDateUID } from '@/io';
+	import { getNoteDateUID } from '@/io';
 	import { activeFileIdStore, displayedDateStore, notesStores } from '@/stores/';
 	import { eventHandlers, isControlPressed } from '../utils';
 	import Dot from './Dot.svelte';
@@ -17,11 +17,11 @@
 	$: $displayedDateStore, (today = window.moment());
 
 	const notesStore = notesStores['day'];
-	const dateUID = getDateUID({ date, granularity: 'day' });
-	$: file = $notesStore[dateUID]?.file;
-	$: sticker = $notesStore[dateUID]?.sticker;
+	const noteDateUID = getNoteDateUID({ date, granularity: 'day' });
+	$: file = $notesStore[noteDateUID]?.file;
+	$: sticker = $notesStore[noteDateUID]?.sticker;
 
-	$: isActive = $activeFileIdStore === dateUID;
+	$: isActive = $activeFileIdStore === noteDateUID;
 	$: isToday = date.isSame(today, 'day');
 	$: isAdjacentMonth = !date.isSame($displayedDateStore, 'month');
 </script>

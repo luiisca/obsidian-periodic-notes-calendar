@@ -24,7 +24,9 @@
       "Y-D-M",
       "YY,M,DDDD",
       "YY,M,dddd D",
-      "MMMM DD, Y"
+      "MMMM DD, Y",
+      "DD-MM-YY",
+      "dd, mm, yy"
     ],
     "week": [
       "gggg-[W]ww",

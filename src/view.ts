@@ -4,22 +4,20 @@ import {
     TAbstractFile,
     TFile,
     WorkspaceLeaf,
+    debounce,
     type CachedMetadata,
-    type TagCache,
-    debounce
+    type TagCache
 } from 'obsidian';
 
-import View from './View.svelte';
-import { activeFileIdStore, notesStores, themeStore } from './stores';
-import { getDateFromFile, getDateUID } from './io';
 import type { Moment } from 'moment';
-import type { IGranularity } from './io';
-import { PERIODIC_NOTES_PLUGIN_ID, VIEW_TYPE, granularities } from './constants';
-import { getDateFromPath } from './io/parse';
 import { get } from 'svelte/store';
-import { isControlPressed } from './ui/utils';
-import { getNewValidFormatsFromSettings } from './io/validation';
+import View from './View.svelte';
+import { PERIODIC_NOTES_PLUGIN_ID, VIEW_TYPE } from './constants';
+import { basename, getNoteDateUID, storeAllVaultPeriodicNotes } from './io';
+import { getNewValidFormatsFromSettings, isValidPeriodicNote } from './io/validation';
 import type PeriodicNotesCalendarPlugin from './main';
+import { activeFileIdStore, notesStores, themeStore } from './stores';
+import { isControlPressed } from './ui/utils';
 import { getPlugin } from './utils';
 
 export class CalendarView extends ItemView {
@@ -82,9 +80,7 @@ export class CalendarView extends ItemView {
 
         // index existing notes
         if (this.app.workspace.layoutReady && this.view) {
-            granularities.forEach((granularity) => {
-                notesStores[granularity].index();
-            });
+            storeAllVaultPeriodicNotes()
         }
     }
 
@@ -111,33 +107,25 @@ export class CalendarView extends ItemView {
     }
 
     private onFileCreated(file: TFile) {
+        console.log('✅ ON file creted ✅');
+
         if (this.app.workspace.layoutReady && this.view) {
-            let date: Moment | null = null;
-            const granularity = granularities.find(
-                (granularity) => (date = getDateFromFile(file, granularity, true))
-            );
+            const { isValid, granularity, date } = isValidPeriodicNote(file.basename);
 
-            console.log('On file created > date: ', date);
-            console.log('On file created > granularity: ', granularity);
+            if (isValid) {
+                const noteDateUID = getNoteDateUID({ date, granularity });
+                const fileExists = get(notesStores[granularity])[noteDateUID];
 
-            if (date && granularity) {
-                const dateUID = getDateUID({ date, granularity });
+                if (fileExists) return;
 
-                console.log('On file created > dateUID: ', dateUID);
-
-                const fileExists = get(notesStores[granularity])[dateUID];
-
-                console.log('On file created > fileExists: ', fileExists);
-
-                // update matching file in store
-                !fileExists &&
-                    notesStores[granularity].update((values) => ({
-                        ...values,
-                        [dateUID]: {
-                            file,
-                            sticker: null
-                        }
-                    }));
+                notesStores[granularity].update((values) => ({
+                    ...values,
+                    [noteDateUID]: {
+                        file,
+                        sticker: null
+                    }
+                }));
+                console.log(`${noteDateUID} succesfully created`, 'new store: ', get(notesStores[granularity]));
             }
         }
     }
@@ -145,51 +133,39 @@ export class CalendarView extends ItemView {
     private async onFileDeleted(file: TFile): Promise<void> {
         console.log('❌ ON file deleted ❌');
 
-        let date: Moment | null = null;
-        const granularity = granularities.find(
-            (granularity) => (date = getDateFromFile(file, granularity))
-        );
+        const { isValid, granularity, date } = isValidPeriodicNote(file.basename);
 
-        if (date && granularity) {
-            const notesStore = notesStores[granularity];
-            const dateUID = getDateUID({ date, granularity });
-            const fileExists = get(notesStore)[dateUID];
+        if (isValid) {
+            const noteDateUID = getNoteDateUID({ date, granularity });
+            const fileExists = get(notesStores[granularity])[noteDateUID];
             const newStore = {
-                ...get(notesStore)
+                ...get(notesStores[granularity])
             };
 
             if (fileExists) {
-                delete newStore[dateUID];
-                notesStore.update(() => newStore);
-                console.log(`${dateUID} succesfully deleted`, 'new store: ', get(notesStores[granularity]));
-            }
+                delete newStore[noteDateUID];
+                notesStores[granularity].update(() => newStore);
+                console.log(`${noteDateUID} succesfully deleted`, 'new store: ', get(notesStores[granularity]));
+            };
         }
 
         this.updateActiveFile();
     }
 
     private async onFileRenamed(renamedFile: TFile, oldPath: string): Promise<void> {
-        let newDate = null as Moment | null;
-        const newGranularity = granularities.find(
-            (granularity) => (newDate = getDateFromFile(renamedFile, granularity))
-        );
-        let oldDate = null as Moment | null;
-        const oldGranularity = granularities.find(
-            (granularity) => (oldDate = getDateFromPath(oldPath, granularity))
-        );
-        const oldIsValid = Boolean(oldDate && oldGranularity);
-        const newIsValid = Boolean(newDate && newGranularity);
+        const { isValid: oldIsValid, granularity: oldGranularity, date: oldDate } = isValidPeriodicNote(basename(oldPath));
+        const { isValid: newIsValid, granularity: newGranularity, date: newDate } = isValidPeriodicNote(renamedFile.basename);
 
         // OLD filename INVALID ❌ && NEW filename VALID ✅ => update store to add NEW file with null emoji
-        if (!oldIsValid && newIsValid && newGranularity) {
-            const notesStore = notesStores[newGranularity];
-            const dateUID = getDateUID({
+        if (!oldIsValid && newIsValid) {
+            const newNotesStore = notesStores[newGranularity];
+            const newNoteDateUID = getNoteDateUID({
                 date: newDate as unknown as Moment,
                 granularity: newGranularity
             });
-            notesStore.update((values) => ({
+            newNotesStore.update((values) => ({
                 ...values,
-                [dateUID]: {
+                [newNoteDateUID]: {
                     file: renamedFile,
                     sticker: null
                 }
@@ -197,75 +173,74 @@ export class CalendarView extends ItemView {
         }
 
         // OLD filename VALID ✅ && NEW filename INVALID ❌ => update store to remove OLD
-        if (oldIsValid && !newIsValid && oldGranularity && newGranularity) {
-            const notesStore = notesStores[oldGranularity];
-            const dateUID = getDateUID({
+        if (oldIsValid && !newIsValid) {
+            const oldNotesStore = notesStores[oldGranularity];
+            const oldNoteDateUID = getNoteDateUID({
                 date: oldDate as unknown as Moment,
-                granularity: newGranularity
+                granularity: oldGranularity
             });
 
-            const newStore = {
-                ...get(notesStore)
+            const modOldStore = {
+                ...get(oldNotesStore)
             };
-            delete newStore[dateUID];
+            delete modOldStore[oldNoteDateUID];
 
-            notesStore.set(newStore);
+            oldNotesStore.set(modOldStore);
         }
 
         // OLD filename CALID ✅ && NEW filename INVALID ✅ => update store to remove OLD and add NEW one with OLD emoji
-        if (oldIsValid && newIsValid && newGranularity && oldGranularity) {
+        if (oldIsValid && newIsValid) {
             const newNotesStore = notesStores[newGranularity];
-            const newDateUID = getDateUID({
+            const newNoteDateUID = getNoteDateUID({
                 date: newDate as unknown as Moment,
                 granularity: newGranularity
             });
 
             const oldNotesStore = notesStores[oldGranularity];
-            const oldDateUID = getDateUID({
+            const oldNoteDateUID = getNoteDateUID({
                 date: oldDate as unknown as Moment,
                 granularity: newGranularity
             });
-            const oldEmoji = get(oldNotesStore)[oldDateUID].sticker;
+            const oldEmoji = get(oldNotesStore)[oldNoteDateUID].sticker;
 
             // remove OLD file
-            const newStore = {
+            const modOldStore = {
                 ...get(oldNotesStore)
             };
-            delete newStore[oldDateUID];
+            delete modOldStore[oldNoteDateUID];
 
             // add NEW file to store with OLD emoji
             newNotesStore.update((values) => ({
                 ...values,
-                [newDateUID]: {
+                [newNoteDateUID]: {
                     file: renamedFile,
                     sticker: oldEmoji
                 }
             }));
         }
 
-        console.log('‍✏️On file renamed ✏️ > file: ', renamedFile, oldPath);
+        console.log('✏️On file renamed ✏️ > file: ', renamedFile, oldPath);
         console.log('new store: ', newGranularity && get(notesStores[newGranularity]));
     }
+
     private async onFileModified(file: TFile, data: string, cache: CachedMetadata): Promise<void> {
-        let date: Moment | null = null;
-        const granularity = granularities.find(
-            (granularity) => (date = getDateFromFile(file, granularity))
-        );
-        const noteStore = granularity ? notesStores[granularity] : null;
-        const noteDateUID = date && granularity ? getDateUID({ date, granularity }) : null;
+        const { isValid, granularity, date } = isValidPeriodicNote(file.basename);
 
-        const oldEmoji = noteStore && noteDateUID && get(noteStore)[noteDateUID].sticker;
-        const newEmoji =
-            cache.tags?.find((tagObj: TagCache) => /\p{RGI_Emoji}/v.test(tagObj.tag))?.tag.slice(1) || null;
+        if (isValid && date && granularity) {
+            const noteDateUID = getNoteDateUID({ date, granularity });
+            const oldEmoji = get(notesStores[granularity])[noteDateUID].sticker;
+            const newEmoji =
+                cache.tags?.find((tagObj: TagCache) => /\p{RGI_Emoji}/v.test(tagObj.tag))?.tag.slice(1) || null;
 
-        if (oldEmoji !== newEmoji && noteStore && noteDateUID) {
-            noteStore.update((values) => ({
-                ...values,
-                [noteDateUID]: {
-                    file,
-                    sticker: newEmoji
-                }
-            }));
+            if (oldEmoji !== newEmoji) {
+                notesStores[granularity].update((values) => ({
+                    ...values,
+                    [noteDateUID]: {
+                        file,
+                        sticker: newEmoji
+                    }
+                }));
+            }
         }
     }
 
@@ -280,7 +255,7 @@ export class CalendarView extends ItemView {
     // 	// console.log('view.ts > onHover(): 📈')
     // 	// this.keydownFn && window.removeEventListener('keydown', this.keydownFn);
 
-    // 	const { format } = getNoteSettingsByPeriodicity(granularity);
+    // 	const { format } = getNoteSettings(granularity);
     // 	const note = getNoteByGranularity({ date, granularity });
 
     // 	this.triggerLinkHover = () =>
@@ -298,40 +273,23 @@ export class CalendarView extends ItemView {
 
     // Utils
     private updateActiveFile(): void {
-        console.log('🪟📅 view.ts > updateActiveFile()');
         // get activeLeaf view
-        const activeLeafOG = this.app.workspace.activeLeaf;
+        // const activeLeafOG = this.app.workspace.activeLeaf;
         // TODO: may cause unexpected behavior, check on it.
         const activeLeaf = this.app.workspace.getActiveViewOfType(CalendarView)
 
-        let file: TFile | null = null;
         if (activeLeaf?.view && activeLeaf?.view instanceof FileView) {
-            // extract file from view
-            file = activeLeaf.view.file;
+            const file = activeLeaf.view.file;
+            if (!file) return;
 
-            if (file) {
-                let noteDate: Moment | null = null;
-                let noteGranularity: IGranularity | null = null;
-
-                for (const granularity of granularities) {
-                    const date = getDateFromFile(file as TFile, granularity);
-                    console.log('✅✅✅date and granularity found ✅✅✅');
-                    console.log('date', date, 'granularity', granularity);
-
-                    if (date) {
-                        noteDate = date;
-                        noteGranularity = granularity;
-
-                        break;
-                    }
-                }
-
-                // save file in activeFile store
-                if (noteDate && noteGranularity) {
-                    activeFileIdStore.setFile(getDateUID({ date: noteDate, granularity: noteGranularity }));
-                }
+            const { isValid, granularity, date } = isValidPeriodicNote(file.basename);
+            if (isValid && date && granularity) {
+                const noteDateUID = getNoteDateUID({ date, granularity })
+                activeFileIdStore.setFile(noteDateUID);
             }
         }
+
+        console.log('🪟📅 view.ts > updateActiveFile(), activeFileIdStore: ', get(activeFileIdStore));
     }
 
     private keydownCallback(ev: KeyboardEvent) {

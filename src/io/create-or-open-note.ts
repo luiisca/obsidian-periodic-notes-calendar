@@ -5,8 +5,8 @@ import { capitalize, getOnCreateNoteDialogNoteFromGranularity, logger } from "@/
 import moment, { Moment } from "moment";
 import { Notice, TFile, WorkspaceLeaf } from "obsidian";
 import { get } from "svelte/store";
-import { getDateUID, getPeriodicityFromGranularity } from "./parse";
-import { getNoteSettingsByPeriodicity } from "./settings";
+import { getNoteDateUID, getPeriodicityFromGranularity } from "./parse";
+import { getNoteSettings } from "./settings";
 import { IGranularity } from "./types";
 import { getNoteFromStore } from "./utils";
 import { validateFormat } from "./validation";
@@ -44,7 +44,7 @@ export async function createOrOpenNote({
     async function openFile(file: TFile | undefined) {
         if (file) {
             file && (await leaf.openFile(file));
-            activeFileIdStore.setFile(getDateUID({ date, granularity }));
+            activeFileIdStore.setFile(getNoteDateUID({ date, granularity }));
         }
     }
 
@@ -52,9 +52,9 @@ export async function createOrOpenNote({
         await openFile(file);
     } else {
         const periodicity = capitalize(getPeriodicityFromGranularity(granularity));
-        const { format } = getNoteSettingsByPeriodicity(getPeriodicityFromGranularity(granularity));
-        logger("[io-create-or-open-note]", granularity, format);
+        const { format } = getNoteSettings()[granularity];
         const formattedDate = date.format(format);
+        console.log("[io-create-or-open-note]", granularity, format, date, formattedDate);
 
         const isFormatValid = validateFormat(format, granularity);
         console.log('createOrOpenNote() > isFormatValid: ', isFormatValid);
@@ -88,7 +88,7 @@ export async function createOrOpenNote({
 }
 
 async function createNote(granularity: IGranularity, date: Moment) {
-    const { template, format, folder } = getNoteSettingsByPeriodicity(getPeriodicityFromGranularity(granularity));
+    const { template, format, folder } = getNoteSettings()[granularity];
     logger("[io-create--note]", granularity, format);
 
     const filename = date.format(format);

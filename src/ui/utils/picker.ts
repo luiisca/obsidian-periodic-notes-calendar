@@ -1,12 +1,12 @@
-import { STICKER_POPOVER_ID, STICKER_TAG_PREFIX } from "@/constants";
-import { getDateUID } from "@/io";
-import { notesStores, pluginClassStore, stickerComponentPropsStore } from "@/stores";
-import { getEmojiDataFromNative, Picker } from "emoji-mart";
-import data from "@emoji-mart/data";
-import { get } from "svelte/store";
+import { STICKER_POPOVER_ID } from "@/constants";
+import { getNoteDateUID } from "@/io";
 import { settingsStore } from "@/settings";
+import { notesStores, stickerComponentPropsStore } from "@/stores";
+import data from "@emoji-mart/data";
+import { Picker } from "emoji-mart";
+import { get } from "svelte/store";
 import { getBehaviorInstance, getPopoverInstance, Popover } from "../popovers";
-import { MetadataCache, TFile } from "obsidian";
+import { TagCache } from "obsidian";
 
 type TEmoji = {
     aliases?: string[],
@@ -48,7 +48,7 @@ export function initializePicker(
 
             const { date, granularity } = get(stickerComponentPropsStore);
             const noteStore = granularity ? notesStores[granularity] : null;
-            const noteDateUID = date && granularity ? getDateUID({ date, granularity }) : null;
+            const noteDateUID = date && granularity ? getNoteDateUID({ date, granularity }) : null;
 
             if (noteStore && noteDateUID) {
                 // update store with new emoji
@@ -65,28 +65,15 @@ export function initializePicker(
                 const tags = window.app.metadataCache.getFileCache(file)?.tags;
                 const content = await window.app.vault.read(file)
                 let updatedContent = content
-                let hasEmoji: { startOffset: number, endOffset: number } | null = null
 
-                if (tags) {
-                    for (let index = 0; index < tags.length; index++) {
-                        const tagObj = tags[index];
+                const hasEmoji = doTagsIncludeEmoji(tags)
+                if (hasEmoji) {
+                    const bef = updatedContent.slice(0, hasEmoji.startOffset)
+                    const aft = updatedContent.slice(hasEmoji.endOffset)
+                    updatedContent = `${bef}#${emoji.native}${aft}`;
 
-                        if (/\p{RGI_Emoji}/v.test(tagObj.tag)) {
-                            hasEmoji = { startOffset: tagObj.position.start.offset, endOffset: tagObj.position.end.offset }
-                            const bef = updatedContent.slice(0, hasEmoji.startOffset)
-                            const aft = updatedContent.slice(hasEmoji.endOffset)
-                            updatedContent = `${bef}#${emoji.native}${aft}`;
-
-                            window.app.vault.modify(file, updatedContent)
-
-                            break;
-                        } else {
-                            continue;
-                        }
-                    }
-                }
-
-                if (!tags || !hasEmoji) {
+                    window.app.vault.modify(file, updatedContent)
+                } else {
                     const firstLine = updatedContent.split('\n')[0].trim();
                     window.app.vault.modify(file, `#${emoji.native}${firstLine !== "" ? " \n" : ""}${updatedContent} `)
                 }
@@ -176,4 +163,27 @@ function hueToRgb(p: number, q: number, t: number) {
     if (t < 1 / 2) return q;
     if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
     return p;
+}
+
+export function doTagsIncludeEmoji(tags?: TagCache[]) {
+    if (tags) {
+        let hasEmoji: { emoji: string, startOffset: number, endOffset: number } | null = null;
+        for (let index = 0; index < tags.length; index++) {
+            const tagObj = tags[index];
+
+            if (/\p{RGI_Emoji}/v.test(tagObj.tag)) {
+                hasEmoji = {
+                    emoji: tagObj.tag.slice(1),
+                    startOffset: tagObj.position.start.offset,
+                    endOffset: tagObj.position.end.offset,
+                }
+
+                break;
+            } else {
+                continue;
+            }
+        }
+
+        return hasEmoji
+    }
 }

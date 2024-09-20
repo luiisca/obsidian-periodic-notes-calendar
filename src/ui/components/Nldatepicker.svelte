@@ -11,7 +11,7 @@
 	import type NldatePickerModal from '../modals/nldate-picker';
 	import { onMount } from 'svelte';
 	import type PeriodicNotesCalendarPlugin from '@/main';
-	import { getNoteSettingsByPeriodicity } from '@/io/settings';
+	import { getNoteSettings } from '@/io/settings';
 
 	export let modalClass: NldatePickerModal;
 	export let pluginClass: PeriodicNotesCalendarPlugin;
@@ -31,13 +31,13 @@
 	let dateInput = '';
 	let parsedDate: Moment | null;
 
-	$: format = getNoteSettingsByPeriodicity(getPeriodicityFromGranularity(granularity)).format;
+	$: format = getNoteSettings()[granularity].format;
 	$: dateInput, format, debounce(getDateStr, 50)();
 
 	let formattedDate: string = window
 		.moment()
 		.format(
-			format || getNoteSettingsByPeriodicity(getPeriodicityFromGranularity(granularity)).format
+			format || getNoteSettings()[granularity].format
 		);
 
 	const getDateStr = () => {

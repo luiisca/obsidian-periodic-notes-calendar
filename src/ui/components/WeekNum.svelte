@@ -3,7 +3,7 @@
 <script lang="ts">
 	import type { Moment } from 'moment';
 
-	import { getDateUID } from '@/io';
+	import { getNoteDateUID } from '@/io';
 	import { notesStores } from '@/stores';
 	import { eventHandlers, isControlPressed } from '../utils';
 	import Dot from './Dot.svelte';
@@ -14,9 +14,9 @@
 	export let startOfWeekDate: Moment;
 
 	const notesStore = notesStores['week'];
-	const dateUID = getDateUID({ date: startOfWeekDate, granularity: 'week' });
-	$: file = $notesStore[dateUID]?.file;
-	$: sticker = $notesStore[dateUID]?.sticker;
+	const noteDateUID = getNoteDateUID({ date: startOfWeekDate, granularity: 'week' });
+	$: file = $notesStore[noteDateUID]?.file;
+	$: sticker = $notesStore[noteDateUID]?.sticker;
 </script>
 
 <td class="relative">

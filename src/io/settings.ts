@@ -1,39 +1,30 @@
-import { DAILY_NOTES_PLUGIN_ID, DEFAULT_FORMATS, PERIODIC_NOTES_PLUGIN_ID } from '@/constants';
-import type { IPeriodicity } from './types';
+import { DAILY_NOTES_PLUGIN_ID, DEFAULT_FORMATS_PER_GRANULARITY, granularities, PERIODIC_NOTES_PLUGIN_ID } from '@/constants';
+import type { IGranularity } from './types';
 
+type TSettings = Record<IGranularity, { format: string, folder: string, template: string }>;
 /**
  * Read user settings from periodic-notes and daily-notes plugins
  * to keep behavior of creating a new note in-sync.
  * @note only call after periodic notes plugin is fully loaded 
  */
-export function getNoteSettingsByPeriodicity(periodicity: IPeriodicity) {
-    let pluginSettings = null;
+export function getNoteSettings() {
     const plugins = (<any>window.app).plugins;
     const internalPlugins = (<any>window.app).internalPlugins;
 
-    const pnSettingsByPeriodicity = plugins.getPlugin(PERIODIC_NOTES_PLUGIN_ID)?.settings?.[periodicity];
-    if (pnSettingsByPeriodicity?.enabled) {
-        pluginSettings = pnSettingsByPeriodicity;
-    } else if (periodicity === 'daily') {
-        const dailyNotesPlugin = internalPlugins?.getPluginById(DAILY_NOTES_PLUGIN_ID);
-        pluginSettings = dailyNotesPlugin?.instance?.options;
-    }
+    const pnSettings = plugins.getPlugin(PERIODIC_NOTES_PLUGIN_ID)?.settings;
+    const dnSettings = internalPlugins?.getPluginById(DAILY_NOTES_PLUGIN_ID)?.instance?.options;
 
-    if (pluginSettings) {
-        // console.log("using plugin settings", pluginSettings)
+    return Object.fromEntries(granularities.map((granularity) => {
+        const granularitySettings = pnSettings?.[granularity]?.enabled
+            ? pnSettings[granularity]
+            : granularity === "day" ? dnSettings : {};
 
-        return {
-            format: pluginSettings.format?.trim() || DEFAULT_FORMATS[periodicity],
-            folder: pluginSettings.folder?.trim() || '/',
-            template: pluginSettings.template?.trim() || ''
-        };
-    } else {
-        console.log("using default settings", DEFAULT_FORMATS[periodicity])
-
-        return {
-            format: DEFAULT_FORMATS[periodicity],
-            folder: '/',
-            template: ''
+        const validGranularitySettings = {
+            format: granularitySettings.format?.trim() || DEFAULT_FORMATS_PER_GRANULARITY[granularity],
+            folder: granularitySettings.folder?.trim() || '/',
+            template: granularitySettings.template?.trim() || ''
         }
-    }
+
+        return [granularity, validGranularitySettings]
+    })) as TSettings
 }
