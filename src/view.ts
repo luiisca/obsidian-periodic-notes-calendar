@@ -4,7 +4,6 @@ import {
     TAbstractFile,
     TFile,
     WorkspaceLeaf,
-    debounce,
     type CachedMetadata,
     type TagCache
 } from 'obsidian';
@@ -12,13 +11,12 @@ import {
 import type { Moment } from 'moment';
 import { get } from 'svelte/store';
 import View from './View.svelte';
-import { PERIODIC_NOTES_PLUGIN_ID, VIEW_TYPE } from './constants';
+import { VIEW_TYPE } from './constants';
 import { basename, getNoteDateUID, storeAllVaultPeriodicNotes } from './io';
-import { getNewValidFormatsFromSettings, isValidPeriodicNote } from './io/validation';
+import { isValidPeriodicNote } from './io/validation';
 import type PeriodicNotesCalendarPlugin from './main';
 import { activeFileIdStore, notesStores, themeStore } from './stores';
 import { isControlPressed } from './ui/utils';
-import { getPlugin } from './utils';
 
 export class CalendarView extends ItemView {
     private view: View;
@@ -28,14 +26,6 @@ export class CalendarView extends ItemView {
     constructor(leaf: WorkspaceLeaf, plugin: PeriodicNotesCalendarPlugin) {
         super(leaf);
         this.plugin = plugin;
-
-        this.registerEvent(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (<any>this.app.workspace).on(
-                'periodic-notes:settings-updated',
-                debounce(this.onPeriodicNotesSettingsUpdate.bind(this), 1000)
-            )
-        );
 
         this.registerEvent(
             this.app.workspace.on('css-change', () => {
@@ -91,19 +81,6 @@ export class CalendarView extends ItemView {
         }
 
         return Promise.resolve();
-    }
-
-    // triggered when periodic-notes settings are updated
-    private async onPeriodicNotesSettingsUpdate(): Promise<void> {
-        const periodicNotesPlugin = await getPlugin(PERIODIC_NOTES_PLUGIN_ID);
-        console.log("new settings", periodicNotesPlugin.settings)
-        this.plugin.saveSettings((oldSettings) => {
-            console.log("😋 saving settings", oldSettings)
-            return {
-                validFormats: getNewValidFormatsFromSettings(oldSettings.validFormats)
-            }
-        });
-        this.updateActiveFile.bind(this)();
     }
 
     private onFileCreated(file: TFile) {
@@ -272,20 +249,24 @@ export class CalendarView extends ItemView {
     // }
 
     // Utils
+
+    /**
+        * Set noteDateUID from current view's file in activeFileIdStore.
+        */
     private updateActiveFile(): void {
-        // get activeLeaf view
         // const activeLeafOG = this.app.workspace.activeLeaf;
-        // TODO: may cause unexpected behavior, check on it.
+
+        // TODO: may cause unexpected behavior.
         const activeLeaf = this.app.workspace.getActiveViewOfType(CalendarView)
 
-        if (activeLeaf?.view && activeLeaf?.view instanceof FileView) {
+        if (activeLeaf?.view && activeLeaf.view instanceof FileView) {
             const file = activeLeaf.view.file;
             if (!file) return;
 
             const { isValid, granularity, date } = isValidPeriodicNote(file.basename);
             if (isValid && date && granularity) {
                 const noteDateUID = getNoteDateUID({ date, granularity })
-                activeFileIdStore.setFile(noteDateUID);
+                activeFileIdStore.set(noteDateUID);
             }
         }
 

@@ -32,7 +32,7 @@
 	>
 </button>
 
-<style>
+<style lang="postcss">
 	@tailwind base;
 	@tailwind components;
 	@tailwind utilities;

@@ -1,8 +1,18 @@
 import { IGranularity } from "@/io";
 import { sysLocaleKey, sysWeekStartId } from '../localization';
-import { DEFAULT_FORMATS } from "@/constants";
+import { DEFAULT_FORMATS, granularities } from "@/constants";
+
+export interface PeriodSettings {
+    enabled: boolean;
+    openAtStartup: boolean;
+
+    format: string;
+    folder: string;
+    templatePath?: string;
+}
 
 export interface ISettings {
+    notes: Record<IGranularity, PeriodSettings>;
     /** Position of the calendar view leaf ('Left' or 'Right') */
     viewLeafPosition: 'Left' | 'Right';
 
@@ -61,7 +71,19 @@ export interface ISettings {
     // formats: IFormatsSettings;
 }
 
+const DEFAULT_PERIODIC_CONFIG: PeriodSettings = Object.freeze({
+    enabled: false,
+    openAtStartup: false,
+
+    format: "",
+    templatePath: "",
+    folder: "",
+});
+
 export const DEFAULT_SETTINGS: ISettings = Object.freeze({
+    notes: Object.fromEntries(granularities.map(
+        (granularity) => [granularity, DEFAULT_PERIODIC_CONFIG])
+    ) as Record<IGranularity, PeriodSettings>,
     viewLeafPosition: 'Left',
     leafViewEnabled: false,
     shouldConfirmBeforeCreate: true,
@@ -91,6 +113,4 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
         year: [DEFAULT_FORMATS.yearly],
     },
     allowLocalesSwitchFromCommandPalette: false,
-
-    // formats: DEFAULT_FORMATS_SETTINGS
 });

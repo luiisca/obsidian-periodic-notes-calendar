@@ -8,9 +8,12 @@ import { App, PluginSettingTab, Setting } from 'obsidian';
 import { get } from "svelte/store";
 import View from "../View.svelte";
 import { settingsStore } from "./store";
+import { SvelteComponent } from "svelte";
+import Notes from "../ui/settings/notes/index.svelte";
 
 export class SettingsTab extends PluginSettingTab {
-    plugin: PeriodicNotesCalendarPlugin;
+    public plugin: PeriodicNotesCalendarPlugin;
+    private view: SvelteComponent;
 
     constructor(app: App, plugin: PeriodicNotesCalendarPlugin) {
         super(app, plugin);
@@ -23,7 +26,7 @@ export class SettingsTab extends PluginSettingTab {
         this.containerEl.empty();
 
         this.containerEl.createEl('h3', {
-            text: 'General Settings'
+            text: 'General'
         });
 
         this.addViewLeafPositionSetting();
@@ -33,6 +36,13 @@ export class SettingsTab extends PluginSettingTab {
         this.addConfirmAutoHoverPreviewSetting();
         this.addShowWeeklyNoteSetting();
         this.addShowQuarterlyNoteSetting();
+
+        this.containerEl.createEl('h3', {
+            text: 'Notes'
+        })
+        this.view = new Notes({
+            target: this.containerEl
+        })
 
         if (!get(settingsStore).leafViewEnabled) {
             this.containerEl.createEl('h3', {
@@ -58,6 +68,10 @@ export class SettingsTab extends PluginSettingTab {
         // });
         // new FormatsSettings({ target: this.containerEl });
     }
+    hide() {
+        super.hide()
+        this.view?.$destroy()
+    }
 
     addViewLeafPositionSetting() {
         new Setting(this.containerEl)
@@ -76,9 +90,10 @@ export class SettingsTab extends PluginSettingTab {
                             active: false
                         });
 
-                        this.plugin.saveSettings(() => ({
+                        settingsStore.update((settings) => ({
+                            ...settings,
                             viewLeafPosition: position as 'Left' | 'Right'
-                        }));
+                        }))
                     });
             });
     }
@@ -105,9 +120,10 @@ export class SettingsTab extends PluginSettingTab {
                             });
                         }
 
-                        this.plugin.saveSettings(() => ({
+                        settingsStore.update((settings) => ({
+                            ...settings,
                             leafViewEnabled
-                        }));
+                        }))
 
                         this.display(); // refresh settings panel
                     })
@@ -129,9 +145,10 @@ export class SettingsTab extends PluginSettingTab {
 
                         console.log('setting() > openPopoverOnRibbonHover: ', openPopoverOnRibbonHover);
 
-                        this.plugin.saveSettings(() => ({
+                        settingsStore.update((settings) => ({
+                            ...settings,
                             openPopoverOnRibbonHover
-                        }));
+                        }))
 
                         Popover.create({
                             id: CALENDAR_POPOVER_ID,
@@ -150,9 +167,10 @@ export class SettingsTab extends PluginSettingTab {
             .addToggle((toggle) => {
                 toggle.setValue(get(settingsStore).shouldConfirmBeforeCreate);
                 toggle.onChange(async (value) => {
-                    this.plugin.saveSettings(() => ({
+                    settingsStore.update((settings) => ({
+                        ...settings,
                         shouldConfirmBeforeCreate: value
-                    }));
+                    }))
                 });
             });
     }
@@ -163,9 +181,10 @@ export class SettingsTab extends PluginSettingTab {
             .addToggle((toggle) => {
                 toggle.setValue(get(settingsStore).autoHoverPreview);
                 toggle.onChange(async (value) => {
-                    this.plugin.saveSettings(() => ({
+                    settingsStore.update((settings) => ({
+                        ...settings,
                         autoHoverPreview: value
-                    }));
+                    }))
                 });
             });
     }
@@ -177,12 +196,13 @@ export class SettingsTab extends PluginSettingTab {
             .addToggle((toggle) => {
                 toggle.setValue(get(settingsStore).localeSettings.showWeekNums);
                 toggle.onChange(async (value) => {
-                    this.plugin.saveSettings((settings) => ({
+                    settingsStore.update((settings) => ({
+                        ...settings,
                         localeSettings: {
                             ...settings.localeSettings,
                             showWeekNums: value
                         }
-                    }));
+                    }))
                 });
             });
     }
@@ -193,12 +213,13 @@ export class SettingsTab extends PluginSettingTab {
             .addToggle((toggle) => {
                 toggle.setValue(get(settingsStore).localeSettings.showQuarterNums);
                 toggle.onChange(async (value) => {
-                    this.plugin.saveSettings((settings) => ({
+                    settingsStore.update((settings) => ({
+                        ...settings,
                         localeSettings: {
                             ...settings.localeSettings,
                             showQuarterNums: value
                         }
-                    }));
+                    }))
                 });
             });
     }
@@ -283,9 +304,10 @@ export class SettingsTab extends PluginSettingTab {
             .addToggle((toggle) => {
                 toggle.setValue(get(settingsStore).allowLocalesSwitchFromCommandPalette);
                 toggle.onChange((value) => {
-                    this.plugin.saveSettings(() => ({
+                    settingsStore.update((settings) => ({
+                        ...settings,
                         allowLocalesSwitchFromCommandPalette: value
-                    }));
+                    }))
                 });
             });
     }
@@ -297,12 +319,13 @@ export class SettingsTab extends PluginSettingTab {
             .addToggle((toggle) => {
                 toggle.setValue(get(settingsStore).popoversClosing.closePopoversOneByOneOnClickOut);
                 toggle.onChange((value) => {
-                    this.plugin.saveSettings((settings) => ({
+                    settingsStore.update((settings) => ({
+                        ...settings,
                         popoversClosing: {
                             ...settings.popoversClosing,
                             closePopoversOneByOneOnClickOut: value
                         }
-                    }));
+                    }))
                 });
             }).settingEl;
         settingEl.style.flexWrap = 'wrap';
@@ -315,12 +338,13 @@ export class SettingsTab extends PluginSettingTab {
             .addToggle((toggle) => {
                 toggle.setValue(get(settingsStore).popoversClosing.closePopoversOneByOneOnEscKeydown);
                 toggle.onChange((value) => {
-                    this.plugin.saveSettings((settings) => ({
+                    settingsStore.update((settings) => ({
+                        ...settings,
                         popoversClosing: {
                             ...settings.popoversClosing,
                             closePopoversOneByOneOnEscKeydown: value
                         }
-                    }));
+                    }))
 
                     this.display();
                 });

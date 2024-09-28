@@ -16,24 +16,26 @@ function updateLocale(localeKey: string) {
     window.moment.locale(localeKey);
 
     // update settings
-    get(pluginClassStore).saveSettings((settings) => ({
+    settingsStore.update((settings) => ({
+        ...settings,
         localeSettings: {
             ...settings.localeSettings,
             localeOverride: localeKey
         }
-    }));
+    }))
 
     // update UI
     displayedDateStore.set(window.moment());
 }
 function updateWeekStart(weekStartId: number = window.moment.localeData().firstDayOfWeek()) {
     // update settings
-    get(pluginClassStore).saveSettings((settings) => ({
+    settingsStore.update((settings) => ({
+        ...settings,
         localeSettings: {
             ...settings.localeSettings,
             weekStartId
         }
-    }));
+    }))
 
     // update UI
     displayedDateStore.set(window.moment());

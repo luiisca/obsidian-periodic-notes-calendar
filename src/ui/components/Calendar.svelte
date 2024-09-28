@@ -1,17 +1,18 @@
 <script lang="ts">
-	import { getMonth, getStartOfWeek, getYears, isMetaPressed, isWeekend } from '../utils';
-	import { displayedDateStore, localeDataStore, settingsStore, yearsRanges } from '@/stores';
-	import Day from './Day.svelte';
-	import WeekNum from './WeekNum.svelte';
 	import { monthsIndexesInQuarters, togglePeriods } from '@/constants';
+	import { settingsStore } from '@/settings';
+	import { displayedDateStore, localeDataStore, yearsRanges } from '@/stores';
 	import { capitalize } from '@/utils';
+	import clsx from 'clsx';
+	import { getMonth, getStartOfWeek, getYears, isWeekend } from '../utils';
+	import Day from './Day.svelte';
+	import Month from './Month.svelte';
 	import MonthNav from './MonthNav.svelte';
+	import QuarterNum from './QuarterNum.svelte';
+	import WeekNum from './WeekNum.svelte';
+	import Year from './Year.svelte';
 	import YearNav from './YearNav.svelte';
 	import YearsNav from './YearsNav.svelte';
-	import QuarterNum from './QuarterNum.svelte';
-	import Month from './Month.svelte';
-	import Year from './Year.svelte';
-	import clsx from 'clsx';
 
 	$: ({
 		localeSettings: { showWeekNums, showQuarterNums }
@@ -22,7 +23,7 @@
 	let crrView: (typeof togglePeriods)[number] = 'days';
 </script>
 
-<div id="dailyflex-calendar-container" class="container font-['Inter'] px-4 !pt-2">
+<div class="container px-4 !pt-2">
 	<div
 		class="flex rounded-[--tab-curve] ml-auto w-full max-w-xs space-x-1 p-1 bg-[--background-modifier-hover]"
 		id="periods-container"
@@ -110,7 +111,7 @@
 	{/if}
 </div>
 
-<style>
+<style lang="postcss">
 	@tailwind base;
 	@tailwind components;
 	@tailwind utilities;

@@ -10,17 +10,6 @@ let notesStores: Record<IGranularity, Writable<Record<string, { file: TFile; sti
     year: writable({})
 };
 
-function createSelectedFileIdStore() {
-    const store = writable<string | null>(null);
-
-    return {
-        setFile: (id: string) => {
-            store.set(id);
-            // console.log('createSelectedFileStore > setFile > activeFileUID: ', get(store));
-        },
-        ...store
-    };
-}
-const activeFileIdStore = createSelectedFileIdStore();
+const activeFileIdStore = writable<string | null>(null);
 
 export { notesStores, activeFileIdStore };

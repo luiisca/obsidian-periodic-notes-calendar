@@ -1,9 +1,7 @@
 <script lang="ts" generics="T">
-	import { pluginClassStore, settingsStore } from '@/stores/';
+	import { pluginClassStore } from '@/stores/';
 
-	import type { ISettings } from '@/settings';
-
-	import { get } from 'svelte/store';
+	import { settingsStore, type ISettings } from '@/settings';
 
 	import type { ConfirmationModal, IConfirmationDialogParams } from '../modals/confirmation';
 
@@ -14,7 +12,7 @@
 
 	let dontConfirmAgain = false;
 
-	const shouldConfirmBeforeCreate = async () => {
+	const shouldConfirmBeforeCreate = () => {
 		if (dontConfirmAgain && $pluginClassStore) {
 			settingsStore.update((oldSettings: ISettings) => {
 				const newSettings = {
@@ -24,8 +22,6 @@
 
 				return newSettings;
 			});
-
-			await $pluginClassStore.saveData(get(settingsStore));
 		}
 	};
 	const handleCancel = async () => {
@@ -56,7 +52,7 @@
 	</div>
 </div>
 
-<style>
+<style lang="postcss">
 	@tailwind components;
 	@tailwind utilities;
 </style>

@@ -1,12 +1,12 @@
+import { DEFAULT_SETTINGS, settingsStore, SettingsTab, type ISettings } from '@/settings';
 import { Notice, Plugin, WorkspaceLeaf, WorkspaceRoot } from 'obsidian';
 import type { SvelteComponent } from 'svelte';
 import { get } from 'svelte/store';
-import { CALENDAR_POPOVER_ID, DAILY_NOTES_PLUGIN_ID, granularities, NLDATES_PLUGIN_ID, PERIODIC_NOTES_PLUGIN_ID, VIEW_TYPE } from './constants';
+import { CALENDAR_POPOVER_ID, granularities, NLDATES_PLUGIN_ID, PERIODIC_NOTES_PLUGIN_ID, VIEW_TYPE } from './constants';
 import { createOrOpenNote } from './io';
 import { getPeriodicityFromGranularity } from './io/parse';
 import type { IPeriodicity } from './io/types';
 import locales from './locales';
-import { DEFAULT_SETTINGS, settingsStore, SettingsTab, type ISettings } from '@/settings';
 import {
     pluginClassStore,
     themeStore,
@@ -15,14 +15,12 @@ import {
     updateWeekStart
 } from './stores';
 import { createNldatePickerDialog } from './ui/modals/nldate-picker';
+import { getPopoverInstance, Popover } from './ui/popovers';
+import { getDailyNotesPlugin, getPlugin } from './utils';
 import { CalendarView } from './view';
 import View from './View.svelte';
-import { getPopoverInstance } from './ui/popovers';
-import { Popover } from './ui/popovers';
-import { getDailyNotesPlugin, getPlugin } from './utils';
 
 export default class PeriodicNotesCalendarPlugin extends Plugin {
-    public settings: ISettings;
     popovers: Record<string, SvelteComponent | null> = {};
     popoversCleanups: (() => void)[] = [];
     popoverAutoUpdateCleanup: () => void;
@@ -38,16 +36,19 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
     async onload() {
         await this.loadSettings();
         console.log('ON Load 🫵');
+
         pluginClassStore.set(this);
+
+        // theme
         const crrTheme = this.getTheme();
         themeStore.set((crrTheme === 'moonstone' || crrTheme === "light") ? 'light' : 'dark');
 
+        // plugins
         await getPlugin(PERIODIC_NOTES_PLUGIN_ID);
         await getDailyNotesPlugin()
 
-        const unsubSettingsStore = settingsStore.subscribe((settings) => {
-            this.settings = settings;
-        })
+        // sub settings
+        const unsubSettingsStore = settingsStore.subscribe(this.saveSettings.bind(this))
         this.register(unsubSettingsStore);
 
         this.addSettingTab(new SettingsTab(this.app, this));
@@ -119,7 +120,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         });
 
         // add quick locales switch commands
-        if (this.settings.allowLocalesSwitchFromCommandPalette) {
+        if (get(settingsStore).allowLocalesSwitchFromCommandPalette) {
             window.moment.locales().forEach((momentLocale) => {
                 this.addCommand({
                     id: `switch-to - ${momentLocale
@@ -139,7 +140,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
 
             this.initView({ active: false });
 
-            if (this.settings.openPopoverOnRibbonHover) {
+            if (get(settingsStore).openPopoverOnRibbonHover) {
                 Popover.create({
                     id: CALENDAR_POPOVER_ID,
                     view: {
@@ -160,24 +161,19 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         }));
     }
 
-    async saveSettings(changeSettings: (old: ISettings) => Partial<ISettings>) {
-        settingsStore.update((old) => {
-            return {
-                ...old,
-                ...changeSettings(old)
-            };
-        });
-
-        await this.saveData(this.settings);
+    private async saveSettings(newSettings: ISettings) {
+        console.log("✅ saveSettings triggered", newSettings);
+        await this.saveData(newSettings);
     }
+
     handleRibbon() {
         const ribbonEl = this.addRibbonIcon('dice', 'Open calendar', (ev) => {
             const calendarPopover = getPopoverInstance(CALENDAR_POPOVER_ID);
 
-            if (this.settings.leafViewEnabled) {
+            if (get(settingsStore).leafViewEnabled) {
                 this.toggleView();
 
-                if (this.settings.openPopoverOnRibbonHover && calendarPopover?.opened) {
+                if (get(settingsStore).openPopoverOnRibbonHover && calendarPopover?.opened) {
                     calendarPopover.close();
                 }
 

@@ -9,7 +9,6 @@ import { getNoteDateUID, getPeriodicityFromGranularity } from "./parse";
 import { getNoteSettings } from "./settings";
 import { IGranularity } from "./types";
 import { getNoteFromStore } from "./utils";
-import { validateFormat } from "./validation";
 import { getNotePath, getTemplateInfo } from "./vault";
 import { settingsStore } from "@/settings";
 
@@ -44,7 +43,7 @@ export async function createOrOpenNote({
     async function openFile(file: TFile | undefined) {
         if (file) {
             file && (await leaf.openFile(file));
-            activeFileIdStore.setFile(getNoteDateUID({ date, granularity }));
+            activeFileIdStore.set(getNoteDateUID({ date, granularity }));
         }
     }
 
@@ -55,14 +54,6 @@ export async function createOrOpenNote({
         const { format } = getNoteSettings()[granularity];
         const formattedDate = date.format(format);
         console.log("[io-create-or-open-note]", granularity, format, date, formattedDate);
-
-        const isFormatValid = validateFormat(format, granularity);
-        console.log('createOrOpenNote() > isFormatValid: ', isFormatValid);
-        if (!isFormatValid) {
-            new Notice("Invalid format. Please check your plugin's settings.");
-
-            return;
-        }
 
         if (confirmBeforeCreateOverride) {
             createConfirmationDialog<TFile | undefined>({
