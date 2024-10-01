@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { granularities } from '@/constants';
-	import PeriodSettings from './Period.svelte';
+	import Period from './Period.svelte';
 </script>
 
 <div>
 	{#each granularities as granularity}
-		<PeriodSettings {granularity} />
+		<Period {granularity} />
 	{/each}
 </div>

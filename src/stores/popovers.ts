@@ -1,5 +1,5 @@
 import type { IGranularity } from "@/io";
-import { Moment } from "moment";
+import { type Moment } from "moment";
 import { TFile } from "obsidian";
 import { writable } from "svelte/store";
 

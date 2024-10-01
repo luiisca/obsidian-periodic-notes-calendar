@@ -1,8 +1,8 @@
 import { CALENDAR_POPOVER_ID, FILE_MENU_POPOVER_ID, STICKER_POPOVER_ID } from '@/constants';
 import { settingsStore } from "@/settings";
-import { ComponentType } from 'svelte';
+import { type ComponentType } from 'svelte';
 import { get } from 'svelte/store';
-import { TWindowEvents } from '../types';
+import { type TWindowEvents } from '../types';
 import { getPopoverInstance } from './base';
 import { BaseComponentBehavior } from './base-component-behavior';
 

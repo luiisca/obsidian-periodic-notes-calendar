@@ -1,6 +1,5 @@
-import { validateFolder } from "@/io/validation";
-import { TWindowEvents, WindowEventHandler } from "@/ui/types";
-import { computePosition, flip } from "@floating-ui/dom";
+import { type TWindowEvents, type WindowEventHandler } from "@/ui/types";
+import { autoUpdate, computePosition, flip } from "@floating-ui/dom";
 import { debounce, PopoverSuggest, Scope, TAbstractFile, TFile, TFolder } from "obsidian";
 
 interface Suggestion<T> {
@@ -19,10 +18,12 @@ abstract class BaseSuggest<T> extends PopoverSuggest<T> {
     suggestionItemsContainerEl: HTMLDivElement;
     suggestionsContainerCreated: boolean;
     inputEl: HTMLInputElement;
-    suggestions: Suggestion<T>[];
+    suggestions: Suggestion<T>[] = [];
     selectedSuggestionIdx: number;
+    suggestionSelected = false;
+
     private inputEvHandlers: TWindowEvents | null = null;
-    // scope: Scope;
+    private autoUpdateCleanup: (() => void) | null = null;
 
     constructor(inputEl: HTMLInputElement) {
         super(window.app);
@@ -45,15 +46,15 @@ abstract class BaseSuggest<T> extends PopoverSuggest<T> {
 
     open() {
         const suggestionValues = this.getSuggestions(this.inputEl.value)
-        this.clear()
 
         if (suggestionValues.length > 0) {
+            this.clear()
             // add global event handlers, cleaned in `this.close()`
             window.app.keymap.pushScope(this.scope);
             // attached to the DOM, detached in `this.close()`
             window.app.workspace.containerEl.appendChild(this.suggestionContainerEl);
 
-            computePosition(this.inputEl, this.suggestionContainerEl, {
+            const position = () => computePosition(this.inputEl, this.suggestionContainerEl, {
                 placement: "bottom-start",
                 middleware: [flip()]
             }).then(({ x, y }) => {
@@ -62,10 +63,11 @@ abstract class BaseSuggest<T> extends PopoverSuggest<T> {
                     top: `${y + 5}px`
                 });
             });
+            this.autoUpdateCleanup = autoUpdate(this.inputEl, this.suggestionContainerEl, () => {
+                position();
+            })
 
             this.renderSuggestions(suggestionValues)
-        } else {
-            this.suggestionContainerEl && this.suggestionContainerEl.detach();
         }
     }
     close() {
@@ -74,6 +76,8 @@ abstract class BaseSuggest<T> extends PopoverSuggest<T> {
 
         this.clear()
         this.suggestionContainerEl.detach();
+        this.autoUpdateCleanup?.();
+        this.autoUpdateCleanup = null;
     }
     destroy() {
         console.log("🎉 destroy")
@@ -92,7 +96,15 @@ abstract class BaseSuggest<T> extends PopoverSuggest<T> {
         // register input event handlers
         this.inputEvHandlers = {
             click: () => this.open(),
-            input: debounce(() => this.open(), 500, true),
+            input: debounce(() => {
+                // need to make sure it doesnt reopen popover now that is called 500ms after 
+                // input triggered in this.selectSuggestion and after this.close()
+                if (!this.suggestionSelected) {
+                    this.open()
+                } else {
+                    this.suggestionSelected = false
+                }
+            }, 200, true),
             focus: () => this.open(),
             blur: () => this.close(),
         };
@@ -207,6 +219,7 @@ export class FolderSuggest extends BaseSuggest<TFolder> {
     selectSuggestion(value: TFolder, _: KeyboardEvent | MouseEvent): void {
         this.inputEl.value = value.path;
         this.inputEl.trigger("input");
+        this.suggestionSelected = true;
         this.close();
     }
 }
@@ -241,6 +254,7 @@ export class FileSuggest extends BaseSuggest<TFile> {
     selectSuggestion(value: TFile, _: KeyboardEvent | MouseEvent): void {
         this.inputEl.value = value.path;
         this.inputEl.trigger("input");
+        this.suggestionSelected = true;
         this.close();
     }
 }

@@ -1,4 +1,4 @@
-import { IGranularity } from "./io";
+import { type IGranularity } from "./io";
 
 export const VIEW_TYPE = 'periodic-notes-calendar-view';
 export const granularities = ['day', 'week', 'month', 'quarter', 'year'] as const;

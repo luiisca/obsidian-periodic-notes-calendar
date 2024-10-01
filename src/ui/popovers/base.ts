@@ -1,8 +1,8 @@
 import { CALENDAR_POPOVER_ID, FILE_MENU_POPOVER_ID, STICKER_POPOVER_ID } from "@/constants";
 import { BaseComponentBehavior } from "./base-component-behavior";
-import { CalendarPopoverBehavior, TCalendarPopoverParams } from "./calendar";
-import { FileMenuPopoverBehavior, TFileMenuOpenParams, TFileMenuPopoverParams } from "./file-menu";
-import { StickerPopoverBehavior, TStickerPopoverParams } from "./sticker";
+import { CalendarPopoverBehavior, type TCalendarPopoverParams } from "./calendar";
+import { FileMenuPopoverBehavior, type TFileMenuOpenParams, type TFileMenuPopoverParams } from "./file-menu";
+import { StickerPopoverBehavior, type TStickerPopoverParams } from "./sticker";
 
 export type TPopoverType = typeof CALENDAR_POPOVER_ID | typeof STICKER_POPOVER_ID | typeof FILE_MENU_POPOVER_ID;
 export type TPopoverParams = TCalendarPopoverParams | TStickerPopoverParams | TFileMenuPopoverParams;
@@ -11,7 +11,7 @@ export class Popover {
     static instances = new Map<TPopoverType, Popover>();
     static behaviorInstances = new Map<TPopoverType, ReturnType<typeof createBehavior>>();
     static mutationObserverStarted = false;
-    public opened: boolean = false;
+    public opened = false;
 
     constructor(
         private id: TPopoverType,

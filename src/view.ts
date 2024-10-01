@@ -84,7 +84,7 @@ export class CalendarView extends ItemView {
     }
 
     private onFileCreated(file: TFile) {
-        console.log('✅ ON file creted ✅');
+        console.log('✅ ON file creted ✅', file);
 
         if (this.app.workspace.layoutReady && this.view) {
             const { isValid, granularity, date } = isValidPeriodicNote(file.basename);
@@ -276,7 +276,7 @@ export class CalendarView extends ItemView {
     private keydownCallback(ev: KeyboardEvent) {
         console.log('view.ts > keydownCallback > isControlPressed() > this: ', this, isControlPressed(ev));
         if (isControlPressed(ev)) {
-            this.triggerLinkHover();
+            this.triggerLinkHover?.();
         }
     }
 

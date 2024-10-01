@@ -3,7 +3,7 @@ import { Notice, Plugin, WorkspaceLeaf, WorkspaceRoot } from 'obsidian';
 import type { SvelteComponent } from 'svelte';
 import { get } from 'svelte/store';
 import { CALENDAR_POPOVER_ID, granularities, NLDATES_PLUGIN_ID, PERIODIC_NOTES_PLUGIN_ID, VIEW_TYPE } from './constants';
-import { createOrOpenNote } from './io';
+import { createOrOpenNote, getStartupNoteGranularity } from './io';
 import { getPeriodicityFromGranularity } from './io/parse';
 import type { IPeriodicity } from './io/types';
 import locales from './locales';
@@ -23,7 +23,7 @@ import View from './View.svelte';
 export default class PeriodicNotesCalendarPlugin extends Plugin {
     popovers: Record<string, SvelteComponent | null> = {};
     popoversCleanups: (() => void)[] = [];
-    popoverAutoUpdateCleanup: () => void;
+    popoverAutoUpdateCleanup: (() => void) | null = null;
 
     onunload() {
         console.log('ON Unload ⛰️');
@@ -44,7 +44,6 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         themeStore.set((crrTheme === 'moonstone' || crrTheme === "light") ? 'light' : 'dark');
 
         // plugins
-        await getPlugin(PERIODIC_NOTES_PLUGIN_ID);
         await getDailyNotesPlugin()
 
         // sub settings
@@ -112,7 +111,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
             name: 'Open a Periodic Note based on Natural Language Date selection',
             callback: () => {
                 if (nlDatesPlugin) {
-                    createNldatePickerDialog(this);
+                    createNldatePickerDialog();
                 } else {
                     new Notice(`Please install '${NLDATES_PLUGIN_ID}' plugin to use this command`)
                 }
@@ -148,6 +147,18 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
                     }
                 });
             }
+
+            // open note at startup
+            const startupNoteGranularity = getStartupNoteGranularity();
+            if (startupNoteGranularity) {
+                console.log("🎉 [layout ready] about to open or create note");
+                createOrOpenNote({
+                    leaf: this.app.workspace.getLeaf(),
+                    date: window.moment(),
+                    granularity: startupNoteGranularity,
+                    confirmBeforeCreateOverride: false
+                });
+            }
         });
     }
 
@@ -161,7 +172,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         }));
     }
 
-    private async saveSettings(newSettings: ISettings) {
+    async saveSettings(newSettings: ISettings) {
         console.log("✅ saveSettings triggered", newSettings);
         await this.saveData(newSettings);
     }

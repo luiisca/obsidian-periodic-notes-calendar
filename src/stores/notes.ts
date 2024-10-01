@@ -1,8 +1,8 @@
-import { IGranularity } from '@/io';
+import { type IGranularity } from '@/io';
 import type { TFile } from 'obsidian';
-import { Writable, writable } from 'svelte/store';
+import { type Writable, writable } from 'svelte/store';
 
-let notesStores: Record<IGranularity, Writable<Record<string, { file: TFile; sticker: string | null }>>> = {
+const notesStores: Record<IGranularity, Writable<Record<string, { file: TFile; sticker: string | null }>>> = {
     day: writable({}),
     week: writable({}),
     month: writable({}),

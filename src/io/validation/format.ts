@@ -1,6 +1,6 @@
 import { settingsStore } from '@/settings';
 import { get } from 'svelte/store';
-import { IGranularity } from '../types';
+import { type IGranularity } from '../types';
 
 // https://github.com/liamcain/obsidian-periodic-notes
 function validateFilename(filename: string): boolean {
@@ -18,7 +18,7 @@ function validateFilename(filename: string): boolean {
 }
 
 function isAmbiguousFormat(currentDate: moment.Moment, parsedDate: moment.Moment, granularity: IGranularity): string | null {
-    let errorMessage = "Ambiguous format.";
+    const errorMessage = "Ambiguous format.";
 
     // no need to worry about using a, lets say daily format in a monthly format, 
     // it may seem invalid but as long as it's not a dup of any existing `validFormat` it's fine
@@ -78,7 +78,7 @@ function addToValidFormats(format: string, granularity: IGranularity): void {
 }
 
 export function validateFormat(format: string, granularity: IGranularity) {
-    let error: string = "";
+    let error = "";
 
     if (!format) {
         return error = "";

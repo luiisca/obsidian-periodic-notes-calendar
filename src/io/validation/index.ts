@@ -1,8 +1,8 @@
 import { granularities } from '@/constants';
 import { settingsStore } from '@/settings';
-import { Moment } from 'moment';
+import { type Moment } from 'moment';
 import { get } from 'svelte/store';
-import { IGranularity } from '../types';
+import { type IGranularity } from '../types';
 import { normalizePath } from 'obsidian';
 
 export function removeEscapedCharacters(format: string): string {
@@ -66,6 +66,17 @@ export function validateFolder(folder: string): string {
 
     if (!window.app.vault.getAbstractFileByPath(normalizePath(folder))) {
         return "Folder not found in vault";
+    }
+
+    return "";
+}
+export function validateTemplate(template: string): string {
+    if (!template) {
+        return "";
+    }
+
+    if (!window.app.metadataCache.getFirstLinkpathDest(template, "")) {
+        return "Template file not found";
     }
 
     return "";

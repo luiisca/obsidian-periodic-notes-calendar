@@ -6,7 +6,7 @@
 	import { displayedDateStore } from './stores';
 	import Calendar from './ui/components/Calendar.svelte';
 
-	export let popover: boolean = false;
+	export let popover = false;
 
 	export function rerenderCalendar() {
 		// TODO: reimplement

@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { DEFAULT_FORMATS_PER_GRANULARITY } from '@/constants';
-	import { IGranularity } from '@/io';
+	import { type IGranularity } from '@/io';
 	import { validateFormat } from '@/io/validation';
-	import { PeriodSettings } from '@/settings';
+	import { type PeriodSettings } from '@/settings';
 	import { onMount } from 'svelte';
 	import type { Readable } from 'svelte/store';
 	export let granularity: IGranularity;
@@ -17,43 +17,35 @@
 	onMount(() => {
 		error = validateFormat(inputEl.value, granularity);
 	});
-
-	function clearError() {
-		error = '';
-	}
-
-	function onChange() {
-		error = validateFormat(inputEl.value, granularity);
-	}
 </script>
 
-<div class="flex flex-col space-y-2">
-	<div class="setting-item">
-		<div class="setting-item-info">
-			<div class="setting-item-name">Format</div>
-			<div class="setting-item-description">
-				<a href="https://momentjs.com/docs/#/displaying/format/">Syntax Reference</a>
-				<div>
-					Your current syntax looks like this:
-					<b class="u-pop">{window.moment().format(value || defaultFormat)}</b>
-				</div>
+<div class="setting-item">
+	<div class="setting-item-info">
+		<div class="setting-item-name">Format</div>
+		<div class="setting-item-description">
+			<a href="https://momentjs.com/docs/#/displaying/format/">Syntax Reference</a>
+			<div>
+				Your current syntax looks like this:
+				<b class="u-pop">{window.moment().format(value || defaultFormat)}</b>
 			</div>
 		</div>
-		<div class="setting-item-control">
-			<input
-				bind:value={$settings.format}
-				bind:this={inputEl}
-				class:has-error={!!error}
-				type="text"
-				spellcheck={false}
-				placeholder={defaultFormat}
-				on:change={onChange}
-				on:input={clearError}
-			/>
+		<div class={`${error ? 'has-error' : 'opacity-0'} setting-item-description`}>
+			{error || 'Valid'}
 		</div>
 	</div>
-
-	{#if error}
-		<div class="has-error">{error}</div>
-	{/if}
+	<div class="setting-item-control">
+		<input
+			bind:value={$settings.format}
+			bind:this={inputEl}
+			class:has-error={!!error}
+			type="text"
+			spellcheck={false}
+			placeholder={defaultFormat}
+			on:input={() => (error = validateFormat(inputEl.value, granularity))}
+		/>
+	</div>
 </div>
+
+<style lang="postcss">
+	@tailwind utilities;
+</style>

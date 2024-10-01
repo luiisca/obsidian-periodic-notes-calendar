@@ -13,8 +13,12 @@
 
 <div
 	bind:this={arrowEl}
-	class="inline-flex items-center mr-2 transition-transform duration-200 ease-in"
-	class:transform={isExpanded}
-	class:rotate-90={isExpanded}
+	class={`flex items-center mr-2 transition-transform duration-200 ease-in ${
+		isExpanded ? 'rotate-90' : ''
+	}`}
 	transition:fade
 />
+
+<style lang="postcss">
+	@tailwind utilities;
+</style>

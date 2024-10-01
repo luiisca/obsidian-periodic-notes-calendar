@@ -10,11 +10,9 @@
 	import { capitalize } from '@/utils';
 	import type NldatePickerModal from '../modals/nldate-picker';
 	import { onMount } from 'svelte';
-	import type PeriodicNotesCalendarPlugin from '@/main';
 	import { getNoteSettings } from '@/io/settings';
 
 	export let modalClass: NldatePickerModal;
-	export let pluginClass: PeriodicNotesCalendarPlugin;
 
 	interface NldPlugin {
 		parseDate: (dateString: string) => NldResult;
@@ -36,9 +34,7 @@
 
 	let formattedDate: string = window
 		.moment()
-		.format(
-			format || getNoteSettings()[granularity].format
-		);
+		.format(format || getNoteSettings()[granularity].format);
 
 	const getDateStr = () => {
 		let cleanDateInput = dateInput;
@@ -99,7 +95,8 @@
 			currentTarget: EventTarget & HTMLSelectElement;
 		}
 	) => {
-		pluginClass.saveSettings(() => ({
+		settingsStore.update((settings) => ({
+			...settings,
 			crrNldModalGranularity: ev.currentTarget.value as IGranularity
 		}));
 	};
@@ -147,8 +144,8 @@
 		<button class="cursor-pointer" on:click={handleCancel}>Never mind</button>
 		<button
 			class={`mod-cta ${parsedDate ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
-			aria-disabled={!Boolean(parsedDate)}
-			disabled={!Boolean(parsedDate)}
+			aria-disabled={!parsedDate}
+			disabled={!parsedDate}
 			on:click={handleAccept}>Open</button
 		>
 	</div>

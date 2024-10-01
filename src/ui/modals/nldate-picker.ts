@@ -1,27 +1,25 @@
 import { Modal } from 'obsidian';
 import NldatepickerComponent from '../components/Nldatepicker.svelte';
-import type PeriodicNotesCalendarPlugin from '@/main';
 
 export default class NldatePickerModal extends Modal {
-	constructor(plugin: PeriodicNotesCalendarPlugin) {
-		super(window.app);
+    constructor() {
+        super(window.app);
 
-		const { contentEl } = this;
+        const { contentEl } = this;
 
-		// Create a div to mount the Svelte component
-		const svelteContainer = contentEl.createDiv();
+        // Create a div to mount the Svelte component
+        const svelteContainer = contentEl.createDiv();
 
-		// Instantiate the Svelte component
-		new NldatepickerComponent({
-			target: svelteContainer,
-			props: {
-				modalClass: this,
-				pluginClass: plugin
-			}
-		});
-	}
+        // Instantiate the Svelte component
+        new NldatepickerComponent({
+            target: svelteContainer,
+            props: {
+                modalClass: this,
+            }
+        });
+    }
 }
 
-export function createNldatePickerDialog(plugin: PeriodicNotesCalendarPlugin) {
-	new NldatePickerModal(plugin).open();
+export function createNldatePickerDialog() {
+    new NldatePickerModal().open();
 }

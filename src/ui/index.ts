@@ -1,4 +1,4 @@
-import { Moment } from "moment";
+import { type Moment } from "moment";
 import type { App } from "obsidian";
 
 import Calendar from "./components/Calendar.svelte";

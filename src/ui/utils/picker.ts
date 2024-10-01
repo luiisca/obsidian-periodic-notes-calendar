@@ -6,7 +6,7 @@ import data from "@emoji-mart/data";
 import { Picker } from "emoji-mart";
 import { get } from "svelte/store";
 import { getBehaviorInstance, getPopoverInstance, Popover } from "../popovers";
-import { TagCache } from "obsidian";
+import { type TagCache } from "obsidian";
 
 type TEmoji = {
     aliases?: string[],
@@ -86,9 +86,9 @@ export function initializePicker(
 
     const pickerEl = new Picker(pickerOptions);
     const style = getComputedStyle(document.body)
-    var h = parseInt(style.getPropertyValue('--accent-h'));
-    var s = parseInt(style.getPropertyValue('--accent-s'));
-    var l = parseInt(style.getPropertyValue('--accent-l'));
+    const h = parseInt(style.getPropertyValue('--accent-h'));
+    const s = parseInt(style.getPropertyValue('--accent-s'));
+    const l = parseInt(style.getPropertyValue('--accent-l'));
 
     const accentRgb = hslToRgb(h / 360, s / 100, l / 100)
     pickerEl.injectStyles(`

@@ -1,16 +1,15 @@
 import { granularities } from "@/constants";
+import { settingsStore } from "@/settings";
 import { activeFileIdStore, notesStores } from "@/stores";
 import { createConfirmationDialog } from "@/ui/modals/confirmation";
 import { capitalize, getOnCreateNoteDialogNoteFromGranularity, logger } from "@/utils";
-import moment, { Moment } from "moment";
+import moment, { type Moment } from "moment";
 import { Notice, TFile, WorkspaceLeaf } from "obsidian";
 import { get } from "svelte/store";
 import { getNoteDateUID, getPeriodicityFromGranularity } from "./parse";
 import { getNoteSettings } from "./settings";
-import { IGranularity } from "./types";
-import { getNoteFromStore } from "./utils";
+import { type IGranularity } from "./types";
 import { getNotePath, getTemplateInfo } from "./vault";
-import { settingsStore } from "@/settings";
 
 const REGEX = (function generateRegex(): RegExp {
     const staticParts = ['title', 'date', 'time', 'currentdate', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -38,9 +37,14 @@ export async function createOrOpenNote({
     granularity: IGranularity;
     confirmBeforeCreateOverride?: boolean;
 }) {
-    let file = getNoteFromStore({ date, granularity });
+    const { format, folder } = getNoteSettings()[granularity];
+    const filename = date.format(format);
+    const normalizedPath = await getNotePath(folder, filename);
+    console.log("[createOrOpenNote()] > normalizedPath: ", normalizedPath);
+    let file = window.app.metadataCache.getFirstLinkpathDest(normalizedPath, "")
+    console.log("[createOrOpenNote()] > file: ", file);
 
-    async function openFile(file: TFile | undefined) {
+    async function openFile(file: TFile | null) {
         if (file) {
             file && (await leaf.openFile(file));
             activeFileIdStore.set(getNoteDateUID({ date, granularity }));
@@ -51,14 +55,12 @@ export async function createOrOpenNote({
         await openFile(file);
     } else {
         const periodicity = capitalize(getPeriodicityFromGranularity(granularity));
-        const { format } = getNoteSettings()[granularity];
-        const formattedDate = date.format(format);
-        console.log("[io-create-or-open-note]", granularity, format, date, formattedDate);
+        console.log("[io-create-or-open-note]", granularity, format, date, filename);
 
         if (confirmBeforeCreateOverride) {
-            createConfirmationDialog<TFile | undefined>({
+            createConfirmationDialog<TFile | null>({
                 title: `New ${periodicity} Note`,
-                text: `File ${formattedDate} does not exist. Would you like to create it?`,
+                text: `File ${filename} does not exist. Would you like to create it?`,
                 note: getOnCreateNoteDialogNoteFromGranularity(granularity),
                 cta: 'Create',
                 onAccept: async () => {
@@ -99,6 +101,8 @@ async function createNote(granularity: IGranularity, date: Moment) {
     } catch (err) {
         console.error(`Failed to create file: '${normalizedPath}'`, err);
         new Notice(`Failed to create file: '${normalizedPath}'`);
+
+        return null
     }
 }
 
@@ -152,7 +156,7 @@ function replaceTemplateContents(
         const { moment } = window;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let weekStart = (<any>moment.localeData())._week.dow;
-        let weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
         while (weekStart) {
             weekdays.push(weekdays.shift() as string);

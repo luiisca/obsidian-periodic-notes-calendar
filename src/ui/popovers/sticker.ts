@@ -1,8 +1,8 @@
 import { STICKER_POPOVER_ID } from '@/constants';
 import { settingsStore } from '@/settings';
-import { ComponentType } from 'svelte';
+import { type ComponentType } from 'svelte';
 import { get } from 'svelte/store';
-import { TWindowEvents } from '../types';
+import { type TWindowEvents } from '../types';
 import { BaseComponentBehavior } from './base-component-behavior';
 import { getPopoverInstance, Popover } from './base';
 

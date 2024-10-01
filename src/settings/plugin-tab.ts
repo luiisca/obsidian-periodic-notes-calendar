@@ -13,7 +13,7 @@ import Notes from "../ui/settings/notes/index.svelte";
 
 export class SettingsTab extends PluginSettingTab {
     public plugin: PeriodicNotesCalendarPlugin;
-    private view: SvelteComponent;
+    private view: SvelteComponent | null = null;
 
     constructor(app: App, plugin: PeriodicNotesCalendarPlugin) {
         super(app, plugin);

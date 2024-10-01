@@ -1,4 +1,4 @@
-import { IGranularity } from "@/io";
+import { type IGranularity } from "@/io";
 import { sysLocaleKey, sysWeekStartId } from '../localization';
 import { DEFAULT_FORMATS, granularities } from "@/constants";
 

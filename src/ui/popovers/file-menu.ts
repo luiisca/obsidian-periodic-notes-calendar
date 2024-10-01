@@ -1,7 +1,7 @@
 import { FILE_MENU_POPOVER_ID, STICKER_POPOVER_ID } from "@/constants";
-import { IGranularity } from "@/io";
+import { type IGranularity } from "@/io";
 import { stickerComponentPropsStore } from "@/stores/popovers";
-import { Moment } from "moment";
+import { type Moment } from "moment";
 import { Menu, TFile } from "obsidian";
 import StickerPopoverComponent from "../components/StickerPopover.svelte";
 import { eventHandlers, isControlPressed } from "../utils";
@@ -18,7 +18,7 @@ export type TFileMenuOpenParams = {
 }
 
 export class FileMenuPopoverBehavior {
-    private menu: Menu;
+    private menu: Menu | null = null;
     private refHtmlEl: Element | null = null;
 
     constructor(params: TFileMenuPopoverParams) {
@@ -50,11 +50,11 @@ export class FileMenuPopoverBehavior {
         this.menu.showAtPosition(event);
     }
     public close() {
-        this.menu.close()
+        this.menu?.close()
     }
     public cleanup() {
         this.close();
-        this.menu.unload();
+        this.menu?.unload();
     }
 
     private openCustomFileMenu(menu: Menu, note: TFile, granularity: IGranularity, date: Moment) {

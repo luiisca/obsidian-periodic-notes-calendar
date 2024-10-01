@@ -5,16 +5,28 @@
                 "./src/*"
             ]
         },
-        "strictPropertyInitialization": false,
-        "allowJs": true,
-        "checkJs": true,
-        "esModuleInterop": true,
-        "forceConsistentCasingInFileNames": true,
-        "resolveJsonModule": true,
-        "skipLibCheck": true,
-        "sourceMap": true,
-        "strict": true,
+        "allowSyntheticDefaultImports": true,
+        "baseUrl": ".",
+        "module": "ESNext",
         "target": "esnext",
-        "moduleResolution": "bundler"
-    }
+        "allowJs": true,
+        "noImplicitAny": true,
+        "strictNullChecks": true,
+        "moduleResolution": "node",
+        "importHelpers": true,
+        "importsNotUsedAsValues": "remove",
+        "lib": [
+            "dom",
+            "es5",
+            "scripthost",
+            "es2015"
+        ]
+    },
+    "include": [
+        "**/*.ts",
+        "**/*.svelte"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
 }

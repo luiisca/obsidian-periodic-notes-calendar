@@ -1,8 +1,8 @@
 <script lang="ts">
-	export let className: string = '';
-	export let isVisible: boolean = true;
-	export let isFilled: boolean = false;
-	export let isActive: boolean = false;
+	export let className = '';
+	export let isVisible = true;
+	export let isFilled = false;
+	export let isActive = false;
 </script>
 
 <svg

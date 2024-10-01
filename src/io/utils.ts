@@ -1,13 +1,14 @@
 import { granularities } from "@/constants";
 import { notesStores } from "@/stores";
 import { doTagsIncludeEmoji } from "@/ui/utils";
-import { Moment } from "moment";
+import { type Moment } from "moment";
 import { normalizePath, Notice, TFile, TFolder, Vault } from "obsidian";
 import { get } from "svelte/store";
 import { getNoteDateUID, getPeriodicityFromGranularity } from "./parse";
 import { getNoteSettings } from "./settings";
-import { IGranularity } from "./types";
+import { type IGranularity } from "./types";
 import { isValidPeriodicNote } from "./validation";
+import { settingsStore } from "@/settings";
 
 export function getNoteFromStore({
     date,
@@ -21,12 +22,9 @@ export function getNoteFromStore({
     return notesStore[getNoteDateUID({ date, granularity })]?.file;
 }
 
-/**
-    * @note dependent on `getNoteSettings`, must only be called after periodic notes plugin is fully loaded
-*/
 export function storeAllVaultPeriodicNotes() {
     const noteSettings = getNoteSettings();
-    let uniqueFolders: Record<string, IGranularity[]> = {};
+    const uniqueFolders: Record<string, IGranularity[]> = {};
     granularities.forEach((granularity) => {
         const crrGranularityFolder = noteSettings[granularity].folder;
         if (!uniqueFolders[crrGranularityFolder]) {
@@ -75,3 +73,11 @@ export function storeAllVaultPeriodicNotes() {
     console.log("✅ all store notes ✅ \n", Object.values(notesStores).map((s) => get(s)));
 }
 
+export function getStartupNoteGranularity() {
+    for (const granularity of granularities) {
+        const settings = get(settingsStore).notes[granularity]
+        if (settings.enabled && settings.openAtStartup) {
+            return granularity
+        }
+    }
+}

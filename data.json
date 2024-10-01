@@ -1,9 +1,46 @@
 {
+  "notes": {
+    "day": {
+      "enabled": true,
+      "openAtStartup": true,
+      "format": "",
+      "templatePath": "",
+      "folder": "as"
+    },
+    "week": {
+      "enabled": false,
+      "openAtStartup": false,
+      "format": "",
+      "templatePath": "",
+      "folder": ""
+    },
+    "month": {
+      "enabled": false,
+      "openAtStartup": false,
+      "format": "",
+      "templatePath": "",
+      "folder": ""
+    },
+    "quarter": {
+      "enabled": false,
+      "openAtStartup": false,
+      "format": "",
+      "templatePath": "",
+      "folder": ""
+    },
+    "year": {
+      "enabled": false,
+      "openAtStartup": false,
+      "format": "",
+      "templatePath": "",
+      "folder": ""
+    }
+  },
   "viewLeafPosition": "Right",
   "leafViewEnabled": false,
   "shouldConfirmBeforeCreate": false,
   "yearsRangesStart": 2020,
-  "autoHoverPreview": false,
+  "autoHoverPreview": true,
   "openPopoverOnRibbonHover": false,
   "crrNldModalGranularity": "day",
   "localeSettings": {
@@ -26,7 +63,20 @@
       "YY,M,dddd D",
       "MMMM DD, Y",
       "DD-MM-YY",
-      "dd, mm, yy"
+      "dd, mm, yy",
+      "d",
+      "dd",
+      "ddd",
+      "dddd",
+      "ddddd",
+      "df",
+      "dfd",
+      "dfdf",
+      "dfdfd",
+      "dfdfdd",
+      "dfdfddd",
+      "dfdfdddd",
+      "dfdfddddd"
     ],
     "week": [
       "gggg-[W]ww",

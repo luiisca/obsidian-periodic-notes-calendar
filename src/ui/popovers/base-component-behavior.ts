@@ -1,15 +1,15 @@
-import { ComponentType, SvelteComponent } from "svelte";
+import { type ComponentType, SvelteComponent } from "svelte";
 import { Popover } from "./base";
 import { arrow, autoUpdate, computePosition, flip } from "@floating-ui/dom";
 import { CALENDAR_POPOVER_ID, MODAL_CLASS, STICKER_POPOVER_ID } from "@/constants";
-import { TWindowEvents, WindowEventHandler } from "../types";
+import { type TWindowEvents, type WindowEventHandler } from "../types";
 import { get } from "svelte/store";
 import { settingsStore } from "@/settings";
 
 export class BaseComponentBehavior {
     public componentHtmlEl: HTMLElement;
     public component: SvelteComponent;
-    public autoUpdateCleanup: (() => void) | null;
+    public autoUpdateCleanup: (() => void) | null | undefined;
 
     constructor(
         public id: typeof STICKER_POPOVER_ID | typeof CALENDAR_POPOVER_ID,
@@ -34,6 +34,7 @@ export class BaseComponentBehavior {
         if (!Popover.mutationObserverStarted) {
             const cb = (mutationRecords: MutationRecord[]) => {
                 mutationRecords.forEach((record) => {
+                    // @ts-ignore
                     const modalFound = [...record.addedNodes].find((node) => {
                         if (node instanceof HTMLElement) {
                             return node.className.contains(MODAL_CLASS);
@@ -84,7 +85,7 @@ export class BaseComponentBehavior {
             placement: 'right-start',
             middleware: [flip(), arrow({ element: arrowEl })]
         }).then(({ x, y, placement, middlewareData }) => {
-            Object.assign(this.componentHtmlEl!!.style, {
+            Object.assign(this.componentHtmlEl!.style, {
                 left: `${customX || x}px`,
                 top: `${customY || y}px`
             });
@@ -146,7 +147,7 @@ export class BaseComponentBehavior {
     private hide() {
         this.componentHtmlEl.style.opacity = '0';
     }
-    private setInteractivity(enabled: boolean = true) {
+    private setInteractivity(enabled = true) {
         if (enabled) {
             this.componentHtmlEl.removeAttribute('inert');
         } else {

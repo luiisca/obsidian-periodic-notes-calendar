@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getPeriodicityFromGranularity, IGranularity } from '@/io';
+	import { getPeriodicityFromGranularity, type IGranularity } from '@/io';
 	import { settingsStore } from '@/settings';
 	import { capitalize } from '@/utils';
 	import writableDerived from 'svelte-writable-derived';
@@ -7,6 +7,8 @@
 	import Arrow from './Arrow.svelte';
 	import Format from './Format.svelte';
 	import Folder from './Folder.svelte';
+	import Template from './Template.svelte';
+	import OpenAtStartup from './OpenAtStartup.svelte';
 
 	let isExpanded = false;
 	export let granularity: IGranularity;
@@ -34,27 +36,34 @@
 	}
 </script>
 
-<div class="bg-gray-100 border border-gray-300 rounded-2xl mb-6 last:mb-0">
+<div
+	class="bg-[var(--background-primary-alt)] border border-solid border-[var(--background-modifier-border)] rounded-2xl mb-6 last:mb-0"
+>
 	<a
 		href="./"
 		class="setting-item setting-item-heading text-transparent p-6 cursor-pointer flex items-center justify-between"
 		on:click={toggleExpand}
 	>
-		<div class="setting-item-info flex items-center">
-			<Arrow {isExpanded} />
-			<h3 class="setting-item-name text-lg font-semibold ml-2">
-				{capitalize(getPeriodicityFromGranularity(granularity))} Notes
+		<div class="setting-item-info flex justify-between items-center">
+			<h3 class="setting-item-name flex items-center text-lg font-semibold">
+				<Arrow {isExpanded} />
+				<span class="ml-2">
+					{capitalize(getPeriodicityFromGranularity(granularity))} Notes
+				</span>
 				{#if $settings.openAtStartup}
-					<span class="ml-4 text-sm italic text-gray-500 font-medium">Opens at startup</span>
+					<span class="ml-4 mt-1 text-[var(--text-muted)] text-xs italic font-medium"
+						>Opens at startup</span
+					>
 				{/if}
 			</h3>
 		</div>
 		<div class="setting-item-control">
-			<label class="checkbox-container relative inline-flex items-center cursor-pointer">
-				<input type="checkbox" bind:checked={$settings.enabled} class="sr-only peer" />
-				<div
-					class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
-				/>
+			<label
+				class="checkbox-container cursor-pointer"
+				class:is-enabled={$settings.enabled}
+				on:click|stopPropagation
+			>
+				<input type="checkbox" bind:checked={$settings.enabled} class="hidden" />
 			</label>
 		</div>
 	</a>
@@ -62,8 +71,13 @@
 		<div class="p-6" in:slide|local={{ duration: 300 }} out:slide|local={{ duration: 300 }}>
 			<Format {settings} {granularity} />
 			<Folder {settings} {granularity} />
-			<!-- <NoteTemplateSetting {settings} {granularity} /> -->
-			<!-- <OpenAtStartupSetting {settings} {granularity} /> -->
+			<Template {settings} />
+			<OpenAtStartup {settings} {granularity} />
 		</div>
 	{/if}
 </div>
+
+<style lang="postcss">
+	@tailwind base;
+	@tailwind utilities;
+</style>

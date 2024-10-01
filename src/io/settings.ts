@@ -1,21 +1,21 @@
 import { DAILY_NOTES_PLUGIN_ID, DEFAULT_FORMATS_PER_GRANULARITY, granularities, PERIODIC_NOTES_PLUGIN_ID } from '@/constants';
 import type { IGranularity } from './types';
+import { get } from 'svelte/store';
+import { settingsStore } from '@/settings';
 
 type TSettings = Record<IGranularity, { format: string, folder: string, template: string }>;
 /**
- * Read user settings from periodic-notes and daily-notes plugins
+ * Read user settings from notes tab in `settings/plugin-tab.ts` and `daily-notes` plugins
  * to keep behavior of creating a new note in-sync.
- * @note only call after periodic notes plugin is fully loaded 
  */
 export function getNoteSettings() {
-    const plugins = (<any>window.app).plugins;
     const internalPlugins = (<any>window.app).internalPlugins;
 
-    const pnSettings = plugins.getPlugin(PERIODIC_NOTES_PLUGIN_ID)?.settings;
+    const pnSettings = get(settingsStore).notes;
     const dnSettings = internalPlugins?.getPluginById(DAILY_NOTES_PLUGIN_ID)?.instance?.options;
 
     return Object.fromEntries(granularities.map((granularity) => {
-        const granularitySettings = pnSettings?.[granularity]?.enabled
+        const granularitySettings = pnSettings[granularity].enabled
             ? pnSettings[granularity]
             : granularity === "day" ? dnSettings : {};
 
