@@ -4,13 +4,14 @@
 	import { capitalize } from '@/utils';
 	import { onDestroy, onMount } from 'svelte';
 	import type { Readable } from 'svelte/store';
-	import { FolderSuggest } from './suggest';
-	import type { PeriodSettings } from '@/settings';
+	import { type PeriodSettings, FolderSuggest } from '@/settings';
+	import clsx from 'clsx';
 
 	export let settings: Readable<PeriodSettings>;
 	export let granularity: IGranularity;
 
 	let inputEl: HTMLInputElement;
+	let value: string = $settings.folder || '';
 	let error: string;
 	let folderSuggestInstance: FolderSuggest;
 
@@ -30,20 +31,25 @@
 		<div class="setting-item-description">
 			New {capitalize(getPeriodicityFromGranularity(granularity))} notes will be placed here
 		</div>
-		<div class={`${error ? 'has-error' : 'opacity-0'} setting-item-description`}>
+		<div class={clsx('setting-item-description', error ? 'has-error' : 'opacity-0')}>
 			{error || 'Valid'}
 		</div>
 	</div>
 	<div class="setting-item-control">
 		<input
 			class="flex-grow"
-			bind:value={$settings.folder}
+			bind:value
 			bind:this={inputEl}
 			class:has-error={!!error}
 			type="text"
 			spellcheck={false}
 			placeholder="e.g. folder 1/folder 2"
-			on:input={() => (error = validateFolder(inputEl.value))}
+			on:input={() => {
+				error = validateFolder(inputEl.value);
+				if (error.trim() === '') {
+					$settings.folder = value.trim();
+				}
+			}}
 		/>
 	</div>
 </div>

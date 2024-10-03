@@ -13,11 +13,10 @@ export interface PeriodSettings {
 
 export interface ISettings {
     notes: Record<IGranularity, PeriodSettings>;
-    /** Position of the calendar view leaf ('Left' or 'Right') */
-    viewLeafPosition: 'Left' | 'Right';
+    /** Position of the calendar view leaf ('left' or 'right') */
+    viewLeafPosition: 'left' | 'right';
 
-    /** Whether the calendar view should be displayed in a leaf */
-    leafViewEnabled: boolean;
+    viewMode: 'dedicated-panel' | 'floating-window';
 
     /** Whether to show a confirmation dialog before creating a new note */
     shouldConfirmBeforeCreate: boolean;
@@ -84,8 +83,8 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
     notes: Object.fromEntries(granularities.map(
         (granularity) => [granularity, DEFAULT_PERIODIC_CONFIG])
     ) as Record<IGranularity, PeriodSettings>,
-    viewLeafPosition: 'Left',
-    leafViewEnabled: false,
+    viewLeafPosition: 'left',
+    viewMode: 'dedicated-panel',
     shouldConfirmBeforeCreate: true,
     yearsRangesStart: 2020,
     autoHoverPreview: false,

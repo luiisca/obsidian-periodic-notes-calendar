@@ -13,6 +13,7 @@
 	import Year from './Year.svelte';
 	import YearNav from './YearNav.svelte';
 	import YearsNav from './YearsNav.svelte';
+	import Tabs from './Tabs.svelte';
 
 	$: ({
 		localeSettings: { showWeekNums, showQuarterNums }
@@ -24,23 +25,13 @@
 </script>
 
 <div class="container px-4 !pt-2">
-	<div
-		class="flex rounded-[--tab-curve] ml-auto w-full max-w-xs space-x-1 p-1 bg-[--background-modifier-hover]"
+	<Tabs
+		tabs={[...togglePeriods]}
+		bind:selectedTab={crrView}
 		id="periods-container"
-	>
-		{#each togglePeriods as period}
-			<button
-				class={clsx(
-					'[&:not(:focus-visible)]:shadow-none w-full rounded-[--radius-s] py-2 transition',
-					crrView === period
-						? 'text-[--text-on-accent] bg-[--interactive-accent] hover:bg-[--interactive-accent-hover]'
-						: 'text-[--tab-text-color] hover:text-[--text-on-accent]'
-				)}
-				id="period"
-				on:click={() => (crrView = period)}>{capitalize(period)}</button
-			>
-		{/each}
-	</div>
+		tabId="period"
+	/>
+
 	{#if crrView === 'days'}
 		<MonthNav />
 		<table class="calendar" id="calendar">

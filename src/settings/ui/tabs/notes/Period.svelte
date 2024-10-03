@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { getPeriodicityFromGranularity, type IGranularity } from '@/io';
 	import { settingsStore } from '@/settings';
+	import { Arrow } from '@/settings/ui/';
 	import { capitalize } from '@/utils';
 	import writableDerived from 'svelte-writable-derived';
 	import { slide } from 'svelte/transition';
-	import Arrow from './Arrow.svelte';
 	import Format from './Format.svelte';
 	import Folder from './Folder.svelte';
 	import Template from './Template.svelte';

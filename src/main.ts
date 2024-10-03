@@ -181,7 +181,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         const ribbonEl = this.addRibbonIcon('dice', 'Open calendar', (ev) => {
             const calendarPopover = getPopoverInstance(CALENDAR_POPOVER_ID);
 
-            if (get(settingsStore).leafViewEnabled) {
+            if (get(settingsStore).viewMode === "dedicated-panel") {
                 this.toggleView();
 
                 if (get(settingsStore).openPopoverOnRibbonHover && calendarPopover?.opened) {

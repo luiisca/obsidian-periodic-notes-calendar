@@ -3,9 +3,8 @@
 	import type { Readable } from 'svelte/store';
 
 	import { type PeriodSettings, settingsStore } from '@/settings';
+	import { SettingItem, Toggle } from '@/settings/ui';
 	import { capitalize } from '@/utils';
-	import SettingItem from '../SettingItem.svelte';
-	import Toggle from '../Toggle.svelte';
 	import { granularities } from '@/constants';
 
 	export let settings: Readable<PeriodSettings>;

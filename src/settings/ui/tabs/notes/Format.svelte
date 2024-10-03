@@ -3,6 +3,7 @@
 	import { type IGranularity } from '@/io';
 	import { validateFormat } from '@/io/validation';
 	import { type PeriodSettings } from '@/settings';
+	import clsx from 'clsx';
 	import { onMount } from 'svelte';
 	import type { Readable } from 'svelte/store';
 	export let granularity: IGranularity;
@@ -10,9 +11,8 @@
 
 	const defaultFormat = DEFAULT_FORMATS_PER_GRANULARITY[granularity];
 	let inputEl: HTMLInputElement;
+	let value: string = $settings.format || '';
 	let error: string;
-
-	$: value = $settings.format || '';
 
 	onMount(() => {
 		error = validateFormat(inputEl.value, granularity);
@@ -29,19 +29,24 @@
 				<b class="u-pop">{window.moment().format(value || defaultFormat)}</b>
 			</div>
 		</div>
-		<div class={`${error ? 'has-error' : 'opacity-0'} setting-item-description`}>
+		<div class={clsx('setting-item-description', error ? 'has-error' : 'opacity-0')}>
 			{error || 'Valid'}
 		</div>
 	</div>
 	<div class="setting-item-control">
 		<input
-			bind:value={$settings.format}
+			bind:value
 			bind:this={inputEl}
 			class:has-error={!!error}
 			type="text"
 			spellcheck={false}
 			placeholder={defaultFormat}
-			on:input={() => (error = validateFormat(inputEl.value, granularity))}
+			on:input={() => {
+				error = validateFormat(inputEl.value, granularity);
+				if (error.trim() === '') {
+					$settings.format = value.trim();
+				}
+			}}
 		/>
 	</div>
 </div>

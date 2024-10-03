@@ -76,9 +76,7 @@ export class CalendarView extends ItemView {
 
     onClose(): Promise<void> {
         console.log('On close view❌');
-        if (this.view) {
-            this.view.$destroy();
-        }
+        this.view?.$destroy();
 
         return Promise.resolve();
     }

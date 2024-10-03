@@ -1,10 +1,11 @@
 <script lang="ts">
 	export let name: string;
 	export let description: string;
-	export let isHeading: boolean;
-	export let type: 'dropdown' | 'toggle';
+	export let isHeading: boolean = false;
+	export let type: 'dropdown' | 'toggle' | undefined = undefined;
 </script>
 
+<!-- doubles as section title thanks to `setting-item-heading` -->
 <div
 	class="setting-item"
 	class:setting-item-heading={isHeading}
