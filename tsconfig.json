@@ -1,32 +1,32 @@
 {
-    "compilerOptions": {
-        "paths": {
-            "@/*": [
-                "./src/*"
-            ]
-        },
-        "allowSyntheticDefaultImports": true,
-        "baseUrl": ".",
-        "module": "ESNext",
-        "target": "esnext",
-        "allowJs": true,
-        "noImplicitAny": true,
-        "strictNullChecks": true,
-        "moduleResolution": "node",
-        "importHelpers": true,
-        "importsNotUsedAsValues": "remove",
-        "lib": [
-            "dom",
-            "es5",
-            "scripthost",
-            "es2015"
-        ]
+  "compilerOptions": {
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
     },
-    "include": [
-        "**/*.ts",
-        "**/*.svelte"
-    ],
-    "exclude": [
-        "node_modules"
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
+    "module": "ESNext",
+    "target": "esnext",
+    "allowJs": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "moduleResolution": "node",
+    "importHelpers": true,
+    "importsNotUsedAsValues": "remove",
+    "lib": [
+      "dom",
+      "es5",
+      "scripthost",
+      "es2015"
     ]
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.svelte"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
