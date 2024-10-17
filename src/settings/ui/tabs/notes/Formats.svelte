@@ -12,20 +12,39 @@
 	onMount(() => {
 		console.log(`📅 Formats ~ onMount ~ ${granularity} ~ ${crrFormat}`);
 	});
+
+	function getExpectedTokens(granularity: IGranularity): string {
+		const baseTokens = 'Y or y (year)';
+		switch (granularity) {
+			case 'quarter':
+				return `${baseTokens}, Q (quarter)`;
+			case 'month':
+				return `${baseTokens}, M (month)`;
+			case 'week':
+				return `${baseTokens}, w or W (week)`;
+			case 'day':
+				return `${baseTokens}, M (month) and D (day)`;
+			default:
+				return baseTokens;
+		}
+	}
 </script>
 
-<div class="setting-item flex flex-col">
+<div class="setting-item flex flex-col space-y-4">
 	<div class="flex justify-between mr-0 w-full">
 		<div class="setting-item-info">
-			<div class="setting-item-name">Format</div>
+			<div class="setting-item-name mb-2">Format</div>
 			<div class="setting-item-description">
+				<p class="mt-0 mb-1">
+					Required tokens: <span class="u-pop">{getExpectedTokens(granularity)}</span>
+				</p>
 				<a href="https://momentjs.com/docs/#/displaying/format/">Syntax Reference</a>
 			</div>
 		</div>
-		<div>
+		<div class="setting-item-description self-end text-end">
 			{#if crrFormat}
-				<p>Current format: {crrFormat}</p>
-				<p class="u-pop">Preview: {window.moment().format(crrFormat)}</p>
+				<p class="mt-0 mb-1">Current format: <span class="u-pop">{crrFormat}</span></p>
+				<p class="m-0">Preview: <span class="u-pop">{window.moment().format(crrFormat)}</span></p>
 			{:else}
 				<p class="u-pop">Empty format</p>
 			{/if}
