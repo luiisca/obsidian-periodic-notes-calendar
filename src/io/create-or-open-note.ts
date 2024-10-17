@@ -58,17 +58,22 @@ export async function createOrOpenNote({
         console.log("[io-create-or-open-note]", granularity, format, date, filename);
 
         if (confirmBeforeCreateOverride) {
-            createConfirmationDialog<TFile | null>({
+            createConfirmationDialog({
                 title: `New ${periodicity} Note`,
                 text: `File ${filename} does not exist. Would you like to create it?`,
                 note: getOnCreateNoteDialogNoteFromGranularity(granularity),
                 cta: 'Create',
-                onAccept: async () => {
+                onAccept: async (dontAskAgain) => {
                     file = await createNote(granularity, date);
                     console.log('createOrOpenNote() > onAccept() > file: ', file);
                     await openFile(file);
 
-                    return file;
+                    if (dontAskAgain) {
+                        settingsStore.update((settings) => ({
+                            ...settings,
+                            shouldConfirmBeforeCreate: false
+                        }));
+                    }
                 }
             });
         } else {

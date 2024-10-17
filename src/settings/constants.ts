@@ -1,12 +1,19 @@
+import { DEFAULT_FORMATS_PER_GRANULARITY, granularities } from "@/constants";
 import { type IGranularity } from "@/io";
-import { sysLocaleKey, sysWeekStartId } from '../localization';
-import { DEFAULT_FORMATS, granularities } from "@/constants";
+import { sysLocaleKey, sysWeekStartId } from "../localization";
 
 export interface PeriodSettings {
     enabled: boolean;
     openAtStartup: boolean;
+    selectedId: string;
 
     format: string;
+    formats: {
+        id: string;
+        value: string;
+        filePaths: string[];
+        error: string;
+    }[];
     folder: string;
     templatePath?: string;
 }
@@ -14,12 +21,15 @@ export interface PeriodSettings {
 export interface ISettings {
     notes: Record<IGranularity, PeriodSettings>;
     /** Position of the calendar view leaf ('left' or 'right') */
-    viewLeafPosition: 'left' | 'right';
+    viewLeafPosition: "left" | "right";
 
-    viewMode: 'dedicated-panel' | 'floating-window';
+    viewMode: "dedicated-panel" | "floating-window";
 
     /** Whether to show a confirmation dialog before creating a new note */
     shouldConfirmBeforeCreate: boolean;
+
+    /** Whether to show a confirmation dialog before deleting a format on "Notes" settings tab */
+    shouldConfirmBeforeDeleteFormat: boolean;
 
     /** Starting year for the year range selector */
     yearsRangesStart: 2020;
@@ -60,9 +70,6 @@ export interface ISettings {
         closeOnEscStickerSearchInput: boolean;
     };
 
-    /** Valid date formats for each granularity */
-    validFormats: Record<IGranularity, string[]>;
-
     /** Whether to allow switching locales from the Command Palette */
     allowLocalesSwitchFromCommandPalette: boolean;
 
@@ -70,46 +77,56 @@ export interface ISettings {
     // formats: IFormatsSettings;
 }
 
-const DEFAULT_PERIODIC_CONFIG: PeriodSettings = Object.freeze({
-    enabled: false,
-    openAtStartup: false,
+function getDefaultPeriodicNotesConfig(
+    granularity: IGranularity,
+): PeriodSettings {
+    const id = window.crypto.randomUUID();
+    return Object.freeze(
+        {
+            enabled: false,
+            openAtStartup: false,
+            selectedId: id,
 
-    format: "",
-    templatePath: "",
-    folder: "",
-});
+            format: DEFAULT_FORMATS_PER_GRANULARITY[granularity],
+            formats: [{
+                id,
+                value: DEFAULT_FORMATS_PER_GRANULARITY[granularity],
+                filePaths: [],
+                error: "",
+            }],
+            templatePath: "",
+            folder: "",
+        } satisfies PeriodSettings,
+    );
+}
 
 export const DEFAULT_SETTINGS: ISettings = Object.freeze({
     notes: Object.fromEntries(granularities.map(
-        (granularity) => [granularity, DEFAULT_PERIODIC_CONFIG])
-    ) as Record<IGranularity, PeriodSettings>,
-    viewLeafPosition: 'left',
-    viewMode: 'dedicated-panel',
+        (
+            granularity,
+        ) => [granularity, getDefaultPeriodicNotesConfig(granularity)],
+    )) as Record<IGranularity, PeriodSettings>,
+    viewLeafPosition: "left",
+    viewMode: "dedicated-panel",
     shouldConfirmBeforeCreate: true,
+    shouldConfirmBeforeDeleteFormat: true,
     yearsRangesStart: 2020,
     autoHoverPreview: false,
     openPopoverOnRibbonHover: false,
-    crrNldModalGranularity: 'day',
+    crrNldModalGranularity: "day",
 
     localeSettings: {
         showWeekNums: false,
         showQuarterNums: false,
         localeOverride: sysLocaleKey,
-        weekStartId: sysWeekStartId
+        weekStartId: sysWeekStartId,
     },
 
     popoversClosing: {
         closePopoversOneByOneOnClickOut: false,
         closePopoversOneByOneOnEscKeydown: true,
-        closeOnEscStickerSearchInput: true
+        closeOnEscStickerSearchInput: true,
     },
 
-    validFormats: {
-        day: [DEFAULT_FORMATS.daily],
-        week: [DEFAULT_FORMATS.weekly],
-        month: [DEFAULT_FORMATS.monthly],
-        quarter: [DEFAULT_FORMATS.quarterly],
-        year: [DEFAULT_FORMATS.yearly],
-    },
     allowLocalesSwitchFromCommandPalette: false,
 });

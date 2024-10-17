@@ -2,7 +2,7 @@ import { DEFAULT_SETTINGS, settingsStore, SettingsTab, type ISettings } from '@/
 import { Notice, Plugin, WorkspaceLeaf, WorkspaceRoot } from 'obsidian';
 import type { SvelteComponent } from 'svelte';
 import { get } from 'svelte/store';
-import { CALENDAR_POPOVER_ID, granularities, NLDATES_PLUGIN_ID, PERIODIC_NOTES_PLUGIN_ID, VIEW_TYPE } from './constants';
+import { CALENDAR_POPOVER_ID, granularities, NLDATES_PLUGIN_ID, VIEW_TYPE } from './constants';
 import { createOrOpenNote, getStartupNoteGranularity } from './io';
 import { getPeriodicityFromGranularity } from './io/parse';
 import type { IPeriodicity } from './io/types';
@@ -16,7 +16,7 @@ import {
 } from './stores';
 import { createNldatePickerDialog } from './ui/modals/nldate-picker';
 import { getPopoverInstance, Popover } from './ui/popovers';
-import { getDailyNotesPlugin, getPlugin } from './utils';
+import { capitalize, getDailyNotesPlugin, getPlugin } from './utils';
 import { CalendarView } from './view';
 import View from './View.svelte';
 
@@ -216,7 +216,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
     async initView({ active }: { active: boolean } = { active: true }) {
         this.app.workspace.detachLeavesOfType(VIEW_TYPE);
 
-        await this.app.workspace[`get${get(settingsStore).viewLeafPosition}Leaf`](false)?.setViewState({
+        await this.app.workspace[`get${capitalize(get(settingsStore).viewLeafPosition) as "Left" | "Right"}Leaf`](false)?.setViewState({
             type: VIEW_TYPE,
             active
         });

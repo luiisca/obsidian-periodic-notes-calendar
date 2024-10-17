@@ -29,10 +29,8 @@ function isWeekFormatAmbiguous(format: string) {
 export function isValidPeriodicNote(fileName: string, customGranularities = granularities as unknown as IGranularity[])
     : { isValid: true, granularity: IGranularity, date: Moment } | { isValid: false, granularity: null, date: null } {
 
-    const validFormats = get(settingsStore).validFormats;
-
     for (const granularity of customGranularities) {
-        for (const validFormat of validFormats[granularity]) {
+        for (const validFormat of get(settingsStore).notes[granularity].validFormats) {
             let date = window.moment(fileName, validFormat, true);
 
             if (date.isValid() && date.format(validFormat) === fileName) {
@@ -43,7 +41,6 @@ export function isValidPeriodicNote(fileName: string, customGranularities = gran
                         if (/w{1,2}/i.test(cleanFormat)) {
                             date = window.moment(
                                 fileName,
-                                // If format contains week, remove day & month formatting, dont remember why 😅
                                 validFormat.replace(/M{1,4}/g, '').replace(/D{1,4}/g, ''),
                                 false
                             );
