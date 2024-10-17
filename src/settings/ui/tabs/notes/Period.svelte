@@ -5,10 +5,11 @@
 	import { capitalize } from '@/utils';
 	import writableDerived from 'svelte-writable-derived';
 	import { slide } from 'svelte/transition';
-	import Format from './Format.svelte';
 	import Folder from './Folder.svelte';
 	import Template from './Template.svelte';
 	import OpenAtStartup from './OpenAtStartup.svelte';
+	import { onMount } from 'svelte';
+	import Formats from './Formats.svelte';
 
 	let isExpanded = false;
 	export let granularity: IGranularity;
@@ -32,8 +33,12 @@
 	);
 
 	function toggleExpand() {
+		console.log('🌆 Period toggleExpand - ', granularity, $settings.formats);
 		isExpanded = !isExpanded;
 	}
+	onMount(() => {
+		console.log(`🌆 Period onMount - ${granularity}`, $settings.formats);
+	});
 </script>
 
 <div
@@ -69,7 +74,7 @@
 	</a>
 	{#if isExpanded}
 		<div class="p-6" in:slide|local={{ duration: 300 }} out:slide|local={{ duration: 300 }}>
-			<Format {settings} {granularity} />
+			<Formats {settings} {granularity} />
 			<Folder {settings} {granularity} />
 			<Template {settings} />
 			<OpenAtStartup {settings} {granularity} />

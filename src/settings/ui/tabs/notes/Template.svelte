@@ -19,7 +19,7 @@
 	});
 	onDestroy(() => {
 		console.log('onDestroy');
-		fileSuggestInstance.destroy();
+		fileSuggestInstance?.destroy();
 	});
 </script>
 

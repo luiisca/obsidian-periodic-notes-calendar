@@ -1,6 +1,7 @@
 import type { IGranularity } from "@/io";
 import type { Moment } from "moment";
 import type { TFile } from "obsidian";
+import { Writable } from "svelte/store";
 
 export interface IDot {
     isFilled: boolean;
@@ -52,3 +53,8 @@ export type WindowEventHandler<K extends keyof WindowEventMap> = (ev: WindowEven
 export type TWindowEvents = {
     [K in keyof WindowEventMap]?: WindowEventHandler<K>;
 };
+
+
+export interface INotesContext {
+    triggerRerender: Writable<number>;
+}

@@ -1,29 +1,15 @@
-<script lang="ts" generics="T">
-	import { pluginClassStore } from '@/stores/';
-
-	import { settingsStore, type ISettings } from '@/settings';
-
+<script lang="ts">
+	import { onMount } from 'svelte';
 	import type { ConfirmationModal, IConfirmationDialogParams } from '../modals/confirmation';
 
-	export let config: IConfirmationDialogParams<T>;
-	export let modalClass: ConfirmationModal<T>;
+	export let config: IConfirmationDialogParams;
+	export let modalClass: ConfirmationModal;
 
 	const { title, text, note, cta, onAccept } = config;
 
-	let dontConfirmAgain = false;
+	let dontAskAgain = false;
+	let noteHtmlEl: HTMLElement;
 
-	const shouldConfirmBeforeCreate = () => {
-		if (dontConfirmAgain && $pluginClassStore) {
-			settingsStore.update((oldSettings: ISettings) => {
-				const newSettings = {
-					...oldSettings,
-					shouldConfirmBeforeCreate: false
-				};
-
-				return newSettings;
-			});
-		}
-	};
 	const handleCancel = async () => {
 		modalClass.close();
 	};
@@ -31,20 +17,24 @@
 	const handleAccept = async () => {
 		modalClass.close();
 
-		await onAccept();
-		await shouldConfirmBeforeCreate();
+		await onAccept(dontAskAgain);
 	};
+
+	onMount(() => {
+		if (noteHtmlEl) {
+			noteHtmlEl.innerHTML = note || '';
+		}
+	});
 </script>
 
 <div>
 	<h2>{title}</h2>
 	<p>{text}</p>
 	<label class="flex items-center hover:cursor-pointer text-sm mt-7">
-		<input type="checkbox" class="hover:cursor-pointer" bind:checked={dontConfirmAgain} /> Don't show
-		again
+		<input type="checkbox" class="hover:cursor-pointer" bind:checked={dontAskAgain} /> Don't ask again
 	</label>
 	{#if note}
-		<p class="m-0 mt-2 text-xs text-[--text-muted]">{note}</p>
+		<p class="m-0 mt-2 text-xs text-[--text-muted]" bind:this={noteHtmlEl} />
 	{/if}
 	<div class="modal-button-container mt-3">
 		<button on:click={handleCancel}>Never mind</button>

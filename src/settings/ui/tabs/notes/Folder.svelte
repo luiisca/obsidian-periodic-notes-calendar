@@ -18,10 +18,11 @@
 	onMount(() => {
 		error = validateFolder(inputEl.value);
 		folderSuggestInstance = new FolderSuggest(inputEl);
+		console.log('on folder Mount', folderSuggestInstance);
 	});
 	onDestroy(() => {
-		console.log('onDestroy');
-		folderSuggestInstance.destroy();
+		console.log('onDestroy', folderSuggestInstance);
+		folderSuggestInstance?.destroy();
 	});
 </script>
 
