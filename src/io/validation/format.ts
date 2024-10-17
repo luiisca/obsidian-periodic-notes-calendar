@@ -4,6 +4,7 @@ import { type IGranularity } from "../types";
 import { granularities } from "@/constants";
 import { getPeriodicityFromGranularity } from "../parse";
 import { capitalize } from "@/utils";
+import { isWeekFormatAmbiguous } from ".";
 
 // https://github.com/liamcain/obsidian-periodic-notes
 function validateFilename(filename: string): boolean {
@@ -23,13 +24,40 @@ function validateFilename(filename: string): boolean {
 function isAmbiguousFormat(
     currentDate: moment.Moment,
     parsedDate: moment.Moment,
+    format: string,
     granularity: IGranularity,
 ): string | null {
     const errorMessage = "Ambiguous format.";
 
-    // no need to worry about using a, lets say daily format in a monthly format,
-    // it may seem invalid but as long as it's not a dup of any existing `validFormat` it's fine,
-    // it should be up to the user to determine if that is a valid format or not
+    const containsAny = (tokens: string[]): boolean =>
+        tokens.some((token) => format.includes(token));
+
+    // Check for missing essential information based on granularity
+    const missingInfo = (() => {
+        if (!containsAny(["Y", "y"])) return "year (Y or y)";
+
+        switch (granularity) {
+            case "quarter":
+                if (!containsAny(["Q"])) return "quarter (Q)";
+                break;
+            case "month":
+                if (!containsAny(["M"])) return "month (M)";
+                break;
+            case "week":
+                if (!containsAny(["w", "W"])) return "week (w or W)";
+                break;
+            case "day":
+                if (!containsAny(["M"])) return "month (M)";
+                if (!containsAny(["D"])) return "day (D)";
+                break;
+        }
+        return null;
+    })();
+
+    if (missingInfo) {
+        return `${errorMessage} Missing ${missingInfo} info. Can't uniquely identify ${granularity}.`;
+    }
+
     switch (granularity) {
         case "year":
             if (parsedDate.year() !== currentDate.year()) {
@@ -130,13 +158,17 @@ function checkIfDuplicateFormat(
             if (f.id !== id && f.value === format) {
                 return {
                     duplicate: true,
-                    errorMsg: `Duplicate format ${granularity === g ? '' : `from ${capitalize(getPeriodicityFromGranularity(g))} Notes settings`}`
-                }
+                    errorMsg: `Duplicate format ${granularity === g
+                        ? ""
+                        : `from ${capitalize(getPeriodicityFromGranularity(g))
+                        } Notes settings`
+                        }`,
+                };
             }
         }
     }
 
-    return { duplicte: false, errorMsg: '' }
+    return { duplicte: false, errorMsg: "" };
 }
 
 export function validateFormat(
@@ -156,23 +188,37 @@ export function validateFormat(
 
     const currentDate = window.moment();
     const formattedDate = window.moment().format(format);
-    const parsedDate = window.moment(formattedDate, format, true);
-    if (!parsedDate.isValid()) {
-        return error = "Format is not valid";
+    let parsedDate = window.moment(formattedDate, format, true);
+    if (granularity === 'week' && isWeekFormatAmbiguous(format)) {
+        parsedDate = window.moment(
+            formattedDate,
+            format.replace(/M{1,4}/g, '').replace(/D{1,4}/g, ''),
+            false
+        );
     }
 
     // Check for ambiguous formats
     const ambiguityError = isAmbiguousFormat(
         currentDate,
         parsedDate,
+        format,
         granularity,
     );
     if (ambiguityError) {
-        return error = ambiguityError;
+        return ambiguityError;
+    }
+
+    // check if the date is valid
+    if (!parsedDate.isValid()) {
+        return error = "Format is not valid";
     }
 
     // check for duplicated valid formats
-    const { duplicate, errorMsg } = checkIfDuplicateFormat(format, granularity, id)
+    const { duplicate, errorMsg } = checkIfDuplicateFormat(
+        format,
+        granularity,
+        id,
+    );
     if (duplicate) {
         return error = errorMsg;
     }
