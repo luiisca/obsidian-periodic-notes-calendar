@@ -3,15 +3,10 @@
 	import { type PeriodSettings } from '@/settings';
 	import { type Writable } from 'svelte/store';
 	import Format from './Format.svelte';
-	import { onMount } from 'svelte';
 	export let granularity: IGranularity;
 	export let settings: Writable<PeriodSettings>;
 
-	$: crrFormat = $settings.format;
-
-	onMount(() => {
-		console.log(`📅 Formats ~ onMount ~ ${granularity} ~ ${crrFormat}`);
-	});
+	$: selectedFormat = $settings.selectedFormat;
 
 	function getExpectedTokens(granularity: IGranularity): string {
 		const baseTokens = 'Y or y (year)';
@@ -42,9 +37,11 @@
 			</div>
 		</div>
 		<div class="setting-item-description self-end text-end">
-			{#if crrFormat}
-				<p class="mt-0 mb-1">Current format: <span class="u-pop">{crrFormat}</span></p>
-				<p class="m-0">Preview: <span class="u-pop">{window.moment().format(crrFormat)}</span></p>
+			{#if selectedFormat.value}
+				<p class="mt-0 mb-1">Current format: <span class="u-pop">{selectedFormat.value}</span></p>
+				<p class="m-0">
+					Preview: <span class="u-pop">{window.moment().format(selectedFormat.value)}</span>
+				</p>
 			{:else}
 				<p class="u-pop">Empty format</p>
 			{/if}

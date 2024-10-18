@@ -37,8 +37,8 @@ export async function createOrOpenNote({
     granularity: IGranularity;
     confirmBeforeCreateOverride?: boolean;
 }) {
-    const { format, folder } = getNoteSettings()[granularity];
-    const filename = date.format(format);
+    const { selectedFormat, folder } = getNoteSettings()[granularity];
+    const filename = date.format(selectedFormat.value);
     const normalizedPath = await getNotePath(folder, filename);
     console.log("[createOrOpenNote()] > normalizedPath: ", normalizedPath);
     let file = window.app.metadataCache.getFirstLinkpathDest(normalizedPath, "")
@@ -55,7 +55,7 @@ export async function createOrOpenNote({
         await openFile(file);
     } else {
         const periodicity = capitalize(getPeriodicityFromGranularity(granularity));
-        console.log("[io-create-or-open-note]", granularity, format, date, filename);
+        console.log("[io-create-or-open-note]", granularity, selectedFormat.value, date, filename);
 
         if (confirmBeforeCreateOverride) {
             createConfirmationDialog({
@@ -86,17 +86,16 @@ export async function createOrOpenNote({
 }
 
 async function createNote(granularity: IGranularity, date: Moment) {
-    const { template, format, folder } = getNoteSettings()[granularity];
-    logger("[io-create--note]", granularity, format);
+    let { templatePath, selectedFormat, folder } = getNoteSettings()[granularity];
 
-    const filename = date.format(format);
+    const filename = date.format(selectedFormat.value);
     const normalizedPath = await getNotePath(folder, filename);
-    const [templateContents, IFoldInfo] = await getTemplateInfo(template);
+    const [templateContents, IFoldInfo] = await getTemplateInfo(templatePath);
 
     try {
         const createdFile = await window.app.vault.create(
             normalizedPath,
-            replaceTemplateContents(date, format, templateContents)
+            replaceTemplateContents(date, selectedFormat.value, templateContents)
         );
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -229,7 +228,7 @@ function replaceTemplateContents(
 }
 
 // Example usage
-const template = `
+const exampleTemplate = `
 Title: {{title}}
 Date: {{date}}
 Current time: {{time}}
@@ -244,5 +243,5 @@ Next Quarter: {{next-quarter:}}
 Wrong: {{wrong:W}}
 `;
 
-const result = replaceTemplateContents(moment(), 'YYYY-MM-DD', template);
+const result = replaceTemplateContents(moment(), 'YYYY-MM-DD', exampleTemplate);
 console.log(result);

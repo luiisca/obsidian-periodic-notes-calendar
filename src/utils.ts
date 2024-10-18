@@ -41,15 +41,15 @@ export function getOnCreateNoteDialogNoteFromGranularity(granularity: IGranulari
 
     if (granularity === 'day') {
         if (pluginSettings.enabled) {
-            return `Note: Using daily format ${getStyledFormatEl(pluginSettings.format)} from Notes settings.`;
+            return `Note: Using daily format ${getStyledFormatEl(pluginSettings.selectedFormat.value)} from Notes settings.`;
         } else {
-            return `Note: Using daily format ${getStyledFormatEl(processedNoteSettings.format)} from Daily Notes plugin.`;
+            return `Note: Using daily format ${getStyledFormatEl(processedNoteSettings.selectedFormat.value)} from Daily Notes plugin.`;
         }
     } else {
         if (pluginSettings.enabled) {
-            return `Note: Using ${capitalize(periodicity)} format ${getStyledFormatEl(pluginSettings.format)} from Notes settings.`;
+            return `Note: Using ${capitalize(periodicity)} format ${getStyledFormatEl(pluginSettings.selectedFormat.value)} from Notes settings.`;
         } else {
-            return `Note: ${capitalize(periodicity)} Notes settings disabled. Using default format ${getStyledFormatEl(processedNoteSettings.format)}.`;
+            return `Note: ${capitalize(periodicity)} Notes settings disabled. Using default format ${getStyledFormatEl(processedNoteSettings.selectedFormat.value)}.`;
         }
     }
 }

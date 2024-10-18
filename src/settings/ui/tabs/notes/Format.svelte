@@ -26,7 +26,7 @@
 	let replaceBttnEl: HTMLElement;
 	let value = format.value || '';
 	let error = format.error || '';
-	$: selected = type === 'skeleton' ? false : format.id === $settings.selectedId;
+	$: selected = type === 'skeleton' ? false : format.id === $settings.selectedFormat.id;
 	let { triggerRerender } = getContext<INotesContext>('notesContext');
 
 	// Mock data
@@ -54,7 +54,11 @@
 		if (selected) {
 			settings.update((settings) => ({
 				...settings,
-				format: value
+				selectedFormat: {
+					...settings.selectedFormat,
+					value,
+					error
+				}
 			}));
 		}
 	}
@@ -77,17 +81,18 @@
 			});
 		} else {
 			error = validateFormat(value, granularity, format.id);
+			const newSelectedFormat = {
+				...$settings.formats[index],
+				value,
+				error
+			};
 
 			settings.update((settings) => ({
 				...settings,
-				selectedId: format.id,
-				format: value,
+				selectedFormat: newSelectedFormat,
 				formats: [
 					...settings.formats.slice(0, index),
-					{
-						...settings.formats[index],
-						error
-					},
+					newSelectedFormat,
 					...settings.formats.slice(index + 1)
 				]
 			}));
@@ -101,7 +106,7 @@
 		// 1. select format
 		settings.update((settings) => ({
 			...settings,
-			format: format.value
+			selectedFormat: settings.formats[index]
 		}));
 		// 2. go through all formats, and through all their files, extract their date object and reformat it with
 		// new crr format
@@ -130,11 +135,10 @@
 
 				// helps ensure at least one format is selected at all times
 				console.log('👉 on remove', newSettings, format);
-				if (newSettings.selectedId === format.id && newSettings.formats.length > 0) {
+				if (selected && newSettings.formats.length > 0) {
 					newSettings = {
 						...newSettings,
-						format: newSettings.formats[0].value,
-						selectedId: newSettings.formats[0].id
+						selectedFormat: newSettings.formats[0]
 					};
 				}
 				// helps ensure at least one format exists at all times
@@ -142,18 +146,16 @@
 					newSettings.formats.length === 1 && newSettings.formats[0].value.trim() === '';
 				if (newSettings.formats.length === 0 || lastFormatEmpty) {
 					const id = window.crypto.randomUUID();
+					const newSelectedFormat = {
+						id,
+						value: defaultFormat,
+						filePaths: [],
+						error: ''
+					};
 					newSettings = {
 						...newSettings,
-						format: defaultFormat,
-						selectedId: id,
-						formats: [
-							{
-								id,
-								value: defaultFormat,
-								filePaths: [],
-								error: ''
-							}
-						]
+						selectedFormat: newSelectedFormat,
+						formats: [newSelectedFormat]
 					};
 				}
 
@@ -223,8 +225,7 @@
 		if ($settings.formats.length === 1) {
 			settings.update((settings) => ({
 				...settings,
-				selectedId: settings.formats[0].id,
-				format: settings.formats[0].value
+				selectedFormat: settings.formats[0]
 			}));
 		}
 	}

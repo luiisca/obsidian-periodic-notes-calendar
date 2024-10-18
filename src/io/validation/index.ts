@@ -17,43 +17,44 @@ export function getBasename(format: string): string {
 }
 
 /**
- * XXX: When parsing dates that contain both week numbers and months,
- * Moment choses to ignore the week numbers. For the week noteDateUID, we
- * want the opposite behavior. Strip the MMM from the format to patch.
+ * When parsing dates that contain both week numbers and months,
+ * Moment choses to ignore the week numbers. Remove both M{1,4} and D{1,4} from format to patch.
  */
-function isWeekFormatAmbiguous(format: string) {
+export function isWeekFormatAmbiguous(format: string) {
     const cleanFormat = removeEscapedCharacters(format);
     return /w{1,2}/i.test(cleanFormat) && (/M{1,4}/.test(cleanFormat) || /D{1,4}/.test(cleanFormat));
 }
 
 export function isValidPeriodicNote(fileName: string, customGranularities = granularities as unknown as IGranularity[])
-    : { isValid: true, granularity: IGranularity, date: Moment } | { isValid: false, granularity: null, date: null } {
+    : { isValid: boolean, granularity: IGranularity, date: Moment } | { isValid: null, granularity: null, date: null } {
 
     for (const granularity of customGranularities) {
-        for (const validFormat of get(settingsStore).notes[granularity].validFormats) {
-            let date = window.moment(fileName, validFormat, true);
+        for (const format of get(settingsStore).notes[granularity].formats) {
+            let parsedDate = window.moment(fileName, format.value, true);
+            const isMatchingFormatFound = parsedDate.isValid() && parsedDate.format(format.value) === fileName
 
-            if (date.isValid() && date.format(validFormat) === fileName) {
+            if (isMatchingFormatFound) {
+                if (format.error) {
+                    return { isValid: false, granularity, date: parsedDate };
+                }
+
                 if (granularity === 'week') {
-                    console.log("week, validFormat: ", validFormat);
-                    if (validFormat && isWeekFormatAmbiguous(validFormat)) {
-                        const cleanFormat = removeEscapedCharacters(validFormat);
-                        if (/w{1,2}/i.test(cleanFormat)) {
-                            date = window.moment(
-                                fileName,
-                                validFormat.replace(/M{1,4}/g, '').replace(/D{1,4}/g, ''),
-                                false
-                            );
-                        }
+                    console.log("week, format: ", format.value);
+                    if (isWeekFormatAmbiguous(format.value)) {
+                        parsedDate = window.moment(
+                            fileName,
+                            format.value.replace(/M{1,4}/g, '').replace(/D{1,4}/g, ''),
+                            false
+                        );
                     }
                 }
 
-                return { isValid: true, granularity, date }
+                return { isValid: true, granularity, date: parsedDate }
             }
         }
     }
 
-    return { isValid: false, granularity: null, date: null };
+    return { isValid: null, granularity: null, date: null };
 }
 
 export function validateFolder(folder: string): string {

@@ -5,9 +5,13 @@ import { sysLocaleKey, sysWeekStartId } from "../localization";
 export interface PeriodSettings {
     enabled: boolean;
     openAtStartup: boolean;
-    selectedId: string;
 
-    format: string;
+    selectedFormat: {
+        id: string;
+        value: string;
+        filePaths: string[];
+        error: string;
+    }
     formats: {
         id: string;
         value: string;
@@ -15,7 +19,7 @@ export interface PeriodSettings {
         error: string;
     }[];
     folder: string;
-    templatePath?: string;
+    templatePath: string;
 }
 
 export interface ISettings {
@@ -81,21 +85,22 @@ function getDefaultPeriodicNotesConfig(
     granularity: IGranularity,
 ): PeriodSettings {
     const id = window.crypto.randomUUID();
+    const selectedFormat = {
+        id,
+        value: DEFAULT_FORMATS_PER_GRANULARITY[granularity],
+        filePaths: [],
+        error: "",
+    }
+
     return Object.freeze(
         {
             enabled: false,
             openAtStartup: false,
-            selectedId: id,
 
-            format: DEFAULT_FORMATS_PER_GRANULARITY[granularity],
-            formats: [{
-                id,
-                value: DEFAULT_FORMATS_PER_GRANULARITY[granularity],
-                filePaths: [],
-                error: "",
-            }],
+            selectedFormat,
+            formats: [selectedFormat],
             templatePath: "",
-            folder: "",
+            folder: "/",
         } satisfies PeriodSettings,
     );
 }

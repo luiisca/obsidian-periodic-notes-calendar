@@ -54,11 +54,11 @@ const onHover = ({
     isControlPressed,
     granularity
 }: Parameters<TOnHover>[0]): void => {
-    const { format } = getNoteSettings()[granularity];
+    const { selectedFormat } = getNoteSettings()[granularity];
     const note = getNoteFromStore({ date, granularity });
 
     if (isControlPressed || get(settingsStore).autoHoverPreview) {
-        window.app.workspace.trigger('link-hover', targetEl, date.format(format), note?.path);
+        window.app.workspace.trigger('link-hover', targetEl, date.format(selectedFormat.value), note?.path);
     }
 };
 
