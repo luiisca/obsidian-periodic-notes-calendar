@@ -77,5 +77,20 @@ export function getYears({ startRangeYear }: { startRangeYear: number }): IYears
     return years;
 }
 
+/**
+    * example: [['Notice first part'], ['second part', 'u-pop'], ...]
+    */
+export function genNoticeFragment(mssgFragments: ([string] | [string, string])[]) {
+    const fragment = document.createDocumentFragment();
+    for (const mssg of mssgFragments) {
+        const mssgSpan = document.createElement('span');
+        mssgSpan.textContent = mssg[0];
+        mssgSpan.className = mssg[1] || "";
+        fragment.appendChild(mssgSpan);
+    }
+
+    return fragment;
+}
+
 export * from './picker';
 export * from './event-handlers';

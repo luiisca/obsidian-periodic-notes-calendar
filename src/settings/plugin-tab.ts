@@ -5,9 +5,10 @@ import { App, Notice, PluginSettingTab } from 'obsidian';
 import { SvelteComponent } from "svelte";
 import { get } from "svelte/store";
 import { settingsStore } from "./store";
-import { granularities } from "@/constants";
-import { getPeriodicityFromGranularity } from "@/io";
+import { DEFAULT_FORMATS_PER_GRANULARITY, granularities } from "@/constants";
+import { getPeriodicityFromGranularity, IGranularity } from "@/io";
 import { capitalize } from "@/utils";
+import { genNoticeFragment } from "@/ui/utils";
 
 export class SettingsTab extends PluginSettingTab {
     public plugin: PeriodicNotesCalendarPlugin;
@@ -34,30 +35,72 @@ export class SettingsTab extends PluginSettingTab {
         let errors = [];
 
         for (const granularity of granularities) {
-            for (const format of get(settingsStore).notes[granularity].formats) {
-                if (format.error.trim()) {
+            const periodNotesSettings = get(settingsStore).notes[granularity];
+            this.replaceSelectedFormatIfNeeded(granularity)
+
+            for (const format of periodNotesSettings.formats) {
+                if (format.error) {
                     errors.push(capitalize(getPeriodicityFromGranularity(granularity)))
                     break;
                 }
             }
         }
 
-        // TODO: reword
         if (errors.length > 0) {
-            const fragment = document.createDocumentFragment();
+            new Notice(genNoticeFragment([
+                ['Warning: Invalid settings for these periods: '],
+                [errors.join(', '), 'u-pop'],
+                ['. Calendar functionality may be affected.']
+            ]), 8000);
+        }
+    }
 
-            const invalidText = document.createTextNode('Invalid settings for these periods: ');
-            fragment.appendChild(invalidText);
+    /**
+        * Check if the selected format for a given period is invalid, if so replace it with a valid format from the formats list or a default format.
+        * This ensures that the user can create a note with a valid format.
+        */
+    private replaceSelectedFormatIfNeeded(granularity: IGranularity) {
+        const periodNotesSettings = get(settingsStore).notes[granularity];
+        let invalidValue: string;
+        let correctedValue: string;
 
-            const errorSpan = document.createElement('span');
-            errorSpan.className = 'u-pop';
-            errorSpan.textContent = errors.join(', ');
-            fragment.appendChild(errorSpan);
+        if (periodNotesSettings.selectedFormat.error) {
+            invalidValue = periodNotesSettings.selectedFormat.value;
 
-            const bewareText = document.createTextNode('. Beware that the calendar might not work correctly');
-            fragment.appendChild(bewareText);
+            const foundValidFormat = periodNotesSettings.formats.find(format => !format.error);
+            const defaultFormat = {
+                id: window.crypto.randomUUID(),
+                value: DEFAULT_FORMATS_PER_GRANULARITY[granularity],
+                filePaths: [],
+                error: ''
+            }
+            settingsStore.update((settings) => ({
+                ...settings,
+                notes: {
+                    ...settings.notes,
+                    [granularity]: {
+                        ...settings.notes[granularity],
+                        selectedFormat: foundValidFormat || defaultFormat,
+                        formats: [
+                            foundValidFormat ? null : defaultFormat,
+                            ...settings.notes[granularity].formats
+                        ].filter(Boolean)
+                    }
+                }
+            }))
 
-            new Notice(fragment, 5000);
+            correctedValue = foundValidFormat?.value || defaultFormat.value;
+
+            const periodicity = capitalize(getPeriodicityFromGranularity(granularity));
+            new Notice(genNoticeFragment([
+                [periodicity, 'u-pop'],
+                [' format '],
+                [invalidValue, 'u-pop'],
+                [' is invalid. '],
+                ['Using '],
+                [correctedValue, 'u-pop'],
+                [' to prevent errors.'],
+            ]), 8000)
         }
     }
 }
