@@ -22,33 +22,77 @@ function validateFilename(filename: string): boolean {
 }
 
 function isAmbiguousFormat(
+    value: string,
     currentDate: moment.Moment,
     parsedDate: moment.Moment,
-    format: string,
     granularity: IGranularity,
 ): string | null {
     const errorMessage = "Ambiguous format.";
 
-    const containsAny = (tokens: string[]): boolean =>
-        tokens.some((token) => format.includes(token));
+    const isTokenEffective = (token: string) => {
+        const isEffective = (startIndex: number, foundOpeningBracket: boolean) => {
+            let _foundOpeningBracket = foundOpeningBracket;
+            let tokenFound = false;
+
+            for (let i = startIndex; i < value.length; i++) {
+                if (value[i] === "[") {
+                    if (!_foundOpeningBracket && !tokenFound) {
+                        _foundOpeningBracket = true;
+                        continue;
+                    }
+                    if (_foundOpeningBracket && tokenFound) {
+                        return true;
+                    }
+                }
+
+                if (value[i] === token) {
+                    tokenFound = true;
+
+                    if (
+                        !value.slice(i + 1).includes("]") &&
+                        !value.slice(i + 1).includes("[")
+                    ) {
+                        return true;
+                    }
+
+
+                    if (!_foundOpeningBracket) {
+                        return true;
+                    } else {
+                        continue;
+                    }
+                }
+
+                if (value[i] === "]" && _foundOpeningBracket && tokenFound) {
+                    return isEffective(i + 1, true);
+                }
+            }
+        };
+
+        return isEffective(0, false);
+    }
+
+    const containsValidToken = (tokens: string[]) => {
+        return tokens.some((token) => isTokenEffective(token));
+    }
 
     // Check for missing essential information based on granularity
     const missingInfo = (() => {
-        if (!containsAny(["Y", "y"])) return "year (Y or y)";
+        if (!containsValidToken(["Y", "y", "gg", "GG"])) return "year (Y, y, gg, or GG)";
 
         switch (granularity) {
             case "quarter":
-                if (!containsAny(["Q"])) return "quarter (Q)";
+                if (!containsValidToken(["Q"])) return "quarter (Q)";
                 break;
             case "month":
-                if (!containsAny(["M"])) return "month (M)";
+                if (!containsValidToken(["M"])) return "month (M)";
                 break;
             case "week":
-                if (!containsAny(["w", "W"])) return "week (w or W)";
+                if (!containsValidToken(["w", "W"])) return "week (w or W)";
                 break;
             case "day":
-                if (!containsAny(["M"])) return "month (M)";
-                if (!containsAny(["D"])) return "day (D)";
+                if (!containsValidToken(["M"])) return "month (M)";
+                if (!containsValidToken(["D"])) return "day (D)";
                 break;
         }
         return null;
@@ -108,13 +152,13 @@ function isAmbiguousFormat(
 }
 
 export function addToValidFormats(
-    format: string,
+    value: string,
     granularity: IGranularity,
 ): void {
     let isValidFormatNew = true;
     for (const granularity of granularities) {
         const isNew = get(settingsStore).notes[granularity].formats.every((f) =>
-            f.value !== format
+            f.value !== value
         );
 
         if (!isNew) {
@@ -135,7 +179,7 @@ export function addToValidFormats(
                         ...settings.notes[granularity].formats,
                         {
                             id: window.crypto.randomUUID(),
-                            value: format,
+                            value,
                             filePaths: [],
                             error: "",
                         },
@@ -147,7 +191,7 @@ export function addToValidFormats(
 }
 
 function checkIfDuplicateFormat(
-    format: string,
+    value: string,
     granularity: IGranularity,
     id: string,
 ) {
@@ -155,7 +199,7 @@ function checkIfDuplicateFormat(
         const formats = get(settingsStore).notes[g].formats;
 
         for (const f of formats) {
-            if (f.id !== id && f.value === format) {
+            if (f.id !== id && f.value === value) {
                 return {
                     duplicate: true,
                     errorMsg: `Duplicate format ${granularity === g
@@ -172,36 +216,36 @@ function checkIfDuplicateFormat(
 }
 
 export function validateFormat(
-    format: string,
+    value: string,
     granularity: IGranularity,
     id: string,
 ): string {
     let error = "";
 
-    if (!format) {
+    if (!value) {
         return error = "";
     }
 
-    if (!validateFilename(format)) {
+    if (!validateFilename(value)) {
         return error = "Format contains illegal characters";
     }
 
     const currentDate = window.moment();
-    const formattedDate = window.moment().format(format);
-    let parsedDate = window.moment(formattedDate, format, true);
-    if (granularity === 'week' && isWeekFormatAmbiguous(format)) {
+    const formattedDate = window.moment().format(value);
+    let parsedDate = window.moment(formattedDate, value, true);
+    if (granularity === 'week' && isWeekFormatAmbiguous(value)) {
         parsedDate = window.moment(
             formattedDate,
-            format.replace(/M{1,4}/g, '').replace(/D{1,4}/g, ''),
+            value.replace(/M{1,4}/g, '').replace(/D{1,4}/g, ''),
             false
         );
     }
 
     // Check for ambiguous formats
     const ambiguityError = isAmbiguousFormat(
+        value,
         currentDate,
         parsedDate,
-        format,
         granularity,
     );
     if (ambiguityError) {
@@ -215,7 +259,7 @@ export function validateFormat(
 
     // check for duplicated valid formats
     const { duplicate, errorMsg } = checkIfDuplicateFormat(
-        format,
+        value,
         granularity,
         id,
     );
