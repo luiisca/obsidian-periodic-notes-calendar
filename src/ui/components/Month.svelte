@@ -1,21 +1,24 @@
 <svelte:options immutable />
 
 <script lang="ts">
-	import { getNoteDateUID } from '@/io';
-	import { displayedDateStore, notesStores } from '@/stores';
+	import { displayedDateStore } from '@/stores';
 	import { eventHandlers, isControlPressed } from '../utils';
 	import Dot from './Dot.svelte';
 	import Sticker from './Sticker.svelte';
+	import { getFileData } from '@/io';
+	import { justModFileDataStore } from '@/stores/notes';
 
 	export let monthIndex: number;
 
-	const notesStore = notesStores['month'];
-
 	$: date = $displayedDateStore.clone().month(monthIndex).startOf('month');
-	$: noteDateUID = getNoteDateUID({ date, granularity: 'month' });
-
-	$: file = $notesStore[noteDateUID]?.file;
-	$: sticker = $notesStore[noteDateUID]?.sticker;
+	let { file, sticker } = getFileData('month', date);
+	$: {
+		if ($justModFileDataStore && $justModFileDataStore.op === 'created') {
+			const fileData = getFileData('month', date);
+			file = fileData.file;
+			sticker = fileData.sticker;
+		}
+	}
 </script>
 
 <td class="relative">
@@ -29,23 +32,26 @@
 			})}
 		on:contextmenu={(event) =>
 			eventHandlers.onContextMenu({
-				date,
 				event,
+				fileData: {
+					file,
+					sticker
+				},
+				date,
 				granularity: 'month'
 			})}
 		on:pointerenter={(event) =>
 			eventHandlers.onHover({
-				date,
 				targetEl: event.target,
 				isControlPressed: isControlPressed(event),
-				granularity: 'month'
+				file
 			})}
 	>
 		{$displayedDateStore.clone().month(monthIndex).format('MMMM')}
 		<Dot isFilled={!!file} isActive={!!file} />
 	</button>
 
-	<Sticker {sticker} />
+	<Sticker sticker={sticker?.emoji} />
 </td>
 
 <style lang="postcss">

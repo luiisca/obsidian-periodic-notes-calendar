@@ -1,12 +1,11 @@
 import { STICKER_POPOVER_ID } from "@/constants";
-import { getNoteDateUID } from "@/io";
 import { settingsStore } from "@/settings";
-import { notesStores, stickerComponentPropsStore } from "@/stores";
 import data from "@emoji-mart/data";
 import { Picker } from "emoji-mart";
+import { TFile, type TagCache } from "obsidian";
 import { get } from "svelte/store";
 import { getBehaviorInstance, getPopoverInstance, Popover } from "../popovers";
-import { type TagCache } from "obsidian";
+import { TFileData } from "@/io";
 
 type TEmoji = {
     aliases?: string[],
@@ -17,6 +16,11 @@ type TEmoji = {
     shortcodes: string,
     skin?: number,
     unified: string,
+}
+export type TSticker = {
+    emoji: string,
+    startOffset: number,
+    endOffset: number,
 }
 
 export const onInputKeydown = (ev: KeyboardEvent) => {
@@ -39,6 +43,7 @@ export const onInputKeydown = (ev: KeyboardEvent) => {
 export function initializePicker(
     container: HTMLElement,
     theme: "light" | "dark" | null,
+    fileData: TFileData
 ) {
     const pickerOptions = {
         data,
@@ -46,30 +51,16 @@ export function initializePicker(
             const stickerInstance = getPopoverInstance(STICKER_POPOVER_ID);
             stickerInstance?.close()
 
-            const { date, granularity } = get(stickerComponentPropsStore);
-            const noteStore = granularity ? notesStores[granularity] : null;
-            const noteDateUID = date && granularity ? getNoteDateUID({ date, granularity }) : null;
+            const { file, sticker } = fileData;
 
-            if (noteStore && noteDateUID) {
-                // update store with new emoji
-                noteStore.update((values) => ({
-                    ...values,
-                    [noteDateUID]: {
-                        file: values[noteDateUID].file,
-                        sticker: emoji.native
-                    }
-                }));
-
+            if (file) {
                 // update note with new emoji tag
-                const file = get(noteStore)[noteDateUID].file;
-                const tags = window.app.metadataCache.getFileCache(file)?.tags;
                 const content = await window.app.vault.read(file)
                 let updatedContent = content
 
-                const hasEmoji = doTagsIncludeEmoji(tags)
-                if (hasEmoji) {
-                    const bef = updatedContent.slice(0, hasEmoji.startOffset)
-                    const aft = updatedContent.slice(hasEmoji.endOffset)
+                if (sticker) {
+                    const bef = updatedContent.slice(0, sticker.startOffset)
+                    const aft = updatedContent.slice(sticker.endOffset)
                     updatedContent = `${bef}#${emoji.native}${aft}`;
 
                     window.app.vault.modify(file, updatedContent)
@@ -165,25 +156,27 @@ function hueToRgb(p: number, q: number, t: number) {
     return p;
 }
 
-export function doTagsIncludeEmoji(tags?: TagCache[]) {
-    if (tags) {
-        let hasEmoji: { emoji: string, startOffset: number, endOffset: number } | null = null;
-        for (let index = 0; index < tags.length; index++) {
-            const tagObj = tags[index];
-
-            if (/\p{RGI_Emoji}/v.test(tagObj.tag)) {
-                hasEmoji = {
-                    emoji: tagObj.tag.slice(1),
-                    startOffset: tagObj.position.start.offset,
-                    endOffset: tagObj.position.end.offset,
-                }
-
-                break;
-            } else {
-                continue;
-            }
-        }
-
-        return hasEmoji
+export function getSticker(tags: TagCache[] | null | undefined): TSticker | null {
+    if (!tags) {
+        return null
     }
+
+    let sticker: { emoji: string, startOffset: number, endOffset: number } | null = null;
+    for (let index = 0; index < tags.length; index++) {
+        const tagObj = tags[index];
+
+        if (/\p{RGI_Emoji}/v.test(tagObj.tag)) {
+            sticker = {
+                emoji: tagObj.tag.slice(1),
+                startOffset: tagObj.position.start.offset,
+                endOffset: tagObj.position.end.offset,
+            }
+
+            break;
+        } else {
+            continue;
+        }
+    }
+
+    return sticker;
 }

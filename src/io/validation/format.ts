@@ -180,7 +180,6 @@ export function addToValidFormats(
                         {
                             id: window.crypto.randomUUID(),
                             value,
-                            filePaths: [],
                             error: "",
                         },
                     ],

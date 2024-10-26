@@ -2,14 +2,17 @@
 	import { STICKER_POPOVER_ID } from '@/constants';
 	import { initializePicker } from '../utils';
 	import { themeStore } from '@/stores';
+	import { TFileData } from '@/io';
 
 	export let close: () => void;
+	export let fileData: TFileData;
+	// export let
 
 	let pickerContainerEl: HTMLDivElement | null = null;
 	let pickerInitialized = false;
 	$: {
 		const theme = $themeStore;
-		pickerContainerEl && theme && initializePicker(pickerContainerEl, theme);
+		pickerContainerEl && theme && initializePicker(pickerContainerEl, theme, fileData);
 		if (!pickerInitialized && pickerContainerEl) {
 			pickerInitialized = true;
 		}
@@ -34,3 +37,4 @@
 		width: unset !important;
 	}
 </style>
+

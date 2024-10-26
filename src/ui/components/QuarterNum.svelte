@@ -1,20 +1,24 @@
 <svelte:options immutable />
 
 <script lang="ts">
-	import { getNoteDateUID } from '@/io';
-	import { displayedDateStore, notesStores } from '@/stores';
+	import { getFileData } from '@/io';
+	import { displayedDateStore } from '@/stores';
 	import { eventHandlers, isControlPressed } from '../utils';
 	import Dot from './Dot.svelte';
 	import Sticker from './Sticker.svelte';
+	import { justModFileDataStore } from '@/stores/notes';
 
 	export let quarterNum: number;
 
-	const notesStore = notesStores['quarter'];
-
 	$: date = $displayedDateStore.clone().quarter(quarterNum).startOf('quarter');
-	$: noteDateUID = getNoteDateUID({ date, granularity: 'quarter' });
-	$: file = $notesStore[noteDateUID]?.file;
-	$: sticker = $notesStore[noteDateUID]?.sticker;
+	let { file, sticker } = getFileData('quarter', date);
+	$: {
+		if ($justModFileDataStore && $justModFileDataStore.op === 'created') {
+			const fileData = getFileData('quarter', date);
+			file = fileData.file;
+			sticker = fileData.sticker;
+		}
+	}
 </script>
 
 <td class="relative">
@@ -28,23 +32,26 @@
 			})}
 		on:contextmenu={(event) =>
 			eventHandlers.onContextMenu({
-				date,
 				event,
+				fileData: {
+					file,
+					sticker
+				},
+				date,
 				granularity: 'quarter'
 			})}
 		on:pointerenter={(event) =>
 			eventHandlers.onHover({
-				date,
 				targetEl: event.target,
 				isControlPressed: isControlPressed(event),
-				granularity: 'quarter'
+				file
 			})}
 	>
 		Q{quarterNum}
 		<Dot isFilled={!!file} isActive={!!file} />
 	</button>
 
-	<Sticker {sticker} />
+	<Sticker sticker={sticker?.emoji} />
 </td>
 
 <style lang="postcss">

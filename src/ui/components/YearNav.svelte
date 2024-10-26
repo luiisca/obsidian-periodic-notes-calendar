@@ -5,6 +5,8 @@
 	import { eventHandlers, isControlPressed } from '../utils';
 	import Arrow from './Arrow.svelte';
 	import Dot from './Dot.svelte';
+	import { getFileData } from '@/io';
+	import { justModFileDataStore } from '@/stores/notes';
 
 	let today: Moment;
 	$: $displayedDateStore, (today = window.moment());
@@ -34,6 +36,14 @@
 			// add new ranges or update existing ones every time displayed date changes
 			yearsRanges.selectOrCreateRanges();
 		})();
+
+	let { file, sticker } = getFileData('year', $displayedDateStore);
+	$: {
+		if ($justModFileDataStore && $justModFileDataStore.op === 'created') {
+			const fileData = getFileData('year', $displayedDateStore);
+			file = fileData.file;
+		}
+	}
 </script>
 
 <div class="flex flex-col space-y-1 mt-2.5 px-2" id="nav">
@@ -49,16 +59,19 @@
 				})}
 			on:contextmenu={(event) =>
 				eventHandlers.onContextMenu({
-					date: $displayedDateStore,
 					event,
+					fileData: {
+						file,
+						sticker
+					},
+					date: $displayedDateStore,
 					granularity: 'year'
 				})}
 			on:pointerenter={(event) => {
 				eventHandlers.onHover({
-					date: $displayedDateStore,
 					targetEl: event.target,
 					isControlPressed: isControlPressed(event),
-					granularity: 'year'
+					file
 				});
 			}}
 		>

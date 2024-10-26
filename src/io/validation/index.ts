@@ -1,5 +1,5 @@
 import { granularities } from '@/constants';
-import { settingsStore } from '@/settings';
+import { PeriodSettings, settingsStore } from '@/settings';
 import { type Moment } from 'moment';
 import { get } from 'svelte/store';
 import { type IGranularity } from '../types';
@@ -18,24 +18,27 @@ export function getBasename(format: string): string {
 
 /**
  * When parsing dates that contain both week numbers and months,
- * Moment choses to ignore the week numbers. Remove both M{1,4} and D{1,4} from format to patch.
+ * Moment ignores the week numbers. Remove both M{1,4} and D{1,4} from format to patch.
  */
 export function isWeekFormatAmbiguous(format: string) {
     const cleanFormat = removeEscapedCharacters(format);
     return /w{1,2}/i.test(cleanFormat) && (/M{1,4}/.test(cleanFormat) || /D{1,4}/.test(cleanFormat));
 }
 
-export function isValidPeriodicNote(fileName: string, customGranularities = granularities as unknown as IGranularity[])
-    : { isValid: boolean, granularity: IGranularity, date: Moment } | { isValid: null, granularity: null, date: null } {
+export function isValidPeriodicNote(fileName: string, customGranularities = granularities as unknown as IGranularity[], customFormats?: PeriodSettings["formats"][0][])
+    : { isValid: boolean, granularity: IGranularity, date: Moment, format: PeriodSettings['formats'][0], formatIndex: number } | { isValid: null, granularity: null, date: null, format: null, formatIndex: null } {
 
     for (const granularity of customGranularities) {
-        for (const format of get(settingsStore).notes[granularity].formats) {
-            let parsedDate = window.moment(fileName, format.value, true);
-            const isMatchingFormatFound = parsedDate.isValid() && parsedDate.format(format.value) === fileName
+        const formats = customFormats || get(settingsStore).notes[granularity].formats;
+        for (let index = 0; index < formats.length; index++) {
+            const format = formats[index];
 
-            if (isMatchingFormatFound) {
+            let parsedDate = window.moment(fileName, format.value, true);
+            const match = parsedDate.isValid() && parsedDate.format(format.value) === fileName
+
+            if (match) {
                 if (format.error) {
-                    return { isValid: false, granularity, date: parsedDate };
+                    return { isValid: false, granularity, date: parsedDate, format, formatIndex: index };
                 }
 
                 if (granularity === 'week') {
@@ -49,12 +52,12 @@ export function isValidPeriodicNote(fileName: string, customGranularities = gran
                     }
                 }
 
-                return { isValid: true, granularity, date: parsedDate }
+                return { isValid: true, granularity, date: parsedDate, format, formatIndex: index };
             }
         }
     }
 
-    return { isValid: null, granularity: null, date: null };
+    return { isValid: null, granularity: null, date: null, format: null, formatIndex: null };
 }
 
 export function validateFolder(folder: string): string {

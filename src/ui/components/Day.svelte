@@ -3,11 +3,12 @@
 <script lang="ts">
 	import type { Moment } from 'moment';
 
-	import { getNoteDateUID } from '@/io';
-	import { activeFileIdStore, displayedDateStore, notesStores } from '@/stores/';
+	import { activeFilepathStore, displayedDateStore } from '@/stores/';
 	import { eventHandlers, isControlPressed } from '../utils';
 	import Dot from './Dot.svelte';
 	import Sticker from './Sticker.svelte';
+	import { getFileData } from '@/io';
+	import { justModFileDataStore } from '@/stores/notes';
 
 	// Properties
 	export let date: Moment;
@@ -16,12 +17,16 @@
 	let today: Moment;
 	$: $displayedDateStore, (today = window.moment());
 
-	const notesStore = notesStores['day'];
-	const noteDateUID = getNoteDateUID({ date, granularity: 'day' });
-	$: file = $notesStore[noteDateUID]?.file;
-	$: sticker = $notesStore[noteDateUID]?.sticker;
-
-	$: isActive = $activeFileIdStore === noteDateUID;
+	// file obtained with filename generated using selected format for given period
+	let { file, sticker } = getFileData('day', date);
+	$: {
+		if ($justModFileDataStore && $justModFileDataStore.op === 'created') {
+			const fileData = getFileData('day', date);
+			file = fileData.file;
+			sticker = fileData.sticker;
+		}
+	}
+	$: isActive = $activeFilepathStore === file?.path;
 	$: isToday = date.isSame(today, 'day');
 	$: isAdjacentMonth = !date.isSame($displayedDateStore, 'month');
 </script>
@@ -39,20 +44,28 @@
 				createNewSplitLeaf: isControlPressed(event),
 				granularity: 'day'
 			})}
-		on:contextmenu={(event) => eventHandlers.onContextMenu({ date, event, granularity: 'day' })}
+		on:contextmenu={(event) =>
+			eventHandlers.onContextMenu({
+				event,
+				fileData: {
+					file,
+					sticker
+				},
+				date,
+				granularity: 'day'
+			})}
 		on:pointerenter={(event) => {
 			eventHandlers.onHover({
-				date,
 				targetEl: event.target,
 				isControlPressed: isControlPressed(event),
-				granularity: 'day'
+				file
 			});
 		}}
 	>
 		{date.format('D')}
 		<Dot className="absolute bottom-1" isVisible={!!file} isFilled={!!file} isActive={!!file} />
 	</button>
-	<Sticker {sticker} />
+	<Sticker sticker={sticker?.emoji} />
 </td>
 
 <style lang="postcss">

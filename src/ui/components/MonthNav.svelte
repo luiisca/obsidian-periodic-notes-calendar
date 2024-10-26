@@ -5,6 +5,8 @@
 	import { eventHandlers, isControlPressed } from '../utils';
 	import Arrow from './Arrow.svelte';
 	import Dot from './Dot.svelte';
+	import { getFileData } from '@/io';
+	import { justModFileDataStore } from '@/stores/notes';
 
 	let today: Moment;
 	$: $displayedDateStore, (today = window.moment());
@@ -28,6 +30,21 @@
 
 	let showingCurrentMonth: boolean;
 	$: showingCurrentMonth = $displayedDateStore.isSame(today, 'month');
+
+	let { file: monthFile, sticker: monthSticker } = getFileData('month', $displayedDateStore);
+	let { file: yearFile, sticker: yearSticker } = getFileData(
+		'year',
+		$displayedDateStore.clone().startOf('year')
+	);
+	$: {
+		if ($justModFileDataStore && $justModFileDataStore.op === 'created') {
+			const monthFileData = getFileData('month', $displayedDateStore);
+			monthFile = monthFileData.file;
+
+			const yearFileData = getFileData('year', $displayedDateStore.clone().startOf('year'));
+			yearFile = yearFileData.file;
+		}
+	}
 </script>
 
 <div class="flex flex-col space-y-1 mt-3 mb-1.5 px-2" id="nav">
@@ -43,16 +60,19 @@
 				})}
 			on:contextmenu={(event) =>
 				eventHandlers.onContextMenu({
-					date: $displayedDateStore,
 					event,
+					fileData: {
+						file: monthFile,
+						sticker: monthSticker
+					},
+					date: $displayedDateStore,
 					granularity: 'month'
 				})}
 			on:pointerenter={(event) => {
 				eventHandlers.onHover({
-					date: $displayedDateStore,
 					targetEl: event.target,
 					isControlPressed: isControlPressed(event),
-					granularity: 'month'
+					file: monthFile
 				});
 			}}
 		>
@@ -69,16 +89,19 @@
 				})}
 			on:contextmenu={(event) =>
 				eventHandlers.onContextMenu({
-					date: $displayedDateStore.clone().startOf('year'),
 					event,
+					fileData: {
+						file: yearFile,
+						sticker: yearSticker
+					},
+					date: $displayedDateStore.clone().startOf('year'),
 					granularity: 'year'
 				})}
 			on:pointerenter={(event) => {
 				eventHandlers.onHover({
-					date: $displayedDateStore.clone().startOf('year'),
 					targetEl: event.target,
 					isControlPressed: isControlPressed(event),
-					granularity: 'year'
+					file: yearFile
 				});
 			}}
 		>

@@ -21,7 +21,6 @@ export class BaseComponentBehavior {
         this.component = new view.Component({
             target: document.body,
             props: {
-                popover: true,
                 close: this.close,
                 ...view.props
             }

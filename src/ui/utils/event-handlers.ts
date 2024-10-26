@@ -1,75 +1,52 @@
 import { FILE_MENU_POPOVER_ID } from '@/constants';
 import type { IGranularity } from '@/io';
-import { createOrOpenNote, getNoteFromStore, getPeriodicityFromGranularity } from "@/io";
-import { getNoteSettings } from '@/io/settings';
+import { createOrOpenNote } from "@/io";
 import { settingsStore } from '@/settings';
 import type { Moment } from 'moment';
+import { TFile } from 'obsidian';
 import { get } from 'svelte/store';
 import { Popover } from '../popovers';
+import { TFileMenuOpenParams } from '../popovers/file-menu';
 
-type TOnClick = ({
-    date,
-    createNewSplitLeaf,
-    granularity
-}: {
+type TOnClickParams = {
     date: Moment;
     createNewSplitLeaf: boolean;
     granularity: IGranularity;
-}) => Promise<void>;
-type TOnHover = ({
-    date,
-    targetEl,
-    isControlPressed,
-    granularity
-}: {
-    date: Moment;
+};
+type TOnHoverParams = {
     targetEl: EventTarget | null;
     isControlPressed: boolean;
-    granularity: IGranularity;
-}) => void;
-type TOnContextMenu = ({
-    date,
-    event,
-    granularity
-}: {
-    date: Moment;
-    event: MouseEvent;
-    granularity: IGranularity;
-}) => void;
+    file: TFile | null;
+};
 
 // Component event handlers
 const onClick = async ({
     date,
     createNewSplitLeaf,
     granularity
-}: Parameters<TOnClick>[0]): Promise<void> => {
+}: TOnClickParams): Promise<void> => {
     const leaf = window.app.workspace.getLeaf(createNewSplitLeaf);
 
     createOrOpenNote({ leaf, date, granularity });
 };
 
 const onHover = ({
-    date,
     targetEl,
     isControlPressed,
-    granularity
-}: Parameters<TOnHover>[0]): void => {
-    const { selectedFormat } = getNoteSettings()[granularity];
-    const note = getNoteFromStore({ date, granularity });
-
+    file,
+}: TOnHoverParams): void => {
     if (isControlPressed || get(settingsStore).autoHoverPreview) {
-        window.app.workspace.trigger('link-hover', targetEl, date.format(selectedFormat.value), note?.path);
+        file && window.app.workspace.trigger('link-hover', targetEl, file.basename, file.path);
     }
 };
 
-const onContextMenu = ({ date, event, granularity }: Parameters<TOnContextMenu>[0]): void => {
+const onContextMenu = ({ event, fileData, date, granularity }: TFileMenuOpenParams): void => {
     console.log("🌿 about to show context menu for granularity and date", granularity, date);
-    const note = getNoteFromStore({ date, granularity });
-    console.log("🌿 note from store: ", note);
+    console.log("🌿 note from store: ", fileData.file);
 
     Popover.create({
         id: FILE_MENU_POPOVER_ID
-    }).open({ event, note, date, granularity });
+    }).open({ event, fileData, date, granularity });
 };
 
 export const eventHandlers = {

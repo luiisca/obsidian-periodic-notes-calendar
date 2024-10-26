@@ -71,7 +71,6 @@ export class SettingsTab extends PluginSettingTab {
             const defaultFormat = {
                 id: window.crypto.randomUUID(),
                 value: DEFAULT_FORMATS_PER_GRANULARITY[granularity],
-                filePaths: [],
                 error: ''
             }
             settingsStore.update((settings) => ({

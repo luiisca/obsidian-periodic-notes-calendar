@@ -37,7 +37,7 @@
 			</div>
 		</div>
 		<div class="setting-item-description self-end text-end">
-			{#if selectedFormat.value}
+			{#if selectedFormat.value.trim()}
 				<p class="mt-0 mb-1">Current format: <span class="u-pop">{selectedFormat.value}</span></p>
 				<p class="m-0">
 					Preview: <span class="u-pop">{window.moment().format(selectedFormat.value)}</span>

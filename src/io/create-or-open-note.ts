@@ -1,15 +1,16 @@
 import { granularities } from "@/constants";
 import { settingsStore } from "@/settings";
-import { activeFileIdStore, notesStores } from "@/stores";
+import { activeFilepathStore } from "@/stores";
+import { justModFileDataStore } from "@/stores/notes";
 import { createConfirmationDialog } from "@/ui/modals/confirmation";
-import { capitalize, getOnCreateNoteDialogNoteFromGranularity, logger } from "@/utils";
+import { capitalize, getOnCreateNoteDialogNoteFromGranularity } from "@/utils";
 import moment, { type Moment } from "moment";
 import { Notice, TFile, WorkspaceLeaf } from "obsidian";
 import { get } from "svelte/store";
-import { getNoteDateUID, getPeriodicityFromGranularity } from "./parse";
+import { getPeriodicityFromGranularity } from "./parse";
 import { getNoteSettings } from "./settings";
 import { type IGranularity } from "./types";
-import { getNotePath, getTemplateInfo } from "./vault";
+import { ensureFolderExists, getNotePath, getTemplateInfo } from "./vault";
 
 const REGEX = (function generateRegex(): RegExp {
     const staticParts = ['title', 'date', 'time', 'currentdate', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -37,9 +38,11 @@ export async function createOrOpenNote({
     granularity: IGranularity;
     confirmBeforeCreateOverride?: boolean;
 }) {
-    const { selectedFormat, folder } = getNoteSettings()[granularity];
+    const { selectedFormat } = getNoteSettings()[granularity];
+
     const filename = date.format(selectedFormat.value);
-    const normalizedPath = await getNotePath(folder, filename);
+    const normalizedPath = getNotePath(granularity, date);
+
     console.log("[createOrOpenNote()] > normalizedPath: ", normalizedPath);
     let file = window.app.metadataCache.getFirstLinkpathDest(normalizedPath, "")
     console.log("[createOrOpenNote()] > file: ", file);
@@ -47,7 +50,7 @@ export async function createOrOpenNote({
     async function openFile(file: TFile | null) {
         if (file) {
             file && (await leaf.openFile(file));
-            activeFileIdStore.set(getNoteDateUID({ date, granularity }));
+            activeFilepathStore.set(file.path);
         }
     }
 
@@ -80,28 +83,34 @@ export async function createOrOpenNote({
             file = await createNote(granularity, date);
             console.log('🤯🔥🤯 createOrOpenNote() > file: 🤯🔥🤯', file);
             await openFile(file);
-            console.log('createOrOpenNote() > notesStore: ', get(notesStores[granularity]));
         }
     }
 }
 
 async function createNote(granularity: IGranularity, date: Moment) {
-    let { templatePath, selectedFormat, folder } = getNoteSettings()[granularity];
+    let { templatePath, selectedFormat } = getNoteSettings()[granularity];
 
-    const filename = date.format(selectedFormat.value);
-    const normalizedPath = await getNotePath(folder, filename);
+    const normalizedPath = getNotePath(granularity, date);
+    await ensureFolderExists(normalizedPath);
     const [templateContents, IFoldInfo] = await getTemplateInfo(templatePath);
 
     try {
-        const createdFile = await window.app.vault.create(
+        const file = await window.app.vault.create(
             normalizedPath,
             replaceTemplateContents(date, selectedFormat.value, templateContents)
         );
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (window.app as any).foldManager.save(createdFile, IFoldInfo);
+        (window.app as any).foldManager.save(file, IFoldInfo);
 
-        return createdFile;
+        justModFileDataStore.set({
+            op: "created",
+            path: normalizedPath,
+            format: selectedFormat,
+            granularity
+        })
+
+        return file;
     } catch (err) {
         console.error(`Failed to create file: '${normalizedPath}'`, err);
         new Notice(`Failed to create file: '${normalizedPath}'`);

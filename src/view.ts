@@ -3,24 +3,22 @@ import {
     ItemView,
     TAbstractFile,
     TFile,
-    WorkspaceLeaf,
-    type CachedMetadata,
-    type TagCache
+    WorkspaceLeaf
 } from 'obsidian';
 
-import type { Moment } from 'moment';
 import { get } from 'svelte/store';
 import View from './View.svelte';
 import { VIEW_TYPE } from './constants';
-import { basename, getNoteDateUID, storeAllVaultPeriodicNotes } from './io';
+import { basename, IGranularity, storeAllVaultPeriodicFilepaths } from './io';
 import { isValidPeriodicNote } from './io/validation';
 import type PeriodicNotesCalendarPlugin from './main';
-import { activeFileIdStore, notesStores, themeStore } from './stores';
-import { isControlPressed } from './ui/utils';
+import { PeriodSettings, settingsStore } from './settings';
+import { activeFilepathStore, themeStore } from './stores';
+import { justModFileDataStore } from './stores/notes';
 
 export class CalendarView extends ItemView {
     private view: View;
-    private triggerLinkHover: () => void;
+    // private triggerLinkHover: () => void;
     plugin: PeriodicNotesCalendarPlugin;
 
     constructor(leaf: WorkspaceLeaf, plugin: PeriodicNotesCalendarPlugin) {
@@ -46,10 +44,6 @@ export class CalendarView extends ItemView {
                 this.onFileRenamed(file as TFile, oldPath)
             )
         );
-        // this.registerEvent(
-        // 	this.app.vault.on('modify', (file: TAbstractFile) => this.onFileModified(file as TFile))
-        // );
-        this.registerEvent(this.app.metadataCache.on('changed', this.onFileModified));
         this.registerEvent(this.app.workspace.on('file-open', () => this.onFileOpen()));
     }
 
@@ -70,7 +64,7 @@ export class CalendarView extends ItemView {
 
         // index existing notes
         if (this.app.workspace.layoutReady && this.view) {
-            storeAllVaultPeriodicNotes()
+            storeAllVaultPeriodicFilepaths(true)
         }
     }
 
@@ -82,141 +76,82 @@ export class CalendarView extends ItemView {
     }
 
     private onFileCreated(file: TFile) {
-        console.log('✅ ON file creted ✅', file);
+        console.log('✅ ON file created ✅', file);
 
         if (this.app.workspace.layoutReady && this.view) {
-            const { isValid, granularity, date } = isValidPeriodicNote(file.basename);
-
-            if (isValid) {
-                const noteDateUID = getNoteDateUID({ date, granularity });
-                const fileExists = get(notesStores[granularity])[noteDateUID];
-
-                if (fileExists) return;
-
-                notesStores[granularity].update((values) => ({
-                    ...values,
-                    [noteDateUID]: {
-                        file,
-                        sticker: null
-                    }
-                }));
-                console.log(`${noteDateUID} succesfully created`, 'new store: ', get(notesStores[granularity]));
-            }
+            this.handlePeriodicFileChange(file, 'created')
         }
     }
 
     private async onFileDeleted(file: TFile): Promise<void> {
-        console.log('❌ ON file deleted ❌');
+        console.log('❌ ON file deleted ❌', file);
 
-        const { isValid, granularity, date } = isValidPeriodicNote(file.basename);
-
-        if (isValid) {
-            const noteDateUID = getNoteDateUID({ date, granularity });
-            const fileExists = get(notesStores[granularity])[noteDateUID];
-            const newStore = {
-                ...get(notesStores[granularity])
-            };
-
-            if (fileExists) {
-                delete newStore[noteDateUID];
-                notesStores[granularity].update(() => newStore);
-                console.log(`${noteDateUID} succesfully deleted`, 'new store: ', get(notesStores[granularity]));
-            };
+        if (this.app.workspace.layoutReady && this.view) {
+            this.handlePeriodicFileChange(file, 'deleted')
         }
-
-        this.updateActiveFile();
     }
 
     private async onFileRenamed(renamedFile: TFile, oldPath: string): Promise<void> {
-        const { isValid: oldIsValid, granularity: oldGranularity, date: oldDate } = isValidPeriodicNote(basename(oldPath));
-        const { isValid: newIsValid, granularity: newGranularity, date: newDate } = isValidPeriodicNote(renamedFile.basename);
+        let oldData: {
+            granularity: IGranularity;
+            format: PeriodSettings['formats'][0]
+        } | { granularity: null; format: null } = {
+            granularity: null,
+            format: null
+        };
 
-        // OLD filename INVALID ❌ && NEW filename VALID ✅ => update store to add NEW file with null emoji
-        if (!oldIsValid && newIsValid) {
-            const newNotesStore = notesStores[newGranularity];
-            const newNoteDateUID = getNoteDateUID({
-                date: newDate as unknown as Moment,
-                granularity: newGranularity
-            });
-            newNotesStore.update((values) => ({
-                ...values,
-                [newNoteDateUID]: {
-                    file: renamedFile,
-                    sticker: null
+        let newData: {
+            isValid: boolean;
+            granularity: IGranularity;
+            format: PeriodSettings['formats'][0]
+        } | { isValid: null; granularity: null; format: null } = {
+            isValid: null,
+            granularity: null,
+            format: null
+        };
+
+        const justModFileData = get(justModFileDataStore);
+        if (justModFileData?.op === "renamed") {
+            oldData = justModFileData.old;
+            newData = justModFileData.new;
+
+            justModFileDataStore.set(null)
+        }
+        if (!justModFileData) {
+            oldData = isValidPeriodicNote(basename(oldPath));
+            newData = isValidPeriodicNote(renamedFile.basename);
+        }
+
+        settingsStore.update(s => {
+            const addNew = () => {
+                if (newData.granularity) {
+                    console.log("✅ about to add new", newData)
+                    s.filepaths[renamedFile.path] = newData.format.value;
+
+                    if (!(newData.format.value in s.filepathsByFormatValue)) {
+                        s.filepathsByFormatValue[newData.format.value] = {}
+                    }
+
+                    s.filepathsByFormatValue[newData.format.value]![renamedFile.path] = renamedFile.path;
                 }
-            }));
-        }
-
-        // OLD filename VALID ✅ && NEW filename INVALID ❌ => update store to remove OLD
-        if (oldIsValid && !newIsValid) {
-            const oldNotesStore = notesStores[oldGranularity];
-            const oldNoteDateUID = getNoteDateUID({
-                date: oldDate as unknown as Moment,
-                granularity: oldGranularity
-            });
-
-            const modOldStore = {
-                ...get(oldNotesStore)
-            };
-            delete modOldStore[oldNoteDateUID];
-
-            oldNotesStore.set(modOldStore);
-        }
-
-        // OLD filename CALID ✅ && NEW filename INVALID ✅ => update store to remove OLD and add NEW one with OLD emoji
-        if (oldIsValid && newIsValid) {
-            const newNotesStore = notesStores[newGranularity];
-            const newNoteDateUID = getNoteDateUID({
-                date: newDate as unknown as Moment,
-                granularity: newGranularity
-            });
-
-            const oldNotesStore = notesStores[oldGranularity];
-            const oldNoteDateUID = getNoteDateUID({
-                date: oldDate as unknown as Moment,
-                granularity: newGranularity
-            });
-            const oldEmoji = get(oldNotesStore)[oldNoteDateUID].sticker;
-
-            // remove OLD file
-            const modOldStore = {
-                ...get(oldNotesStore)
-            };
-            delete modOldStore[oldNoteDateUID];
-
-            // add NEW file to store with OLD emoji
-            newNotesStore.update((values) => ({
-                ...values,
-                [newNoteDateUID]: {
-                    file: renamedFile,
-                    sticker: oldEmoji
+            }
+            const removeOld = () => {
+                if (oldData.granularity) {
+                    console.log("❌ about to remove old", oldData)
+                    delete s.filepaths[oldPath];
+                    delete s.filepathsByFormatValue[oldData.format.value]?.[oldPath]
                 }
-            }));
-        }
+            }
+
+            removeOld();
+            if (typeof newData.isValid === 'boolean' && renamedFile.extension === 'md') {
+                addNew();
+            }
+
+            return s
+        })
 
         console.log('✏️On file renamed ✏️ > file: ', renamedFile, oldPath);
-        console.log('new store: ', newGranularity && get(notesStores[newGranularity]));
-    }
-
-    private async onFileModified(file: TFile, data: string, cache: CachedMetadata): Promise<void> {
-        const { isValid, granularity, date } = isValidPeriodicNote(file.basename);
-
-        if (isValid && date && granularity) {
-            const noteDateUID = getNoteDateUID({ date, granularity });
-            const oldEmoji = get(notesStores[granularity])[noteDateUID].sticker;
-            const newEmoji =
-                cache.tags?.find((tagObj: TagCache) => /\p{RGI_Emoji}/v.test(tagObj.tag))?.tag.slice(1) || null;
-
-            if (oldEmoji !== newEmoji) {
-                notesStores[granularity].update((values) => ({
-                    ...values,
-                    [noteDateUID]: {
-                        file,
-                        sticker: newEmoji
-                    }
-                }));
-            }
-        }
     }
 
     public onFileOpen() {
@@ -226,31 +161,7 @@ export class CalendarView extends ItemView {
         }
     }
 
-    // onHover({ date, targetEl, isControlPressed, granularity }: Parameters<TOnHover>[0]): void {
-    // 	// console.log('view.ts > onHover(): 📈')
-    // 	// this.keydownFn && window.removeEventListener('keydown', this.keydownFn);
-
-    // 	const { format } = getNoteSettings(granularity);
-    // 	const note = getNoteByGranularity({ date, granularity });
-
-    // 	this.triggerLinkHover = () =>
-    // 		this.app.workspace.trigger('link-hover', this, targetEl, date.format(format), note?.path);
-
-    // 	if (!isControlPressed && !this.settings.autoHoverPreview) {
-    // 		// TODO: add markdown view popover when ctrlKey pressed after hover
-    // 		// window.addEventListener('keydown', this.keydownFn);
-
-    // 		return;
-    // 	}
-
-    // 	this.triggerLinkHover();
-    // }
-
     // Utils
-
-    /**
-        * Set noteDateUID from current view's file in activeFileIdStore.
-        */
     private updateActiveFile(): void {
         // const activeLeafOG = this.app.workspace.activeLeaf;
 
@@ -262,19 +173,63 @@ export class CalendarView extends ItemView {
             if (!file) return;
 
             const { isValid, granularity, date } = isValidPeriodicNote(file.basename);
-            if (isValid && date && granularity) {
-                const noteDateUID = getNoteDateUID({ date, granularity })
-                activeFileIdStore.set(noteDateUID);
+            if (typeof isValid === 'boolean' && date && granularity) {
+                activeFilepathStore.set(file.path);
             }
         }
 
-        console.log('🪟📅 view.ts > updateActiveFile(), activeFileIdStore: ', get(activeFileIdStore));
+        console.log('🪟📅 view.ts > updateActiveFile(), activeFilepathStore: ', get(activeFilepathStore));
     }
 
-    private keydownCallback(ev: KeyboardEvent) {
-        console.log('view.ts > keydownCallback > isControlPressed() > this: ', this, isControlPressed(ev));
-        if (isControlPressed(ev)) {
-            this.triggerLinkHover?.();
+    private handlePeriodicFileChange(file: TFile, op: "created" | "modified" | "deleted") {
+        if (file.extension !== 'md') return;
+
+        let granularity: IGranularity | null = null;
+        let format: PeriodSettings['formats'][0] | null = null;
+
+        const justModFileData = get(justModFileDataStore);
+        if (justModFileData?.op === op) {
+            granularity = justModFileData?.granularity;
+            format = justModFileData?.format;
+
+            justModFileDataStore.set(null);
+        }
+
+        console.log(`🎉 ${op} justModFileData: `, justModFileData);
+        if (!justModFileData) {
+            const { isValid, granularity: _granularity, format: _format } = isValidPeriodicNote(file.basename);
+
+            if (typeof isValid === "boolean") {
+                granularity = _granularity
+                format = _format
+            }
+        }
+
+        // adds file's format to corresponding format.filePaths in settingsStore
+        if (granularity && format) {
+            settingsStore.update(s => {
+                if (op === 'created') {
+                    s.filepaths[file.path] = format.value;
+
+                    if (!(format.value in s.filepathsByFormatValue)) {
+                        s.filepathsByFormatValue[format.value] = {}
+                    }
+
+                    s.filepathsByFormatValue[format.value]![file.path] = file.path;
+
+                    return s
+                }
+
+                if (op === 'deleted') {
+                    delete s.filepaths[file.path];
+                    console.log("👀", s.filepathsByFormatValue[format.value], format.value)
+                    delete s.filepathsByFormatValue[format.value]?.[file.path]
+
+                    return s
+                }
+
+                return s
+            })
         }
     }
 

@@ -1,4 +1,9 @@
 import { normalizePath, Notice, TFile } from "obsidian";
+import { IGranularity } from "./types";
+import { Moment } from "moment";
+import { getNoteSettings } from "./settings";
+import { getSticker, TSticker } from "@/ui/utils";
+import { PeriodSettings } from "@/settings";
 
 interface IFold {
     from: number;
@@ -7,6 +12,10 @@ interface IFold {
 
 interface IFoldInfo {
     folds: IFold[];
+}
+export type TFileData = {
+    file: TFile | null;
+    sticker: TSticker | null
 }
 
 // Credit: @creationix/path.js
@@ -39,7 +48,7 @@ export function basename(fullPath: string): string {
     return base;
 }
 
-async function ensureFolderExists(path: string): Promise<void> {
+export async function ensureFolderExists(path: string): Promise<void> {
     const dirs = path.replace(/\\/g, "/").split("/");
     dirs.pop(); // remove basename
 
@@ -61,22 +70,35 @@ async function ensureTemplateExists(path: string) {
     }
 }
 
-/**
-    * returns a normalized path based on the given directory and filename
-    * creates a new directory if it doesn't exist
-*/
-export async function getNotePath(
-    directory: string,
-    filename: string
-): Promise<string> {
+export function getNotePath(
+    granularity: IGranularity,
+    date: Moment,
+    customFormat?: PeriodSettings["formats"][0],
+    customFolder?: string,
+) {
+    let { selectedFormat, folder } = getNoteSettings()[granularity];
+    let filename = date.format(customFormat?.value || selectedFormat.value);
+
     if (!filename.endsWith(".md")) {
         filename += ".md";
     }
-    const path = normalizePath(join(directory, filename));
 
-    await ensureFolderExists(path);
+    return normalizePath(join(customFolder || folder, filename));
+}
 
-    return path;
+export function getFileData(
+    granularity: IGranularity | null,
+    date: Moment | null,
+): TFileData {
+    const filePath = granularity && date && getNotePath(granularity, date);
+    const file = filePath ? (window.app.vault.getAbstractFileByPath(filePath) as TFile) : null;
+    const tags = file ? window.app.metadataCache.getFileCache(file)?.tags : null;
+    const sticker = getSticker(tags)
+
+    return {
+        file,
+        sticker
+    }
 }
 
 export async function getTemplateInfo(

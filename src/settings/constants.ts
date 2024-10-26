@@ -9,13 +9,11 @@ export interface PeriodSettings {
     selectedFormat: {
         id: string;
         value: string;
-        filePaths: string[];
         error: string;
     }
     formats: {
         id: string;
         value: string;
-        filePaths: string[];
         error: string;
     }[];
     folder: string;
@@ -24,6 +22,8 @@ export interface PeriodSettings {
 
 export interface ISettings {
     notes: Record<IGranularity, PeriodSettings>;
+    filepaths: Record<string, string>;
+    filepathsByFormatValue: Record<string, Record<string, string> | undefined>;
     /** Position of the calendar view leaf ('left' or 'right') */
     viewLeafPosition: "left" | "right";
 
@@ -34,6 +34,9 @@ export interface ISettings {
 
     /** Whether to show a confirmation dialog before deleting a format on "Notes" settings tab */
     shouldConfirmBeforeDeleteFormat: boolean;
+
+    /** Whether to show a confirmation dialog before replacing all formats with selected one on "Notes" settings tab */
+    shouldConfirmBeforeReplaceAllFormats: boolean;
 
     /** Starting year for the year range selector */
     yearsRangesStart: 2020;
@@ -88,7 +91,6 @@ function getDefaultPeriodicNotesConfig(
     const selectedFormat = {
         id,
         value: DEFAULT_FORMATS_PER_GRANULARITY[granularity],
-        filePaths: [],
         error: "",
     }
 
@@ -111,10 +113,13 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
             granularity,
         ) => [granularity, getDefaultPeriodicNotesConfig(granularity)],
     )) as Record<IGranularity, PeriodSettings>,
+    filepaths: {},
+    filepathsByFormatValue: {},
     viewLeafPosition: "left",
     viewMode: "dedicated-panel",
     shouldConfirmBeforeCreate: true,
     shouldConfirmBeforeDeleteFormat: true,
+    shouldConfirmBeforeReplaceAllFormats: true,
     yearsRangesStart: 2020,
     autoHoverPreview: false,
     openPopoverOnRibbonHover: false,

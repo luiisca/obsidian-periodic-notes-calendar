@@ -3,19 +3,30 @@
 	import { getContext, onMount } from 'svelte';
 	import clsx from 'clsx';
 	import { type Writable } from 'svelte/store';
-	import { type IGranularity } from '@/io';
+	import {
+		ensureFolderExists,
+		getNotePath,
+		getPeriodicityFromGranularity,
+		storeAllVaultPeriodicFilepaths,
+		type IGranularity
+	} from '@/io';
 	import { settingsStore, type PeriodSettings } from '@/settings';
 	import { validateFormat } from '@/io/validation';
-	import { debounce, setIcon } from 'obsidian';
+	import { Notice, debounce, setIcon, type TFile } from 'obsidian';
 	import { createConfirmationDialog } from '@/ui/modals/confirmation';
 	import { INotesContext } from '@/ui/types';
+	import FilepathsCount from './FilepathsCount.svelte';
+	import DeleteFormatText from './DeleteFormatText.svelte';
+	import { justModFileDataStore } from '@/stores/notes';
+	import ReplaceAllText from './ReplaceAllText.svelte';
+	import ReplaceAllTitle from './ReplaceAllTitle.svelte';
+	import { genNoticeFragment } from '@/ui/utils';
 
 	export let index: number = 0;
 	export let settings: Writable<PeriodSettings>;
 	export let format: PeriodSettings['formats'][number] = {
 		id: '',
 		value: '',
-		filePaths: [],
 		error: ''
 	};
 	export let granularity: IGranularity = 'day';
@@ -28,99 +39,184 @@
 	let error = format.error || '';
 	$: selected = type === 'skeleton' ? false : format.id === $settings.selectedFormat.id;
 	let { triggerRerender } = getContext<INotesContext>('notesContext');
+	let loading = false;
 
 	// Mock data
-	const previewDate = new Date().toLocaleDateString();
-	const filesCount = Math.round(Math.random() * 100);
+	$: filepaths = $settingsStore.filepathsByFormatValue[format.value] || {};
+	$: filesCount = Object.keys(filepaths).length;
 
 	function handleUpdate() {
-		console.log('🌿 ~ handleUpdate ~ value', value);
-		error = validateFormat(value, granularity, format.id);
-		triggerRerender?.update((n) => n + 1);
+		debounce(() => {
+			console.log('🌿 ~ handleUpdate ~ value', value);
+			error = validateFormat(value, granularity, format.id);
+			triggerRerender?.update((n) => n + 1);
 
-		settings.update((settings) => ({
-			...settings,
-			formats: [
-				...settings.formats.slice(0, index),
-				{
-					...settings.formats[index],
+			settings.update((s) => {
+				const updatedFormat = {
+					...s.formats[index],
 					value,
 					error
-				},
-				...settings.formats.slice(index + 1)
-			]
-		}));
-
-		if (selected) {
-			settings.update((settings) => ({
-				...settings,
-				selectedFormat: {
-					...settings.selectedFormat,
-					value,
-					error
+				};
+				s.formats[index] = updatedFormat;
+				if (selected) {
+					s.selectedFormat = updatedFormat;
 				}
-			}));
-		}
+
+				return s;
+			});
+		}, 500)();
+
+		debounce(() => {
+			console.log('🌿 ~ handleUpdate ~ value', value);
+			storeAllVaultPeriodicFilepaths(false, [granularity], [format]);
+		}, 2000)();
 	}
 
 	function handleSelect() {
-		if (type === 'skeleton') {
-			settings.update((settings) => {
-				return {
-					...settings,
-					formats: [
-						...settings.formats,
-						{
-							id: window.crypto.randomUUID(),
-							value: '',
-							filePaths: [],
-							error: ''
-						}
-					]
-				};
-			});
-		} else {
-			error = validateFormat(value, granularity, format.id);
-			const newSelectedFormat = {
-				...$settings.formats[index],
-				value,
-				error
-			};
+		settings.update((s) => {
+			if (type === 'skeleton') {
+				s.formats.push({
+					id: window.crypto.randomUUID(),
+					value: '',
+					error: ''
+				});
+			} else {
+				// revalidate format on select since on:input debounce validation may not be triggered yet
+				error = validateFormat(value, granularity, format.id);
 
-			settings.update((settings) => ({
-				...settings,
-				selectedFormat: newSelectedFormat,
-				formats: [
-					...settings.formats.slice(0, index),
-					newSelectedFormat,
-					...settings.formats.slice(index + 1)
-				]
-			}));
-			console.log('👉 on select', $settings.formats);
-		}
+				const newSelectedFormat = {
+					...$settings.formats[index],
+					value,
+					error
+				};
+				s.selectedFormat = newSelectedFormat;
+				s.formats[index] = newSelectedFormat;
+			}
+			return s;
+		});
 	}
 
-	function handleReplace(e: Event) {
+	function handleReplaceAll(e: Event) {
 		e.preventDefault();
 
-		// 1. select format
-		settings.update((settings) => ({
-			...settings,
-			selectedFormat: settings.formats[index]
-		}));
-		// 2. go through all formats, and through all their files, extract their date object and reformat it with
-		// new crr format
-		// for (const [format, filePaths] of $settings.formats) {
-		// 	for (const filePath of filePaths) {
-		//               const date =
-		// 	}
-		// }
+		const replaceAll = () => {
+			const oldFormats = $settings.formats;
+			settings.update((s) => {
+				// 1. select format
+				s.selectedFormat = s.formats[index];
+				return s;
+			});
 
-		// 3. remove all formats except crr one
-		settings.update((settings) => ({
-			...settings,
-			formats: [{ ...settings.formats[index] }]
-		}));
+			// 2. rename all files
+			oldFormats.forEach(async (oldFormat, oldFormatIndex) => {
+				if (oldFormat.id === format.id) return;
+
+				const oldFilepaths = $settingsStore.filepathsByFormatValue[oldFormat.value] || {};
+				const oldFilesCount = Object.keys(oldFilepaths).length;
+				if (oldFilesCount) {
+					loading = true;
+
+					Object.keys(oldFilepaths).forEach(async (oldFilepath, oldFilepathIndex) => {
+						const file = window.app.vault.getAbstractFileByPath(oldFilepath) as TFile | null;
+						const date = window.moment(file?.basename, oldFormat.value, true);
+						const newNormalizedPath = getNotePath(granularity, date, format, file?.parent?.path);
+
+						await ensureFolderExists(newNormalizedPath);
+						if (file) {
+							try {
+								console.log('🎉🎉 ABOUT TO RENAME! ✅✅');
+								console.log(
+									'old filepath',
+									oldFilepath,
+									'old file',
+									file,
+									'old format',
+									oldFormat,
+									'old date',
+									date,
+									'new path',
+									newNormalizedPath
+								);
+
+								await window.app.vault.rename(file, newNormalizedPath);
+
+								justModFileDataStore.set({
+									op: 'renamed',
+									old: {
+										granularity,
+										format: oldFormat
+									},
+									new: {
+										isValid: true,
+										granularity,
+										format
+									}
+								});
+								console.log(
+									'✅✅ RENAMED! 🎉🎉',
+									'newNormalizedPath',
+									newNormalizedPath,
+									'justModFileDataStore',
+									$justModFileDataStore
+								);
+
+								if (
+									oldFormatIndex === oldFormats.length - 1 &&
+									oldFilepathIndex === filesCount - 1
+								) {
+									loading = false;
+								}
+							} catch (error) {
+								new Notice(
+									genNoticeFragment([
+										[`Failed to rename ${file.path} to ${newNormalizedPath}: `],
+										[error.message, 'u-pop']
+									]),
+									8000
+								);
+								loading = false;
+							}
+						}
+					});
+				}
+			});
+		};
+
+		if (filesCount) {
+			const shouldConfirm = $settingsStore.shouldConfirmBeforeReplaceAllFormats;
+			if (shouldConfirm) {
+				createConfirmationDialog({
+					title: {
+						Component: ReplaceAllTitle,
+						props: {
+							replacingFormat: format.value
+						}
+					},
+					text: {
+						Component: ReplaceAllText,
+						props: {
+							replacingFormat: format.value,
+							granularity
+						}
+					},
+					cta: 'Replace',
+					onAccept: (dontAskAgain) => {
+						replaceAll();
+
+						if (dontAskAgain) {
+							settingsStore.update((settings) => ({
+								...settings,
+								shouldConfirmBeforeReplaceAllFormats: false
+							}));
+						}
+					}
+				});
+			} else {
+				replaceAll();
+			}
+		} else {
+			replaceAll();
+		}
 	}
 
 	function handleRemove(e: Event) {
@@ -149,7 +245,6 @@
 					const newSelectedFormat = {
 						id,
 						value: defaultFormat,
-						filePaths: [],
 						error: ''
 					};
 					newSettings = {
@@ -167,13 +262,16 @@
 			triggerRerender?.update((n) => n + 1);
 		};
 
-		if (filesCount > 0) {
+		if (filesCount) {
 			const shouldConfirm = $settingsStore.shouldConfirmBeforeDeleteFormat;
 			// TODO: reword
 			if (shouldConfirm) {
 				createConfirmationDialog({
 					title: `Delete format`,
-					text: `Are you sure you want to delete this format? There are ${filesCount} files using it.`,
+					text: {
+						Component: DeleteFormatText,
+						props: { format }
+					},
 					cta: 'Delete',
 					onAccept: (dontAskAgain) => {
 						remove();
@@ -284,7 +382,7 @@
 					'flex-1 bg-transparent text-sm focus:outline-none',
 					error ? 'placeholder-red-300' : 'placeholder-gray-400'
 				)}
-				on:input={debounce(handleUpdate, 500)}
+				on:input={handleUpdate}
 			/>
 			<div class="flex space-x-1">
 				<!-- replace -->
@@ -292,7 +390,7 @@
 					class="clickable-icon extra-setting-button cursor-pointer"
 					aria-label="Replace all formats with this one"
 					bind:this={replaceBttnEl}
-					on:click={handleReplace}
+					on:click={handleReplaceAll}
 				/>
 				<!-- remove -->
 				<button
@@ -304,14 +402,18 @@
 			</div>
 		</div>
 
-		{#if error}
-			<p class="mt-2 text-xs text-red-500" id="format-error">
-				{error}
-			</p>
-		{:else}
-			<p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-				{previewDate} • {filesCount} Files
-			</p>
+		<p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+			<FilepathsCount {format} />
+			{#if error}
+				<p class="mt-2 text-xs text-red-500" id="format-error">
+					{error}
+				</p>
+			{:else}
+				<span class="u-pop">{value.trim() ? window.moment().format(value) : 'Empty format'}</span>
+			{/if}
+		</p>
+		{#if loading}
+			<p>Renaming...</p>
 		{/if}
 	</div>
 	{#if type === 'skeleton'}

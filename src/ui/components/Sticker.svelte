@@ -1,5 +1,5 @@
 <script lang="ts">
-	export let sticker: string | null;
+	export let sticker: string | null | undefined;
 </script>
 
 {#if sticker}

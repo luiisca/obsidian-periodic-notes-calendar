@@ -1,15 +1,26 @@
 import { type IGranularity } from '@/io';
-import type { TFile } from 'obsidian';
-import { type Writable, writable } from 'svelte/store';
+import { PeriodSettings } from '@/settings';
+import { writable } from 'svelte/store';
 
-const notesStores: Record<IGranularity, Writable<Record<string, { file: TFile; sticker: string | null }>>> = {
-    day: writable({}),
-    week: writable({}),
-    month: writable({}),
-    quarter: writable({}),
-    year: writable({})
-};
+const justModFileDataStore = writable<{
+    op: "created" | "modified" | "deleted";
+    path: string;
+    format: PeriodSettings['formats'][0];
+    granularity: IGranularity;
+} | {
+    op: "renamed";
+    old: {
+        granularity: IGranularity;
+        format: PeriodSettings['formats'][0];
+    };
+    new: {
+        isValid: boolean;
+        granularity: IGranularity;
+        format: PeriodSettings['formats'][0];
+    }
+} | null>(null)
 
-const activeFileIdStore = writable<string | null>(null);
+const activeFilepathStore = writable<string | null>(null);
 
-export { notesStores, activeFileIdStore };
+export { activeFilepathStore, justModFileDataStore };
+

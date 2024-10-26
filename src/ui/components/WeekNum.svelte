@@ -3,20 +3,24 @@
 <script lang="ts">
 	import type { Moment } from 'moment';
 
-	import { getNoteDateUID } from '@/io';
-	import { notesStores } from '@/stores';
+	import { getFileData } from '@/io';
 	import { eventHandlers, isControlPressed } from '../utils';
 	import Dot from './Dot.svelte';
 	import Sticker from './Sticker.svelte';
+	import { justModFileDataStore } from '@/stores/notes';
 
 	// Properties
 	export let weekNum: number;
 	export let startOfWeekDate: Moment;
 
-	const notesStore = notesStores['week'];
-	const noteDateUID = getNoteDateUID({ date: startOfWeekDate, granularity: 'week' });
-	$: file = $notesStore[noteDateUID]?.file;
-	$: sticker = $notesStore[noteDateUID]?.sticker;
+	let { file, sticker } = getFileData('week', startOfWeekDate);
+	$: {
+		if ($justModFileDataStore && $justModFileDataStore.op === 'created') {
+			const fileData = getFileData('week', startOfWeekDate);
+			file = fileData.file;
+			sticker = fileData.sticker;
+		}
+	}
 </script>
 
 <td class="relative">
@@ -29,20 +33,27 @@
 				granularity: 'week'
 			})}
 		on:contextmenu={(event) =>
-			eventHandlers.onContextMenu({ date: startOfWeekDate, event, granularity: 'week' })}
+			eventHandlers.onContextMenu({
+				event,
+				fileData: {
+					file,
+					sticker
+				},
+				date: startOfWeekDate,
+				granularity: 'week'
+			})}
 		on:pointerenter={(event) => {
 			eventHandlers.onHover({
-				date: startOfWeekDate,
 				targetEl: event.target,
 				isControlPressed: isControlPressed(event),
-				granularity: 'week'
+				file
 			});
 		}}
 	>
 		{weekNum}
 		<Dot isFilled={!!file} isActive={!!file} />
 	</button>
-	<Sticker {sticker} />
+	<Sticker sticker={sticker?.emoji} />
 </td>
 
 <style lang="postcss">
