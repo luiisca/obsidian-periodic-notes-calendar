@@ -1,26 +1,25 @@
 <script lang="ts">
 	import { DEFAULT_FORMATS_PER_GRANULARITY } from '@/constants';
-	import { getContext, onMount } from 'svelte';
-	import clsx from 'clsx';
-	import { type Writable } from 'svelte/store';
 	import {
 		ensureFolderExists,
 		getNotePath,
-		getPeriodicityFromGranularity,
 		storeAllVaultPeriodicFilepaths,
 		type IGranularity
 	} from '@/io';
-	import { settingsStore, type PeriodSettings } from '@/settings';
 	import { validateFormat } from '@/io/validation';
-	import { Notice, debounce, setIcon, type TFile } from 'obsidian';
+	import { settingsStore, type PeriodSettings } from '@/settings';
+	import { internalRenamingStore } from '@/stores/notes';
 	import { createConfirmationDialog } from '@/ui/modals/confirmation';
 	import { INotesContext } from '@/ui/types';
-	import FilepathsCount from './FilepathsCount.svelte';
+	import { genNoticeFragment } from '@/ui/utils';
+	import clsx from 'clsx';
+	import { Notice, debounce, setIcon, type TFile } from 'obsidian';
+	import { getContext, onMount } from 'svelte';
+	import { type Writable } from 'svelte/store';
 	import DeleteFormatText from './DeleteFormatText.svelte';
-	import { justModFileDataStore } from '@/stores/notes';
+	import FilepathsCount from './FilepathsCount.svelte';
 	import ReplaceAllText from './ReplaceAllText.svelte';
 	import ReplaceAllTitle from './ReplaceAllTitle.svelte';
-	import { genNoticeFragment } from '@/ui/utils';
 
 	export let index: number = 0;
 	export let settings: Writable<PeriodSettings>;
@@ -47,7 +46,6 @@
 
 	function handleUpdate() {
 		debounce(() => {
-			console.log('🌿 ~ handleUpdate ~ value', value);
 			error = validateFormat(value, granularity, format.id);
 			triggerRerender?.update((n) => n + 1);
 
@@ -67,7 +65,6 @@
 		}, 500)();
 
 		debounce(() => {
-			console.log('🌿 ~ handleUpdate ~ value', value);
 			storeAllVaultPeriodicFilepaths(false, [granularity], [format]);
 		}, 2000)();
 	}
@@ -100,6 +97,8 @@
 		e.preventDefault();
 
 		const replaceAll = () => {
+			internalRenamingStore.set(true);
+
 			const oldFormats = $settings.formats;
 			settings.update((s) => {
 				// 1. select format
@@ -108,8 +107,10 @@
 			});
 
 			// 2. rename all files
+			let oldFormatsParsedCount = 0;
 			oldFormats.forEach(async (oldFormat, oldFormatIndex) => {
 				if (oldFormat.id === format.id) return;
+				oldFormatsParsedCount += 1;
 
 				const oldFilepaths = $settingsStore.filepathsByFormatValue[oldFormat.value] || {};
 				const oldFilesCount = Object.keys(oldFilepaths).length;
@@ -117,64 +118,56 @@
 					loading = true;
 
 					Object.keys(oldFilepaths).forEach(async (oldFilepath, oldFilepathIndex) => {
-						const file = window.app.vault.getAbstractFileByPath(oldFilepath) as TFile | null;
-						const date = window.moment(file?.basename, oldFormat.value, true);
-						const newNormalizedPath = getNotePath(granularity, date, format, file?.parent?.path);
+						const oldFile = window.app.vault.getAbstractFileByPath(oldFilepath) as TFile | null;
+						const date = window.moment(oldFile?.basename, oldFormat.value, true);
+						const newNormalizedPath = getNotePath(granularity, date, format, oldFile?.parent?.path);
 
 						await ensureFolderExists(newNormalizedPath);
-						if (file) {
+						if (oldFile) {
 							try {
-								console.log('🎉🎉 ABOUT TO RENAME! ✅✅');
-								console.log(
-									'old filepath',
-									oldFilepath,
-									'old file',
-									file,
-									'old format',
-									oldFormat,
-									'old date',
-									date,
-									'new path',
-									newNormalizedPath
-								);
+								await window.app.vault.rename(oldFile, newNormalizedPath);
 
-								await window.app.vault.rename(file, newNormalizedPath);
+								settingsStore.update((s) => {
+									// delete old
+									delete s.filepaths[oldFilepath];
+									delete s.filepathsByFormatValue[oldFormat.value]?.[oldFilepath];
 
-								justModFileDataStore.set({
-									op: 'renamed',
-									old: {
-										granularity,
-										format: oldFormat
-									},
-									new: {
-										isValid: true,
-										granularity,
-										format
+									// add new
+									s.filepaths[newNormalizedPath] = format.value;
+									if (!(format.value in s.filepathsByFormatValue)) {
+										s.filepathsByFormatValue[format.value] = {};
 									}
-								});
-								console.log(
-									'✅✅ RENAMED! 🎉🎉',
-									'newNormalizedPath',
-									newNormalizedPath,
-									'justModFileDataStore',
-									$justModFileDataStore
-								);
 
+									s.filepathsByFormatValue[format.value]![newNormalizedPath] = newNormalizedPath;
+
+									return s;
+								});
+
+								// one format is always omitted as is the target format and we avoid renaming its filepaths unnecessarily
 								if (
-									oldFormatIndex === oldFormats.length - 1 &&
-									oldFilepathIndex === filesCount - 1
+									oldFormatsParsedCount === oldFormats.length - 1 &&
+									oldFilepathIndex === oldFilesCount - 1
 								) {
 									loading = false;
+									internalRenamingStore.set(false);
 								}
 							} catch (error) {
 								new Notice(
 									genNoticeFragment([
-										[`Failed to rename ${file.path} to ${newNormalizedPath}: `],
+										[`Failed to rename ${oldFilepath} to ${newNormalizedPath}: `],
 										[error.message, 'u-pop']
 									]),
 									8000
 								);
-								loading = false;
+
+								// sometimes the last oldFormat is omitted b/c is the target format
+								if (
+									oldFormatsParsedCount === oldFormats.length - 1 &&
+									oldFilepathIndex === oldFilesCount - 1
+								) {
+									loading = false;
+									internalRenamingStore.set(false);
+								}
 							}
 						}
 					});
@@ -182,38 +175,34 @@
 			});
 		};
 
-		if (filesCount) {
-			const shouldConfirm = $settingsStore.shouldConfirmBeforeReplaceAllFormats;
-			if (shouldConfirm) {
-				createConfirmationDialog({
-					title: {
-						Component: ReplaceAllTitle,
-						props: {
-							replacingFormat: format.value
-						}
-					},
-					text: {
-						Component: ReplaceAllText,
-						props: {
-							replacingFormat: format.value,
-							granularity
-						}
-					},
-					cta: 'Replace',
-					onAccept: (dontAskAgain) => {
-						replaceAll();
-
-						if (dontAskAgain) {
-							settingsStore.update((settings) => ({
-								...settings,
-								shouldConfirmBeforeReplaceAllFormats: false
-							}));
-						}
+		const shouldConfirm = $settingsStore.shouldConfirmBeforeReplaceAllFormats;
+		if (shouldConfirm) {
+			createConfirmationDialog({
+				title: {
+					Component: ReplaceAllTitle,
+					props: {
+						replacingFormat: format.value
 					}
-				});
-			} else {
-				replaceAll();
-			}
+				},
+				text: {
+					Component: ReplaceAllText,
+					props: {
+						replacingFormat: format.value,
+						granularity
+					}
+				},
+				cta: 'Replace',
+				onAccept: (dontAskAgain) => {
+					replaceAll();
+
+					if (dontAskAgain) {
+						settingsStore.update((settings) => ({
+							...settings,
+							shouldConfirmBeforeReplaceAllFormats: false
+						}));
+					}
+				}
+			});
 		} else {
 			replaceAll();
 		}
@@ -270,7 +259,7 @@
 					title: `Delete format`,
 					text: {
 						Component: DeleteFormatText,
-						props: { format }
+						props: { format, granularity }
 					},
 					cta: 'Delete',
 					onAccept: (dontAskAgain) => {
@@ -405,9 +394,9 @@
 		<p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
 			<FilepathsCount {format} />
 			{#if error}
-				<p class="mt-2 text-xs text-red-500" id="format-error">
+				<span class="mt-2 text-xs text-red-500" id="format-error">
 					{error}
-				</p>
+				</span>
 			{:else}
 				<span class="u-pop">{value.trim() ? window.moment().format(value) : 'Empty format'}</span>
 			{/if}

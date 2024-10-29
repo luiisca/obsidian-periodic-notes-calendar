@@ -14,7 +14,7 @@ import { isValidPeriodicNote } from './io/validation';
 import type PeriodicNotesCalendarPlugin from './main';
 import { PeriodSettings, settingsStore } from './settings';
 import { activeFilepathStore, themeStore } from './stores';
-import { justModFileDataStore } from './stores/notes';
+import { internalRenamingStore, justModFileDataStore } from './stores/notes';
 
 export class CalendarView extends ItemView {
     private view: View;
@@ -28,7 +28,6 @@ export class CalendarView extends ItemView {
         this.registerEvent(
             this.app.workspace.on('css-change', () => {
                 const crrTheme = this.plugin.getTheme();
-                console.log(this);
 
                 themeStore.set((crrTheme === 'moonstone' || crrTheme === "light") ? 'light' : 'dark')
             })
@@ -92,40 +91,14 @@ export class CalendarView extends ItemView {
     }
 
     private async onFileRenamed(renamedFile: TFile, oldPath: string): Promise<void> {
-        let oldData: {
-            granularity: IGranularity;
-            format: PeriodSettings['formats'][0]
-        } | { granularity: null; format: null } = {
-            granularity: null,
-            format: null
-        };
+        if (get(internalRenamingStore)) return;
 
-        let newData: {
-            isValid: boolean;
-            granularity: IGranularity;
-            format: PeriodSettings['formats'][0]
-        } | { isValid: null; granularity: null; format: null } = {
-            isValid: null,
-            granularity: null,
-            format: null
-        };
-
-        const justModFileData = get(justModFileDataStore);
-        if (justModFileData?.op === "renamed") {
-            oldData = justModFileData.old;
-            newData = justModFileData.new;
-
-            justModFileDataStore.set(null)
-        }
-        if (!justModFileData) {
-            oldData = isValidPeriodicNote(basename(oldPath));
-            newData = isValidPeriodicNote(renamedFile.basename);
-        }
+        const oldData = isValidPeriodicNote(basename(oldPath));
+        const newData = isValidPeriodicNote(renamedFile.basename);
 
         settingsStore.update(s => {
             const addNew = () => {
                 if (newData.granularity) {
-                    console.log("✅ about to add new", newData)
                     s.filepaths[renamedFile.path] = newData.format.value;
 
                     if (!(newData.format.value in s.filepathsByFormatValue)) {
@@ -137,7 +110,6 @@ export class CalendarView extends ItemView {
             }
             const removeOld = () => {
                 if (oldData.granularity) {
-                    console.log("❌ about to remove old", oldData)
                     delete s.filepaths[oldPath];
                     delete s.filepathsByFormatValue[oldData.format.value]?.[oldPath]
                 }
@@ -150,8 +122,6 @@ export class CalendarView extends ItemView {
 
             return s
         })
-
-        console.log('✏️On file renamed ✏️ > file: ', renamedFile, oldPath);
     }
 
     public onFileOpen() {
@@ -195,7 +165,6 @@ export class CalendarView extends ItemView {
             justModFileDataStore.set(null);
         }
 
-        console.log(`🎉 ${op} justModFileData: `, justModFileData);
         if (!justModFileData) {
             const { isValid, granularity: _granularity, format: _format } = isValidPeriodicNote(file.basename);
 
@@ -222,7 +191,6 @@ export class CalendarView extends ItemView {
 
                 if (op === 'deleted') {
                     delete s.filepaths[file.path];
-                    console.log("👀", s.filepathsByFormatValue[format.value], format.value)
                     delete s.filepathsByFormatValue[format.value]?.[file.path]
 
                     return s
