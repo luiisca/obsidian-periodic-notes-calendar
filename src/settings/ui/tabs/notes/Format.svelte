@@ -376,10 +376,16 @@
 			<div class="flex space-x-1">
 				<!-- replace -->
 				<button
-					class="clickable-icon extra-setting-button cursor-pointer"
+					class={clsx(
+						'clickable-icon extra-setting-button',
+						error || value.trim() === ''
+							? 'cursor-not-allowed hover:bg-transparent hover:opacity-70'
+							: 'cursor-pointer'
+					)}
 					aria-label="Replace all formats with this one"
 					bind:this={replaceBttnEl}
 					on:click={handleReplaceAll}
+					disabled={!!error || value.trim() === ''}
 				/>
 				<!-- remove -->
 				<button
