@@ -1,22 +1,32 @@
-import { FuzzyMatch, FuzzySuggestModal, TFile } from 'obsidian';
+import { FuzzyMatch, FuzzySuggestModal, Notice, TFile } from 'obsidian';
+import Suggestion from "./components/Suggestion.svelte";
+import TopBar from "./components/TopBar.svelte";
+import { createConfirmationDialog } from './confirmation';
 import { ModalManager } from './modals-manager';
+import { genNoticeFragment } from '../utils';
+import DeleteAllTitle from "./components/DeleteAllTitle.svelte"
+import DeleteTitle from "./components/DeleteTitle.svelte"
+import { settingsStore } from '@/settings';
+import { get } from 'svelte/store';
 
 export class FilepathModal extends FuzzySuggestModal<string> {
     private filePaths: string[];
-    private styleEl: HTMLStyleElement;
+    private topBarContainer: HTMLElement | null = null;
 
     constructor(filePaths: string[]) {
         super(window.app);
         ModalManager.register(this);
 
         this.filePaths = filePaths;
-        this.styleEl = document.createElement('style');
 
         // Set modal properties
         this.setPlaceholder("Type to search files...");
     }
 
     getItems(): string[] {
+        if (this.filePaths.length === 0) {
+            this.topBarContainer?.remove();
+        }
         return this.filePaths;
     }
 
@@ -26,28 +36,122 @@ export class FilepathModal extends FuzzySuggestModal<string> {
     }
 
     renderSuggestion(result: FuzzyMatch<string>, el: HTMLElement) {
-        // Get the actual file path from the match object
-        const filePath = result.item;
+        const filepath = result.item;
 
-        // Create a container for better styling
-        const container = el.createDiv({
-            cls: "file-path-suggestion"
-        });
+        new Suggestion({
+            target: el,
+            props: {
+                filepath,
+                onDelete: () => {
+                    this.handleDeleteFile(filepath);
+                }
+            }
+        })
+    }
 
-        // Add the file name in bold
-        const fileName = filePath.split("/").pop() || "";
-        container.createEl("span", {
-            text: fileName,
-            cls: "file-name"
-        });
+    private async handleDeleteFile(filePath: string) {
+        const file = this.app.vault.getAbstractFileByPath(filePath);
+        if (!(file instanceof TFile)) {
+            new Notice('Error: File not found');
+            return;
+        }
+        const deleteFile = async () => {
+            try {
+                await this.app.vault.trash(file, true);
+                this.filePaths = this.filePaths.filter(path => path !== filePath);
+                new Notice(genNoticeFragment([
+                    [file.name, 'u-pop'],
+                    [' deleted'],
+                ]))
+                // @ts-ignore
+                this.updateSuggestions();
+            } catch (error) {
+                new Notice(
+                    genNoticeFragment([
+                        ['Error deleting file'],
+                        [error.message, 'u-pop']
+                    ]),
+                    8000
+                );
+            }
+        }
 
-        // Add the path in a muted color
-        if (filePath.includes("/")) {
-            const path = filePath.substring(0, filePath.lastIndexOf("/"));
-            container.createEl("span", {
-                text: ` in ${path}`,
-                cls: "file-path"
+        const shouldConfirmBeforeDeleteFile = get(settingsStore).shouldConfirmBeforeDeleteFile;
+        if (shouldConfirmBeforeDeleteFile) {
+            createConfirmationDialog({
+                title: {
+                    Component: DeleteTitle,
+                    props: {
+                        filename: file.name
+                    }
+                },
+                text: "",
+                cta: "Delete",
+                onAccept: async (dontAskAgain) => {
+                    deleteFile();
+                    if (dontAskAgain) {
+                        settingsStore.update((settings) => ({
+                            ...settings,
+                            shouldConfirmBeforeDeleteFile: false
+                        }));
+                    }
+                }
             });
+        } else {
+            deleteFile();
+        }
+    }
+
+    async handleDeleteAllFiles() {
+        const deleteAllFiles = async () => {
+            try {
+                let deletedCount = 0;
+                for (const filePath of this.filePaths) {
+                    const file = this.app.vault.getAbstractFileByPath(filePath);
+                    if (file instanceof TFile) {
+                        await this.app.vault.trash(file, true);
+                        deletedCount++;
+                    }
+                }
+                this.filePaths = [];
+                new Notice(`Deleted ${deletedCount} ${deletedCount === 1 ? 'file' : 'files'}`);
+                this.close();
+            } catch (error) {
+                new Notice(
+                    genNoticeFragment([
+                        ['Error deleting files'],
+                        [error.message, 'u-pop']
+                    ]),
+                    8000
+                );
+            }
+
+        }
+
+        const shouldConfirmBeforeDeleteAllFiles = get(settingsStore).shouldConfirmBeforeDeleteAllFiles;
+        if (shouldConfirmBeforeDeleteAllFiles) {
+            createConfirmationDialog({
+                title: {
+                    Component: DeleteAllTitle,
+                    props: {
+                        filepathsLength: this.filePaths.length
+                    }
+                },
+                text: "",
+                cta: "Delete all",
+                onAccept: async (dontAskAgain) => {
+                    deleteAllFiles();
+
+                    if (dontAskAgain) {
+                        settingsStore.update((settings) => ({
+                            ...settings,
+                            shouldConfirmBeforeDeleteAllFiles: false
+                        }));
+                    }
+                }
+            });
+        } else {
+            deleteAllFiles()
         }
     }
 
@@ -77,35 +181,17 @@ export class FilepathModal extends FuzzySuggestModal<string> {
 
     onOpen() {
         super.onOpen();
-
-        // Add custom styles
         const modalEl = this.modalEl;
-        modalEl.addClass("file-path-modal");
+        const inputContainer = modalEl.querySelector('.prompt-input-container');
 
-        this.styleEl.textContent = `
-            .file-path-modal .file-path-suggestion {
-                padding: 4px 0;
-                display: flex;
-                align-items: flex-end;
+        this.topBarContainer = createDiv();
+        new TopBar({
+            target: this.topBarContainer,
+            props: {
+                onDelete: this.handleDeleteAllFiles.bind(this),
             }
-            
-            .file-path-modal .file-name {
-                font-weight: 500;
-            }
-            
-            .file-path-modal .file-path {
-                opacity: 0.7;
-                font-size: 0.9em;
-                height: 16px;
-                margin-left: 4px;
-            }
-        `;
-        document.head.appendChild(this.styleEl);
-    }
+        })
 
-    onClose() {
-        super.onClose();
-        // Clean up styles
-        this.styleEl.remove();
+        inputContainer?.insertAdjacentElement('afterend', this.topBarContainer);
     }
 }

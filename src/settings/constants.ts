@@ -38,6 +38,9 @@ export interface ISettings {
     /** Whether to show a confirmation dialog before replacing all formats with selected one on "Notes" settings tab */
     shouldConfirmBeforeReplaceAllFormats: boolean;
 
+    shouldConfirmBeforeDeleteFile: boolean;
+    shouldConfirmBeforeDeleteAllFiles: boolean;
+
     /** Starting year for the year range selector */
     yearsRangesStart: 2020;
 
@@ -120,6 +123,8 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
     shouldConfirmBeforeCreate: true,
     shouldConfirmBeforeDeleteFormat: true,
     shouldConfirmBeforeReplaceAllFormats: true,
+    shouldConfirmBeforeDeleteFile: true,
+    shouldConfirmBeforeDeleteAllFiles: true,
     yearsRangesStart: 2020,
     autoHoverPreview: false,
     openPopoverOnRibbonHover: false,
