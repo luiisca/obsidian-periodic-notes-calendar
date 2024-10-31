@@ -34,6 +34,8 @@
 	const defaultFormat = DEFAULT_FORMATS_PER_GRANULARITY[granularity];
 	let removeBttnEl: HTMLElement;
 	let replaceBttnEl: HTMLElement;
+	let labelEl: HTMLLabelElement;
+
 	let value = format.value || '';
 	let error = format.error || '';
 	$: selected = type === 'skeleton' ? false : format.id === $settings.selectedFormat.id;
@@ -337,29 +339,39 @@
 			]
 		}));
 	}
+	$: if (labelEl) {
+		labelEl.tabIndex = 0;
+		labelEl.onkeydown = (event) => {
+			if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+				selected = true;
+				handleSelect();
+			}
+		};
+	}
 </script>
 
 <!-- Format Option -->
 <label
+	bind:this={labelEl}
 	class={clsx(
-		'w-full cursor-pointer flex space-x-2 rounded-lg border p-3 mb-4 last:mb-0',
+		'group w-full cursor-pointer block rounded-lg p-3 mb-4 last:mb-0 border border-solid focus-visible:shadow-[0_0_0_3px_var(--background-modifier-border-focus)] outline-none',
 		type === 'skeleton' &&
-			'relative border-dashed hover:border-solid bg-transparent hover:bg-gray-500',
+			'hover:bg-[var(--background-modifier-hover)] relative border-dashed hover:border-solid bg-transparent',
 		error
-			? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+			? 'border-[var(--background-modifier-error)]'
 			: selected
-			? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-			: 'border-gray-200 dark:border-gray-700'
+			? 'bg-[var(--interactive-accent)] text-[var(--text-on-accent)] border-transparent'
+			: 'hover:bg-[var(--background-modifier-hover)] border-[var(--background-modifier-border)] focus-visible:bg-[var(--background-modifier-hover)] focus-visible:border-[var(--background-modifier-border)]'
 	)}
 >
 	{#if type === 'skeleton'}
-		<button class="opacity-0" on:click={handleSelect} />
+		<button tabindex="-1" class="opacity-0 hidden" on:click={handleSelect} />
 	{:else}
-		<input type="radio" name="format" checked={selected} on:click={handleSelect} />
+		<input type="radio" name="format" checked={selected} on:click={handleSelect} class="hidden" />
 	{/if}
 
 	<div class={clsx('w-full transition-all duration-200', type === 'skeleton' && 'opacity-0 -z-50')}>
-		<div class="flex items-center gap-2">
+		<div class="flex items-center mb-2">
 			<input
 				type="text"
 				bind:value
@@ -368,48 +380,67 @@
 				aria-invalid={!!error}
 				aria-describedby={error ? 'format-error' : undefined}
 				class={clsx(
-					'flex-1 bg-transparent text-sm focus:outline-none',
-					error ? 'placeholder-red-300' : 'placeholder-gray-400'
+					'flex-1 hover:transition bg-transparent ',
+					type === 'skeleton' && 'opacity-0 -z-50',
+					error
+						? 'text-[var(--text-error)] border-[var(--background-modifier-error)]'
+						: selected
+						? 'placeholder-[var(--text-on-accent)] border-[var(--text-accent-hover)] hover:bg-[var(--interactive-accent-hover)]'
+						: 'border-[var(--background-modifier-border-hover)] hover:bg-[var(--background-modifier-form-field)]'
 				)}
 				on:input={handleUpdate}
+				disabled={type === 'skeleton'}
 			/>
-			<div class="flex space-x-1">
+		</div>
+
+		<div class="flex items-center justify-between pl-[1px]">
+			<div>
+				<FilepathsCount {format} {selected} />
+				{#if error}
+					<span class="text-[var(--text-error)]" id="format-error">
+						{error}
+					</span>
+				{:else}
+					<span
+						class={clsx(
+							'text-[calc(var(--font-ui-small) + 1px)]',
+							selected ? 'text-[var(--text-on-accent)]' : 'u-pop'
+						)}>{value.trim() ? window.moment().format(value) : 'Empty format'}</span
+					>
+				{/if}
+				{#if loading}
+					<p>Renaming...</p>
+				{/if}
+			</div>
+			<div class="flex">
 				<!-- replace -->
 				<button
 					class={clsx(
-						'clickable-icon extra-setting-button',
-						error || value.trim() === ''
-							? 'cursor-not-allowed hover:bg-transparent hover:opacity-70'
-							: 'cursor-pointer'
+						'clickable-icon extra-setting-button cursor-pointer',
+						(error || value.trim() === '') &&
+							'!cursor-not-allowed hover:bg-transparent hover:opacity-70',
+						error ? 'text-[var(--text-error)]' : selected ? 'text-[var(--text-on-accent)]' : '',
+						type === 'skeleton' && 'opacity-0 -z-50'
 					)}
 					aria-label="Replace all formats with this one"
 					bind:this={replaceBttnEl}
 					on:click={handleReplaceAll}
-					disabled={!!error || value.trim() === ''}
+					disabled={!!error || value.trim() === '' || type === 'skeleton'}
 				/>
 				<!-- remove -->
 				<button
-					class="clickable-icon extra-setting-button cursor-pointer"
+					class={clsx(
+						'clickable-icon extra-setting-button cursor-pointer',
+						error ? 'text-[var(--text-error)]' : selected ? 'text-[var(--text-on-accent)]' : '',
+						type === 'skeleton' ? 'opacity-0 -z-50' : ''
+					)}
 					aria-label="Remove format"
 					bind:this={removeBttnEl}
 					on:click={handleRemove}
+					disabled={type === 'skeleton'}
 				/>
 			</div>
 		</div>
-
-		<p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-			<FilepathsCount {format} />
-			{#if error}
-				<span class="mt-2 text-xs text-red-500" id="format-error">
-					{error}
-				</span>
-			{:else}
-				<span class="u-pop">{value.trim() ? window.moment().format(value) : 'Empty format'}</span>
-			{/if}
-		</p>
-		{#if loading}
-			<p>Renaming...</p>
-		{/if}
 	</div>
 	{#if type === 'skeleton'}
 		<svg

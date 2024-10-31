@@ -11,8 +11,11 @@
 	import { onMount } from 'svelte';
 	import Formats from './Formats.svelte';
 
-	let isExpanded = false;
 	export let granularity: IGranularity;
+
+	let labelEl: HTMLLabelElement;
+
+	let isExpanded = false;
 
 	let settings = writableDerived(
 		settingsStore,
@@ -39,6 +42,15 @@
 	onMount(() => {
 		console.log(`🌆 Period onMount - ${granularity}`, $settings.formats);
 	});
+
+	$: if (labelEl) {
+		labelEl.tabIndex = 0;
+		labelEl.onkeydown = (event) => {
+			if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+				$settings.enabled = !$settings.enabled;
+			}
+		};
+	}
 </script>
 
 <div
@@ -46,7 +58,7 @@
 >
 	<a
 		href="./"
-		class="setting-item setting-item-heading text-transparent p-6 cursor-pointer flex items-center justify-between"
+		class="setting-item setting-item-heading text-transparent p-6 cursor-pointer flex items-center justify-between focus-visible:shadow-[0_0_0_3px_var(--background-modifier-border-focus)] outline-none"
 		on:click={toggleExpand}
 	>
 		<div class="setting-item-info flex justify-between items-center">
@@ -64,11 +76,11 @@
 		</div>
 		<div class="setting-item-control">
 			<label
-				class="checkbox-container cursor-pointer"
+				bind:this={labelEl}
+				class="checkbox-container cursor-pointer focus-visible:shadow-[0_0_0_3px_var(--background-modifier-border-focus)] outline-none"
 				class:is-enabled={$settings.enabled}
-				on:click|stopPropagation
 			>
-				<input type="checkbox" bind:checked={$settings.enabled} class="hidden" />
+				<input type="checkbox" tabindex="-1" bind:checked={$settings.enabled} class="hidden" />
 			</label>
 		</div>
 	</a>

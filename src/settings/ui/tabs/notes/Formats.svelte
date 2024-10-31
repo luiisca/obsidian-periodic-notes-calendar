@@ -25,26 +25,33 @@
 	}
 </script>
 
-<div class="setting-item flex flex-col space-y-4">
-	<div class="flex justify-between mr-0 w-full">
+<div class="setting-item flex flex-col">
+	<div class="mb-4 w-full mr-0">
 		<div class="setting-item-info">
-			<div class="setting-item-name mb-2">Format</div>
+			<div class="setting-item-name mb-2 flex items-center justify-between">
+				<span>Format</span>
+				{#if selectedFormat.value.trim()}
+					<span class={`${selectedFormat.error ? 'text-[var(--text-error)]' : 'u-pop'}`}
+						>{selectedFormat.value}</span
+					>
+				{:else}
+					<span class="u-pop">Empty format</span>
+				{/if}
+			</div>
 			<div class="setting-item-description">
 				<p class="mt-0 mb-1">
 					Required tokens: <span class="u-pop">{getExpectedTokens(granularity)}</span>
 				</p>
-				<a href="https://momentjs.com/docs/#/displaying/format/">Syntax Reference</a>
+				{#if selectedFormat.value.trim()}
+					<p class="mt-0 mb-1">
+						Preview: <span class="u-pop">{window.moment().format(selectedFormat.value)}</span>
+					</p>
+				{/if}
+				<a
+					class="focus-visible:shadow-[0_0_0_3px_var(--background-modifier-border-focus)]"
+					href="https://momentjs.com/docs/#/displaying/format/">Syntax Reference</a
+				>
 			</div>
-		</div>
-		<div class="setting-item-description self-end text-end">
-			{#if selectedFormat.value.trim()}
-				<p class="mt-0 mb-1">Current format: <span class="u-pop">{selectedFormat.value}</span></p>
-				<p class="m-0">
-					Preview: <span class="u-pop">{window.moment().format(selectedFormat.value)}</span>
-				</p>
-			{:else}
-				<p class="u-pop">Empty format</p>
-			{/if}
 		</div>
 	</div>
 	<form
@@ -53,7 +60,7 @@
 			e.preventDefault();
 		}}
 	>
-		<fieldset role="radiogroup" aria-label="Date format selection" class="border-none p-0 m-0">
+		<fieldset role="radiogroup" class="border-none p-0 m-0">
 			<legend class="sr-only">Choose a date format</legend>
 			{#each $settings.formats as format, index (format.id)}
 				<Format {index} {settings} {format} {granularity} />
