@@ -7,7 +7,7 @@
 	import { eventHandlers, isControlPressed } from '../utils';
 	import Dot from './Dot.svelte';
 	import Sticker from './Sticker.svelte';
-	import { justModFileDataStore } from '@/stores/notes';
+	import { settingsStore } from '@/settings';
 
 	// Properties
 	export let weekNum: number;
@@ -15,7 +15,7 @@
 
 	let { file, sticker } = getFileData('week', startOfWeekDate);
 	$: {
-		if ($justModFileDataStore && $justModFileDataStore.op === 'created') {
+		if ($settingsStore.filepaths) {
 			const fileData = getFileData('week', startOfWeekDate);
 			file = fileData.file;
 			sticker = fileData.sticker;

@@ -26,7 +26,7 @@
 			settingsStore.update((settings) => {
 				const newSettings = settings;
 				for (const granularity of granularities) {
-					newSettings.notes[granularity].openAtStartup = false;
+					newSettings.periods[granularity].openAtStartup = false;
 				}
 
 				return newSettings;

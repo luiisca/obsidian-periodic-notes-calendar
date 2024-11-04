@@ -6,7 +6,7 @@
 	import Arrow from './Arrow.svelte';
 	import Dot from './Dot.svelte';
 	import { getFileData } from '@/io';
-	import { justModFileDataStore } from '@/stores/notes';
+	import { settingsStore } from '@/settings';
 
 	let today: Moment;
 	$: $displayedDateStore, (today = window.moment());
@@ -37,7 +37,7 @@
 		$displayedDateStore.clone().startOf('year')
 	);
 	$: {
-		if ($justModFileDataStore && $justModFileDataStore.op === 'created') {
+		if ($settingsStore.filepaths) {
 			const monthFileData = getFileData('month', $displayedDateStore);
 			monthFile = monthFileData.file;
 

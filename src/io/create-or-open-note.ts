@@ -1,14 +1,15 @@
 import { granularities } from "@/constants";
 import { settingsStore } from "@/settings";
 import { activeFilepathStore } from "@/stores";
-import { justModFileDataStore } from "@/stores/notes";
+import { internalFileModStore } from "@/stores/notes";
 import { createConfirmationDialog } from "@/ui/modals/confirmation";
-import { capitalize, getOnCreateNoteDialogNoteFromGranularity } from "@/utils";
+import { capitalize } from "@/utils";
 import moment, { type Moment } from "moment";
 import { Notice, TFile, WorkspaceLeaf } from "obsidian";
 import { get } from "svelte/store";
+import CreateNote from "./CreateNote.svelte";
 import { getPeriodicityFromGranularity } from "./parse";
-import { getNoteSettings } from "./settings";
+import { getNormalizedPeriodSettings } from "./settings";
 import { type IGranularity } from "./types";
 import { ensureFolderExists, getNotePath, getTemplateInfo } from "./vault";
 
@@ -38,7 +39,7 @@ export async function createOrOpenNote({
     granularity: IGranularity;
     confirmBeforeCreateOverride?: boolean;
 }) {
-    const { selectedFormat } = getNoteSettings()[granularity];
+    const { settings: { selectedFormat } } = getNormalizedPeriodSettings(granularity);
 
     const filename = date.format(selectedFormat.value);
     const normalizedPath = getNotePath(granularity, date);
@@ -64,7 +65,12 @@ export async function createOrOpenNote({
             createConfirmationDialog({
                 title: `New ${periodicity} Note`,
                 text: `File ${filename} does not exist. Would you like to create it?`,
-                note: getOnCreateNoteDialogNoteFromGranularity(granularity),
+                note: {
+                    Component: CreateNote,
+                    props: {
+                        granularity
+                    }
+                },
                 cta: 'Create',
                 onAccept: async (dontAskAgain) => {
                     file = await createNote(granularity, date);
@@ -88,13 +94,15 @@ export async function createOrOpenNote({
 }
 
 async function createNote(granularity: IGranularity, date: Moment) {
-    let { templatePath, selectedFormat } = getNoteSettings()[granularity];
+    let { settings: { templatePath, selectedFormat } } = getNormalizedPeriodSettings(granularity);
 
     const normalizedPath = getNotePath(granularity, date);
     await ensureFolderExists(normalizedPath);
     const [templateContents, IFoldInfo] = await getTemplateInfo(templatePath);
 
     try {
+        internalFileModStore.set("created");
+
         const file = await window.app.vault.create(
             normalizedPath,
             replaceTemplateContents(date, selectedFormat.value, templateContents)
@@ -103,12 +111,8 @@ async function createNote(granularity: IGranularity, date: Moment) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (window.app as any).foldManager.save(file, IFoldInfo);
 
-        justModFileDataStore.set({
-            op: "created",
-            path: normalizedPath,
-            format: selectedFormat,
-            granularity
-        })
+        settingsStore.addFilepath(normalizedPath, selectedFormat.value)
+        internalFileModStore.set(null)
 
         return file;
     } catch (err) {

@@ -10,7 +10,7 @@
 	import { capitalize } from '@/utils';
 	import type NldatePickerModal from '../modals/nldate-picker';
 	import { onMount } from 'svelte';
-	import { getNoteSettings } from '@/io/settings';
+	import { getNormalizedPeriodSettings } from '@/io/settings';
 
 	export let modalClass: NldatePickerModal;
 
@@ -29,12 +29,12 @@
 	let dateInput = '';
 	let parsedDate: Moment | null;
 
-	$: format = getNoteSettings()[granularity].format;
+	$: format = getNormalizedPeriodSettings(granularity).settings.selectedFormat;
 	$: dateInput, format, debounce(getDateStr, 50)();
 
 	let formattedDate: string = window
 		.moment()
-		.format(format || getNoteSettings()[granularity].format);
+		.format(format || getNormalizedPeriodSettings(granularity).settings.selectedFormat);
 
 	const getDateStr = () => {
 		let cleanDateInput = dateInput;

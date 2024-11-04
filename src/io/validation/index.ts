@@ -1,5 +1,5 @@
 import { granularities } from '@/constants';
-import { PeriodSettings, settingsStore } from '@/settings';
+import { PeriodSettings, settingsStore, TFormat } from '@/settings';
 import { type Moment } from 'moment';
 import { get } from 'svelte/store';
 import { type IGranularity } from '../types';
@@ -25,20 +25,18 @@ export function isWeekFormatAmbiguous(format: string) {
     return /w{1,2}/i.test(cleanFormat) && (/M{1,4}/.test(cleanFormat) || /D{1,4}/.test(cleanFormat));
 }
 
-export function isValidPeriodicNote(fileName: string, customGranularities = granularities as unknown as IGranularity[], customFormats?: PeriodSettings["formats"][0][])
-    : { isValid: boolean, granularity: IGranularity, date: Moment, format: PeriodSettings['formats'][0], formatIndex: number } | { isValid: null, granularity: null, date: null, format: null, formatIndex: null } {
+export function isValidPeriodicNote(fileName: string, customGranularities = granularities as unknown as IGranularity[], customFormats?: Record<string, TFormat>)
+    : { isValid: boolean, granularity: IGranularity, date: Moment, format: PeriodSettings['formats'][0] } | { isValid: null, granularity: null, date: null, format: null } {
 
     for (const granularity of customGranularities) {
-        const formats = customFormats || get(settingsStore).notes[granularity].formats;
-        for (let index = 0; index < formats.length; index++) {
-            const format = formats[index];
-
+        const formats = customFormats || get(settingsStore).periods[granularity].formats;
+        for (const format of Object.values(formats)) {
             let parsedDate = window.moment(fileName, format.value, true);
             const match = parsedDate.isValid() && parsedDate.format(format.value) === fileName
 
             if (match) {
                 if (format.error) {
-                    return { isValid: false, granularity, date: parsedDate, format, formatIndex: index };
+                    return { isValid: false, granularity, date: parsedDate, format };
                 }
 
                 if (granularity === 'week') {
@@ -52,12 +50,12 @@ export function isValidPeriodicNote(fileName: string, customGranularities = gran
                     }
                 }
 
-                return { isValid: true, granularity, date: parsedDate, format, formatIndex: index };
+                return { isValid: true, granularity, date: parsedDate, format };
             }
         }
     }
 
-    return { isValid: null, granularity: null, date: null, format: null, formatIndex: null };
+    return { isValid: null, granularity: null, date: null, format: null };
 }
 
 export function validateFolder(folder: string): string {

@@ -6,14 +6,14 @@
 	import { eventHandlers, isControlPressed } from '../utils';
 	import Dot from './Dot.svelte';
 	import Sticker from './Sticker.svelte';
-	import { justModFileDataStore } from '@/stores/notes';
+	import { settingsStore } from '@/settings';
 
 	export let quarterNum: number;
 
 	$: date = $displayedDateStore.clone().quarter(quarterNum).startOf('quarter');
 	let { file, sticker } = getFileData('quarter', date);
 	$: {
-		if ($justModFileDataStore && $justModFileDataStore.op === 'created') {
+		if ($settingsStore.filepaths) {
 			const fileData = getFileData('quarter', date);
 			file = fileData.file;
 			sticker = fileData.sticker;

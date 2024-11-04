@@ -62,13 +62,16 @@
 </script>
 
 <div>
-	<h2 bind:this={titleContainer} />
+	<h2 class="!mt-0" bind:this={titleContainer} />
 	<p bind:this={textContainer} />
-	<label class="flex items-center hover:cursor-pointer text-sm mt-7">
+	<label class="flex items-center hover:cursor-pointer mt-7">
 		<input type="checkbox" class="hover:cursor-pointer" bind:checked={dontAskAgain} /> Don't ask again
 	</label>
 	{#if note}
-		<p class="m-0 mt-2 text-xs text-[--text-muted]" bind:this={noteContainer} />
+		<p
+			class="m-0 mt-2 [font-size:var(--font-ui-small)] text-[--text-muted]"
+			bind:this={noteContainer}
+		/>
 	{/if}
 	<div class="modal-button-container mt-3">
 		<button on:click={handleCancel}>Never mind</button>

@@ -8,7 +8,7 @@
 	} from '@/io';
 	import { validateFormat } from '@/io/validation';
 	import { settingsStore, type PeriodSettings } from '@/settings';
-	import { internalRenamingStore } from '@/stores/notes';
+	import { internalFileModStore } from '@/stores/notes';
 	import { createConfirmationDialog } from '@/ui/modals/confirmation';
 	import { INotesContext } from '@/ui/types';
 	import { genNoticeFragment } from '@/ui/utils';
@@ -21,12 +21,12 @@
 	import ReplaceAllText from './ReplaceAllText.svelte';
 	import ReplaceAllTitle from './ReplaceAllTitle.svelte';
 
-	export let index: number = 0;
 	export let settings: Writable<PeriodSettings>;
 	export let format: PeriodSettings['formats'][number] = {
 		id: '',
 		value: '',
-		error: ''
+		error: '',
+		loading: false
 	};
 	export let granularity: IGranularity = 'day';
 	export let type: 'default' | 'skeleton' = 'default';
@@ -40,7 +40,7 @@
 	let error = format.error || '';
 	$: selected = type === 'skeleton' ? false : format.id === $settings.selectedFormat.id;
 	let { triggerRerender } = getContext<INotesContext>('notesContext');
-	let loading = false;
+	let formatId = format.id;
 
 	// Mock data
 	$: filepaths = $settingsStore.filepathsByFormatValue[format.value] || {};
@@ -53,11 +53,11 @@
 
 			settings.update((s) => {
 				const updatedFormat = {
-					...s.formats[index],
+					...s.formats[format.id],
 					value,
 					error
 				};
-				s.formats[index] = updatedFormat;
+				s.formats[format.id] = updatedFormat;
 				if (selected) {
 					s.selectedFormat = updatedFormat;
 				}
@@ -67,29 +67,31 @@
 		}, 500)();
 
 		debounce(() => {
-			storeAllVaultPeriodicFilepaths(false, [granularity], [format]);
+			storeAllVaultPeriodicFilepaths(false, [granularity], { [format.id]: format });
 		}, 2000)();
 	}
 
 	function handleSelect() {
 		settings.update((s) => {
 			if (type === 'skeleton') {
-				s.formats.push({
-					id: window.crypto.randomUUID(),
+				const id = window.crypto.randomUUID();
+				s.formats[id] = {
+					id,
 					value: '',
-					error: ''
-				});
+					error: '',
+					loading: false
+				};
 			} else {
 				// revalidate format on select since on:input debounce validation may not be triggered yet
 				error = validateFormat(value, granularity, format.id);
 
 				const newSelectedFormat = {
-					...$settings.formats[index],
+					...$settings.formats[format.id],
 					value,
 					error
 				};
 				s.selectedFormat = newSelectedFormat;
-				s.formats[index] = newSelectedFormat;
+				s.formats[format.id] = newSelectedFormat;
 			}
 			return s;
 		});
@@ -99,25 +101,31 @@
 		e.preventDefault();
 
 		const replaceAll = () => {
-			internalRenamingStore.set(true);
+			internalFileModStore.set('renamed');
 
 			const oldFormats = $settings.formats;
 			settings.update((s) => {
 				// 1. select format
-				s.selectedFormat = s.formats[index];
+				s.selectedFormat = s.formats[format.id];
 				return s;
 			});
 
 			// 2. rename all files
 			let oldFormatsParsedCount = 0;
-			oldFormats.forEach(async (oldFormat, oldFormatIndex) => {
+			Object.values(oldFormats).forEach(async (oldFormat) => {
 				if (oldFormat.id === format.id) return;
+
 				oldFormatsParsedCount += 1;
 
 				const oldFilepaths = $settingsStore.filepathsByFormatValue[oldFormat.value] || {};
 				const oldFilesCount = Object.keys(oldFilepaths).length;
 				if (oldFilesCount) {
-					loading = true;
+					settings.update((s) => {
+						for (const f of Object.values(s.formats)) {
+							s.formats[f.id].loading = true;
+						}
+						return s;
+					});
 
 					Object.keys(oldFilepaths).forEach(async (oldFilepath, oldFilepathIndex) => {
 						const oldFile = window.app.vault.getAbstractFileByPath(oldFilepath) as TFile | null;
@@ -129,29 +137,31 @@
 							try {
 								await window.app.vault.rename(oldFile, newNormalizedPath);
 
-								settingsStore.update((s) => {
-									// delete old
-									delete s.filepaths[oldFilepath];
-									delete s.filepathsByFormatValue[oldFormat.value]?.[oldFilepath];
-
-									// add new
-									s.filepaths[newNormalizedPath] = format.value;
-									if (!(format.value in s.filepathsByFormatValue)) {
-										s.filepathsByFormatValue[format.value] = {};
+								settingsStore.renameFilepath({
+									oldData: {
+										path: oldFilepath,
+										formatValue: oldFormat.value,
+										toBeDeleted: true
+									},
+									newData: {
+										path: newNormalizedPath,
+										formatValue: format.value,
+										toBeAdded: true
 									}
-
-									s.filepathsByFormatValue[format.value]![newNormalizedPath] = newNormalizedPath;
-
-									return s;
 								});
 
-								// one format is always omitted as is the target format and we avoid renaming its filepaths unnecessarily
+								// one format is always omitted as its the target format and we avoid renaming it's filepaths unnecessarily
 								if (
-									oldFormatsParsedCount === oldFormats.length - 1 &&
+									oldFormatsParsedCount === Object.keys(oldFormats).length - 1 &&
 									oldFilepathIndex === oldFilesCount - 1
 								) {
-									loading = false;
-									internalRenamingStore.set(false);
+									settings.update((s) => {
+										for (const f of Object.values(s.formats)) {
+											s.formats[f.id].loading = false;
+										}
+										return s;
+									});
+									internalFileModStore.set(null);
 								}
 							} catch (error) {
 								new Notice(
@@ -162,13 +172,18 @@
 									8000
 								);
 
-								// sometimes the last oldFormat is omitted b/c is the target format
+								// one oldFormat is always omitted as its the target format
 								if (
-									oldFormatsParsedCount === oldFormats.length - 1 &&
+									oldFormatsParsedCount === Object.keys(oldFormats).length - 1 &&
 									oldFilepathIndex === oldFilesCount - 1
 								) {
-									loading = false;
-									internalRenamingStore.set(false);
+									settings.update((s) => {
+										for (const f of Object.values(s.formats)) {
+											s.formats[f.id].loading = false;
+										}
+										return s;
+									});
+									internalFileModStore.set(null);
 								}
 							}
 						}
@@ -214,38 +229,29 @@
 		e.preventDefault();
 
 		const remove = () => {
-			settings.update((settings) => {
-				let newSettings = {
-					...settings,
-					formats: [...settings.formats.slice(0, index), ...settings.formats.slice(index + 1)]
-				};
+			settings.update((s) => {
+				delete s.formats[format.id];
 
 				// helps ensure at least one format is selected at all times
-				console.log('👉 on remove', newSettings, format);
-				if (selected && newSettings.formats.length > 0) {
-					newSettings = {
-						...newSettings,
-						selectedFormat: newSettings.formats[0]
-					};
+				if (selected && Object.keys(s.formats).length > 0) {
+					s.selectedFormat = Object.values(s.formats)[0];
 				}
-				// helps ensure at least one format exists at all times
+				// helps ensure at least one non-empty valid format exists at all times
 				const lastFormatEmpty =
-					newSettings.formats.length === 1 && newSettings.formats[0].value.trim() === '';
-				if (newSettings.formats.length === 0 || lastFormatEmpty) {
+					Object.keys(s.formats).length === 1 && Object.values(s.formats)[0].value.trim() === '';
+				if (Object.keys(s.formats).length === 0 || lastFormatEmpty) {
 					const id = window.crypto.randomUUID();
 					const newSelectedFormat = {
 						id,
 						value: defaultFormat,
-						error: ''
+						error: '',
+						loading: false
 					};
-					newSettings = {
-						...newSettings,
-						selectedFormat: newSelectedFormat,
-						formats: [newSelectedFormat]
-					};
+					s.selectedFormat = newSelectedFormat;
+					s.formats[id] = newSelectedFormat;
 				}
 
-				return newSettings;
+				return s;
 			});
 
 			trySelectLastOnlyFormat();
@@ -285,23 +291,7 @@
 
 	onMount(() => {
 		if (type !== 'skeleton') {
-			console.log(`🌿 Format ~ onMount - ${granularity}`, `error: ${error}`, format.value);
 			error = validateFormat(value, granularity, format.id);
-			console.log(`🌿 Format ~ onMount - ${granularity} - after validate`, `error: ${error}`);
-			settings.update((settings) => {
-				console.log(`🌿 Format ~ onMount updating settings`, settings, error, index);
-				return {
-					...settings,
-					formats: [
-						...settings.formats.slice(0, index),
-						{
-							...settings.formats[index],
-							error
-						},
-						...settings.formats.slice(index + 1)
-					]
-				};
-			});
 			trySelectLastOnlyFormat();
 
 			// set icons
@@ -311,10 +301,10 @@
 	});
 
 	function trySelectLastOnlyFormat() {
-		if ($settings.formats.length === 1) {
-			settings.update((settings) => ({
-				...settings,
-				selectedFormat: settings.formats[0]
+		if (Object.keys($settings.formats).length === 1) {
+			settings.update((s) => ({
+				...s,
+				selectedFormat: Object.values(s.formats)[0]
 			}));
 		}
 	}
@@ -325,20 +315,18 @@
 			error = validateFormat(value, granularity, format.id);
 		}
 	}
-	$: {
-		console.log('❌ error changed', error);
-		settings.update((settings) => ({
-			...settings,
-			formats: [
-				...settings.formats.slice(0, index),
-				{
-					...settings.formats[index],
-					error
-				},
-				...settings.formats.slice(index + 1)
-			]
-		}));
+
+	$: if (error) {
+		settings.update((s) => {
+			if (formatId === s.selectedFormat.id) {
+				s.selectedFormat.error = error;
+			}
+			s.formats[formatId].error = error;
+
+			return s;
+		});
 	}
+
 	$: if (labelEl) {
 		labelEl.tabIndex = 0;
 		labelEl.onkeydown = (event) => {
@@ -354,7 +342,7 @@
 <label
 	bind:this={labelEl}
 	class={clsx(
-		'group w-full cursor-pointer block rounded-lg p-3 mb-4 last:mb-0 border border-solid focus-visible:shadow-[0_0_0_3px_var(--background-modifier-border-focus)] outline-none',
+		'w-full cursor-pointer block rounded-lg p-3 mb-4 last:mb-0 border border-solid focus-visible:shadow-[0_0_0_3px_var(--background-modifier-border-focus)] outline-none',
 		type === 'skeleton' &&
 			'hover:bg-[var(--background-modifier-hover)] relative border-dashed hover:border-solid bg-transparent',
 		error
@@ -394,22 +382,17 @@
 		</div>
 
 		<div class="flex items-center justify-between pl-[1px]">
-			<div>
-				<FilepathsCount {format} {selected} />
+			<div class="[font-size:calc(var(--font-ui-small)+1px)]">
+				<FilepathsCount {format} {selected} {error} />
 				{#if error}
+					<span class="text-[var(--text-error)]">{window.moment().format(value)} • </span>
 					<span class="text-[var(--text-error)]" id="format-error">
 						{error}
 					</span>
 				{:else}
-					<span
-						class={clsx(
-							'text-[calc(var(--font-ui-small) + 1px)]',
-							selected ? 'text-[var(--text-on-accent)]' : 'u-pop'
-						)}>{value.trim() ? window.moment().format(value) : 'Empty format'}</span
+					<span class={clsx(selected ? 'text-[var(--text-on-accent)]' : 'u-pop')}
+						>{value.trim() ? window.moment().format(value) : 'Empty format'}</span
 					>
-				{/if}
-				{#if loading}
-					<p>Renaming...</p>
 				{/if}
 			</div>
 			<div class="flex">

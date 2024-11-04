@@ -20,13 +20,13 @@
 	let settings = writableDerived(
 		settingsStore,
 		// get derived store from settingsStore
-		($settingsStore) => $settingsStore.notes[granularity],
+		($settingsStore) => $settingsStore.periods[granularity],
 		// update settingsStore when the derived store changes
 		(reflecting, old) => {
 			const newSettings = {
 				...old,
-				notes: {
-					...old.notes,
+				periods: {
+					...old.periods,
 					[granularity]: reflecting
 				}
 			};

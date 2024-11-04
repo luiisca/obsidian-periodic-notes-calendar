@@ -8,16 +8,19 @@ import DeleteAllTitle from "./components/DeleteAllTitle.svelte"
 import DeleteTitle from "./components/DeleteTitle.svelte"
 import { settingsStore } from '@/settings';
 import { get } from 'svelte/store';
+import { internalFileModStore } from '@/stores/notes';
 
 export class FilepathModal extends FuzzySuggestModal<string> {
     private filePaths: string[];
+    private formatValue: string;
     private topBarContainer: HTMLElement | null = null;
 
-    constructor(filePaths: string[]) {
+    constructor(filePaths: string[], formatValue: string) {
         super(window.app);
         ModalManager.register(this);
 
         this.filePaths = filePaths;
+        this.formatValue = formatValue;
 
         // Set modal properties
         this.setPlaceholder("Type to search files...");
@@ -57,14 +60,16 @@ export class FilepathModal extends FuzzySuggestModal<string> {
         }
         const deleteFile = async () => {
             try {
-                await this.app.vault.trash(file, true);
+                await this.deleteFile(file, filePath)
+
                 this.filePaths = this.filePaths.filter(path => path !== filePath);
+                // @ts-ignore
+                this.updateSuggestions();
                 new Notice(genNoticeFragment([
                     [file.name, 'u-pop'],
                     [' deleted'],
                 ]))
-                // @ts-ignore
-                this.updateSuggestions();
+
             } catch (error) {
                 new Notice(
                     genNoticeFragment([
@@ -109,7 +114,7 @@ export class FilepathModal extends FuzzySuggestModal<string> {
                 for (const filePath of this.filePaths) {
                     const file = this.app.vault.getAbstractFileByPath(filePath);
                     if (file instanceof TFile) {
-                        await this.app.vault.trash(file, true);
+                        await this.deleteFile(file, filePath);
                         deletedCount++;
                     }
                 }
@@ -193,5 +198,14 @@ export class FilepathModal extends FuzzySuggestModal<string> {
         })
 
         inputContainer?.insertAdjacentElement('afterend', this.topBarContainer);
+    }
+
+    private async deleteFile(file: TFile, filePath: string) {
+        internalFileModStore.set("deleted")
+
+        await this.app.vault.trash(file, true);
+        settingsStore.deleteFilepath(filePath, this.formatValue);
+
+        internalFileModStore.set(null)
     }
 }

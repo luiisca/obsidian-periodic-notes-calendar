@@ -1,10 +1,5 @@
 import { Notice } from 'obsidian';
-import type { IGranularity } from './io';
-import { getPeriodicityFromGranularity } from './io/parse';
 import { DAILY_NOTES_PLUGIN_ID } from './constants';
-import { getNoteSettings } from './io/settings';
-import { get } from 'svelte/store';
-import { settingsStore } from './settings';
 
 export async function fetchWithRetry<T>(url: string, retries = 0): Promise<T | null> {
     try {
@@ -29,29 +24,6 @@ export async function fetchWithRetry<T>(url: string, retries = 0): Promise<T | n
 
 export function capitalize(string: string) {
     return string[0].toUpperCase() + string.slice(1).toLowerCase();
-}
-
-function getStyledFormatEl(format: string) {
-    return `<span class="u-pop">${format}</span>`
-}
-export function getOnCreateNoteDialogNoteFromGranularity(granularity: IGranularity) {
-    const periodicity = getPeriodicityFromGranularity(granularity);
-    const pluginSettings = get(settingsStore).notes[granularity];
-    const processedNoteSettings = getNoteSettings()[granularity];
-
-    if (granularity === 'day') {
-        if (pluginSettings.enabled) {
-            return `Note: Using daily format ${getStyledFormatEl(pluginSettings.selectedFormat.value)} from Notes settings.`;
-        } else {
-            return `Note: Using daily format ${getStyledFormatEl(processedNoteSettings.selectedFormat.value)} from Daily Notes plugin.`;
-        }
-    } else {
-        if (pluginSettings.enabled) {
-            return `Note: Using ${capitalize(periodicity)} format ${getStyledFormatEl(pluginSettings.selectedFormat.value)} from Notes settings.`;
-        } else {
-            return `Note: ${capitalize(periodicity)} Notes settings disabled. Using default format ${getStyledFormatEl(processedNoteSettings.selectedFormat.value)}.`;
-        }
-    }
 }
 
 export function logger(module: string, ...messages: unknown[]) {

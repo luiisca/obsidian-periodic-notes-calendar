@@ -62,8 +62,8 @@
 	>
 		<fieldset role="radiogroup" class="border-none p-0 m-0">
 			<legend class="sr-only">Choose a date format</legend>
-			{#each $settings.formats as format, index (format.id)}
-				<Format {index} {settings} {format} {granularity} />
+			{#each Object.values($settings.formats) as format (format.id)}
+				<Format {settings} {format} {granularity} />
 			{/each}
 			<Format {settings} type="skeleton" />
 		</fieldset>

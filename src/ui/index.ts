@@ -16,5 +16,6 @@ declare global {
     }
 }
 
+export * from './notice'
 export { Calendar };
 export type { ICalendarSource, IDot, IDayMetadata, ISourceSettings };

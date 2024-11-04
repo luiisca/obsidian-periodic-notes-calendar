@@ -1,6 +1,7 @@
 import { localeDataStore } from '@/stores';
 import type { Moment } from 'moment';
 import { get } from 'svelte/store';
+import Test from './Test.svelte'
 
 export interface IWeek {
     days: Moment[];

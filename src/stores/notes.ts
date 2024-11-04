@@ -1,15 +1,6 @@
-import { type IGranularity } from '@/io';
-import { PeriodSettings } from '@/settings';
 import { writable } from 'svelte/store';
 
-const justModFileDataStore = writable<{
-    op: "created" | "modified" | "deleted";
-    path: string;
-    format: PeriodSettings['formats'][0];
-    granularity: IGranularity;
-} | null>(null)
-
 const activeFilepathStore = writable<string | null>(null);
-const internalRenamingStore = writable(false);
+const internalFileModStore = writable<"created" | "renamed" | "modified" | "deleted" | null>(null);
 
-export { justModFileDataStore, activeFilepathStore, internalRenamingStore };
+export { activeFilepathStore, internalFileModStore };

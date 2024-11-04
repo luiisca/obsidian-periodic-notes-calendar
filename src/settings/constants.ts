@@ -2,26 +2,24 @@ import { DEFAULT_FORMATS_PER_GRANULARITY, granularities } from "@/constants";
 import { type IGranularity } from "@/io";
 import { sysLocaleKey, sysWeekStartId } from "../localization";
 
+export type TFormat = {
+    id: string;
+    value: string;
+    error: string;
+    loading: boolean;
+}
 export interface PeriodSettings {
     enabled: boolean;
     openAtStartup: boolean;
 
-    selectedFormat: {
-        id: string;
-        value: string;
-        error: string;
-    }
-    formats: {
-        id: string;
-        value: string;
-        error: string;
-    }[];
+    selectedFormat: TFormat;
+    formats: Record<string, TFormat>;
     folder: string;
     templatePath: string;
 }
 
 export interface ISettings {
-    notes: Record<IGranularity, PeriodSettings>;
+    periods: Record<IGranularity, PeriodSettings>;
     filepaths: Record<string, string>;
     filepathsByFormatValue: Record<string, Record<string, string> | undefined>;
     /** Position of the calendar view leaf ('left' or 'right') */
@@ -95,6 +93,7 @@ function getDefaultPeriodicNotesConfig(
         id,
         value: DEFAULT_FORMATS_PER_GRANULARITY[granularity],
         error: "",
+        loading: false,
     }
 
     return Object.freeze(
@@ -103,7 +102,7 @@ function getDefaultPeriodicNotesConfig(
             openAtStartup: false,
 
             selectedFormat,
-            formats: [selectedFormat],
+            formats: { [id]: selectedFormat },
             templatePath: "",
             folder: "/",
         } satisfies PeriodSettings,
@@ -111,10 +110,8 @@ function getDefaultPeriodicNotesConfig(
 }
 
 export const DEFAULT_SETTINGS: ISettings = Object.freeze({
-    notes: Object.fromEntries(granularities.map(
-        (
-            granularity,
-        ) => [granularity, getDefaultPeriodicNotesConfig(granularity)],
+    periods: Object.fromEntries(granularities.map(
+        g => [g, getDefaultPeriodicNotesConfig(g)],
     )) as Record<IGranularity, PeriodSettings>,
     filepaths: {},
     filepathsByFormatValue: {},

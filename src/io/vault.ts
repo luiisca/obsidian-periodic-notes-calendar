@@ -1,7 +1,7 @@
 import { normalizePath, Notice, TFile } from "obsidian";
 import { IGranularity } from "./types";
 import { Moment } from "moment";
-import { getNoteSettings } from "./settings";
+import { getNormalizedPeriodSettings } from "./settings";
 import { getSticker, TSticker } from "@/ui/utils";
 import { PeriodSettings } from "@/settings";
 
@@ -76,7 +76,7 @@ export function getNotePath(
     customFormat?: PeriodSettings["formats"][0],
     customFolder?: string,
 ) {
-    let { selectedFormat, folder } = getNoteSettings()[granularity];
+    let { settings: { selectedFormat, folder } } = getNormalizedPeriodSettings(granularity);
     let filename = date.format(customFormat?.value || selectedFormat.value);
 
     if (!filename.endsWith(".md")) {
@@ -106,9 +106,6 @@ export async function getTemplateInfo(
 ): Promise<[string, IFoldInfo | null]> {
     const { metadataCache, vault } = window.app;
 
-    if (!template.endsWith(".md")) {
-        template += ".md";
-    }
     const normalizedPath = normalizePath(template);
     if (normalizedPath === "/") {
         return Promise.resolve(["", null]);

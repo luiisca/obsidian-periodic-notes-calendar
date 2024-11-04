@@ -1,14 +1,14 @@
+import { DEFAULT_FORMATS_PER_GRANULARITY } from "@/constants";
+import { getPeriodicityFromGranularity, IGranularity } from "@/io";
 import PeriodicNotesCalendarPlugin from "@/main";
 import Settings from "@/settings/ui/Index.svelte";
 import { setupLocale } from "@/stores";
+import { genNoticeFragment } from "@/ui/utils";
+import { capitalize } from "@/utils";
 import { App, Notice, PluginSettingTab } from 'obsidian';
 import { SvelteComponent } from "svelte";
 import { get } from "svelte/store";
 import { settingsStore } from "./store";
-import { DEFAULT_FORMATS_PER_GRANULARITY, granularities } from "@/constants";
-import { getPeriodicityFromGranularity, IGranularity } from "@/io";
-import { capitalize } from "@/utils";
-import { genNoticeFragment } from "@/ui/utils";
 
 export class SettingsTab extends PluginSettingTab {
     public plugin: PeriodicNotesCalendarPlugin;
@@ -34,13 +34,12 @@ export class SettingsTab extends PluginSettingTab {
 
         let errors = [];
 
-        for (const granularity of granularities) {
-            const periodNotesSettings = get(settingsStore).notes[granularity];
-            this.replaceSelectedFormatIfNeeded(granularity)
-
-            for (const format of periodNotesSettings.formats) {
+        const periods = get(settingsStore).periods
+        for (const [g, periodSettings] of Object.entries(periods)) {
+            this.replaceSelectedFormatIfNeeded(g as IGranularity);
+            for (const format of Object.values(periodSettings.formats)) {
                 if (format.error) {
-                    errors.push(capitalize(getPeriodicityFromGranularity(granularity)))
+                    errors.push(capitalize(getPeriodicityFromGranularity(g as IGranularity)))
                     break;
                 }
             }
@@ -60,33 +59,29 @@ export class SettingsTab extends PluginSettingTab {
         * This ensures that the user can create a note with a valid format.
         */
     private replaceSelectedFormatIfNeeded(granularity: IGranularity) {
-        const periodNotesSettings = get(settingsStore).notes[granularity];
+        const periodSettings = get(settingsStore).periods[granularity];
         let invalidValue: string;
         let correctedValue: string;
 
-        if (periodNotesSettings.selectedFormat.error) {
-            invalidValue = periodNotesSettings.selectedFormat.value;
+        if (periodSettings.selectedFormat.error.trim()) {
+            invalidValue = periodSettings.selectedFormat.value;
 
-            const foundValidFormat = periodNotesSettings.formats.find(format => !format.error);
+            const foundValidFormat = Object.values(periodSettings.formats).find(format => !format.error.trim());
+            const id = window.crypto.randomUUID();
             const defaultFormat = {
-                id: window.crypto.randomUUID(),
+                id,
                 value: DEFAULT_FORMATS_PER_GRANULARITY[granularity],
-                error: ''
+                error: '',
+                loading: false,
             }
-            settingsStore.update((settings) => ({
-                ...settings,
-                notes: {
-                    ...settings.notes,
-                    [granularity]: {
-                        ...settings.notes[granularity],
-                        selectedFormat: foundValidFormat || defaultFormat,
-                        formats: [
-                            foundValidFormat ? null : defaultFormat,
-                            ...settings.notes[granularity].formats
-                        ].filter(Boolean)
-                    }
+            settingsStore.update((s) => {
+                s.periods[granularity].selectedFormat = foundValidFormat || defaultFormat;
+                if (!foundValidFormat) {
+                    s.periods[granularity].formats[id] = defaultFormat;
                 }
-            }))
+
+                return s;
+            })
 
             correctedValue = foundValidFormat?.value || defaultFormat.value;
 

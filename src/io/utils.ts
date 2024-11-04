@@ -1,22 +1,21 @@
 import { granularities } from "@/constants";
-import { PeriodSettings, settingsStore } from "@/settings";
+import { settingsStore, TFormat } from "@/settings";
 import { normalizePath, Notice, TFile, TFolder, Vault } from "obsidian";
 import { get } from "svelte/store";
 import { getPeriodicityFromGranularity } from "./parse";
-import { getNoteSettings } from "./settings";
+import { getNormalizedPeriodSettings } from "./settings";
 import { type IGranularity } from "./types";
 import { isValidPeriodicNote } from "./validation";
 
 export function storeAllVaultPeriodicFilepaths(
     firstRun = false,
     customGranularities = granularities as unknown as IGranularity[],
-    customFormats?: PeriodSettings["formats"][0][],
+    customFormats?: Record<string, TFormat>,
 ) {
-    const noteSettings = getNoteSettings();
     const uniqueFolders: Record<string, IGranularity[]> = {};
 
     customGranularities.forEach((g) => {
-        const periodSettings = noteSettings[g]
+        const { settings: periodSettings } = getNormalizedPeriodSettings(g)
         const periodFolder = periodSettings.folder;
 
         if (!uniqueFolders[periodFolder]) {
@@ -71,7 +70,7 @@ export function storeAllVaultPeriodicFilepaths(
 
 export function getStartupNoteGranularity() {
     for (const granularity of granularities) {
-        const settings = get(settingsStore).notes[granularity]
+        const settings = get(settingsStore).periods[granularity]
         if (settings.enabled && settings.openAtStartup) {
             return granularity
         }

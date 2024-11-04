@@ -6,7 +6,7 @@
 	import Arrow from './Arrow.svelte';
 	import Dot from './Dot.svelte';
 	import { getFileData } from '@/io';
-	import { justModFileDataStore } from '@/stores/notes';
+	import { settingsStore } from '@/settings';
 
 	let today: Moment;
 	$: $displayedDateStore, (today = window.moment());
@@ -39,7 +39,7 @@
 
 	let { file, sticker } = getFileData('year', $displayedDateStore);
 	$: {
-		if ($justModFileDataStore && $justModFileDataStore.op === 'created') {
+		if ($settingsStore.filepaths) {
 			const fileData = getFileData('year', $displayedDateStore);
 			file = fileData.file;
 		}

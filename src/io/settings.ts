@@ -1,37 +1,56 @@
 import { DAILY_NOTES_PLUGIN_ID, DEFAULT_FORMATS_PER_GRANULARITY } from '@/constants';
-import { settingsStore } from '@/settings';
+import { PeriodSettings, settingsStore } from '@/settings';
 import { get } from 'svelte/store';
+import { IGranularity } from './types';
 
 /**
- * Read user settings from notes tab in `settings/plugin-tab.ts` and `daily-notes` plugins
+ * Read user settings from notes tab in `settings/plugin-tab.ts` and `daily-notes` plugin
  * to keep behavior of creating a new note in-sync.
  */
-export function getNoteSettings() {
-    const pluginSettings = get(settingsStore).notes;
-    const dailyNotesPluginSettings = (<any>window.app).internalPlugins?.getPluginById(DAILY_NOTES_PLUGIN_ID)?.instance?.options as {
+type TNormalizedPeriodSettings = Record<IGranularity, { settings: PeriodSettings, type: "period" | "daily" | "default" }>
+export function getNormalizedPeriodSettings(granularity: IGranularity): TNormalizedPeriodSettings[IGranularity] {
+    const pluginSettings = get(settingsStore).periods;
+    const dailyNotesPlugin = (<any>window.app).internalPlugins?.getPluginById(DAILY_NOTES_PLUGIN_ID)
+    const dailyNotesPluginSettings = dailyNotesPlugin?.instance?.options as {
         autorun: boolean;
         format: string;
         folder: string;
         template: string;
     };
 
-    let settings = pluginSettings;
-    if (!pluginSettings.day.enabled && dailyNotesPluginSettings) {
-        settings = {
-            ...settings,
-            day: {
-                ...settings.day,
+    let settings = pluginSettings[granularity];
+    if (settings.enabled) {
+        return {
+            type: "period",
+            settings
+        }
+    } else if (granularity === 'day' && !pluginSettings.day.enabled && dailyNotesPlugin.enabled) {
+        return {
+            type: "daily",
+            settings: {
+                ...pluginSettings.day,
                 enabled: true,
                 openAtStartup: dailyNotesPluginSettings?.autorun || false,
                 selectedFormat: {
-                    ...settings.day.selectedFormat,
+                    ...pluginSettings.day.selectedFormat,
                     value: dailyNotesPluginSettings?.format || DEFAULT_FORMATS_PER_GRANULARITY.day
                 },
                 folder: dailyNotesPluginSettings?.folder || '/',
                 templatePath: dailyNotesPluginSettings?.template || '',
             }
         }
+    } else {
+        return {
+            type: "default",
+            settings: {
+                ...settings,
+                selectedFormat: {
+                    id: window.crypto.randomUUID(),
+                    value: DEFAULT_FORMATS_PER_GRANULARITY[granularity],
+                    error: "",
+                    loading: false,
+                }
+            }
+        }
     }
-
-    return settings
 }

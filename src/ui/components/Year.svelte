@@ -6,14 +6,14 @@
 	import { eventHandlers, isControlPressed } from '../utils';
 	import Dot from './Dot.svelte';
 	import Sticker from './Sticker.svelte';
-	import { justModFileDataStore } from '@/stores/notes';
+	import { settingsStore } from '@/settings';
 
 	export let year: number;
 
 	$: date = $displayedDateStore.clone().year(year).startOf('year');
 	let { file, sticker } = getFileData('year', date);
 	$: {
-		if ($justModFileDataStore && $justModFileDataStore.op === 'created') {
+		if ($settingsStore.filepaths) {
 			const fileData = getFileData('year', date);
 			file = fileData.file;
 			sticker = fileData.sticker;
@@ -60,4 +60,3 @@
 	@tailwind components;
 	@tailwind utilities;
 </style>
-

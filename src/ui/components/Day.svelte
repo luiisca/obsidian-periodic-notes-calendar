@@ -8,7 +8,7 @@
 	import Dot from './Dot.svelte';
 	import Sticker from './Sticker.svelte';
 	import { getFileData } from '@/io';
-	import { justModFileDataStore } from '@/stores/notes';
+	import { settingsStore } from '@/settings';
 
 	// Properties
 	export let date: Moment;
@@ -20,7 +20,7 @@
 	// file obtained with filename generated using selected format for given period
 	let { file, sticker } = getFileData('day', date);
 	$: {
-		if ($justModFileDataStore && $justModFileDataStore.op === 'created') {
+		if ($settingsStore.filepaths) {
 			const fileData = getFileData('day', date);
 			file = fileData.file;
 			sticker = fileData.sticker;

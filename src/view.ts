@@ -1,20 +1,22 @@
 import {
     FileView,
     ItemView,
+    Notice,
     TAbstractFile,
     TFile,
     WorkspaceLeaf
 } from 'obsidian';
 
+import { InvalidFormat } from '@/ui';
 import { get } from 'svelte/store';
 import View from './View.svelte';
 import { VIEW_TYPE } from './constants';
-import { basename, IGranularity, storeAllVaultPeriodicFilepaths } from './io';
+import { basename, storeAllVaultPeriodicFilepaths } from './io';
 import { isValidPeriodicNote } from './io/validation';
 import type PeriodicNotesCalendarPlugin from './main';
-import { PeriodSettings, settingsStore } from './settings';
+import { settingsStore } from './settings';
 import { activeFilepathStore, themeStore } from './stores';
-import { internalRenamingStore, justModFileDataStore } from './stores/notes';
+import { internalFileModStore } from './stores/notes';
 
 export class CalendarView extends ItemView {
     private view: View;
@@ -75,52 +77,68 @@ export class CalendarView extends ItemView {
     }
 
     private onFileCreated(file: TFile) {
+        if (get(internalFileModStore) === 'created') return;
+
         console.log('✅ ON file created ✅', file);
 
         if (this.app.workspace.layoutReady && this.view) {
-            this.handlePeriodicFileChange(file, 'created')
+            if (file.extension !== 'md') return;
+
+            const { isValid, granularity, format } = isValidPeriodicNote(file.basename);
+
+            if (isValid === false) {
+                const fragment = document.createDocumentFragment();
+                new InvalidFormat({
+                    // @ts-ignore
+                    target: fragment,
+                    props: {
+                        granularity,
+                        filepath: file.path,
+                        formatValue: format.value,
+                        error: format.error
+                    }
+                })
+                new Notice(fragment)
+            }
+            if (granularity && format) {
+                settingsStore.addFilepath(file.path, format.value)
+            }
         }
     }
 
     private async onFileDeleted(file: TFile): Promise<void> {
+        if (get(internalFileModStore) === 'deleted') return;
+
         console.log('❌ ON file deleted ❌', file);
 
         if (this.app.workspace.layoutReady && this.view) {
-            this.handlePeriodicFileChange(file, 'deleted')
+            if (file.extension !== 'md') return;
+
+            const { granularity, format } = isValidPeriodicNote(file.basename);
+
+            if (granularity && format) {
+                settingsStore.deleteFilepath(file.path, format.value)
+            }
         }
     }
 
     private async onFileRenamed(renamedFile: TFile, oldPath: string): Promise<void> {
-        if (get(internalRenamingStore)) return;
+        if (get(internalFileModStore) === 'renamed') return;
 
-        const oldData = isValidPeriodicNote(basename(oldPath));
-        const newData = isValidPeriodicNote(renamedFile.basename);
+        const _oldData = isValidPeriodicNote(basename(oldPath));
+        const _newData = isValidPeriodicNote(renamedFile.basename);
 
-        settingsStore.update(s => {
-            const addNew = () => {
-                if (newData.granularity) {
-                    s.filepaths[renamedFile.path] = newData.format.value;
-
-                    if (!(newData.format.value in s.filepathsByFormatValue)) {
-                        s.filepathsByFormatValue[newData.format.value] = {}
-                    }
-
-                    s.filepathsByFormatValue[newData.format.value]![renamedFile.path] = renamedFile.path;
-                }
+        settingsStore.renameFilepath({
+            oldData: {
+                path: oldPath,
+                formatValue: _oldData.format?.value,
+                toBeDeleted: typeof _oldData.isValid === "boolean"
+            },
+            newData: {
+                path: renamedFile.path,
+                formatValue: _newData.format?.value,
+                toBeAdded: typeof _newData.isValid === 'boolean' && renamedFile.extension === 'md'
             }
-            const removeOld = () => {
-                if (oldData.granularity) {
-                    delete s.filepaths[oldPath];
-                    delete s.filepathsByFormatValue[oldData.format.value]?.[oldPath]
-                }
-            }
-
-            removeOld();
-            if (typeof newData.isValid === 'boolean' && renamedFile.extension === 'md') {
-                addNew();
-            }
-
-            return s
         })
     }
 
@@ -149,56 +167,6 @@ export class CalendarView extends ItemView {
         }
 
         console.log('🪟📅 view.ts > updateActiveFile(), activeFilepathStore: ', get(activeFilepathStore));
-    }
-
-    private handlePeriodicFileChange(file: TFile, op: "created" | "modified" | "deleted") {
-        if (file.extension !== 'md') return;
-
-        let granularity: IGranularity | null = null;
-        let format: PeriodSettings['formats'][0] | null = null;
-
-        const justModFileData = get(justModFileDataStore);
-        if (justModFileData?.op === op) {
-            granularity = justModFileData?.granularity;
-            format = justModFileData?.format;
-
-            justModFileDataStore.set(null);
-        }
-
-        if (!justModFileData) {
-            const { isValid, granularity: _granularity, format: _format } = isValidPeriodicNote(file.basename);
-
-            if (typeof isValid === "boolean") {
-                granularity = _granularity
-                format = _format
-            }
-        }
-
-        // adds file's format to corresponding format.filePaths in settingsStore
-        if (granularity && format) {
-            settingsStore.update(s => {
-                if (op === 'created') {
-                    s.filepaths[file.path] = format.value;
-
-                    if (!(format.value in s.filepathsByFormatValue)) {
-                        s.filepathsByFormatValue[format.value] = {}
-                    }
-
-                    s.filepathsByFormatValue[format.value]![file.path] = file.path;
-
-                    return s
-                }
-
-                if (op === 'deleted') {
-                    delete s.filepaths[file.path];
-                    delete s.filepathsByFormatValue[format.value]?.[file.path]
-
-                    return s
-                }
-
-                return s
-            })
-        }
     }
 
     // public revealActiveNote(): void {

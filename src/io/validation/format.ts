@@ -151,59 +151,20 @@ function isAmbiguousFormat(
     return null;
 }
 
-export function addToValidFormats(
-    value: string,
-    granularity: IGranularity,
-): void {
-    let isValidFormatNew = true;
-    for (const granularity of granularities) {
-        const isNew = get(settingsStore).notes[granularity].formats.every((f) =>
-            f.value !== value
-        );
-
-        if (!isNew) {
-            isValidFormatNew = false;
-
-            break;
-        }
-    }
-
-    if (isValidFormatNew) {
-        settingsStore.update((settings) => ({
-            ...settings,
-            notes: {
-                ...settings.notes,
-                [granularity]: {
-                    ...settings.notes[granularity],
-                    formats: [
-                        ...settings.notes[granularity].formats,
-                        {
-                            id: window.crypto.randomUUID(),
-                            value,
-                            error: "",
-                        },
-                    ],
-                } satisfies PeriodSettings,
-            },
-        }));
-    }
-}
-
 function checkIfDuplicateFormat(
     value: string,
     granularity: IGranularity,
     id: string,
 ) {
-    for (const g of granularities) {
-        const formats = get(settingsStore).notes[g].formats;
-
-        for (const f of formats) {
-            if (f.id !== id && f.value === value) {
+    const periods = get(settingsStore).periods
+    for (const [g, periodSettings] of Object.entries(periods)) {
+        for (const format of Object.values(periodSettings.formats)) {
+            if (format.id !== id && format.value === value) {
                 return {
                     duplicate: true,
                     errorMsg: `Duplicate format ${granularity === g
                         ? ""
-                        : `from ${capitalize(getPeriodicityFromGranularity(g))
+                        : `from ${capitalize(getPeriodicityFromGranularity(g as IGranularity))
                         } Notes settings`
                         }`,
                 };

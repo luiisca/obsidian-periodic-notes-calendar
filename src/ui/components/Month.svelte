@@ -6,14 +6,14 @@
 	import Dot from './Dot.svelte';
 	import Sticker from './Sticker.svelte';
 	import { getFileData } from '@/io';
-	import { justModFileDataStore } from '@/stores/notes';
+	import { settingsStore } from '@/settings';
 
 	export let monthIndex: number;
 
 	$: date = $displayedDateStore.clone().month(monthIndex).startOf('month');
 	let { file, sticker } = getFileData('month', date);
 	$: {
-		if ($justModFileDataStore && $justModFileDataStore.op === 'created') {
+		if ($settingsStore.filepaths) {
 			const fileData = getFileData('month', date);
 			file = fileData.file;
 			sticker = fileData.sticker;
