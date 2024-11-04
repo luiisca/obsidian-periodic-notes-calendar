@@ -7,13 +7,14 @@ import { genNoticeFragment } from '../utils';
 import DeleteAllTitle from "./components/DeleteAllTitle.svelte"
 import DeleteTitle from "./components/DeleteTitle.svelte"
 import { settingsStore } from '@/settings';
-import { get } from 'svelte/store';
+import { get, writable, Writable } from 'svelte/store';
 import { internalFileModStore } from '@/stores/notes';
 
 export class FilepathModal extends FuzzySuggestModal<string> {
     private filePaths: string[];
     private formatValue: string;
     private topBarContainer: HTMLElement | null = null;
+    private deletingAllStore: Writable<boolean> = writable(false);
 
     constructor(filePaths: string[], formatValue: string) {
         super(window.app);
@@ -45,9 +46,10 @@ export class FilepathModal extends FuzzySuggestModal<string> {
             target: el,
             props: {
                 filepath,
-                onDelete: () => {
-                    this.handleDeleteFile(filepath);
-                }
+                onDelete: async () => {
+                    await this.handleDeleteFile(filepath);
+                },
+                deletingAllStore: this.deletingAllStore
             }
         })
     }
@@ -111,6 +113,8 @@ export class FilepathModal extends FuzzySuggestModal<string> {
         const deleteAllFiles = async () => {
             try {
                 let deletedCount = 0;
+
+                this.deletingAllStore.set(true);
                 for (const filePath of this.filePaths) {
                     const file = this.app.vault.getAbstractFileByPath(filePath);
                     if (file instanceof TFile) {
@@ -118,6 +122,8 @@ export class FilepathModal extends FuzzySuggestModal<string> {
                         deletedCount++;
                     }
                 }
+                this.deletingAllStore.set(false);
+
                 this.filePaths = [];
                 new Notice(`Deleted ${deletedCount} ${deletedCount === 1 ? 'file' : 'files'}`);
                 this.close();
@@ -194,7 +200,8 @@ export class FilepathModal extends FuzzySuggestModal<string> {
             target: this.topBarContainer,
             props: {
                 onDelete: this.handleDeleteAllFiles.bind(this),
-            }
+                deletingAllStore: this.deletingAllStore,
+            },
         })
 
         inputContainer?.insertAdjacentElement('afterend', this.topBarContainer);

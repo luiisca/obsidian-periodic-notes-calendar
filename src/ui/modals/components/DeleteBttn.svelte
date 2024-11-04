@@ -1,10 +1,13 @@
 <script lang="ts">
+	import { LoadingCircle } from '@/settings';
+	import clsx from 'clsx';
 	import { setIcon } from 'obsidian';
 	import { onMount } from 'svelte';
 
 	export let onClick: () => void;
 	export let ariaLabel: string = 'Delete note';
 	export let text: string = '';
+	export let loading: boolean = false;
 
 	let deleteBttnEl: HTMLElement;
 	onMount(() => {
@@ -13,17 +16,23 @@
 </script>
 
 <div
-	class="menu-item tappable is-warning text-xs hover:bg-[var(--background-modifier-hover)] cursor-pointer flex items-center"
+	class={clsx(
+		'relative menu-item tappable is-warning text-xs flex items-center',
+		loading
+			? 'opacity-60 hover:bg-transparent cursor-not-allowed '
+			: 'hover:bg-[var(--background-modifier-hover)] cursor-pointer'
+	)}
 	aria-label={ariaLabel}
 	on:click={(e) => {
 		e.stopPropagation();
-		onClick();
+		!loading && onClick();
 	}}
 >
+	<LoadingCircle {loading} />
+	<div class="menu-item-icon" bind:this={deleteBttnEl} />
 	{#if text}
 		<span>{text}</span>
 	{/if}
-	<div class="menu-item-icon" bind:this={deleteBttnEl} />
 </div>
 
 <style lang="postcss">
