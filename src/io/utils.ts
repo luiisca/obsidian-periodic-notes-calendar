@@ -43,7 +43,7 @@ export function storeAllVaultPeriodicFilepaths(
                     );
                 }
 
-                Vault.recurseChildren(notesFolder, async (file) => {
+                Vault.recurseChildren(notesFolder, (file) => {
                     if (file instanceof TFile) {
                         if (file.extension !== 'md') return;
 

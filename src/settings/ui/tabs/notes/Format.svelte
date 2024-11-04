@@ -57,6 +57,7 @@
 					value,
 					error
 				};
+				console.log(updatedFormat);
 				s.formats[format.id] = updatedFormat;
 				if (selected) {
 					s.selectedFormat = updatedFormat;
@@ -66,9 +67,19 @@
 			});
 		}, 500)();
 
+		settings.update((s) => {
+			s.formats[format.id].loading = true;
+
+			return s;
+		});
 		debounce(() => {
 			storeAllVaultPeriodicFilepaths(false, [granularity], { [format.id]: format });
-		}, 2000)();
+			settings.update((s) => {
+				s.formats[format.id].loading = false;
+
+				return s;
+			});
+		}, 800)();
 	}
 
 	function handleSelect() {
