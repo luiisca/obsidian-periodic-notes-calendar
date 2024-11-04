@@ -115,7 +115,7 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
     )) as Record<IGranularity, PeriodSettings>,
     filepaths: {},
     filepathsByFormatValue: {},
-    viewLeafPosition: "left",
+    viewLeafPosition: "right",
     viewMode: "dedicated-panel",
     shouldConfirmBeforeCreate: true,
     shouldConfirmBeforeDeleteFormat: true,
