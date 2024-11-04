@@ -11,16 +11,16 @@
 
 <button
 	class={clsx(
-		'[&:not(:focus-visible)]:shadow-none flex items-center',
+		'[&:not(:focus-visible)]:shadow-none flex items-center cursor-pointer',
 		direction === 'right' && 'rotate-180',
-		isMobile ? 'w-8' : 'w-6'
+		isMobile ? 'w-8' : 'w-[1.6rem]'
 	)}
 	id="arrow"
 	on:click={onClick}
 	aria-label={tooltip}
 >
 	<svg
-		class="h-4 w-4 text-[--color-arrow]"
+		class="text-[--color-arrow]"
 		focusable="false"
 		role="img"
 		xmlns="http://www.w3.org/2000/svg"
@@ -33,8 +33,6 @@
 </button>
 
 <style lang="postcss">
-	@tailwind base;
-	@tailwind components;
 	@tailwind utilities;
 
 	button {
