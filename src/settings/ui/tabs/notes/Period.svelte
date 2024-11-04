@@ -1,19 +1,16 @@
 <script lang="ts">
 	import { getPeriodicityFromGranularity, type IGranularity } from '@/io';
 	import { settingsStore } from '@/settings';
-	import { Arrow } from '@/settings/ui/';
+	import { Arrow, Toggle } from '@/settings/ui/';
 	import { capitalize } from '@/utils';
 	import writableDerived from 'svelte-writable-derived';
 	import { slide } from 'svelte/transition';
 	import Folder from './Folder.svelte';
 	import Template from './Template.svelte';
 	import OpenAtStartup from './OpenAtStartup.svelte';
-	import { onMount } from 'svelte';
 	import Formats from './Formats.svelte';
 
 	export let granularity: IGranularity;
-
-	let labelEl: HTMLLabelElement;
 
 	let isExpanded = false;
 
@@ -35,21 +32,10 @@
 		}
 	);
 
-	function toggleExpand() {
-		console.log('🌆 Period toggleExpand - ', granularity, $settings.formats);
-		isExpanded = !isExpanded;
-	}
-	onMount(() => {
-		console.log(`🌆 Period onMount - ${granularity}`, $settings.formats);
-	});
+	function toggleExpand(event: Event) {
+		if ((event.target as HTMLElement)?.matches('input, label')) return;
 
-	$: if (labelEl) {
-		labelEl.tabIndex = 0;
-		labelEl.onkeydown = (event) => {
-			if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
-				$settings.enabled = !$settings.enabled;
-			}
-		};
+		isExpanded = !isExpanded;
 	}
 </script>
 
@@ -75,13 +61,7 @@
 			</h3>
 		</div>
 		<div class="setting-item-control">
-			<label
-				bind:this={labelEl}
-				class="checkbox-container cursor-pointer focus-visible:shadow-[0_0_0_3px_var(--background-modifier-border-focus)] outline-none"
-				class:is-enabled={$settings.enabled}
-			>
-				<input type="checkbox" tabindex="-1" bind:checked={$settings.enabled} class="hidden" />
-			</label>
+			<Toggle isEnabled={$settings.enabled} onChange={(val) => ($settings.enabled = val)} />
 		</div>
 	</a>
 	{#if isExpanded}
