@@ -140,7 +140,7 @@
 		return options;
 	};
 
-	$: firstWeekday = defaultWeekdays[$settingsStore.localeSettings.weekStartId];
+	let firstWeekday = $derived(defaultWeekdays[$settingsStore.localeSettings.weekStartId]);
 	const handleFirstWeekdayChange = (weekday: string) => {
 		const newWeekStartId = defaultWeekdays.indexOf(weekday);
 
@@ -165,7 +165,7 @@
 
 		return options;
 	});
-	$: weekdayOptions = $weekdayOptionsStore;
+	let weekdayOptions = $derived($weekdayOptionsStore);
 
 	const handleAllowLocalesSwitchFromCommandPalette = (
 		allowLocalesSwitchFromCommandPalette: boolean
@@ -183,52 +183,60 @@
 	description="Choose where the calendar appears in your workspace (left or right sidebar)"
 	type="dropdown"
 >
-	<Dropdown
-		slot="control"
-		options={[
-			{ label: 'Left', value: 'left' },
-			{ label: 'Right', value: 'right' }
-		]}
-		onChange={handleViewLeafPositionChange}
-		value={$settingsStore.viewLeafPosition}
-	/>
+	{#snippet control()}
+		<Dropdown
+			
+			options={[
+				{ label: 'Left', value: 'left' },
+				{ label: 'Right', value: 'right' }
+			]}
+			onChange={handleViewLeafPositionChange}
+			value={$settingsStore.viewLeafPosition}
+		/>
+	{/snippet}
 </SettingItem>
 
 <SettingItem
 	name="View Mode"
 	description="Show calendar in a dedicated workspace panel (recommended) or as a floating window"
 >
-	<Dropdown
-		slot="control"
-		options={[
-			{ label: 'Dedicated Panel', value: 'dedicated-panel' },
-			{ label: 'Floating Window', value: 'floating-window' }
-		]}
-		onChange={handleViewModeChange}
-		value={$settingsStore.viewMode}
-	/>
+	{#snippet control()}
+		<Dropdown
+			
+			options={[
+				{ label: 'Dedicated Panel', value: 'dedicated-panel' },
+				{ label: 'Floating Window', value: 'floating-window' }
+			]}
+			onChange={handleViewModeChange}
+			value={$settingsStore.viewMode}
+		/>
+	{/snippet}
 </SettingItem>
 
 <SettingItem
 	name="Week Numbers"
 	description="Display week numbers alongside the calendar for easier temporal reference"
 >
-	<Toggle
-		slot="control"
-		onChange={handleShowWeekNums}
-		isEnabled={$settingsStore.localeSettings.showWeekNums}
-	/>
+	{#snippet control()}
+		<Toggle
+			
+			onChange={handleShowWeekNums}
+			isEnabled={$settingsStore.localeSettings.showWeekNums}
+		/>
+	{/snippet}
 </SettingItem>
 
 <SettingItem
 	name="Fiscal Quarters"
 	description="Show quarter divisions for business and academic planning"
 >
-	<Toggle
-		slot="control"
-		onChange={handleShowQuarterNums}
-		isEnabled={$settingsStore.localeSettings.showQuarterNums}
-	/>
+	{#snippet control()}
+		<Toggle
+			
+			onChange={handleShowQuarterNums}
+			isEnabled={$settingsStore.localeSettings.showQuarterNums}
+		/>
+	{/snippet}
 </SettingItem>
 
 {#if $settingsStore.viewMode === 'floating-window'}
@@ -237,22 +245,26 @@
 		name="Sequential Dismissal (Click)"
 		description="Close floating windows one at a time when clicking outside"
 	>
-		<Toggle
-			slot="control"
-			onChange={handleSequentialDismissalOnClickOut}
-			isEnabled={$settingsStore.popoversClosing.closePopoversOneByOneOnClickOut}
-		/>
+		{#snippet control()}
+				<Toggle
+				
+				onChange={handleSequentialDismissalOnClickOut}
+				isEnabled={$settingsStore.popoversClosing.closePopoversOneByOneOnClickOut}
+			/>
+			{/snippet}
 	</SettingItem>
 
 	<SettingItem
 		name="Sequential Dismissal (Esc)"
 		description="Close floating windows one at a time when pressing Escape"
 	>
-		<Toggle
-			slot="control"
-			onChange={handleSequentialDismissalOnEsc}
-			isEnabled={$settingsStore.popoversClosing.closePopoversOneByOneOnEscKeydown}
-		/>
+		{#snippet control()}
+				<Toggle
+				
+				onChange={handleSequentialDismissalOnEsc}
+				isEnabled={$settingsStore.popoversClosing.closePopoversOneByOneOnEscKeydown}
+			/>
+			{/snippet}
 	</SettingItem>
 {/if}
 
@@ -261,33 +273,39 @@
 	name="Quick Access"
 	description="Show calendar when hovering over the ribbon icon for faster navigation"
 >
-	<Toggle
-		slot="control"
-		onChange={handleOpenPopoverOnRibbonHover}
-		isEnabled={$settingsStore.openPopoverOnRibbonHover}
-	/>
+	{#snippet control()}
+		<Toggle
+			
+			onChange={handleOpenPopoverOnRibbonHover}
+			isEnabled={$settingsStore.openPopoverOnRibbonHover}
+		/>
+	{/snippet}
 </SettingItem>
 
 <SettingItem
 	name="Creation Confirmation"
 	description="Prompt before creating new periodic notes to prevent accidental entries"
 >
-	<Toggle
-		slot="control"
-		onChange={handleShouldConfirmBeforeCreate}
-		isEnabled={$settingsStore.shouldConfirmBeforeCreate}
-	/>
+	{#snippet control()}
+		<Toggle
+			
+			onChange={handleShouldConfirmBeforeCreate}
+			isEnabled={$settingsStore.shouldConfirmBeforeCreate}
+		/>
+	{/snippet}
 </SettingItem>
 
 <SettingItem
 	name="Hover Preview"
 	description="Instantly preview notes by hovering over dates (no modifier key needed)"
 >
-	<Toggle
-		slot="control"
-		onChange={handleConfirmAutoHoverPreview}
-		isEnabled={$settingsStore.autoHoverPreview}
-	/>
+	{#snippet control()}
+		<Toggle
+			
+			onChange={handleConfirmAutoHoverPreview}
+			isEnabled={$settingsStore.autoHoverPreview}
+		/>
+	{/snippet}
 </SettingItem>
 
 <h3>Localization</h3>
@@ -295,30 +313,36 @@
 	name="Calendar Language"
 	description="Set a specific language for the calendar interface"
 >
-	<Dropdown
-		slot="control"
-		options={getLanguageOptions()}
-		onChange={handleSetLanguage}
-		value={$settingsStore.localeSettings.localeOverride}
-	/>
+	{#snippet control()}
+		<Dropdown
+			
+			options={getLanguageOptions()}
+			onChange={handleSetLanguage}
+			value={$settingsStore.localeSettings.localeOverride}
+		/>
+	{/snippet}
 </SettingItem>
 
 <SettingItem name="Week Starts On" description="Choose which day your week begins with">
-	<Dropdown
-		slot="control"
-		options={weekdayOptions}
-		onChange={handleFirstWeekdayChange}
-		value={firstWeekday}
-	/>
+	{#snippet control()}
+		<Dropdown
+			
+			options={weekdayOptions}
+			onChange={handleFirstWeekdayChange}
+			value={firstWeekday}
+		/>
+	{/snippet}
 </SettingItem>
 
 <SettingItem
 	name="Quick Language Switching"
 	description="Enable language switching through the command palette (requires restart)"
 >
-	<Toggle
-		slot="control"
-		onChange={handleAllowLocalesSwitchFromCommandPalette}
-		isEnabled={$settingsStore.allowLocalesSwitchFromCommandPalette}
-	/>
+	{#snippet control()}
+		<Toggle
+			
+			onChange={handleAllowLocalesSwitchFromCommandPalette}
+			isEnabled={$settingsStore.allowLocalesSwitchFromCommandPalette}
+		/>
+	{/snippet}
 </SettingItem>

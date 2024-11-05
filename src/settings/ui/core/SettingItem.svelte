@@ -1,8 +1,19 @@
 <script lang="ts">
-	export let name: string;
-	export let description: string;
-	export let isHeading: boolean = false;
-	export let type: 'dropdown' | 'toggle' | undefined = undefined;
+	interface Props {
+		name: string;
+		description: string;
+		isHeading?: boolean;
+		type?: 'dropdown' | 'toggle' | undefined;
+		control?: import('svelte').Snippet;
+	}
+
+	let {
+		name,
+		description,
+		isHeading = false,
+		type = undefined,
+		control
+	}: Props = $props();
 </script>
 
 <!-- doubles as section title thanks to `setting-item-heading` -->
@@ -24,6 +35,6 @@
 		{/if}
 	</div>
 	<div class="setting-item-control">
-		<slot name="control" />
+		{@render control?.()}
 	</div>
 </div>

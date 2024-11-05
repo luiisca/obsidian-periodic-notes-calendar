@@ -1,42 +1,39 @@
 <script lang="ts">
-	export let className = '';
-	export let isVisible = true;
-	export let isFilled = false;
-	export let isActive = false;
+	import { cn } from '@/ui/utils';
+
+	interface Props {
+		className?: string;
+		isVisible?: boolean;
+		isFilled?: boolean;
+		isActive?: boolean;
+	}
+
+	let {
+		className = '',
+		isVisible = true,
+		isFilled = false,
+		isActive = false
+	}: Props = $props();
 </script>
 
-<svg
-	class={`dot ${className}`}
-	class:isVisible
-	class:isFilled
-	class:isActive
-	viewBox="0 0 6 6"
-	xmlns="http://www.w3.org/2000/svg"
->
-	<circle cx="3" cy="3" r="2" />
-</svg>
+{#if isVisible}
+	<svg
+		class={cn(
+			'inline-block h-[6px] w-[6px] mx-0 my-[1px]',
+			'stroke-[--color-dot]',
+			isActive && 'stroke-[--text-on-accent]',
+			isFilled && 'fill-[--color-dot]',
+			isActive && isFilled && 'fill-[--text-on-accent]',
+			className
+		)}
+		viewBox="0 0 6 6"
+		xmlns="http://www.w3.org/2000/svg"
+	>
+		<circle cx="3" cy="3" r="2" />
+	</svg>
+{/if}
 
 <style lang="postcss">
-	.dot {
-		display: inline-block;
-		height: 6px;
-		width: 6px;
-		margin: 0 1px;
-		fill: none;
-	}
-	.isVisible {
-		stroke: var(--color-dot);
-	}
-
-	.isActive {
-		stroke: var(--text-on-accent);
-	}
-
-	.isFilled {
-		fill: var(--color-dot);
-	}
-
-	.isActive.isFilled {
-		fill: var(--text-on-accent);
-	}
+	@tailwind base;
+	@tailwind utilities;
 </style>

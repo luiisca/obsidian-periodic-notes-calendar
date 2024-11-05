@@ -1,5 +1,9 @@
 <script lang="ts">
-	export let filename: string;
+	interface Props {
+		filename: string;
+	}
+
+	let { filename }: Props = $props();
 </script>
 
 <p>

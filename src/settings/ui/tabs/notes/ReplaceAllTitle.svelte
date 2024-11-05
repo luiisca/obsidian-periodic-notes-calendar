@@ -1,5 +1,9 @@
 <script lang="ts">
-	export let replacingFormat: string;
+	interface Props {
+		replacingFormat: string;
+	}
+
+	let { replacingFormat }: Props = $props();
 </script>
 
 <p class="mt-0">
@@ -7,5 +11,6 @@
 </p>
 
 <style lang="postcss">
+	@tailwind base;
 	@tailwind utilities;
 </style>

@@ -3,10 +3,10 @@
 	import { Notes, Calendar } from '@/settings/ui';
 
 	const tabs = ['calendar', 'notes'] as const;
-	let selectedTab: (typeof tabs)[number] = 'notes';
+	let selectedTab: (typeof tabs)[number] = $state('notes');
 </script>
 
-<Tabs tabs={[...tabs]} bind:selectedTab />
+<Tabs tabs={[...tabs]} bind:selectedTab className="max-w-56" />
 <div class="mt-6">
 	{#if selectedTab === 'calendar'}
 		<Calendar />
@@ -16,6 +16,7 @@
 </div>
 
 <style lang="postcss">
+	@tailwind base;
 	@tailwind utilities;
 
 	:global(.vertical-tab-content) {

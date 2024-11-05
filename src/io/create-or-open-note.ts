@@ -94,7 +94,7 @@ export async function createOrOpenNote({
 }
 
 async function createNote(granularity: IGranularity, date: Moment) {
-    let { settings: { templatePath, selectedFormat } } = getNormalizedPeriodSettings(granularity);
+    const { settings: { templatePath, selectedFormat } } = getNormalizedPeriodSettings(granularity);
 
     const normalizedPath = getNotePath(granularity, date);
     await ensureFolderExists(normalizedPath);

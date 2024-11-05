@@ -7,8 +7,12 @@
 	import { capitalize } from '@/utils';
 	import { granularities } from '@/constants';
 
-	export let settings: Readable<PeriodSettings>;
-	export let granularity: IGranularity;
+	interface Props {
+		settings: Readable<PeriodSettings>;
+		granularity: IGranularity;
+	}
+
+	let { settings, granularity }: Props = $props();
 </script>
 
 <SettingItem
@@ -19,19 +23,21 @@
 	type="toggle"
 	isHeading={false}
 >
-	<Toggle
-		slot="control"
-		isEnabled={$settings.openAtStartup}
-		onChange={(val) => {
-			settingsStore.update((settings) => {
-				const newSettings = settings;
-				for (const granularity of granularities) {
-					newSettings.periods[granularity].openAtStartup = false;
-				}
+	{#snippet control()}
+		<Toggle
+			
+			isEnabled={$settings.openAtStartup}
+			onChange={(val) => {
+				settingsStore.update((settings) => {
+					const newSettings = settings;
+					for (const granularity of granularities) {
+						newSettings.periods[granularity].openAtStartup = false;
+					}
 
-				return newSettings;
-			});
-			$settings.openAtStartup = val;
-		}}
-	/>
+					return newSettings;
+				});
+				$settings.openAtStartup = val;
+			}}
+		/>
+	{/snippet}
 </SettingItem>

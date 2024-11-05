@@ -2,13 +2,17 @@
 	import { Writable } from 'svelte/store';
 	import DeleteBttn from './DeleteBttn.svelte';
 
-	export let filepath: string = '';
-	export let onDelete: () => Promise<void>;
-	export let deletingAllStore: Writable<boolean>;
+	interface Props {
+		filepath?: string;
+		onDelete: () => Promise<void>;
+		deletingAllStore: Writable<boolean>;
+	}
+
+	let { filepath = '', onDelete, deletingAllStore }: Props = $props();
 
 	const basename = filepath.split('/').pop() || '';
 	const path = filepath.substring(0, filepath.lastIndexOf('/'));
-	let deleting: boolean = false;
+	let deleting = $state(false);
 </script>
 
 <div class="py-1 px-0 flex justify-between items-center">
@@ -29,5 +33,6 @@
 </div>
 
 <style lang="postcss">
+	@tailwind base;
 	@tailwind utilities;
 </style>

@@ -4,14 +4,18 @@
 		value: string;
 	}
 
-	export let onChange: (value: string | undefined) => void | Promise<void>;
-	export let options: IOption[] = [];
-	export let value: string;
+	interface Props {
+		onChange: (value: string | undefined) => void | Promise<void>;
+		options?: IOption[];
+		value: string;
+	}
+
+	let { onChange, options = [], value }: Props = $props();
 </script>
 
 <select
 	class="dropdown"
-	on:change={(event) => {
+	onchange={(event) => {
 		// @ts-ignore
 		onChange(event.target?.value);
 	}}

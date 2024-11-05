@@ -2,8 +2,12 @@
 	import { getPeriodicityFromGranularity, IGranularity } from '@/io';
 	import { capitalize } from '@/utils';
 
-	export let replacingFormat: string;
-	export let granularity: IGranularity;
+	interface Props {
+		replacingFormat: string;
+		granularity: IGranularity;
+	}
+
+	let { replacingFormat, granularity }: Props = $props();
 
 	const periodicity = capitalize(getPeriodicityFromGranularity(granularity));
 </script>

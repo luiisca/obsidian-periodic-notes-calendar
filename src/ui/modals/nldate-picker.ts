@@ -1,6 +1,7 @@
 import { Modal } from 'obsidian';
 import NldatepickerComponent from '../components/Nldatepicker.svelte';
 import { ModalManager } from './modals-manager';
+import { mount } from "svelte";
 
 export default class NldatePickerModal extends Modal {
     constructor() {
@@ -13,12 +14,12 @@ export default class NldatePickerModal extends Modal {
         const svelteContainer = contentEl.createDiv();
 
         // Instantiate the Svelte component
-        new NldatepickerComponent({
-            target: svelteContainer,
-            props: {
-                modalClass: this,
-            }
-        });
+        mount(NldatepickerComponent, {
+                    target: svelteContainer,
+                    props: {
+                        modalClass: this,
+                    }
+                });
     }
 }
 

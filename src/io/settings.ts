@@ -18,7 +18,7 @@ export function getNormalizedPeriodSettings(granularity: IGranularity): TNormali
         template: string;
     };
 
-    let settings = pluginSettings[granularity];
+    const settings = pluginSettings[granularity];
     if (settings.enabled) {
         return {
             type: "period",

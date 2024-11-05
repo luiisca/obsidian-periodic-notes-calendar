@@ -169,7 +169,8 @@ function createYearsRangesStore() {
     };
 }
 
+const todayStore = writable<Moment>(window.moment());
 const displayedDateStore = writable<Moment>(window.moment());
 const yearsRanges = createYearsRangesStore();
 
-export { displayedDateStore, yearsRanges };
+export { displayedDateStore, todayStore, yearsRanges };

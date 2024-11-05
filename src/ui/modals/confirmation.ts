@@ -1,6 +1,6 @@
 import { Modal } from 'obsidian';
 import ConfirmationModalComponent from '../components/ConfirmationModal.svelte';
-import { ComponentType } from 'svelte';
+import { ComponentType, mount } from 'svelte';
 import { ModalManager } from './modals-manager';
 
 type TextContent = string | {
@@ -27,13 +27,13 @@ export class ConfirmationModal extends Modal {
         const svelteContainer = contentEl.createDiv();
 
         // Instantiate the Svelte component
-        new ConfirmationModalComponent({
-            target: svelteContainer,
-            props: {
-                config,
-                modalClass: this
-            }
-        });
+        mount(ConfirmationModalComponent, {
+                    target: svelteContainer,
+                    props: {
+                        config,
+                        modalClass: this
+                    }
+                });
     }
 }
 

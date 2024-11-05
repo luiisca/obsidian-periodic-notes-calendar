@@ -1,7 +1,6 @@
 import { localeDataStore } from '@/stores';
 import type { Moment } from 'moment';
 import { get } from 'svelte/store';
-import Test from './Test.svelte'
 
 export interface IWeek {
     days: Moment[];
@@ -95,3 +94,4 @@ export function genNoticeFragment(mssgFragments: ([string] | [string, string])[]
 
 export * from './picker';
 export * from './event-handlers';
+export * from './cn'

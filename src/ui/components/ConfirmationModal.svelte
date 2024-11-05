@@ -2,15 +2,19 @@
 	import { onMount } from 'svelte';
 	import type { ConfirmationModal, IConfirmationDialogParams } from '../modals/confirmation';
 
-	export let config: IConfirmationDialogParams;
-	export let modalClass: ConfirmationModal;
+	interface Props {
+		config: IConfirmationDialogParams;
+		modalClass: ConfirmationModal;
+	}
+
+	let { config, modalClass }: Props = $props();
 
 	const { title, text, note, cta, onAccept } = config;
 
-	let dontAskAgain = false;
-	let titleContainer: HTMLElement;
-	let textContainer: HTMLElement;
-	let noteContainer: HTMLElement;
+	let dontAskAgain = $state(false);
+	let titleContainer: HTMLElement = $state();
+	let textContainer: HTMLElement = $state();
+	let noteContainer: HTMLElement = $state();
 
 	const handleCancel = async () => {
 		modalClass.close();
@@ -62,8 +66,8 @@
 </script>
 
 <div>
-	<h2 class="!mt-0" bind:this={titleContainer} />
-	<p bind:this={textContainer} />
+	<h2 class="!mt-0" bind:this={titleContainer}></h2>
+	<p bind:this={textContainer}></p>
 	<label class="flex items-center hover:cursor-pointer mt-7">
 		<input type="checkbox" class="hover:cursor-pointer" bind:checked={dontAskAgain} /> Don't ask again
 	</label>
@@ -71,15 +75,15 @@
 		<p
 			class="m-0 mt-2 [font-size:var(--font-ui-small)] text-[--text-muted]"
 			bind:this={noteContainer}
-		/>
+		></p>
 	{/if}
 	<div class="modal-button-container mt-3">
-		<button on:click={handleCancel}>Never mind</button>
-		<button class="mod-cta" on:click={handleAccept}>{cta}</button>
+		<button onclick={handleCancel}>Never mind</button>
+		<button class="mod-cta" onclick={handleAccept}>{cta}</button>
 	</div>
 </div>
 
 <style lang="postcss">
-	@tailwind components;
+	@tailwind base;
 	@tailwind utilities;
 </style>

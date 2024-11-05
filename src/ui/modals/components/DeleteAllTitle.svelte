@@ -1,5 +1,9 @@
 <script lang="ts">
-	export let filepathsLength: number;
+	interface Props {
+		filepathsLength: number;
+	}
+
+	let { filepathsLength }: Props = $props();
 </script>
 
 <p>

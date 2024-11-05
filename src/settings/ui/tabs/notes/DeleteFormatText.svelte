@@ -4,9 +4,13 @@
 	import { capitalize } from '@/utils';
 	import FilepathsCount from './FilepathsCount.svelte';
 
-	export let granularity: IGranularity;
 
-	export let format: PeriodSettings['formats'][number];
+	interface Props {
+		granularity: IGranularity;
+		format: PeriodSettings['formats'][number];
+	}
+
+	let { granularity, format }: Props = $props();
 	const periodicity = capitalize(getPeriodicityFromGranularity(granularity));
 </script>
 

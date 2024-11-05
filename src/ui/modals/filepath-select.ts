@@ -9,6 +9,7 @@ import DeleteTitle from "./components/DeleteTitle.svelte"
 import { settingsStore } from '@/settings';
 import { get, writable, Writable } from 'svelte/store';
 import { internalFileModStore } from '@/stores/notes';
+import { mount } from "svelte";
 
 export class FilepathModal extends FuzzySuggestModal<string> {
     private filePaths: string[];
@@ -42,16 +43,16 @@ export class FilepathModal extends FuzzySuggestModal<string> {
     renderSuggestion(result: FuzzyMatch<string>, el: HTMLElement) {
         const filepath = result.item;
 
-        new Suggestion({
-            target: el,
-            props: {
-                filepath,
-                onDelete: async () => {
-                    await this.handleDeleteFile(filepath);
-                },
-                deletingAllStore: this.deletingAllStore
-            }
-        })
+        mount(Suggestion, {
+                    target: el,
+                    props: {
+                        filepath,
+                        onDelete: async () => {
+                            await this.handleDeleteFile(filepath);
+                        },
+                        deletingAllStore: this.deletingAllStore
+                    }
+                })
     }
 
     private async handleDeleteFile(filePath: string) {
@@ -196,13 +197,13 @@ export class FilepathModal extends FuzzySuggestModal<string> {
         const inputContainer = modalEl.querySelector('.prompt-input-container');
 
         this.topBarContainer = createDiv();
-        new TopBar({
-            target: this.topBarContainer,
-            props: {
-                onDelete: this.handleDeleteAllFiles.bind(this),
-                deletingAllStore: this.deletingAllStore,
-            },
-        })
+        mount(TopBar, {
+                    target: this.topBarContainer,
+                    props: {
+                        onDelete: this.handleDeleteAllFiles.bind(this),
+                        deletingAllStore: this.deletingAllStore,
+                    },
+                })
 
         inputContainer?.insertAdjacentElement('afterend', this.topBarContainer);
     }

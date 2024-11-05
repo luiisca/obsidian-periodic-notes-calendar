@@ -1,14 +1,18 @@
 <script lang="ts">
 	import { Writable } from 'svelte/store';
 	import DeleteBttn from './DeleteBttn.svelte';
-	import clsx from 'clsx';
+	import { cn } from '@/ui/utils';
 
-	export let onDelete: () => void;
-	export let deletingAllStore: Writable<boolean>;
+	interface Props {
+		onDelete: () => void;
+		deletingAllStore: Writable<boolean>;
+	}
+
+	let { onDelete, deletingAllStore }: Props = $props();
 </script>
 
 <div class="flex justify-between items-center p-[24px] pb-0">
-	<span class={clsx('font-medium', $deletingAllStore && 'opacity-60')}>Notes</span>
+	<span class={cn('font-medium', $deletingAllStore && 'opacity-60')}>Notes</span>
 	<DeleteBttn
 		loading={$deletingAllStore}
 		onClick={onDelete}
@@ -18,5 +22,6 @@
 </div>
 
 <style lang="postcss">
+	@tailwind base;
 	@tailwind utilities;
 </style>

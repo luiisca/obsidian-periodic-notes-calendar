@@ -3,14 +3,18 @@
 	import { type PeriodSettings } from '@/settings';
 	import { onDestroy, onMount } from 'svelte';
 	import type { Readable } from 'svelte/store';
-	import clsx from 'clsx';
+	import { cn } from '@/ui/utils';
 	import { FileSuggest } from '../../suggest';
 
-	export let settings: Readable<PeriodSettings>;
+	interface Props {
+		settings: Readable<PeriodSettings>;
+	}
 
-	let inputEl: HTMLInputElement;
-	let value: string = $settings.templatePath || '';
-	let error: string;
+	let { settings }: Props = $props();
+
+	let inputEl: HTMLInputElement = $state();
+	let value: string = $state($settings.templatePath || '');
+	let error: string = $state();
 	let fileSuggestInstance: FileSuggest;
 
 	onMount(() => {
@@ -27,7 +31,7 @@
 	<div class="setting-item-info">
 		<div class="setting-item-name">Template</div>
 		<div class="setting-item-description">Choose a file to use as template</div>
-		<div class={clsx('setting-item-description', error ? 'has-error' : 'opacity-0')}>
+		<div class={cn('setting-item-description', error ? 'has-error' : 'opacity-0')}>
 			{error || 'Valid'}
 		</div>
 	</div>
@@ -40,7 +44,7 @@
 			type="text"
 			spellcheck={false}
 			placeholder="e.g. templates/template-file"
-			on:input={() => {
+			oninput={() => {
 				error = validateTemplate(inputEl.value);
 				if (error.trim() === '') {
 					$settings.templatePath = value.trim();
@@ -51,5 +55,6 @@
 </div>
 
 <style lang="postcss">
+	@tailwind base;
 	@tailwind utilities;
 </style>

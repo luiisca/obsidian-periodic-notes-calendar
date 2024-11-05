@@ -1,22 +1,28 @@
 <script lang="ts">
+	import { run } from 'svelte/legacy';
+
 	import { STICKER_POPOVER_ID } from '@/constants';
 	import { initializePicker } from '../utils';
 	import { themeStore } from '@/stores';
 	import { TFileData } from '@/io';
 
-	export let close: () => void;
-	export let fileData: TFileData;
+	interface Props {
+		close: () => void;
+		fileData: TFileData;
+	}
+
+	let { close, fileData }: Props = $props();
 	// export let
 
-	let pickerContainerEl: HTMLDivElement | null = null;
-	let pickerInitialized = false;
-	$: {
+	let pickerContainerEl: HTMLDivElement | null = $state(null);
+	let pickerInitialized = $state(false);
+	run(() => {
 		const theme = $themeStore;
 		pickerContainerEl && theme && initializePicker(pickerContainerEl, theme, fileData);
 		if (!pickerInitialized && pickerContainerEl) {
 			pickerInitialized = true;
 		}
-	}
+	});
 </script>
 
 <div
@@ -24,11 +30,10 @@
 	data-popover={true}
 	id={STICKER_POPOVER_ID}
 	bind:this={pickerContainerEl}
-/>
+></div>
 
 <style lang="postcss">
-	/* @tailwind base; */
-	@tailwind components;
+	@tailwind base;
 	@tailwind utilities;
 
 	#emoji-modal {
@@ -37,4 +42,3 @@
 		width: unset !important;
 	}
 </style>
-

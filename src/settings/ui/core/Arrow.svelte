@@ -3,8 +3,12 @@
 	import { onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
 
-	export let isExpanded: boolean;
-	let arrowEl: HTMLElement;
+	interface Props {
+		isExpanded: boolean;
+	}
+
+	let { isExpanded }: Props = $props();
+	let arrowEl: HTMLElement = $state();
 
 	onMount(() => {
 		setIcon(arrowEl, 'chevron-right');
@@ -17,8 +21,9 @@
 		isExpanded ? 'rotate-90' : ''
 	}`}
 	transition:fade
-/>
+></div>
 
 <style lang="postcss">
+	@tailwind base;
 	@tailwind utilities;
 </style>

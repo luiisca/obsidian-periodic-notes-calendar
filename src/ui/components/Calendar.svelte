@@ -2,26 +2,24 @@
 	import { monthsIndexesInQuarters, togglePeriods } from '@/constants';
 	import { settingsStore } from '@/settings';
 	import { displayedDateStore, localeDataStore, yearsRanges } from '@/stores';
-	import { capitalize } from '@/utils';
-	import clsx from 'clsx';
 	import { getMonth, getStartOfWeek, getYears, isWeekend } from '../utils';
 	import Day from './Day.svelte';
 	import Month from './Month.svelte';
-	import MonthNav from './MonthNav.svelte';
+	import MonthHeader from './MonthHeader.svelte';
 	import QuarterNum from './QuarterNum.svelte';
+	import Tabs from './Tabs.svelte';
 	import WeekNum from './WeekNum.svelte';
 	import Year from './Year.svelte';
-	import YearNav from './YearNav.svelte';
-	import YearsNav from './YearsNav.svelte';
-	import Tabs from './Tabs.svelte';
+	import YearHeader from './YearHeader.svelte';
+	import YearsHeader from './YearsHeader.svelte';
 
-	$: ({
+	let {
 		localeSettings: { showWeekNums, showQuarterNums }
-	} = $settingsStore);
-	$: ({ weekdaysShort } = $localeDataStore);
-	$: month = getMonth($displayedDateStore);
+	} = $derived($settingsStore);
+	let { weekdaysShort } = $derived($localeDataStore);
+	let month = $derived(getMonth($displayedDateStore));
 
-	let crrView: (typeof togglePeriods)[number] = 'days';
+	let crrView: (typeof togglePeriods)[number] = $state('day');
 </script>
 
 <div class="container px-4 !pt-2">
@@ -30,10 +28,11 @@
 		bind:selectedTab={crrView}
 		id="periods-container"
 		tabId="period"
+		className="mx-0 ml-auto"
 	/>
 
-	{#if crrView === 'days'}
-		<MonthNav />
+	{#if crrView === 'day'}
+		<MonthHeader />
 		<table class="calendar" id="calendar">
 			<colgroup>
 				{#if showWeekNums}
@@ -69,8 +68,8 @@
 			</tbody>
 		</table>
 	{/if}
-	{#if crrView === 'months'}
-		<YearNav />
+	{#if crrView === 'month'}
+		<YearHeader />
 		<table class="calendar" id="calendar">
 			<tbody>
 				{#each monthsIndexesInQuarters as quarterMonthsIndexes, i}
@@ -86,8 +85,8 @@
 			</tbody>
 		</table>
 	{/if}
-	{#if crrView === 'years'}
-		<YearsNav />
+	{#if crrView === 'year'}
+		<YearsHeader />
 		<table class="calendar" id="calendar">
 			<tbody>
 				{#each getYears( { startRangeYear: +$yearsRanges.ranges[$yearsRanges.crrRangeIndex].split('-')[0] } ) as rowYearsRange}
@@ -101,12 +100,9 @@
 		</table>
 	{/if}
 </div>
+<p class="bg-red-100 py-2 px-4 rounded-sm">Test</p>
 
 <style lang="postcss">
-	@tailwind base;
-	@tailwind components;
-	@tailwind utilities;
-
 	.container {
 		--color-background-heading: transparent;
 		--color-background-day: transparent;
@@ -130,8 +126,9 @@
 
 	.calendar {
 		border-collapse: collapse;
-		width: 100%;
+		width: calc(100% + 2rem);
 		min-width: 100%;
+		margin-left: -1rem;
 	}
 
 	th {

@@ -1,5 +1,9 @@
 <script lang="ts">
-	export let sticker: string | null | undefined;
+	interface Props {
+		sticker: string | null | undefined;
+	}
+
+	let { sticker }: Props = $props();
 </script>
 
 {#if sticker}
@@ -10,6 +14,5 @@
 
 <style lang="postcss">
 	@tailwind base;
-	@tailwind components;
 	@tailwind utilities;
 </style>

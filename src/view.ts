@@ -17,6 +17,7 @@ import type PeriodicNotesCalendarPlugin from './main';
 import { settingsStore } from './settings';
 import { activeFilepathStore, themeStore } from './stores';
 import { internalFileModStore } from './stores/notes';
+import { mount } from "svelte";
 
 export class CalendarView extends ItemView {
     private view: View;
@@ -59,9 +60,9 @@ export class CalendarView extends ItemView {
     async onOpen() {
         console.log('On open view👐');
 
-        this.view = new View({
-            target: this.contentEl
-        });
+        this.view = mount(View, {
+                    target: this.contentEl
+                });
 
         // index existing notes
         if (this.app.workspace.layoutReady && this.view) {

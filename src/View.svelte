@@ -1,12 +1,16 @@
 <script lang="ts">
-	import clsx from 'clsx';
-	import type { Moment } from 'moment';
+	import { cn } from '@/ui/utils';
 	import { onDestroy } from 'svelte';
 	import { CALENDAR_POPOVER_ID } from './constants';
 	import { displayedDateStore } from './stores';
 	import Calendar from './ui/components/Calendar.svelte';
+	import { todayStore } from './stores/dates';
 
-	export let popover = false;
+	interface Props {
+		popover?: boolean;
+	}
+
+	let { popover = false }: Props = $props();
 
 	export function rerenderCalendar() {
 		// TODO: reimplement
@@ -16,18 +20,16 @@
 		// }));
 	}
 
-	let today: Moment = window.moment();
-
 	let heartbeat = setInterval(() => {
 		// update today
-		today = window.moment();
+		todayStore.set(window.moment());
 
 		// update displayedDateStore to new current date only if new current date is one day ahead.
 		// useful to update display with new current month, year or years range automatically
-		if (today.isSame($displayedDateStore.clone().add(1, 'day'))) {
+		if ($todayStore.isSame($displayedDateStore.clone().add(1, 'day'))) {
 			console.log('⚙⚙⚙ RERENDERING CALENdAR ⚙⚙⚙️');
 
-			displayedDateStore.set(today);
+			displayedDateStore.set($todayStore);
 			rerenderCalendar();
 		}
 	}, 1000 * 60);
@@ -39,13 +41,13 @@
 
 {#if popover}
 	<div
-		class={clsx(
+		class={cn(
 			popover && 'bg-transparent z-10 w-max opacity-0 pointer-events-none absolute top-0 left-0'
 		)}
 		data-popover={popover}
 		id={CALENDAR_POPOVER_ID}
 	>
-		<div id={`${CALENDAR_POPOVER_ID}-arrow`} class="rotate-45 absolute w-2.5 h-2.5 bg-slate-500" />
+		<div id={`${CALENDAR_POPOVER_ID}-arrow`} class="rotate-45 absolute w-2.5 h-2.5 bg-slate-500"></div>
 		<div class="ml-[5px] p-2">
 			<div class="bg-slate-500 rounded-sm">
 				<Calendar />
@@ -56,14 +58,3 @@
 {#if !popover}
 	<Calendar />
 {/if}
-
-<style lang="postcss">
-	@tailwind base;
-	@tailwind components;
-	@tailwind utilities;
-
-	body {
-		background-color: red;
-		font-size: xx-large;
-	}
-</style>

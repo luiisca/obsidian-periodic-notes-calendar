@@ -2,10 +2,19 @@
 	import { getPeriodicityFromGranularity, IGranularity } from '@/io';
 	import { capitalize } from '@/utils';
 
-	export let granularity: IGranularity;
-	export let filepath: string;
-	export let formatValue: string;
-	export let error: string;
+	interface Props {
+		granularity: IGranularity;
+		filepath: string;
+		formatValue: string;
+		error: string;
+	}
+
+	let {
+		granularity,
+		filepath,
+		formatValue,
+		error
+	}: Props = $props();
 
 	const periodicity = capitalize(getPeriodicityFromGranularity(granularity));
 </script>
@@ -22,6 +31,7 @@
 </p>
 
 <style lang="postcss">
+	@tailwind base;
 	@tailwind utilities;
 	p {
 		@apply m-0;

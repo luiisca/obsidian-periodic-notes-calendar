@@ -1,12 +1,12 @@
-import { config } from "dotenv";
-import * as esbuild from "esbuild";
-import process from "process";
-import builtins from "builtin-modules";
-import sveltePlugin from "esbuild-svelte";
-import sveltePreprocess from "svelte-preprocess";
-import tailwind from "tailwindcss";
-import autoprefixer from "autoprefixer";
-import { resolve } from "path";
+import { config } from 'dotenv';
+import * as esbuild from 'esbuild';
+import process from 'process';
+import builtins from 'builtin-modules';
+import sveltePlugin from 'esbuild-svelte';
+import sveltePreprocess from 'svelte-preprocess';
+import tailwind from 'tailwindcss';
+import autoprefixer from 'autoprefixer';
+import { resolve } from 'path';
 
 config();
 
@@ -16,63 +16,63 @@ if you want to view the source, please visit the github repository of this plugi
 */
 `;
 
-const prod = process.argv[2] === "production";
-let outdir = "./";
+const prod = process.argv[2] === 'production';
+let outdir = './';
 
 async function watch() {
-  const ctx = await esbuild
-    .context({
-      banner: {
-        js: banner,
-      },
-      minify: prod ? true : false,
-      entryPoints: ["src/main.ts"],
-      bundle: true,
-      external: [
-        "obsidian",
-        "electron",
-        "codemirror",
-        "@codemirror/closebrackets",
-        "@codemirror/commands",
-        "@codemirror/fold",
-        "@codemirror/gutter",
-        "@codemirror/history",
-        "@codemirror/language",
-        "@codemirror/rangeset",
-        "@codemirror/rectangular-selection",
-        "@codemirror/search",
-        "@codemirror/state",
-        "@codemirror/stream-parser",
-        "@codemirror/text",
-        "@codemirror/view",
-        ...builtins,
-      ],
-      format: "cjs",
-      target: "esnext",
-      plugins: [
-        sveltePlugin({
-          compilerOptions: { css: "injected" },
-          preprocess: sveltePreprocess({
-            postcss: {
-              plugins: [tailwind, autoprefixer],
-            },
-          }),
-          filterWarnings: (warning) => {
-            if (warning.code === "css-unused-selector") return false;
-          },
-        }),
-      ],
-      logLevel: "info",
-      sourcemap: prod ? false : "inline",
-      treeShaking: true,
-      outdir: outdir,
-      alias: {
-        "@": resolve(process.cwd(), "src"),
-      },
-    })
-    .catch(() => process.exit(1));
+	const ctx = await esbuild
+		.context({
+			banner: {
+				js: banner
+			},
+			minify: prod ? true : false,
+			entryPoints: ['src/main.ts'],
+			bundle: true,
+			external: [
+				'obsidian',
+				'electron',
+				'codemirror',
+				'@codemirror/closebrackets',
+				'@codemirror/commands',
+				'@codemirror/fold',
+				'@codemirror/gutter',
+				'@codemirror/history',
+				'@codemirror/language',
+				'@codemirror/rangeset',
+				'@codemirror/rectangular-selection',
+				'@codemirror/search',
+				'@codemirror/state',
+				'@codemirror/stream-parser',
+				'@codemirror/text',
+				'@codemirror/view',
+				...builtins
+			],
+			format: 'cjs',
+			target: 'esnext',
+			plugins: [
+				sveltePlugin({
+					compilerOptions: { css: 'injected' },
+					preprocess: sveltePreprocess({
+						postcss: {
+							plugins: [tailwind(), autoprefixer()]
+						}
+					}),
+					filterWarnings: (warning) => {
+						if (warning.code === 'css-unused-selector') return false;
+					}
+				})
+			],
+			logLevel: 'info',
+			sourcemap: prod ? false : 'inline',
+			treeShaking: true,
+			outdir: outdir,
+			alias: {
+				'@': resolve(process.cwd(), 'src')
+			}
+		})
+		.catch(() => process.exit(1));
 
-  await ctx.watch();
+	await ctx.watch();
 }
 
 watch();

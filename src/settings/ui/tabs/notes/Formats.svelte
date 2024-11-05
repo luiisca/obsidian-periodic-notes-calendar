@@ -3,10 +3,14 @@
 	import { type PeriodSettings } from '@/settings';
 	import { type Writable } from 'svelte/store';
 	import Format from './Format.svelte';
-	export let granularity: IGranularity;
-	export let settings: Writable<PeriodSettings>;
+	interface Props {
+		granularity: IGranularity;
+		settings: Writable<PeriodSettings>;
+	}
 
-	$: selectedFormat = $settings.selectedFormat;
+	let { granularity, settings }: Props = $props();
+
+	let selectedFormat = $derived($settings.selectedFormat);
 
 	function getExpectedTokens(granularity: IGranularity): string {
 		const baseTokens = 'Y or y (year)';
@@ -56,7 +60,7 @@
 	</div>
 	<form
 		class="w-full"
-		on:submit={(e) => {
+		onsubmit={(e) => {
 			e.preventDefault();
 		}}
 	>

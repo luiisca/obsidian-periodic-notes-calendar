@@ -1,6 +1,8 @@
 <svelte:options immutable />
 
 <script lang="ts">
+	import { run } from 'svelte/legacy';
+
 	import type { Moment } from 'moment';
 
 	import { getFileData } from '@/io';
@@ -9,30 +11,35 @@
 	import Sticker from './Sticker.svelte';
 	import { settingsStore } from '@/settings';
 
-	// Properties
-	export let weekNum: number;
-	export let startOfWeekDate: Moment;
+	
+	interface Props {
+		// Properties
+		weekNum: number;
+		startOfWeekDate: Moment;
+	}
 
-	let { file, sticker } = getFileData('week', startOfWeekDate);
-	$: {
+	let { weekNum, startOfWeekDate }: Props = $props();
+
+	let { file, sticker } = $state(getFileData('week', startOfWeekDate));
+	run(() => {
 		if ($settingsStore.filepaths) {
 			const fileData = getFileData('week', startOfWeekDate);
 			file = fileData.file;
 			sticker = fileData.sticker;
 		}
-	}
+	});
 </script>
 
 <td class="relative">
 	<button
 		id="period-num"
-		on:click={(event) =>
+		onclick={(event) =>
 			eventHandlers.onClick({
 				date: startOfWeekDate,
 				createNewSplitLeaf: isControlPressed(event),
 				granularity: 'week'
 			})}
-		on:contextmenu={(event) =>
+		oncontextmenu={(event) =>
 			eventHandlers.onContextMenu({
 				event,
 				fileData: {
@@ -42,7 +49,7 @@
 				date: startOfWeekDate,
 				granularity: 'week'
 			})}
-		on:pointerenter={(event) => {
+		onpointerenter={(event) => {
 			eventHandlers.onHover({
 				targetEl: event.target,
 				isControlPressed: isControlPressed(event),
@@ -58,7 +65,6 @@
 
 <style lang="postcss">
 	@tailwind base;
-	@tailwind components;
 	@tailwind utilities;
 
 	td {

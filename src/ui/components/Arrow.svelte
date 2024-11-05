@@ -1,26 +1,36 @@
 <script lang="ts">
-	import clsx from 'clsx';
+	import { cn } from '@/ui/utils';
 
-	export let onClick: () => void;
-	export let tooltip: string;
-	export let direction: 'left' | 'right';
+	interface Props {
+		onClick: () => void;
+		tooltip: string;
+		direction: 'left' | 'right';
+		className?: string;
+	}
+
+	let {
+		onClick,
+		tooltip,
+		direction,
+		className = ''
+	}: Props = $props();
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let isMobile = (window.app as any).isMobile;
 </script>
 
 <button
-	class={clsx(
-		'[&:not(:focus-visible)]:shadow-none flex items-center cursor-pointer',
+	class={cn(
+		'[&:not(:focus-visible)]:shadow-none flex items-center cursor-pointer px-1.5',
 		direction === 'right' && 'rotate-180',
-		isMobile ? 'w-8' : 'w-[1.6rem]'
+		className
 	)}
 	id="arrow"
-	on:click={onClick}
+	onclick={onClick}
 	aria-label={tooltip}
 >
 	<svg
-		class="text-[--color-arrow]"
+		class={cn('text-[--color-arrow]', isMobile ? 'w-3.5' : 'w-2.5')}
 		focusable="false"
 		role="img"
 		xmlns="http://www.w3.org/2000/svg"
@@ -33,9 +43,6 @@
 </button>
 
 <style lang="postcss">
+	@tailwind base;
 	@tailwind utilities;
-
-	button {
-		background-color: transparent;
-	}
 </style>

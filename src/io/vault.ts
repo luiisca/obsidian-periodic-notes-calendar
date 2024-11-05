@@ -76,7 +76,7 @@ export function getNotePath(
     customFormat?: PeriodSettings["formats"][0],
     customFolder?: string,
 ) {
-    let { settings: { selectedFormat, folder } } = getNormalizedPeriodSettings(granularity);
+    const { settings: { selectedFormat, folder } } = getNormalizedPeriodSettings(granularity);
     let filename = date.format(customFormat?.value || selectedFormat.value);
 
     if (!filename.endsWith(".md")) {

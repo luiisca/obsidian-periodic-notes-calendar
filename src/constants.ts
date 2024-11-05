@@ -3,7 +3,7 @@ import { type IGranularity } from "./io";
 export const VIEW_TYPE = 'periodic-notes-calendar-view';
 export const granularities = ['day', 'week', 'month', 'quarter', 'year'] as const;
 export const granularitiesCapitalize = ['Day', 'Week', 'Month', 'Quarter', 'Year'] as const;
-export const togglePeriods = ['days', 'months', 'years'] as const;
+export const togglePeriods = ['day', 'month', 'year'] as const;
 
 export const monthsIndexesInQuarters = [
     [0, 1, 2],

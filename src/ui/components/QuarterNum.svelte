@@ -1,6 +1,8 @@
 <svelte:options immutable />
 
 <script lang="ts">
+	import { run } from 'svelte/legacy';
+
 	import { getFileData } from '@/io';
 	import { displayedDateStore } from '@/stores';
 	import { eventHandlers, isControlPressed } from '../utils';
@@ -8,29 +10,33 @@
 	import Sticker from './Sticker.svelte';
 	import { settingsStore } from '@/settings';
 
-	export let quarterNum: number;
+	interface Props {
+		quarterNum: number;
+	}
 
-	$: date = $displayedDateStore.clone().quarter(quarterNum).startOf('quarter');
-	let { file, sticker } = getFileData('quarter', date);
-	$: {
+	let { quarterNum }: Props = $props();
+
+	let date = $derived($displayedDateStore.clone().quarter(quarterNum).startOf('quarter'));
+	let { file, sticker } = $state(getFileData('quarter', date));
+	run(() => {
 		if ($settingsStore.filepaths) {
 			const fileData = getFileData('quarter', date);
 			file = fileData.file;
 			sticker = fileData.sticker;
 		}
-	}
+	});
 </script>
 
 <td class="relative">
 	<button
 		id="period-num"
-		on:click={(event) =>
+		onclick={(event) =>
 			eventHandlers.onClick({
 				date,
 				createNewSplitLeaf: isControlPressed(event),
 				granularity: 'quarter'
 			})}
-		on:contextmenu={(event) =>
+		oncontextmenu={(event) =>
 			eventHandlers.onContextMenu({
 				event,
 				fileData: {
@@ -40,7 +46,7 @@
 				date,
 				granularity: 'quarter'
 			})}
-		on:pointerenter={(event) =>
+		onpointerenter={(event) =>
 			eventHandlers.onHover({
 				targetEl: event.target,
 				isControlPressed: isControlPressed(event),
@@ -56,6 +62,5 @@
 
 <style lang="postcss">
 	@tailwind base;
-	@tailwind components;
 	@tailwind utilities;
 </style>

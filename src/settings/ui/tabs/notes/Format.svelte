@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { run } from 'svelte/legacy';
+
 	import { DEFAULT_FORMATS_PER_GRANULARITY } from '@/constants';
 	import {
 		ensureFolderExists,
@@ -12,7 +14,7 @@
 	import { createConfirmationDialog } from '@/ui/modals/confirmation';
 	import { INotesContext } from '@/ui/types';
 	import { genNoticeFragment } from '@/ui/utils';
-	import clsx from 'clsx';
+	import { cn } from '@/ui/utils';
 	import { Notice, debounce, setIcon, type TFile } from 'obsidian';
 	import { getContext, onMount } from 'svelte';
 	import { type Writable } from 'svelte/store';
@@ -21,30 +23,42 @@
 	import ReplaceAllText from './ReplaceAllText.svelte';
 	import ReplaceAllTitle from './ReplaceAllTitle.svelte';
 
-	export let settings: Writable<PeriodSettings>;
-	export let format: PeriodSettings['formats'][number] = {
+	interface Props {
+		settings: Writable<PeriodSettings>;
+		format?: PeriodSettings['formats'][number];
+		granularity?: IGranularity;
+		type?: 'default' | 'skeleton';
+	}
+
+	let {
+		settings,
+		format = {
 		id: '',
 		value: '',
 		error: '',
 		loading: false
-	};
-	export let granularity: IGranularity = 'day';
-	export let type: 'default' | 'skeleton' = 'default';
+	},
+		granularity = 'day',
+		type = 'default'
+	}: Props = $props();
 
 	const defaultFormat = DEFAULT_FORMATS_PER_GRANULARITY[granularity];
-	let removeBttnEl: HTMLElement;
-	let replaceBttnEl: HTMLElement;
-	let labelEl: HTMLLabelElement;
+	let removeBttnEl: HTMLElement = $state();
+	let replaceBttnEl: HTMLElement = $state();
+	let labelEl: HTMLLabelElement = $state();
 
-	let value = format.value || '';
-	let error = format.error || '';
-	$: selected = type === 'skeleton' ? false : format.id === $settings.selectedFormat.id;
+	let value = $state(format.value || '');
+	let error = $state(format.error || '');
+	let selected;
+	run(() => {
+		selected = type === 'skeleton' ? false : format.id === $settings.selectedFormat.id;
+	});
 	let { triggerRerender } = getContext<INotesContext>('notesContext');
 	let formatId = format.id;
 
 	// Mock data
-	$: filepaths = $settingsStore.filepathsByFormatValue[format.value] || {};
-	$: filesCount = Object.keys(filepaths).length;
+	let filepaths = $derived($settingsStore.filepathsByFormatValue[format.value] || {});
+	let filesCount = $derived(Object.keys(filepaths).length);
 
 	function handleUpdate() {
 		debounce(() => {
@@ -320,39 +334,43 @@
 		}
 	}
 
-	$: {
+	run(() => {
 		if ($triggerRerender) {
 			console.log('🔁 rerendering', granularity, value, format.id);
 			error = validateFormat(value, granularity, format.id);
 		}
-	}
+	});
 
-	$: if (error) {
-		settings.update((s) => {
-			if (formatId === s.selectedFormat.id) {
-				s.selectedFormat.error = error;
-			}
-			s.formats[formatId].error = error;
+	run(() => {
+		if (error) {
+			settings.update((s) => {
+				if (formatId === s.selectedFormat.id) {
+					s.selectedFormat.error = error;
+				}
+				s.formats[formatId].error = error;
 
-			return s;
-		});
-	}
+				return s;
+			});
+		}
+	});
 
-	$: if (labelEl) {
-		labelEl.tabIndex = 0;
-		labelEl.onkeydown = (event) => {
-			if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
-				selected = true;
-				handleSelect();
-			}
-		};
-	}
+	run(() => {
+		if (labelEl) {
+			labelEl.tabIndex = 0;
+			labelEl.onkeydown = (event) => {
+				if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+					selected = true;
+					handleSelect();
+				}
+			};
+		}
+	});
 </script>
 
 <!-- Format Option -->
 <label
 	bind:this={labelEl}
-	class={clsx(
+	class={cn(
 		'w-full cursor-pointer block rounded-lg p-3 mb-4 last:mb-0 border border-solid focus-visible:shadow-[0_0_0_3px_var(--background-modifier-border-focus)] outline-none',
 		type === 'skeleton' &&
 			'hover:bg-[var(--background-modifier-hover)] relative border-dashed hover:border-solid bg-transparent',
@@ -364,12 +382,12 @@
 	)}
 >
 	{#if type === 'skeleton'}
-		<button tabindex="-1" class="opacity-0 hidden" on:click={handleSelect} />
+		<button tabindex="-1" class="opacity-0 hidden" onclick={handleSelect}></button>
 	{:else}
-		<input type="radio" name="format" checked={selected} on:click={handleSelect} class="hidden" />
+		<input type="radio" name="format" checked={selected} onclick={handleSelect} class="hidden" />
 	{/if}
 
-	<div class={clsx('w-full transition-all duration-200', type === 'skeleton' && 'opacity-0 -z-50')}>
+	<div class={cn('w-full transition-all duration-200', type === 'skeleton' && 'opacity-0 -z-50')}>
 		<div class="flex items-center mb-2">
 			<input
 				type="text"
@@ -378,7 +396,7 @@
 				placeholder={defaultFormat}
 				aria-invalid={!!error}
 				aria-describedby={error ? 'format-error' : undefined}
-				class={clsx(
+				class={cn(
 					'flex-1 hover:transition bg-transparent ',
 					type === 'skeleton' && 'opacity-0 -z-50',
 					error
@@ -387,7 +405,7 @@
 						? 'placeholder-[var(--text-on-accent)] border-[var(--text-accent-hover)] hover:bg-[var(--interactive-accent-hover)]'
 						: 'border-[var(--background-modifier-border-hover)] hover:bg-[var(--background-modifier-form-field)]'
 				)}
-				on:input={handleUpdate}
+				oninput={handleUpdate}
 				disabled={type === 'skeleton'}
 			/>
 		</div>
@@ -401,7 +419,7 @@
 						{error}
 					</span>
 				{:else}
-					<span class={clsx(selected ? 'text-[var(--text-on-accent)]' : 'u-pop')}
+					<span class={cn(selected ? 'text-[var(--text-on-accent)]' : 'u-pop')}
 						>{value.trim() ? window.moment().format(value) : 'Empty format'}</span
 					>
 				{/if}
@@ -409,7 +427,7 @@
 			<div class="flex">
 				<!-- replace -->
 				<button
-					class={clsx(
+					class={cn(
 						'clickable-icon extra-setting-button cursor-pointer',
 						(error || value.trim() === '') &&
 							'!cursor-not-allowed hover:bg-transparent hover:opacity-70',
@@ -418,21 +436,21 @@
 					)}
 					aria-label="Replace all formats with this one"
 					bind:this={replaceBttnEl}
-					on:click={handleReplaceAll}
+					onclick={handleReplaceAll}
 					disabled={!!error || value.trim() === '' || type === 'skeleton'}
-				/>
+				></button>
 				<!-- remove -->
 				<button
-					class={clsx(
+					class={cn(
 						'clickable-icon extra-setting-button cursor-pointer',
 						error ? 'text-[var(--text-error)]' : selected ? 'text-[var(--text-on-accent)]' : '',
 						type === 'skeleton' ? 'opacity-0 -z-50' : ''
 					)}
 					aria-label="Remove format"
 					bind:this={removeBttnEl}
-					on:click={handleRemove}
+					onclick={handleRemove}
 					disabled={type === 'skeleton'}
-				/>
+				></button>
 			</div>
 		</div>
 	</div>

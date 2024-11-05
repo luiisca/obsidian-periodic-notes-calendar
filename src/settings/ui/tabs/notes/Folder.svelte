@@ -5,14 +5,18 @@
 	import { onDestroy, onMount } from 'svelte';
 	import type { Readable } from 'svelte/store';
 	import { type PeriodSettings, FolderSuggest } from '@/settings';
-	import clsx from 'clsx';
+	import { cn } from '@/ui/utils';
 
-	export let settings: Readable<PeriodSettings>;
-	export let granularity: IGranularity;
+	interface Props {
+		settings: Readable<PeriodSettings>;
+		granularity: IGranularity;
+	}
 
-	let inputEl: HTMLInputElement;
-	let value: string = $settings.folder || '';
-	let error: string;
+	let { settings, granularity }: Props = $props();
+
+	let inputEl: HTMLInputElement = $state();
+	let value: string = $state($settings.folder || '');
+	let error: string = $state();
 	let folderSuggestInstance: FolderSuggest;
 
 	onMount(() => {
@@ -32,7 +36,7 @@
 		<div class="setting-item-description">
 			New {capitalize(getPeriodicityFromGranularity(granularity))} notes will be placed here
 		</div>
-		<div class={clsx('setting-item-description', error ? 'has-error' : 'opacity-0')}>
+		<div class={cn('setting-item-description', error ? 'has-error' : 'opacity-0')}>
 			{error || 'Valid'}
 		</div>
 	</div>
@@ -45,7 +49,7 @@
 			type="text"
 			spellcheck={false}
 			placeholder="e.g. folder 1/folder 2"
-			on:input={() => {
+			oninput={() => {
 				error = validateFolder(inputEl.value);
 				if (error.trim() === '') {
 					$settings.folder = value.trim();
@@ -56,5 +60,6 @@
 </div>
 
 <style lang="postcss">
+	@tailwind base;
 	@tailwind utilities;
 </style>
