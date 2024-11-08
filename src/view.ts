@@ -17,7 +17,7 @@ import { isValidPeriodicNote } from './io/validation';
 import type PeriodicNotesCalendarPlugin from './main';
 import { settingsStore } from './settings';
 import { activeFilepathStore, themeStore } from './stores';
-import { internalFileModStore, internalFileModStore } from './stores/notes';
+import { internalFileModStore } from './stores/notes';
 
 export class CalendarView extends ItemView {
     private view: Record<string, any>;
@@ -107,9 +107,9 @@ export class CalendarView extends ItemView {
                         error: format.error
                     }
                 })
-                new Notice(fragment)
+                new Notice(fragment, 10000)
             }
-            if (granularity && format) {
+            if (typeof isValid === "boolean") {
                 settingsStore.addFilepath(file.path, format.value)
             }
         }
@@ -137,6 +137,20 @@ export class CalendarView extends ItemView {
         const _oldData = isValidPeriodicNote(basename(oldPath));
         const _newData = isValidPeriodicNote(renamedFile.basename);
 
+        if (_newData.isValid === false) {
+            const fragment = document.createDocumentFragment();
+            mount(InvalidFormat, {
+                // @ts-ignore
+                target: fragment,
+                props: {
+                    granularity: _newData.granularity,
+                    filepath: renamedFile.path,
+                    formatValue: _newData.format.value,
+                    error: _newData.format.error
+                }
+            })
+            new Notice(fragment, 10000)
+        }
         settingsStore.renameFilepath({
             oldData: {
                 path: oldPath,
