@@ -7,6 +7,7 @@
         activeFilepathStore,
         displayedDateStore,
         todayStore,
+        internalFileModStore,
     } from "@/stores/";
     import { cn } from "@/ui/utils";
     import { eventHandlers, isControlPressed } from "../utils";
@@ -21,10 +22,9 @@
     let { date }: Props = $props();
 
     let { file, sticker } = $derived.by(() => {
-        $settingsStore; // trigger reactivity
-        const fileData = getFileData("day", date);
-        console.log("✅ filedata updated", fileData, date.format("DD-MM"));
-        return fileData;
+        $settingsStore; // crr file might have been deleted from settings page
+        $internalFileModStore; // update on file rename or sticker update
+        return getFileData("day", date);
     });
     let isActive = $derived($activeFilepathStore === file?.path);
     let isToday = $derived(date.isSame($todayStore, "day"));

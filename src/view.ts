@@ -17,7 +17,7 @@ import { isValidPeriodicNote } from './io/validation';
 import type PeriodicNotesCalendarPlugin from './main';
 import { settingsStore } from './settings';
 import { activeFilepathStore, themeStore } from './stores';
-import { internalFileModStore } from './stores/notes';
+import { internalFileModStore, internalFileModStore } from './stores/notes';
 
 export class CalendarView extends ItemView {
     private view: Record<string, any>;
@@ -47,6 +47,9 @@ export class CalendarView extends ItemView {
             )
         );
         this.registerEvent(this.app.workspace.on('file-open', () => this.onFileOpen()));
+        this.registerEvent(
+            this.app.metadataCache.on('changed', (file: TFile) => this.onMetadataChanged(file))
+        )
     }
 
     getViewType() {
@@ -75,6 +78,11 @@ export class CalendarView extends ItemView {
         unmount(this.view);
 
         return Promise.resolve();
+    }
+
+    private onMetadataChanged(file: TFile) {
+        // little hack to trigger a rerender every time metadata changes
+        internalFileModStore.set({ modified: Math.random() })
     }
 
     private onFileCreated(file: TFile) {

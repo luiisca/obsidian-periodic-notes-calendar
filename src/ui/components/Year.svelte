@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getFileData } from "@/io";
     import { settingsStore } from "@/settings";
-    import { activeFilepathStore } from "@/stores";
+    import { activeFilepathStore, internalFileModStore } from "@/stores";
     import { todayStore } from "@/stores/dates";
     import { Moment } from "moment";
     import { cn, eventHandlers, isControlPressed } from "../utils";
@@ -15,7 +15,8 @@
     let { date }: Props = $props();
 
     let { file, sticker } = $derived.by(() => {
-        $settingsStore; // trigger reactivity
+        $settingsStore; // crr file might have been deleted from settings page
+        $internalFileModStore; // update on file rename or sticker update
         return getFileData("year", date);
     });
     let isActive = $derived($activeFilepathStore === file?.path);

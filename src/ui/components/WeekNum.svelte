@@ -3,7 +3,7 @@
 
     import { getFileData } from "@/io";
     import { settingsStore } from "@/settings";
-    import { activeFilepathStore, todayStore } from "@/stores/";
+    import { activeFilepathStore, todayStore, internalFileModStore } from "@/stores/";
     import { cn, eventHandlers, isControlPressed } from "../utils";
     import Dot from "./Dot.svelte";
     import Sticker from "./Sticker.svelte";
@@ -16,7 +16,8 @@
     let { date }: Props = $props();
 
     let { file, sticker } = $derived.by(() => {
-        $settingsStore; // trigger reactivity
+        $settingsStore; // crr file might have been deleted from settings page
+        $internalFileModStore; // update on file rename or sticker update
         return getFileData("week", date);
     });
     let isActive = $derived($activeFilepathStore === file?.path);

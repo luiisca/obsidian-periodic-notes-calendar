@@ -125,6 +125,7 @@ export class FileMenuPopoverBehavior {
                     .setIcon("lucide-smile-plus")
                     .onClick(() => {
                         if (this.refHtmlEl) {
+                            console.log("🤝 about to SET fileData", fileData)
                             spFileDataStore.set(fileData);
                             Popover.create({
                                 id: STICKER_POPOVER_ID,

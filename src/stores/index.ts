@@ -6,7 +6,7 @@ export * from './dates';
 export {
     localeDataStore, setupLocale, updateLocale, updateWeekdays, updateWeekStart
 } from './locale';
-export { activeFilepathStore } from './notes';
+export * from './notes';
 export * from './popovers';
 export const pluginClassStore = writable<PeriodicNotesCalendarPlugin>();
 export const crrFileMenu = writable<Menu | null>(null);

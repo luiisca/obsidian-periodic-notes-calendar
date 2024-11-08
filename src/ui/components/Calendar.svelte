@@ -1,6 +1,4 @@
 <script lang="ts">
-    import { Picker } from "emoji-mart";
-
     import { monthsIndexesInQuarters, togglePeriods } from "@/constants";
     import { settingsStore } from "@/settings";
     import { displayedDateStore, localeDataStore, yearsRanges } from "@/stores";
@@ -117,13 +115,6 @@
         </table>
     {/if}
 </div>
-<button
-    onclick={() => {
-        console.log("Picker", Picker);
-        const pickerEl = new Picker({ onEmojiSelect: console.log });
-        console.log(pickerEl);
-    }}>Picker</button
->
 
 <style lang="postcss">
     #container {

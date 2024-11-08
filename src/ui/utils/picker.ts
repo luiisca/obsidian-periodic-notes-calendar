@@ -6,6 +6,7 @@ import { TFile, type TagCache } from "obsidian";
 import { get } from "svelte/store";
 import { getBehaviorInstance, getPopoverInstance, Popover } from "../popovers";
 import { TFileData } from "@/io";
+import { internalFileModStore } from "@/stores/notes";
 
 type TEmoji = {
     aliases?: string[],
@@ -48,12 +49,10 @@ export function initializePicker(
     const pickerOptions = {
         data,
         onEmojiSelect: async (emoji: TEmoji) => {
-            console.log("🌿 emoji selected", emoji);
             const stickerInstance = getPopoverInstance(STICKER_POPOVER_ID);
             stickerInstance?.close()
 
             const { file, sticker } = fileData;
-            console.log("file", file, "sticker", sticker);
 
             if (file) {
                 // update note with new emoji tag

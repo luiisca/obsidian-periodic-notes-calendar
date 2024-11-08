@@ -41,8 +41,7 @@ const onHover = ({
 };
 
 const onContextMenu = ({ event, fileData, date, granularity }: TFileMenuOpenParams): void => {
-    console.log("🌿 about to show context menu for granularity and date", granularity, date);
-    console.log("🌿 note from store: ", fileData.file);
+    console.log("🤝 about to OPEN FILE MENU", fileData)
 
     Popover.create({
         id: FILE_MENU_POPOVER_ID
