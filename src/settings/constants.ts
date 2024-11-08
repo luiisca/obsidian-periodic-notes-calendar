@@ -85,7 +85,7 @@ export interface ISettings {
     // formats: IFormatsSettings;
 }
 
-function getDefaultPeriodicNotesConfig(
+export function getDefaultPeriodicNotesConfig(
     granularity: IGranularity,
 ): PeriodSettings {
     const id = window.crypto.randomUUID();
@@ -96,17 +96,15 @@ function getDefaultPeriodicNotesConfig(
         loading: false,
     }
 
-    return Object.freeze(
-        {
-            enabled: false,
-            openAtStartup: false,
+    return {
+        enabled: false,
+        openAtStartup: false,
 
-            selectedFormat,
-            formats: { [id]: selectedFormat },
-            templatePath: "",
-            folder: "/",
-        } satisfies PeriodSettings,
-    );
+        selectedFormat,
+        formats: { [id]: selectedFormat },
+        templatePath: "",
+        folder: "/",
+    } satisfies PeriodSettings
 }
 
 export const DEFAULT_SETTINGS: ISettings = Object.freeze({

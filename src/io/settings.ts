@@ -1,5 +1,5 @@
 import { DAILY_NOTES_PLUGIN_ID, DEFAULT_FORMATS_PER_GRANULARITY } from '@/constants';
-import { PeriodSettings, settingsStore } from '@/settings';
+import { getDefaultPeriodicNotesConfig, PeriodSettings, settingsStore } from '@/settings';
 import { get } from 'svelte/store';
 import { IGranularity } from './types';
 
@@ -49,13 +49,13 @@ export function getNormalizedPeriodSettings(granularity: IGranularity): TNormali
         return {
             type: "default",
             settings: {
-                ...settings,
+                ...getDefaultPeriodicNotesConfig(granularity),
                 selectedFormat: {
                     id: window.crypto.randomUUID(),
                     value: DEFAULT_FORMATS_PER_GRANULARITY[granularity],
                     error: "",
                     loading: false,
-                }
+                },
             }
         }
     }
