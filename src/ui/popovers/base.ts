@@ -23,6 +23,7 @@ export class Popover {
         if (!popover) {
             const behavior = createBehavior(params);
             popover = new Popover(params.id, behavior);
+            console.log("🎉🎉 New popover created + behavior", popover, behavior)
             Popover.instances.set(params.id, popover);
             Popover.behaviorInstances.set(params.id, behavior);
         }

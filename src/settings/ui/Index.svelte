@@ -1,26 +1,28 @@
 <script lang="ts">
-	import Tabs from '@/ui/components/Tabs.svelte';
-	import { Notes, Calendar } from '@/settings/ui';
+    import Tabs from "@/ui/components/Tabs.svelte";
+    import { Notes, Calendar } from "@/settings/ui";
 
-	const tabs = ['calendar', 'notes'] as const;
-	let selectedTab: (typeof tabs)[number] = $state('notes');
+    const tabs = ["calendar", "notes"] as const;
+    let selectedTab: (typeof tabs)[number] = $state("notes");
 </script>
 
 <Tabs tabs={[...tabs]} bind:selectedTab className="max-w-56" />
 <div class="mt-6">
-	{#if selectedTab === 'calendar'}
-		<Calendar />
-	{:else if selectedTab === 'notes'}
-		<Notes />
-	{/if}
+    {#if selectedTab === "calendar"}
+        <Calendar />
+    {:else if selectedTab === "notes"}
+        <Notes />
+    {/if}
 </div>
 
 <style lang="postcss">
-	@tailwind base;
-	@tailwind utilities;
+    @tailwind base;
+    @tailwind utilities;
 
-	:global(.vertical-tab-content) {
-		scrollbar-gutter: stable;
-		padding-right: calc(1rem + 16px); /* 1rem (16px) for base padding + 16px for scrollbar */
-	}
+    :global(.vertical-tab-content) {
+        scrollbar-gutter: stable;
+        padding-right: calc(
+            1rem + 16px
+        ); /* 1rem (16px) for base padding + 16px for scrollbar */
+    }
 </style>

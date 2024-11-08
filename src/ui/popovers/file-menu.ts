@@ -1,5 +1,6 @@
 import { FILE_MENU_POPOVER_ID, STICKER_POPOVER_ID } from "@/constants";
 import { TFileData, type IGranularity } from "@/io";
+import { spFileDataStore } from "@/stores";
 import { type Moment } from "moment";
 import { Menu } from "obsidian";
 import StickerPopoverComponent from "../components/StickerPopover.svelte";
@@ -121,17 +122,14 @@ export class FileMenuPopoverBehavior {
             menu.addItem((item) =>
                 item.setSection("action")
                     .setTitle("Add Sticker")
-                    // .setIcon("smile-plus")
                     .setIcon("lucide-smile-plus")
                     .onClick(() => {
                         if (this.refHtmlEl) {
+                            spFileDataStore.set(fileData);
                             Popover.create({
                                 id: STICKER_POPOVER_ID,
                                 view: {
                                     Component: StickerPopoverComponent,
-                                    props: {
-                                        fileData
-                                    }
                                 },
                             }).open(this.refHtmlEl)
                         }

@@ -48,10 +48,12 @@ export function initializePicker(
     const pickerOptions = {
         data,
         onEmojiSelect: async (emoji: TEmoji) => {
+            console.log("🌿 emoji selected", emoji);
             const stickerInstance = getPopoverInstance(STICKER_POPOVER_ID);
             stickerInstance?.close()
 
             const { file, sticker } = fileData;
+            console.log("file", file, "sticker", sticker);
 
             if (file) {
                 // update note with new emoji tag

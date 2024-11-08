@@ -10,7 +10,6 @@ export type TStickerPopoverParams = {
     id: typeof STICKER_POPOVER_ID,
     view: {
         Component: Component;
-        props?: Record<string, any>;
     },
 }
 

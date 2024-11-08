@@ -22,7 +22,9 @@
 
     let { file, sticker } = $derived.by(() => {
         $settingsStore; // trigger reactivity
-        return getFileData("day", date);
+        const fileData = getFileData("day", date);
+        console.log("✅ filedata updated", fileData, date.format("DD-MM"));
+        return fileData;
     });
     let isActive = $derived($activeFilepathStore === file?.path);
     let isToday = $derived(date.isSame($todayStore, "day"));
@@ -78,4 +80,3 @@
     </button>
     <Sticker sticker={sticker?.emoji} />
 </td>
-
