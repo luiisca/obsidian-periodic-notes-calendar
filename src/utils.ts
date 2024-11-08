@@ -1,5 +1,6 @@
 import { Notice } from 'obsidian';
 import { DAILY_NOTES_PLUGIN_ID } from './constants';
+import { DnPluginSettings } from './io/settings';
 
 export async function fetchWithRetry<T>(url: string, retries = 0): Promise<T | null> {
     try {
@@ -36,7 +37,7 @@ export function logger(module: string, ...messages: unknown[]) {
 }
 
 export async function getPlugin(pluginId: string): Promise<any | null> {
-    const plugins = (<any>window.app).plugins;
+    const plugins = (window.app as any).plugins;
     const enabledPlugins = plugins?.enabledPlugins as Set<string>
 
     if (!enabledPlugins.has(pluginId)) {
@@ -46,10 +47,11 @@ export async function getPlugin(pluginId: string): Promise<any | null> {
     return plugins?.getPlugin(pluginId)
 }
 export async function getDailyNotesPlugin() {
-    const internalPlugins = (<any>window.app).internalPlugins;
-    const dailyNotesPlugin = internalPlugins?.getPluginById(DAILY_NOTES_PLUGIN_ID);
+    const dailyNotesPlugin = (<any>window.app).internalPlugins?.getPluginById(DAILY_NOTES_PLUGIN_ID) as DnPluginSettings | undefined;
 
     if (!dailyNotesPlugin?.enabled) {
-        await dailyNotesPlugin.enable()
+        await (dailyNotesPlugin as any).enable()
     }
+
+    return dailyNotesPlugin;
 }

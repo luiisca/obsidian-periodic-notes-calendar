@@ -21,6 +21,7 @@ export class FileMenuPopoverBehavior {
     private refHtmlEl: Element | null = null;
 
     constructor(params: TFileMenuPopoverParams) {
+        // Do nothing
     }
 
     public open({ event, fileData, date, granularity }: TFileMenuOpenParams) {

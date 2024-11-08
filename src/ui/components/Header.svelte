@@ -20,14 +20,14 @@
 
 <div class="flex flex-col mt-4 mb-[1.1rem]" id="header">
     <div
-        class="flex justify-between mb-1.5 items-end text-[--color-text-title]"
+        class="flex justify-between mb-1.5 items-baseline text-[--color-text-title]"
         id="title"
     >
         <!-- left title -->
         <slot name="left-title" />
         {#if leftTitle}
             <button
-                class="h-auto text-7xl [&:not(:focus-visible)]:shadow-none font-semibold"
+                class="h-auto text-7xl font-semibold hover:!shadow-[3px_0px_0_7px_var(--interactive-hover)] rounded-[2px]"
                 id={leftTitle.granularity}
                 on:click={(event) =>
                     eventHandlers.onClick({
@@ -57,7 +57,7 @@
         <slot name="right-title" />
         {#if rightTitle}
             <button
-                class="[&:not(:focus-visible)]:shadow-none text-[--interactive-accent] font-medium text-lg"
+                class="text-[--interactive-accent] font-medium text-lg hover:!shadow-[0px_0px_0px_6px_var(--interactive-hover)] rounded-[2px]"
                 id={rightTitle.granularity}
                 on:click={(event) =>
                     eventHandlers.onClick({

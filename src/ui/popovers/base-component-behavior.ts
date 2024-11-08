@@ -1,4 +1,4 @@
-import { type ComponentType, SvelteComponent } from "svelte";
+import { Component, mount } from "svelte";
 import { Popover } from "./base";
 import { arrow, autoUpdate, computePosition, flip } from "@floating-ui/dom";
 import { CALENDAR_POPOVER_ID, MODAL_CLASS, STICKER_POPOVER_ID } from "@/constants";
@@ -8,17 +8,17 @@ import { settingsStore } from "@/settings";
 
 export class BaseComponentBehavior {
     public componentHtmlEl: HTMLElement;
-    public component: SvelteComponent;
+    public component: Record<string, any>;
     public autoUpdateCleanup: (() => void) | null | undefined;
 
     constructor(
         public id: typeof STICKER_POPOVER_ID | typeof CALENDAR_POPOVER_ID,
         view: {
-            Component: ComponentType;
-            props?: Record<string, unknown>;
+            Component: Component;
+            props?: Record<string, any>;
         },
     ) {
-        this.component = new view.Component({
+        this.component = mount(view.Component, {
             target: document.body,
             props: {
                 close: this.close,
@@ -68,6 +68,7 @@ export class BaseComponentBehavior {
         this.autoUpdateCleanup = null;
     }
     public cleanup() {
+        // needed to avoid breaking inheritance
     }
 
     public positionComponent({

@@ -1,66 +1,64 @@
-<svelte:options immutable />
-
 <script lang="ts">
-	import { run } from 'svelte/legacy';
+    import { getFileData } from "@/io";
+    import { settingsStore } from "@/settings";
+    import { activeFilepathStore, todayStore } from "@/stores/";
+    import { Moment } from "moment";
+    import { cn, eventHandlers, isControlPressed } from "../utils";
+    import Dot from "./Dot.svelte";
+    import Sticker from "./Sticker.svelte";
 
-	import { getFileData } from '@/io';
-	import { displayedDateStore } from '@/stores';
-	import { eventHandlers, isControlPressed } from '../utils';
-	import Dot from './Dot.svelte';
-	import Sticker from './Sticker.svelte';
-	import { settingsStore } from '@/settings';
+    interface Props {
+        date: Moment;
+    }
 
-	interface Props {
-		quarterNum: number;
-	}
+    let { date }: Props = $props();
 
-	let { quarterNum }: Props = $props();
-
-	let date = $derived($displayedDateStore.clone().quarter(quarterNum).startOf('quarter'));
-	let { file, sticker } = $state(getFileData('quarter', date));
-	run(() => {
-		if ($settingsStore.filepaths) {
-			const fileData = getFileData('quarter', date);
-			file = fileData.file;
-			sticker = fileData.sticker;
-		}
-	});
+    let { file, sticker } = $derived.by(() => {
+        $settingsStore; // trigger reactivity
+        return getFileData("quarter", date);
+    });
+    let isActive = $derived($activeFilepathStore === file?.path);
+    let isToday = $derived(date.isSame($todayStore, "quarter"));
 </script>
 
-<td class="relative">
-	<button
-		id="period-num"
-		onclick={(event) =>
-			eventHandlers.onClick({
-				date,
-				createNewSplitLeaf: isControlPressed(event),
-				granularity: 'quarter'
-			})}
-		oncontextmenu={(event) =>
-			eventHandlers.onContextMenu({
-				event,
-				fileData: {
-					file,
-					sticker
-				},
-				date,
-				granularity: 'quarter'
-			})}
-		onpointerenter={(event) =>
-			eventHandlers.onHover({
-				targetEl: event.target,
-				isControlPressed: isControlPressed(event),
-				file
-			})}
-	>
-		Q{quarterNum}
-		<Dot isFilled={!!file} isActive={!!file} />
-	</button>
-
-	<Sticker sticker={sticker?.emoji} />
+<td>
+    <button
+        class={cn(
+            "relative !h-auto w-full flex flex-col font-medium rounded-[--radius-s] [font-size:var(--font-ui-small)] opacity-85 px-1 pt-2.5 pb-4 text-center tabular-nums transition-colors",
+            isActive
+                ? "!text-[--text-on-accent] !bg-[--interactive-accent] hover:!bg-[--interactive-accent-hover]"
+                : isToday
+                  ? "!text-[--color-text-today]"
+                  : "",
+            isActive && isToday && "!text-[--text-on-accent]",
+        )}
+        onclick={(event) =>
+            eventHandlers.onClick({
+                date,
+                createNewSplitLeaf: isControlPressed(event),
+                granularity: "quarter",
+            })}
+        oncontextmenu={(event) =>
+            eventHandlers.onContextMenu({
+                event,
+                fileData: {
+                    file,
+                    sticker,
+                },
+                date,
+                granularity: "quarter",
+            })}
+        onpointerenter={(event) =>
+            eventHandlers.onHover({
+                targetEl: event.target,
+                isControlPressed: isControlPressed(event),
+                file,
+            })}
+    >
+        Q{date.quarter()}
+        <div class="absolute leading-[0] bottom-[calc(1rem/2)] translate-y-1/3">
+            <Dot isVisible={!!file} isFilled={!!file} {isActive} />
+        </div>
+    </button>
+    <Sticker sticker={sticker?.emoji} />
 </td>
-
-<style lang="postcss">
-	@tailwind base;
-	@tailwind utilities;
-</style>

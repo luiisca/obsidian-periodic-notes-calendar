@@ -8,6 +8,7 @@ import {
 } from 'obsidian';
 
 import { InvalidFormat } from '@/ui';
+import { mount, unmount } from "svelte";
 import { get } from 'svelte/store';
 import View from './View.svelte';
 import { VIEW_TYPE } from './constants';
@@ -17,10 +18,9 @@ import type PeriodicNotesCalendarPlugin from './main';
 import { settingsStore } from './settings';
 import { activeFilepathStore, themeStore } from './stores';
 import { internalFileModStore } from './stores/notes';
-import { mount } from "svelte";
 
 export class CalendarView extends ItemView {
-    private view: View;
+    private view: Record<string, any>;
     // private triggerLinkHover: () => void;
     plugin: PeriodicNotesCalendarPlugin;
 
@@ -61,8 +61,8 @@ export class CalendarView extends ItemView {
         console.log('On open view👐');
 
         this.view = mount(View, {
-                    target: this.contentEl
-                });
+            target: this.contentEl
+        });
 
         // index existing notes
         if (this.app.workspace.layoutReady && this.view) {
@@ -72,7 +72,7 @@ export class CalendarView extends ItemView {
 
     onClose(): Promise<void> {
         console.log('On close view❌');
-        this.view?.$destroy();
+        unmount(this.view);
 
         return Promise.resolve();
     }
@@ -89,7 +89,7 @@ export class CalendarView extends ItemView {
 
             if (isValid === false) {
                 const fragment = document.createDocumentFragment();
-                new InvalidFormat({
+                mount(InvalidFormat, {
                     // @ts-ignore
                     target: fragment,
                     props: {

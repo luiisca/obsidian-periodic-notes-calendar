@@ -2,7 +2,7 @@ import type { Menu } from 'obsidian';
 import { writable } from 'svelte/store';
 import type PeriodicNotesCalendarPlugin from '../main';
 
-export { displayedDateStore, yearsRanges } from './dates';
+export * from './dates';
 export {
     localeDataStore, setupLocale, updateLocale, updateWeekdays, updateWeekStart
 } from './locale';

@@ -1,16 +1,16 @@
 import { STICKER_POPOVER_ID } from '@/constants';
 import { settingsStore } from '@/settings';
-import { type ComponentType } from 'svelte';
+import { Component } from 'svelte';
 import { get } from 'svelte/store';
 import { type TWindowEvents } from '../types';
-import { BaseComponentBehavior } from './base-component-behavior';
 import { getPopoverInstance, Popover } from './base';
+import { BaseComponentBehavior } from './base-component-behavior';
 
 export type TStickerPopoverParams = {
     id: typeof STICKER_POPOVER_ID,
     view: {
-        Component: ComponentType;
-        props?: Record<string, unknown>;
+        Component: Component;
+        props?: Record<string, any>;
     },
 }
 

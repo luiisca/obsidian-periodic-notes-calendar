@@ -1,38 +1,42 @@
 {
-  "name": "periodic-notes-calendar",
-  "version": "1.0.0",
-  "description": "Obsidian plugin for creating and accessing daily notes for any date. Use command palette shortcuts or a calendar UI to navigate. Features emoji summaries for days, weeks, months, and years",
-  "author": "luiisca",
-  "main": "main.js",
-  "type": "module",
-  "license": "MIT",
-  "scripts": {
-    "dev": "node esbuild.config.mjs",
-    "check": "svelte-check --tsconfig ./tsconfig.json --threshold error",
-    "check:watch": "svelte-check --tsconfig ./tsconfig.json --threshold error --watch",
-    "format": "prettier --plugin-search-dir . --write .",
-    "lint": "npm run check && eslint .",
-    "build": "npm run lint && node --experimental-json-modules esbuild.config.mjs production"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "1.9.4",
-    "@tsconfig/svelte": "^5.0.4",
-    "@types/node": "^20.10.4",
-    "builtin-modules": "^4.0.0",
-    "moment": "^2.30.1",
-    "obsidian": "latest",
-    "svelte": "^5.1.10",
-    "svelte-check": "^4.0.5",
-    "tailwindcss": "^3.4.14",
-    "tslib": "^2.4.1",
-    "typescript": "^5.6.3"
-  },
-  "dependencies": {
-    "@emoji-mart/data": "^1.2.1",
-    "@floating-ui/dom": "^1.5.1",
-    "clsx": "^2.0.0",
-    "emoji-mart": "^5.6.0",
-    "svelte-writable-derived": "^3.1.1",
-    "tailwind-merge": "^2.5.4"
-  }
+    "name": "periodic-notes-calendar",
+    "version": "1.0.0",
+    "description": "Obsidian plugin for creating and accessing daily notes for any date. Use command palette shortcuts or a calendar UI to navigate. Features emoji summaries for days, weeks, months, and years",
+    "author": "luiisca",
+    "main": "main.js",
+    "type": "module",
+    "license": "MIT",
+    "scripts": {
+        "dev": "vite build --mode development --watch",
+        "build": "npm run lint && vite build --mode production",
+        "check": "svelte-check --tsconfig ./tsconfig.json --threshold error",
+        "check:watch": "svelte-check --tsconfig ./tsconfig.json --threshold error --watch",
+        "format": "biome format --write ./src",
+        "lint": "npm run check && biome lint --apply-unsafe ./src"
+    },
+    "devDependencies": {
+        "@biomejs/biome": "1.9.4",
+        "@sveltejs/vite-plugin-svelte": "^4.0.0",
+        "@tsconfig/svelte": "^5.0.4",
+        "@types/node": "^20.10.4",
+        "autoprefixer": "^10.4.20",
+        "builtin-modules": "^4.0.0",
+        "moment": "^2.30.1",
+        "obsidian": "latest",
+        "postcss": "^8.4.47",
+        "svelte": "^5.1.10",
+        "svelte-check": "^4.0.5",
+        "tailwindcss": "^3.4.14",
+        "tslib": "^2.4.1",
+        "typescript": "^5.6.3",
+        "vite": "^5.4.10"
+    },
+    "dependencies": {
+        "@emoji-mart/data": "^1.2.1",
+        "@floating-ui/dom": "^1.5.1",
+        "clsx": "^2.0.0",
+        "emoji-mart": "^5.6.0",
+        "svelte-writable-derived": "^3.1.1",
+        "tailwind-merge": "^2.5.4"
+    }
 }

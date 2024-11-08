@@ -1,18 +1,21 @@
 <script lang="ts">
-    import { get } from "svelte/store";
-
-    import { settingsStore } from "@/settings";
-    import { createOrOpenNote, type IGranularity } from "@/io";
+    import {
+        DEFAULT_DAILY_NOTE_FORMAT,
+        granularities,
+        NLDATES_PLUGIN_ID,
+    } from "@/constants";
+    import { createOrOpenNote, IGranularity } from "@/io";
+    import { getPeriodicityFromGranularity } from "@/io/parse";
+    import { getNormalizedPeriodSettings } from "@/io/settings";
+    import { LoadingCircle, settingsStore } from "@/settings";
+    import { capitalize, getPlugin } from "@/utils";
     import type { Moment } from "moment";
     import { debounce } from "obsidian";
-    import { granularities } from "@/constants";
-    import { getPeriodicityFromGranularity } from "@/io/parse";
-    import { capitalize } from "@/utils";
     import type NldatePickerModal from "../modals/nldate-picker";
-    import { onMount } from "svelte";
-    import { getNormalizedPeriodSettings } from "@/io/settings";
 
-    export let modalClass: NldatePickerModal;
+    interface Props {
+        modalClass: NldatePickerModal;
+    }
 
     interface NldPlugin {
         parseDate: (dateString: string) => NldResult;
@@ -22,63 +25,71 @@
         date: Date;
         moment: Moment;
     }
-    const nldatesPlugin: NldPlugin = (<any>window.app).plugins.getPlugin(
-        "nldates-obsidian",
+
+    let { modalClass }: Props = $props();
+
+    let nlDateInputVal = $state("today");
+    let granularityInputVal: IGranularity = $state("day");
+    let formatInputVal = $state(DEFAULT_DAILY_NOTE_FORMAT);
+    let parsedDate: Moment | null = $state(window.moment());
+    let formattedDate: string = $derived(
+        parsedDate?.format(formatInputVal) || "",
     );
 
-    const settings = get(settingsStore);
-    let granularity: IGranularity = settings.crrNldModalGranularity;
-    let dateInput = "";
-    let parsedDate: Moment | null;
+    let loading = $state(false);
+    let error = $state("");
 
-    $: format =
-        getNormalizedPeriodSettings(granularity).settings.selectedFormat;
-    $: dateInput, format, debounce(getDateStr, 50)();
+    $effect.pre(() => {
+        granularityInputVal = $settingsStore.crrNldModalGranularity;
+    });
 
-    let formattedDate: string = window
-        .moment()
-        .format(
-            format ||
-                getNormalizedPeriodSettings(granularity).settings
-                    .selectedFormat,
-        );
+    const handleNlDateChange = (
+        event: Event & {
+            currentTarget: EventTarget & HTMLInputElement;
+        },
+    ) => {
+        nlDateInputVal = event.currentTarget.value;
 
-    const getDateStr = () => {
-        let cleanDateInput = dateInput;
+        const parseDate = async () => {
+            let cleanDateInput = nlDateInputVal;
 
-        if (dateInput.endsWith("|")) {
-            cleanDateInput = dateInput.slice(0, -1);
-        }
+            if (nlDateInputVal.endsWith("|")) {
+                cleanDateInput = nlDateInputVal.slice(0, -1);
+            }
 
-        formattedDate = "Loading...";
-        const nlParsedDate = nldatesPlugin.parseDate(cleanDateInput || "today");
+            loading = true;
+            const nlDatesPlugin: NldPlugin = await getPlugin(NLDATES_PLUGIN_ID);
+            const nlParsedDate = nlDatesPlugin.parseDate(
+                cleanDateInput || "today",
+            );
+            loading = false;
 
-        if (nlParsedDate.moment.isValid()) {
-            parsedDate = nlParsedDate.moment;
-            formattedDate = nlParsedDate.moment.format(format);
-        } else {
-            parsedDate = null;
-            formattedDate = "Invalid date";
-        }
+            if (nlParsedDate.moment.isValid()) {
+                parsedDate = nlParsedDate.moment;
+            } else {
+                parsedDate = null;
+                error = "Invalid date";
+            }
+        };
+
+        debounce(parseDate, 50)();
     };
 
-    // event handlers
-    const enterKeyCb = (ev: KeyboardEvent) => {
-        const target = ev.target as HTMLElement;
+    const handleGranularityChange = (
+        event: Event & { currentTarget: EventTarget & HTMLSelectElement },
+    ) => {
+        const value = event.currentTarget.value as IGranularity;
+        formatInputVal =
+            getNormalizedPeriodSettings(value).settings.selectedFormat.value;
 
-        if (ev.key === "Enter" && target.className !== "dropdown") {
-            handleAccept();
-        }
-
-        if (document.getElementsByClassName("modal").length === 0) {
-            window.removeEventListener("keydown", enterKeyCb);
-        }
+        settingsStore.update((settings) => ({
+            ...settings,
+            crrNldModalgranularityInputVal: value,
+        }));
     };
 
     const handleCancel = async () => {
         modalClass.close();
-
-        window.removeEventListener("keydown", enterKeyCb);
     };
 
     const handleAccept = async () => {
@@ -91,37 +102,33 @@
             createOrOpenNote({
                 leaf,
                 date: parsedDate,
-                granularity,
+                granularity: granularityInputVal,
                 confirmBeforeCreateOverride: false,
             });
         }
-        window.removeEventListener("keydown", enterKeyCb);
     };
-    const handleOnChange = (
-        ev: Event & {
-            currentTarget: EventTarget & HTMLSelectElement;
-        },
-    ) => {
-        settingsStore.update((settings) => ({
-            ...settings,
-            crrNldModalGranularity: ev.currentTarget.value as IGranularity,
-        }));
-    };
-
-    onMount(() => {
-        window.addEventListener("keydown", enterKeyCb);
-    });
 </script>
 
 <div class="pt-4">
     <div class="setting-item border-0">
         <div class="setting-item-info">
             <div class="setting-item-name">Date</div>
-            <div class="setting-item-description">{formattedDate}</div>
+            <div class="setting-item-description relative">
+                {#if loading}
+                    <LoadingCircle {loading} />
+                {/if}
+                {#if error}
+                    <span class="text-[var(--text-error)]">
+                        {error}
+                    </span>
+                {:else}
+                    <span>{formattedDate}</span>
+                {/if}
+            </div>
         </div>
         <div class="setting-item-control">
             <input
-                bind:value={dateInput}
+                oninput={handleNlDateChange}
                 type="text"
                 spellcheck="false"
                 placeholder="Today"
@@ -135,7 +142,7 @@
         </div>
         <div class="setting-item-control">
             <input
-                bind:value={format}
+                bind:value={formatInputVal}
                 type="text"
                 spellcheck="false"
                 placeholder="YYYY-MM-DD HH:mm"
@@ -151,32 +158,30 @@
         </div>
         <div class="setting-item-control">
             <select
-                bind:value={granularity}
+                bind:value={granularityInputVal}
                 class="dropdown"
-                on:change={handleOnChange}
+                onchange={handleGranularityChange}
             >
-                {#each granularities as granularity}
-                    <option value={granularity}>
-                        {capitalize(getPeriodicityFromGranularity(granularity))}
+                {#each granularities as g}
+                    <option value={granularityInputVal}>
+                        {capitalize(getPeriodicityFromGranularity(g))}
                     </option>
                 {/each}
             </select>
         </div>
     </div>
     <div class="modal-button-container mt-3">
-        <button class="cursor-pointer" on:click={handleCancel}
-            >Never mind</button
+        <button class="cursor-pointer" onclick={handleCancel}>Never mind</button
         >
         <button
-            class={`mod-cta ${parsedDate ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}
+            class={`mod-cta ${parsedDate ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}
             aria-disabled={!parsedDate}
             disabled={!parsedDate}
-            on:click={handleAccept}>Open</button
+            onclick={handleAccept}>Open</button
         >
     </div>
 </div>
 
-<style lang="postcss">
-    @tailwind base;
-    @tailwind utilities;
-</style>
+<!-- <style lang="postcss"> -->
+<!--     @tailwind utilities; -->
+<!-- </style> -->

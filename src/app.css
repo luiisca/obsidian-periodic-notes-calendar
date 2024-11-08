@@ -1,3 +1,7 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* @tailwind base; */
+/* @tailwind components; */
+/* @tailwind utilities; */
+
+.container button {
+    @apply bg-transparent hover:bg-[var(--interactive-hover)] [&:not(:focus-visible)]:shadow-none;
+}

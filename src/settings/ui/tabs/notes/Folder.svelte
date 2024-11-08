@@ -1,65 +1,73 @@
 <script lang="ts">
-	import { getPeriodicityFromGranularity, type IGranularity } from '@/io';
-	import { validateFolder } from '@/io/validation';
-	import { capitalize } from '@/utils';
-	import { onDestroy, onMount } from 'svelte';
-	import type { Readable } from 'svelte/store';
-	import { type PeriodSettings, FolderSuggest } from '@/settings';
-	import { cn } from '@/ui/utils';
+    import { getPeriodicityFromGranularity, type IGranularity } from "@/io";
+    import { validateFolder } from "@/io/validation";
+    import { capitalize } from "@/utils";
+    import { onDestroy, onMount } from "svelte";
+    import type { Readable } from "svelte/store";
+    import { type PeriodSettings, FolderSuggest } from "@/settings";
+    import { cn } from "@/ui/utils";
 
-	interface Props {
-		settings: Readable<PeriodSettings>;
-		granularity: IGranularity;
-	}
+    interface Props {
+        settings: Readable<PeriodSettings>;
+        granularity: IGranularity;
+    }
 
-	let { settings, granularity }: Props = $props();
+    let { settings, granularity }: Props = $props();
 
-	let inputEl: HTMLInputElement = $state();
-	let value: string = $state($settings.folder || '');
-	let error: string = $state();
-	let folderSuggestInstance: FolderSuggest;
+    let inputEl: HTMLInputElement;
+    let value: string = $state("");
+    let error: string = $derived(validateFolder(value));
+    let folderSuggestInstance: FolderSuggest;
 
-	onMount(() => {
-		error = validateFolder(inputEl.value);
-		folderSuggestInstance = new FolderSuggest(inputEl);
-		console.log('on folder Mount', folderSuggestInstance);
-	});
-	onDestroy(() => {
-		console.log('onDestroy', folderSuggestInstance);
-		folderSuggestInstance?.destroy();
-	});
+    $effect.pre(() => {
+        value = $settings.folder;
+    });
+
+    onMount(() => {
+        folderSuggestInstance = new FolderSuggest(inputEl);
+        console.log("on folder Mount", folderSuggestInstance);
+    });
+    onDestroy(() => {
+        console.log("onDestroy", folderSuggestInstance);
+        folderSuggestInstance?.destroy();
+    });
 </script>
 
 <div class="setting-item">
-	<div class="setting-item-info">
-		<div class="setting-item-name">Folder</div>
-		<div class="setting-item-description">
-			New {capitalize(getPeriodicityFromGranularity(granularity))} notes will be placed here
-		</div>
-		<div class={cn('setting-item-description', error ? 'has-error' : 'opacity-0')}>
-			{error || 'Valid'}
-		</div>
-	</div>
-	<div class="setting-item-control">
-		<input
-			class="flex-grow"
-			bind:value
-			bind:this={inputEl}
-			class:has-error={!!error}
-			type="text"
-			spellcheck={false}
-			placeholder="e.g. folder 1/folder 2"
-			oninput={() => {
-				error = validateFolder(inputEl.value);
-				if (error.trim() === '') {
-					$settings.folder = value.trim();
-				}
-			}}
-		/>
-	</div>
+    <div class="setting-item-info">
+        <div class="setting-item-name">Folder</div>
+        <div class="setting-item-description">
+            New {capitalize(getPeriodicityFromGranularity(granularity))} notes will
+            be placed here
+        </div>
+        <div
+            class={cn(
+                "setting-item-description",
+                error ? "has-error" : "opacity-0",
+            )}
+        >
+            {error || "Valid"}
+        </div>
+    </div>
+    <div class="setting-item-control">
+        <input
+            class="flex-grow"
+            bind:value
+            bind:this={inputEl}
+            class:has-error={!!error}
+            type="text"
+            spellcheck={false}
+            placeholder="e.g. folder 1/folder 2"
+            oninput={() => {
+                if (error.trim() === "") {
+                    $settings.folder = value.trim();
+                }
+            }}
+        />
+    </div>
 </div>
 
 <style lang="postcss">
-	@tailwind base;
-	@tailwind utilities;
+    @tailwind base;
+    @tailwind utilities;
 </style>

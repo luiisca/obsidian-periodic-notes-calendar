@@ -1,6 +1,4 @@
 <script lang="ts">
-    import { run } from "svelte/legacy";
-
     import { YEARS_RANGE_SIZE } from "@/constants";
     import { displayedDateStore, yearsRanges } from "@/stores";
     import DateNavigator from "./DateNavigator.svelte";
@@ -8,27 +6,26 @@
 
     const todayMoment = window.moment();
 
-    let showingCurrentRange: boolean = $state();
-    run(() => {
-        $displayedDateStore,
-            (() => {
-                showingCurrentRange =
-                    $yearsRanges.todayRange ===
-                    $yearsRanges.ranges[$yearsRanges.crrRangeIndex];
-
-                // add new ranges or update existing ones every time displayed date changes
-                yearsRanges.selectOrCreateRanges();
-            })();
-    });
+    let showingCurrentRange: boolean = $derived(
+        $yearsRanges.todayRange ===
+            $yearsRanges.ranges[$yearsRanges.crrRangeIndex],
+    );
     let crrRange = $derived(
         $yearsRanges.ranges[$yearsRanges.crrRangeIndex].split("-"),
     );
+
+    $effect.pre(() => {
+        if ($displayedDateStore) {
+            // add new ranges or update existing ones every time displayed date changes
+            yearsRanges.selectOrCreateRanges();
+        }
+    });
 </script>
 
 <Header>
     <div
         slot="left-title"
-        class="text-[--color-text-title] text-[4rem] [&:not(:focus-visible)]:shadow-none font-semibold"
+        class="text-[--color-text-title] text-6xl font-semibold"
         id="years range"
     >
         {crrRange[0]} - {crrRange[1].slice(2)}

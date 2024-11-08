@@ -8,7 +8,7 @@
 	import { Popover } from '@/ui/popovers';
 	import { capitalize } from '@/utils';
 	import View from '@/View.svelte';
-	import { derived } from 'svelte/store';
+	import { derived as derivedStore } from 'svelte/store';
 
 	// Display
 	const handleViewLeafPositionChange = async (position: 'left' | 'right') => {
@@ -147,7 +147,7 @@
 		updateWeekStart(newWeekStartId);
 		updateWeekdays();
 	};
-	const weekdayOptionsStore = derived(settingsStore, () => {
+	const weekdayOptionsStore = derivedStore(settingsStore, () => {
 		let options = [
 			{
 				label: `Locale default - ${
@@ -163,9 +163,8 @@
 				options.push({ label: localizedDay, value: defaultWeekdays[i] });
 			});
 
-		return options;
+        return options
 	});
-	let weekdayOptions = $derived($weekdayOptionsStore);
 
 	const handleAllowLocalesSwitchFromCommandPalette = (
 		allowLocalesSwitchFromCommandPalette: boolean
@@ -326,8 +325,7 @@
 <SettingItem name="Week Starts On" description="Choose which day your week begins with">
 	{#snippet control()}
 		<Dropdown
-			
-			options={weekdayOptions}
+			options={$weekdayOptionsStore}
 			onChange={handleFirstWeekdayChange}
 			value={firstWeekday}
 		/>

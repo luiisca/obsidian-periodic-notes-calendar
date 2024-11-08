@@ -1,6 +1,6 @@
 import { CALENDAR_POPOVER_ID, FILE_MENU_POPOVER_ID, STICKER_POPOVER_ID } from '@/constants';
 import { settingsStore } from "@/settings";
-import { type ComponentType } from 'svelte';
+import { Component, unmount } from 'svelte';
 import { get } from 'svelte/store';
 import { type TWindowEvents } from '../types';
 import { getPopoverInstance } from './base';
@@ -13,8 +13,8 @@ function getRefHtmlEl() {
 export type TCalendarPopoverParams = {
     id: typeof CALENDAR_POPOVER_ID,
     view: {
-        Component: ComponentType;
-        props?: Record<string, unknown>;
+        Component: Component;
+        props?: Record<string, any>;
     }
 }
 
@@ -46,7 +46,7 @@ export class CalendarPopoverBehavior extends BaseComponentBehavior {
     public cleanup() {
         this.close();
         this.refHtmlEl?.removeEventListener('mouseover', this.handleReferenceElHover);
-        this.component.$destroy();
+        unmount(this.component)
     }
 
     private getWindowEvents(): TWindowEvents {

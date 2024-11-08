@@ -1,10 +1,9 @@
-import { PeriodSettings, settingsStore } from "@/settings";
-import { get } from "svelte/store";
-import { type IGranularity } from "../types";
-import { granularities } from "@/constants";
-import { getPeriodicityFromGranularity } from "../parse";
+import { settingsStore } from "@/settings";
 import { capitalize } from "@/utils";
+import { get } from "svelte/store";
 import { isWeekFormatAmbiguous } from ".";
+import { getPeriodicityFromGranularity } from "../parse";
+import { type IGranularity } from "../types";
 
 // https://github.com/liamcain/obsidian-periodic-notes
 function validateFilename(filename: string): boolean {
@@ -183,11 +182,13 @@ export function validateFormat(
     let error = "";
 
     if (!value) {
-        return error = "";
+        error = "";
+        return error;
     }
 
     if (!validateFilename(value)) {
-        return error = "Format contains illegal characters";
+        error = "Format contains illegal characters";
+        return error;
     }
 
     const currentDate = window.moment();
@@ -214,7 +215,8 @@ export function validateFormat(
 
     // check if the date is valid
     if (!parsedDate.isValid()) {
-        return error = "Format is not valid";
+        error = "Format is not valid";
+        return error;
     }
 
     // check for duplicated valid formats
@@ -224,7 +226,8 @@ export function validateFormat(
         id,
     );
     if (duplicate) {
-        return error = errorMsg;
+        error = errorMsg;
+        return error;
     }
 
     return error;

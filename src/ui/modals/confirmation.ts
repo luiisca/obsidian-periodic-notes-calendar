@@ -1,11 +1,11 @@
 import { Modal } from 'obsidian';
 import ConfirmationModalComponent from '../components/ConfirmationModal.svelte';
-import { ComponentType, mount } from 'svelte';
+import { Component, mount } from 'svelte';
 import { ModalManager } from './modals-manager';
 
 type TextContent = string | {
-    Component: ComponentType;
-    props?: Record<string, unknown>;
+    Component: Component;
+    props?: Record<string, any>;
 };
 
 export interface IConfirmationDialogParams {
@@ -28,12 +28,12 @@ export class ConfirmationModal extends Modal {
 
         // Instantiate the Svelte component
         mount(ConfirmationModalComponent, {
-                    target: svelteContainer,
-                    props: {
-                        config,
-                        modalClass: this
-                    }
-                });
+            target: svelteContainer,
+            props: {
+                config,
+                modalClass: this
+            }
+        });
     }
 }
 

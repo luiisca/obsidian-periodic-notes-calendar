@@ -6,14 +6,13 @@ import { setupLocale } from "@/stores";
 import { genNoticeFragment } from "@/ui/utils";
 import { capitalize } from "@/utils";
 import { App, Notice, PluginSettingTab } from 'obsidian';
-import { SvelteComponent, mount } from "svelte";
+import { mount, unmount } from "svelte";
 import { get } from "svelte/store";
 import { settingsStore } from "./store";
-import View from "@/View.svelte";
 
 export class SettingsTab extends PluginSettingTab {
     public plugin: PeriodicNotesCalendarPlugin;
-    private view: SvelteComponent | null = null;
+    private view: Record<string, any>;
 
     constructor(app: App, plugin: PeriodicNotesCalendarPlugin) {
         super(app, plugin);
@@ -25,16 +24,13 @@ export class SettingsTab extends PluginSettingTab {
     display() {
         this.containerEl.empty();
 
-        this.view = mount(View, {
-                    target: this.containerEl,
-                })
-        // this.view = new Settings({
-        //     target: this.containerEl
-        // })
+        this.view = mount(Settings, {
+            target: this.containerEl
+        })
     }
     hide() {
         super.hide()
-        this.view?.$destroy()
+        unmount(this.view)
 
         const errors = [];
 

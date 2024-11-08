@@ -1,27 +1,23 @@
 <script lang="ts">
-    import { run } from "svelte/legacy";
-
     import { getFileData } from "@/io";
     import { settingsStore } from "@/settings";
     import { displayedDateStore, yearsRanges } from "@/stores";
+    import { todayStore } from "@/stores/dates";
     import DateNavigator from "./DateNavigator.svelte";
     import Header from "./Header.svelte";
-    import { todayStore } from "@/stores/dates";
 
-    run(() => {
+    let fileData = $derived.by(() => {
+        $settingsStore.filepaths; // trigger reactivity
+        return getFileData("year", $displayedDateStore);
+    });
+    let isToday = $derived($displayedDateStore.isSame($todayStore, "year"));
+
+    $effect.pre(() => {
         if ($displayedDateStore) {
             // add new ranges or update existing ones every time displayed date changes
             yearsRanges.selectOrCreateRanges();
         }
     });
-
-    let fileData = $state(getFileData("year", $displayedDateStore));
-    run(() => {
-        if ($settingsStore.filepaths) {
-            fileData = getFileData("year", $displayedDateStore);
-        }
-    });
-    let isToday = $derived($displayedDateStore.isSame($todayStore, "year"));
 </script>
 
 <Header
@@ -34,7 +30,7 @@
 >
     <button
         slot="right-title"
-        class="[&:not(:focus-visible)]:shadow-none text-[--interactive-accent] font-medium opacity-60"
+        class="text-[--interactive-accent] font-medium text-lg hover:!shadow-[0px_0px_0px_6px_var(--interactive-hover)] rounded-[2px]"
         id="years-range"
     >
         {$yearsRanges.ranges[$yearsRanges.crrRangeIndex]}
