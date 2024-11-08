@@ -43,7 +43,7 @@
         <div
             class={cn(
                 "setting-item-description",
-                error ? "has-error" : "opacity-0",
+                error ? "text-[var(--text-error)]" : "opacity-0",
             )}
         >
             {error || "Valid"}
