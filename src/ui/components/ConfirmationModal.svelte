@@ -26,33 +26,24 @@
     };
 </script>
 
-<div>
-    <h1>Title h1</h1>
-    <h2>Title h2</h2>
-    <h2 class="!mt-0">
+<div class="confirmation-modal">
+    <h2>
         {#if typeof title === "string"}
             {title}
         {:else if title}
             <title.Component {...title.props} />
         {/if}
     </h2>
-    <p>
+    <p class="!mb-1.5">
         {#if typeof text === "string"}
             {text}
         {:else if text}
             <text.Component {...text.props} />
         {/if}
     </p>
-    <label class="flex items-center hover:cursor-pointer mt-7">
-        <input
-            type="checkbox"
-            class="hover:cursor-pointer"
-            bind:checked={dontAskAgain}
-        /> Don't ask again
-    </label>
     {#if note}
         <p
-            class="m-0 mt-2 [font-size:var(--font-ui-small)] text-[--text-muted]"
+            class="m-0 !mt-1.5 [font-size:var(--font-ui-small)] text-[--text-muted]"
         >
             {#if typeof note === "string"}
                 {note}
@@ -61,12 +52,15 @@
             {/if}
         </p>
     {/if}
+    <label class="flex items-center hover:cursor-pointer mt-3.5">
+        <input
+            type="checkbox"
+            class="hover:cursor-pointer text-[14px]"
+            bind:checked={dontAskAgain}
+        /> Don't ask again
+    </label>
     <div class="modal-button-container mt-3">
         <button onclick={handleCancel}>Never mind</button>
         <button class="mod-cta" onclick={handleAccept}>{cta}</button>
     </div>
 </div>
-
-<style lang="postcss">
-    @tailwind utilities;
-</style>

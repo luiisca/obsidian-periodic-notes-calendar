@@ -44,8 +44,3 @@
         tooltip={`Next ${capitalize(type)}`}
     />
 </div>
-
-<style lang="postcss">
-    @tailwind base;
-    @tailwind utilities;
-</style>

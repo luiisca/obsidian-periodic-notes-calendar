@@ -29,7 +29,7 @@
     {#each tabs as tab}
         <button
             class={cn(
-                "cursor-pointer w-full rounded-[--radius-s] py-2 mr-1 last:mr-0 transition",
+                "cursor-pointer w-full rounded-[--radius-s] py-2 mr-1 last:mr-0 transition [font-size:100%]",
                 selectedTab === tab
                     ? "!text-[--text-on-accent] !bg-[--interactive-accent] hover:!bg-[--interactive-accent-hover]"
                     : "!text-[--icon-color] opacity-[--icon-opacity] hover:opacity-[--icon-opacity-hover] hover:!text-[--icon-color-hover] hover:!bg-[--background-modifier-hover]",
@@ -39,9 +39,3 @@
         >
     {/each}
 </div>
-
-<style lang="postcss">
-    button {
-        @apply bg-transparent hover:bg-[var(--interactive-hover)] [&:not(:focus-visible)]:shadow-none;
-    }
-</style>

@@ -1,7 +1,11 @@
-/* @tailwind base; */
-/* @tailwind components; */
-/* @tailwind utilities; */
+.pnc-container button {
+    @apply bg-transparent hover:bg-[var(--interactive-hover)] [&:not(:focus-visible)]:shadow-none cursor-pointer;
+}
 
-.container button {
-    @apply bg-transparent hover:bg-[var(--interactive-hover)] [&:not(:focus-visible)]:shadow-none;
+.confirmation-modal h2 {
+    @apply mt-0;
+}
+
+.confirmation-modal p {
+    /* @apply my-[var(--p-spacing)]; */
 }

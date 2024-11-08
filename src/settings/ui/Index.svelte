@@ -6,19 +6,18 @@
     let selectedTab: (typeof tabs)[number] = $state("notes");
 </script>
 
-<Tabs tabs={[...tabs]} bind:selectedTab className="max-w-56" />
-<div class="mt-6">
-    {#if selectedTab === "calendar"}
-        <Calendar />
-    {:else if selectedTab === "notes"}
-        <Notes />
-    {/if}
+<div class="pnc-container">
+    <Tabs tabs={[...tabs]} bind:selectedTab className="max-w-56" />
+    <div class="mt-6">
+        {#if selectedTab === "calendar"}
+            <Calendar />
+        {:else if selectedTab === "notes"}
+            <Notes />
+        {/if}
+    </div>
 </div>
 
 <style lang="postcss">
-    @tailwind base;
-    @tailwind utilities;
-
     :global(.vertical-tab-content) {
         scrollbar-gutter: stable;
         padding-right: calc(

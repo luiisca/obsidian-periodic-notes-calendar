@@ -52,8 +52,3 @@
     </div>
     {separator}
 {/if}
-
-<style lang="postcss">
-    @tailwind base;
-    @tailwind utilities;
-</style>

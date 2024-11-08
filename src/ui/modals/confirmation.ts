@@ -11,9 +11,9 @@ type TextContent = string | {
 export interface IConfirmationDialogParams {
     title: TextContent;
     text: TextContent;
+    note?: string | TextContent | null;
     cta: string;
     onAccept: (dontAskAgain: boolean) => Promise<void> | void;
-    note?: string | TextContent | null;
 }
 
 export class ConfirmationModal extends Modal {

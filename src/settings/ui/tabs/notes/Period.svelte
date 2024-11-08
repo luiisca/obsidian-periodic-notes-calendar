@@ -44,16 +44,16 @@
 </script>
 
 <div
-    class="bg-[var(--background-primary-alt)] border border-solid border-[var(--background-modifier-border)] rounded-2xl mb-6 last:mb-0"
+    class="bg-[var(--background-secondary)] border border-solid border-[var(--background-modifier-border)] rounded-[var(--modal-radius)] mb-6 last:mb-0"
 >
     <a
         href="./"
-        class="setting-item setting-item-heading text-transparent !p-6 cursor-pointer flex items-center justify-between focus-visible:shadow-[0_0_0_3px_var(--background-modifier-border-focus)] outline-none"
+        class="setting-item setting-item-heading text-transparent !p-6 cursor-pointer flex items-center justify-between focus-visible:shadow-[0_0_0_3px_var(--background-modifier-border-focus)] outline-none hover:text-transparent"
         onclick={toggleExpand}
     >
         <div class="setting-item-info flex justify-between items-center">
             <h3
-                class="setting-item-name flex items-center text-lg font-semibold"
+                class="setting-item-name flex items-center text-lg font-semibold m-0"
             >
                 <Arrow {isExpanded} />
                 <span class="ml-2">
@@ -87,9 +87,3 @@
         </div>
     {/if}
 </div>
-
-<style lang="postcss">
-    @tailwind base;
-    @tailwind components;
-    @tailwind utilities;
-</style>

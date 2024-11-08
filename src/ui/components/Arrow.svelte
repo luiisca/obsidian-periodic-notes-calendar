@@ -16,8 +16,8 @@
 
 <button
     class={cn(
-        "flex items-center cursor-pointer px-1.5",
-        direction === "right" && "rotate-180",
+        "flex items-center px-1.5",
+        direction === "right" && "[transform:rotate(180deg)]",
         className,
     )}
     id="arrow"
@@ -36,8 +36,3 @@
         /></svg
     >
 </button>
-
-<style lang="postcss">
-    @tailwind base;
-    @tailwind utilities;
-</style>

@@ -37,8 +37,3 @@
         (Daily Notes plugin disabled)
     {/if}
 {/if}
-
-<style lang="postcss">
-    @tailwind base;
-    @tailwind utilities;
-</style>

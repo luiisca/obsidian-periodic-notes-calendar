@@ -22,7 +22,7 @@
     let crrView: (typeof togglePeriods)[number] = $state("day");
 </script>
 
-<div class="container px-4 !pt-2" id="container">
+<div class="pnc-container px-4 !pt-2">
     <Tabs
         tabs={[...togglePeriods]}
         bind:selectedTab={crrView}
@@ -33,7 +33,7 @@
 
     {#if crrView === "day"}
         <MonthHeader />
-        <table class="calendar" id="calendar">
+        <table class="pnc-calendar">
             <colgroup>
                 {#if showWeekNums}
                     <col />
@@ -70,7 +70,7 @@
     {/if}
     {#if crrView === "month"}
         <YearHeader />
-        <table class="calendar" id="calendar">
+        <table class="pnc-calendar">
             <tbody>
                 {#each monthsIndexesInQuarters as quarterMonthsIndexes, i}
                     <tr>
@@ -97,7 +97,7 @@
     {/if}
     {#if crrView === "year"}
         <YearsHeader />
-        <table class="calendar" id="calendar">
+        <table class="pnc-calendar">
             <tbody>
                 {#each getYears( { startRangeYear: +$yearsRanges.ranges[$yearsRanges.crrRangeIndex].split("-")[0] }, ) as rowYearsRange}
                     <tr>
@@ -117,7 +117,7 @@
 </div>
 
 <style lang="postcss">
-    #container {
+    .pnc-container {
         --color-background-heading: transparent;
         --color-background-day: transparent;
         --color-background-weeknum: transparent;
@@ -138,7 +138,7 @@
         background-color: var(--color-background-weekend);
     }
 
-    #calendar {
+    .pnc-calendar {
         border-collapse: collapse;
         width: calc(100% + 2rem);
         min-width: 100%;

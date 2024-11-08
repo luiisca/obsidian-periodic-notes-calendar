@@ -64,7 +64,7 @@
             })}
     >
         <p
-            class="text-5xl font-normal -z-10 opacity-15 text-[--text-muted] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+            class="text-5xl font-normal -z-10 opacity-15 text-[--text-muted] absolute top-1/2 left-1/2 [transform:translate(-50%,-50%)] m-0"
         >
             {monthIndex < 9 ? "0" : ""}{monthIndex + 1}
         </p>
@@ -79,8 +79,3 @@
         </div>
     </button>
 </td>
-
-<style lang="postcss">
-    @tailwind base;
-    @tailwind utilities;
-</style>

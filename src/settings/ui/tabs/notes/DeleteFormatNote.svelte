@@ -3,14 +3,15 @@
     import { capitalize } from "@/utils";
 
     interface Props {
-        replacingFormat: string;
         granularity: IGranularity;
     }
 
-    let { replacingFormat, granularity }: Props = $props();
-
+    let { granularity }: Props = $props();
     const periodicity = capitalize(getPeriodicityFromGranularity(granularity));
 </script>
 
-All existing {periodicity} notes (if any) will be renamed to match this format:
-<span class="u-pop">{replacingFormat}</span>.
+<!-- // TODO: improve wording -->
+<span class="u-pop">
+    ⚠️ {periodicity} notes matching this format will no longer be recognized by the
+    calendar UI
+</span>

@@ -27,7 +27,7 @@
         <slot name="left-title" />
         {#if leftTitle}
             <button
-                class="h-auto text-7xl font-semibold hover:!shadow-[3px_0px_0_7px_var(--interactive-hover)] rounded-[2px]"
+                class="h-auto text-7xl font-semibold hover:!shadow-[3px_0px_0_7px_var(--interactive-hover)] rounded-[2px] p-0"
                 id={leftTitle.granularity}
                 on:click={(event) =>
                     eventHandlers.onClick({
@@ -57,7 +57,7 @@
         <slot name="right-title" />
         {#if rightTitle}
             <button
-                class="text-[--interactive-accent] font-medium text-lg hover:!shadow-[0px_0px_0px_6px_var(--interactive-hover)] rounded-[2px]"
+                class="text-[--interactive-accent] font-medium text-lg hover:!shadow-[0px_0px_0px_6px_var(--interactive-hover)] rounded-[2px] p-0"
                 id={rightTitle.granularity}
                 on:click={(event) =>
                     eventHandlers.onClick({

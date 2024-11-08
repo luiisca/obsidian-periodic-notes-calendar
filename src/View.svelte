@@ -63,3 +63,7 @@
 {#if !popover}
     <Calendar />
 {/if}
+
+<style lang="postcss">
+    @tailwind utilities;
+</style>

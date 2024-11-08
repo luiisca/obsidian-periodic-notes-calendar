@@ -8,14 +8,9 @@
 
 {#if sticker}
     <div
-        class="rotate-12 absolute top-0 left-full -translate-x-1/3 -translate-y-1/2"
+        class="[transform:rotate(12deg)_translate(-33%,-50%)] absolute top-0 left-full"
         id="sticker"
     >
         {sticker}
     </div>
 {/if}
-
-<style lang="postcss">
-    @tailwind base;
-    @tailwind utilities;
-</style>

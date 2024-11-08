@@ -27,7 +27,7 @@
 <a
     href={null}
     class={cn(
-        "relative menu-item tappable is-warning text-xs flex items-center",
+        "relative menu-item tappable is-warning text-xs flex items-center no-underline hover:no-underline",
         loading
             ? "opacity-60 hover:bg-transparent cursor-not-allowed "
             : "hover:bg-[var(--background-modifier-hover)] cursor-pointer",
@@ -44,8 +44,3 @@
         <span>{text}</span>
     {/if}
 </a>
-
-<style lang="postcss">
-    @tailwind base;
-    @tailwind utilities;
-</style>

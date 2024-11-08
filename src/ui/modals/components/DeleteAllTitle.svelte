@@ -1,12 +1,12 @@
 <script lang="ts">
-	interface Props {
-		filepathsLength: number;
-	}
+    interface Props {
+        filepathsLength: number;
+    }
 
-	let { filepathsLength }: Props = $props();
+    let { filepathsLength }: Props = $props();
 </script>
 
-<p>
-	Are you sure you want to delete {filepathsLength > 1 ? 'all' : ''}
-	<span class="u-pop">{filepathsLength} {filepathsLength > 1 ? 'files' : 'file'}</span>?
-</p>
+Are you sure you want to delete {filepathsLength > 1 ? "all" : ""}
+<span class="u-pop"
+    >{filepathsLength} {filepathsLength > 1 ? "files" : "file"}</span
+>?

@@ -16,9 +16,11 @@
     import { getContext, onMount } from "svelte";
     import { type Writable } from "svelte/store";
     import DeleteFormatText from "./DeleteFormatText.svelte";
+    import DeleteFormatNote from "./DeleteFormatNote.svelte";
     import FilepathsCount from "./FilepathsCount.svelte";
-    import ReplaceAllText from "./ReplaceAllText.svelte";
     import ReplaceAllTitle from "./ReplaceAllTitle.svelte";
+    import ReplaceAllText from "./ReplaceAllText.svelte";
+    import ReplaceAllNote from "./ReplaceAllNote.svelte";
 
     interface Props {
         settings: Writable<PeriodSettings>;
@@ -267,6 +269,9 @@
                         granularity,
                     },
                 },
+                note: {
+                    Component: ReplaceAllNote,
+                },
                 cta: "Replace",
                 onAccept: (dontAskAgain) => {
                     replaceAll();
@@ -322,13 +327,16 @@
         if (filesCount) {
             const shouldConfirm =
                 $settingsStore.shouldConfirmBeforeDeleteFormat;
-            // TODO: reword
             if (shouldConfirm) {
                 createConfirmationDialog({
                     title: `Delete format`,
                     text: {
                         Component: DeleteFormatText,
-                        props: { format, granularity },
+                        props: { format },
+                    },
+                    note: {
+                        Component: DeleteFormatNote,
+                        props: { granularity },
                     },
                     cta: "Delete",
                     onAccept: (dontAskAgain) => {
@@ -457,7 +465,7 @@
                     error
                         ? "!text-[var(--text-error)] !border-[var(--background-modifier-error)]"
                         : selected
-                          ? "placeholder-[var(--text-on-accent)] !border-[var(--text-accent-hover)] hover:!bg-[var(--interactive-accent-hover)]"
+                          ? "!text-[var(--text-on-accent)] !placeholder-[hsl(0deg_0%_100%_/_50%)] !border-[var(--text-accent-hover)] hover:!bg-[var(--interactive-accent-hover)]"
                           : "!border-[var(--background-modifier-border-hover)] hover:!bg-[var(--background-modifier-form-field)]",
                 )}
                 oninput={handleUpdate}
@@ -478,7 +486,9 @@
                 {:else}
                     <span
                         class={cn(
-                            selected ? "text-[var(--text-on-accent)]" : "u-pop",
+                            selected
+                                ? "!text-[var(--text-on-accent)]"
+                                : "u-pop",
                         )}
                         >{value.trim()
                             ? window.moment().format(value)
@@ -490,7 +500,7 @@
                 <!-- replace -->
                 <button
                     class={cn(
-                        "clickable-icon extra-setting-button cursor-pointer",
+                        "clickable-icon extra-setting-button hover:!bg-[var(--background-modifier-hover)]",
                         (error || value.trim() === "") &&
                             "!cursor-not-allowed hover:bg-transparent hover:!opacity-70",
                         error
@@ -510,7 +520,7 @@
                 <!-- remove -->
                 <button
                     class={cn(
-                        "clickable-icon extra-setting-button cursor-pointer",
+                        "clickable-icon extra-setting-button hover:!bg-[var(--background-modifier-hover)]",
                         error
                             ? "!text-[var(--text-error)]"
                             : selected
@@ -542,7 +552,3 @@
         >
     {/if}
 </label>
-
-<style lang="postcss">
-    @tailwind utilities;
-</style>

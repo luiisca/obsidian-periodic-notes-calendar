@@ -70,8 +70,3 @@
         </div>
     </button>
 </td>
-
-<style lang="postcss">
-    @tailwind base;
-    @tailwind utilities;
-</style>

@@ -19,9 +19,6 @@
 ></div>
 
 <style lang="postcss">
-    @tailwind base;
-    @tailwind utilities;
-
     #emoji-modal {
         padding: 0px;
         min-width: unset;
