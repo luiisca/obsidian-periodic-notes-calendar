@@ -68,7 +68,8 @@
         >
             {monthIndex < 9 ? "0" : ""}{monthIndex + 1}
         </p>
-        <p>
+        <p class="relative">
+            <Sticker sticker={sticker?.emoji} />
             {$displayedDateStore.clone().month(monthIndex).format("MMM")}
         </p>
         <div
@@ -77,7 +78,6 @@
             <Dot isVisible={!!file} isFilled={!!file} {isActive} />
         </div>
     </button>
-    <Sticker sticker={sticker?.emoji} />
 </td>
 
 <style lang="postcss">

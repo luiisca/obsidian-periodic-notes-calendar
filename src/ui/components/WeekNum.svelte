@@ -3,7 +3,11 @@
 
     import { getFileData } from "@/io";
     import { settingsStore } from "@/settings";
-    import { activeFilepathStore, todayStore, internalFileModStore } from "@/stores/";
+    import {
+        activeFilepathStore,
+        todayStore,
+        internalFileModStore,
+    } from "@/stores/";
     import { cn, eventHandlers, isControlPressed } from "../utils";
     import Dot from "./Dot.svelte";
     import Sticker from "./Sticker.svelte";
@@ -59,10 +63,12 @@
             });
         }}
     >
-        {date.week()}
+        <span class="relative">
+            <Sticker sticker={sticker?.emoji} />
+            {date.week()}
+        </span>
         <div class="absolute leading-[0] bottom-[calc(1rem/2)] translate-y-1/3">
             <Dot isVisible={!!file} isFilled={!!file} {isActive} />
         </div>
     </button>
-    <Sticker sticker={sticker?.emoji} />
 </td>

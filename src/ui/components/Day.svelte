@@ -73,10 +73,12 @@
             });
         }}
     >
-        {date.format("D")}
+        <span class="relative">
+            <Sticker sticker={sticker?.emoji} />
+            {date.format("D")}
+        </span>
         <div class="absolute leading-[0] bottom-[calc(1rem/2)] translate-y-1/3">
             <Dot isVisible={!!file} isFilled={!!file} {isActive} />
         </div>
     </button>
-    <Sticker sticker={sticker?.emoji} />
 </td>

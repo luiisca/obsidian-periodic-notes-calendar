@@ -59,15 +59,16 @@
             });
         }}
     >
-        {date.year()}
+        <span class="relative">
+            <Sticker sticker={sticker?.emoji} />
+            {date.year()}
+        </span>
         <div
             class="absolute leading-[0] bottom-[calc(1rem/2)] translate-y-[35%]"
         >
             <Dot isVisible={!!file} isFilled={!!file} {isActive} />
         </div>
     </button>
-
-    <Sticker sticker={sticker?.emoji} />
 </td>
 
 <style lang="postcss">
