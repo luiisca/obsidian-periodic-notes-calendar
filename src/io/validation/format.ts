@@ -77,7 +77,7 @@ function isAmbiguousFormat(
 
     // Check for missing essential information based on granularity
     const missingInfo = (() => {
-        if (!containsValidToken(["Y", "y", "gg", "GG"])) return "year (Y, y, gg, or GG)";
+        if (!containsValidToken(["Y", "y", "g", "G"])) return "year (Y, y, gg, or GG)";
 
         switch (granularity) {
             case "quarter":
