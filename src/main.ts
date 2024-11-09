@@ -60,7 +60,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         // Commands
         this.addCommand({
             id: 'open-calendar-view',
-            name: 'Open calendar view',
+            name: 'Toggle calendar view',
             callback: () => {
                 this.toggleView();
             }
@@ -108,10 +108,11 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         const nlDatesPlugin = await getPlugin(NLDATES_PLUGIN_ID);
         this.addCommand({
             id: 'open-nldate-note',
+            // TODO: reword
             name: 'Open a Periodic Note based on Natural Language Date selection',
             callback: () => {
                 if (nlDatesPlugin) {
-                    createNldatePickerDialog();
+                    createNldatePickerDialog(nlDatesPlugin);
                 } else {
                     new Notice(`Please install '${NLDATES_PLUGIN_ID}' plugin to use this command`)
                 }

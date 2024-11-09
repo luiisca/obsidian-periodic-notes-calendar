@@ -12,21 +12,14 @@
     import type { Moment } from "moment";
     import { debounce } from "obsidian";
     import type NldatePickerModal from "../modals/nldate-picker";
+    import { NldPlugin } from "../modals/nldate-picker";
 
     interface Props {
         modalClass: NldatePickerModal;
+        nlDatesPlugin: NldPlugin;
     }
 
-    interface NldPlugin {
-        parseDate: (dateString: string) => NldResult;
-    }
-    interface NldResult {
-        formattedString: string;
-        date: Date;
-        moment: Moment;
-    }
-
-    let { modalClass }: Props = $props();
+    let { modalClass, nlDatesPlugin }: Props = $props();
 
     let nlDateInputVal = $state("today");
     let granularityInputVal: IGranularity = $state("day");
@@ -58,7 +51,6 @@
             }
 
             loading = true;
-            const nlDatesPlugin: NldPlugin = await getPlugin(NLDATES_PLUGIN_ID);
             const nlParsedDate = nlDatesPlugin.parseDate(
                 cleanDateInput || "today",
             );
@@ -66,6 +58,7 @@
 
             if (nlParsedDate.moment.isValid()) {
                 parsedDate = nlParsedDate.moment;
+                error = "";
             } else {
                 parsedDate = null;
                 error = "Invalid date";
@@ -75,16 +68,14 @@
         debounce(parseDate, 50)();
     };
 
-    const handleGranularityChange = (
-        event: Event & { currentTarget: EventTarget & HTMLSelectElement },
-    ) => {
-        const value = event.currentTarget.value as IGranularity;
+    const handleGranularityChange = () => {
         formatInputVal =
-            getNormalizedPeriodSettings(value).settings.selectedFormat.value;
+            getNormalizedPeriodSettings(granularityInputVal).settings
+                .selectedFormat.value;
 
         settingsStore.update((settings) => ({
             ...settings,
-            crrNldModalgranularityInputVal: value,
+            crrNldModalgranularityInputVal: granularityInputVal,
         }));
     };
 
@@ -163,7 +154,7 @@
                 onchange={handleGranularityChange}
             >
                 {#each granularities as g}
-                    <option value={granularityInputVal}>
+                    <option value={g}>
                         {capitalize(getPeriodicityFromGranularity(g))}
                     </option>
                 {/each}
