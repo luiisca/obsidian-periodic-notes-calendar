@@ -1,14 +1,10 @@
 <script lang="ts">
-    import {
-        DEFAULT_DAILY_NOTE_FORMAT,
-        granularities,
-        NLDATES_PLUGIN_ID,
-    } from "@/constants";
+    import { DEFAULT_DAILY_NOTE_FORMAT, granularities } from "@/constants";
     import { createOrOpenNote, IGranularity } from "@/io";
     import { getPeriodicityFromGranularity } from "@/io/parse";
     import { getNormalizedPeriodSettings } from "@/io/settings";
     import { LoadingCircle, settingsStore } from "@/settings";
-    import { capitalize, getPlugin } from "@/utils";
+    import { capitalize } from "@/utils";
     import type { Moment } from "moment";
     import { debounce } from "obsidian";
     import type NldatePickerModal from "../modals/nldate-picker";
@@ -32,8 +28,11 @@
     let loading = $state(false);
     let error = $state("");
 
-    $effect.pre(() => {
-        granularityInputVal = $settingsStore.crrNldModalGranularity;
+    $effect(() => {
+        settingsStore.update((settings) => ({
+            ...settings,
+            crrNldModalgranularityInputVal: granularityInputVal,
+        }));
     });
 
     const handleNlDateChange = (
@@ -72,11 +71,6 @@
         formatInputVal =
             getNormalizedPeriodSettings(granularityInputVal).settings
                 .selectedFormat.value;
-
-        settingsStore.update((settings) => ({
-            ...settings,
-            crrNldModalgranularityInputVal: granularityInputVal,
-        }));
     };
 
     const handleCancel = async () => {
