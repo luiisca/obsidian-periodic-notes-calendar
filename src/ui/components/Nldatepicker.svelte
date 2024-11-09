@@ -9,6 +9,7 @@
     import { debounce } from "obsidian";
     import type NldatePickerModal from "../modals/nldate-picker";
     import { NldPlugin } from "../modals/nldate-picker";
+    import { onMount } from "svelte";
 
     interface Props {
         modalClass: NldatePickerModal;
@@ -17,13 +18,15 @@
 
     let { modalClass, nlDatesPlugin }: Props = $props();
 
-    let nlDateInputVal = $state("today");
+    let nlDateInputVal = $state("Today");
     let granularityInputVal: IGranularity = $state("day");
     let formatInputVal = $state(DEFAULT_DAILY_NOTE_FORMAT);
     let parsedDate: Moment | null = $state(window.moment());
     let formattedDate: string = $derived(
         parsedDate?.format(formatInputVal) || "",
     );
+
+    let containerEl: HTMLDivElement;
 
     let loading = $state(false);
     let error = $state("");
@@ -35,13 +38,7 @@
         }));
     });
 
-    const handleNlDateChange = (
-        event: Event & {
-            currentTarget: EventTarget & HTMLInputElement;
-        },
-    ) => {
-        nlDateInputVal = event.currentTarget.value;
-
+    const handleNlDateChange = () => {
         const parseDate = async () => {
             let cleanDateInput = nlDateInputVal;
 
@@ -92,9 +89,18 @@
             });
         }
     };
+    const handleKeydown = (event: KeyboardEvent) => {
+        if (event.key === "Enter") {
+            handleAccept();
+        }
+    };
+
+    onMount(() => {
+        containerEl.addEventListener("keydown", handleKeydown);
+    });
 </script>
 
-<div class="pt-4">
+<div class="pt-4" bind:this={containerEl}>
     <div class="setting-item border-0">
         <div class="setting-item-info">
             <div class="setting-item-name">Date</div>
@@ -113,6 +119,7 @@
         </div>
         <div class="setting-item-control">
             <input
+                bind:value={nlDateInputVal}
                 oninput={handleNlDateChange}
                 type="text"
                 spellcheck="false"

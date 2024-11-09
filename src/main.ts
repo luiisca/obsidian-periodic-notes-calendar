@@ -19,6 +19,7 @@ import { getPopoverInstance, Popover } from './ui/popovers';
 import { capitalize, getDailyNotesPlugin, getPlugin } from './utils';
 import { CalendarView } from './view';
 import View from './View.svelte';
+import { genNoticeFragment } from './ui/utils';
 
 export default class PeriodicNotesCalendarPlugin extends Plugin {
     popovers: Record<string, SvelteComponent | null> = {};
@@ -105,16 +106,20 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
             });
         });
 
-        const nlDatesPlugin = await getPlugin(NLDATES_PLUGIN_ID);
         this.addCommand({
             id: 'open-nldate-note',
             // TODO: reword
             name: 'Open a Periodic Note based on Natural Language Date selection',
-            callback: () => {
+            callback: async () => {
+                const nlDatesPlugin = await getPlugin(NLDATES_PLUGIN_ID);
                 if (nlDatesPlugin) {
                     createNldatePickerDialog(nlDatesPlugin);
                 } else {
-                    new Notice(`Please install '${NLDATES_PLUGIN_ID}' plugin to use this command`)
+                    new Notice(genNoticeFragment([
+                        ['Please install '],
+                        ['Natural Language Dates', 'u-pop'],
+                        [' plugin to use this command']
+                    ]))
                 }
             }
         });
