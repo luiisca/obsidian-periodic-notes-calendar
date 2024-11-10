@@ -44,7 +44,7 @@
                     })}
                 on:pointerenter={(event) => {
                     eventHandlers.onHover({
-                        targetEl: event.target,
+                        event,
                         isControlPressed: isControlPressed(event),
                         file: leftTitle.fileData.file,
                     });
@@ -74,7 +74,7 @@
                     })}
                 on:pointerenter={(event) => {
                     eventHandlers.onHover({
-                        targetEl: event.target,
+                        event,
                         isControlPressed: isControlPressed(event),
                         file: rightTitle.fileData.file,
                     });

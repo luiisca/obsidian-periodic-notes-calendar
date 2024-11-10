@@ -66,8 +66,9 @@
                 granularity: "day",
             })}
         onpointerenter={(event) => {
+            console.log("DAY.svlete onpointerenter", event.target);
             eventHandlers.onHover({
-                targetEl: event.target,
+                event,
                 isControlPressed: isControlPressed(event),
                 file,
             });

@@ -1,6 +1,7 @@
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import builtins from "builtin-modules";
 import { resolve } from "path";
+import { pathToFileURL } from "url";
 import { defineConfig } from "vite";
 
 export default defineConfig({
@@ -14,6 +15,9 @@ export default defineConfig({
             output: {
                 entryFileNames: "main.js",
                 assetFileNames: "styles.css",
+                sourcemapBaseUrl: pathToFileURL(
+                    __dirname
+                ).toString(),
             },
             external: [
                 "obsidian",
@@ -34,7 +38,7 @@ export default defineConfig({
         },
         outDir: "./",
         emptyOutDir: false,
-        sourcemap: "inline",
+        sourcemap: true,
     },
     resolve: {
         alias: {

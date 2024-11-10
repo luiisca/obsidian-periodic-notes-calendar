@@ -58,7 +58,7 @@
             })}
         onpointerenter={(event) =>
             eventHandlers.onHover({
-                targetEl: event.target,
+                event,
                 isControlPressed: isControlPressed(event),
                 file,
             })}

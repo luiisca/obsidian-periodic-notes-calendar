@@ -14,7 +14,7 @@ type TOnClickParams = {
     granularity: IGranularity;
 };
 type TOnHoverParams = {
-    targetEl: EventTarget | null;
+    event: PointerEvent | null;
     isControlPressed: boolean;
     file: TFile | null;
 };
@@ -31,12 +31,20 @@ const onClick = async ({
 };
 
 const onHover = ({
-    targetEl,
+    event,
     isControlPressed,
     file,
 }: TOnHoverParams): void => {
-    if (isControlPressed || get(settingsStore).autoHoverPreview) {
-        file && window.app.workspace.trigger('link-hover', targetEl, file.basename, file.path);
+    if (event && file && (isControlPressed || get(settingsStore).autoHoverPreview)) {
+        // https://forum.obsidian.md/t/internal-links-dont-work-in-custom-view/90169/2
+        window.app.workspace.trigger("hover-link", {
+            event,
+            source: "preview",
+            hoverParent: { hoverPopover: null },
+            targetEl: event.target,
+            linktext: file.path,
+            sourcePath: file.path,
+        });
     }
 };
 
