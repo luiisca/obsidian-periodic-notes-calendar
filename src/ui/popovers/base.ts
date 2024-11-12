@@ -11,7 +11,6 @@ export class Popover {
     static instances = new Map<TPopoverType, Popover>();
     static behaviorInstances = new Map<TPopoverType, ReturnType<typeof createBehavior>>();
     static mutationObserverStarted = false;
-    public opened = false;
 
     constructor(
         private id: TPopoverType,
@@ -37,14 +36,13 @@ export class Popover {
     }
 
     public toggle(param: TFileMenuOpenParams | Element) {
-        if (this.opened) {
-            this.close();
-        } else {
-            this.open(param);
+        if (param instanceof Element) {
+            (this.behavior as BaseComponentBehavior).toggle(param);
+        } else if (typeof param === "object") {
+            (this.behavior as FileMenuPopoverBehavior).toggle(param as TFileMenuOpenParams);
         }
     }
     public open(param: TFileMenuOpenParams | Element) {
-        this.opened = true;
         if (param instanceof Element) {
             (this.behavior as BaseComponentBehavior).open(param);
         } else if (typeof param === "object") {
@@ -53,7 +51,6 @@ export class Popover {
     }
 
     public close() {
-        this.opened = false;
         this.behavior.close();
     }
     public cleanup() {

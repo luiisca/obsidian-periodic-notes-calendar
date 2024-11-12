@@ -1,6 +1,7 @@
 <script lang="ts">
+    import { cn } from "@/ui/utils";
     import { capitalize } from "@/utils";
-    import { cn } from "../utils/cn";
+    import { getContext } from "svelte";
 
     interface Props {
         tabs?: string[];
@@ -17,6 +18,10 @@
         tabId = undefined,
         className = null,
     }: Props = $props();
+
+    let minimalMode = getContext("minimalMode") as
+        | { value: boolean }
+        | undefined;
 </script>
 
 <div
@@ -29,10 +34,11 @@
     {#each tabs as tab}
         <button
             class={cn(
-                "cursor-pointer w-full rounded-[--radius-s] py-2 mr-1 last:mr-0 transition [font-size:100%]",
+                "cursor-pointer w-full rounded-[--radius-s] mr-1 last:mr-0 transition",
                 selectedTab === tab
                     ? "!text-[--text-on-accent] !bg-[--interactive-accent] hover:!bg-[--interactive-accent-hover]"
                     : "!text-[--icon-color] opacity-[--icon-opacity] hover:opacity-[--icon-opacity-hover] hover:!text-[--icon-color-hover] hover:!bg-[--background-modifier-hover]",
+                minimalMode?.value ? "py-1 h-fit" : "py-2 [font-size:100%]",
             )}
             id={tabId}
             onclick={() => (selectedTab = tab)}>{capitalize(tab)}</button

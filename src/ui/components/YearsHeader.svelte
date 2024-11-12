@@ -2,7 +2,9 @@
     import { YEARS_RANGE_SIZE } from "@/constants";
     import { displayedDateStore, yearsRanges } from "@/stores";
     import DateNavigator from "./DateNavigator.svelte";
-    import Header from "./Header.svelte";
+    import { Header } from "./core";
+    import { getContext } from "svelte";
+    import { cn } from "../utils";
 
     const todayMoment = window.moment();
 
@@ -20,49 +22,56 @@
             yearsRanges.selectOrCreateRanges();
         }
     });
+
+    let minimalMode = getContext('minimalMode') as { value: boolean } | undefined;
 </script>
 
 <Header>
-    <div
-        slot="left-title"
-        class="text-[--color-text-title] text-6xl font-semibold"
-        id="years range"
-    >
-        {crrRange[0]} - {crrRange[1].slice(2)}
-    </div>
+    {#snippet leftTitleSnippet()}
+        <div
+            class={cn(
+                "text-[--color-text-title] text-6xl font-semibold",
+                minimalMode?.value ? "text-xl" : "text-7xl"
+            )}
+            id="years range"
+        >
+            {crrRange[0]} - {crrRange[1].slice(2)}
+        </div>
+    {/snippet}
 
-    <DateNavigator
-        slot="bottom-nav"
-        showingCrrDate={showingCurrentRange}
-        type="range"
-        decrementdisplayedDate={() => {
-            console.log(
-                "decrementdisplayedYearRange() > yearsRanges store: ",
-                $yearsRanges,
-            );
+    {#snippet bottomNavSnippet()}
+        <DateNavigator
+            showingCrrDate={showingCurrentRange}
+            type="range"
+            decrementdisplayedDate={() => {
+                console.log(
+                    "decrementdisplayedYearRange() > yearsRanges store: ",
+                    $yearsRanges,
+                );
 
-            yearsRanges.updateRanges({
-                action: "decrement",
-                displayedDateModifier: -YEARS_RANGE_SIZE,
-            });
-        }}
-        resetdisplayedDate={() => {
-            yearsRanges.update((values) => ({
-                ...values,
-                crrRangeIndex: values.ranges.findIndex(
-                    (range) => range === values.todayRange,
-                ),
-            }));
+                yearsRanges.updateRanges({
+                    action: "decrement",
+                    displayedDateModifier: -YEARS_RANGE_SIZE,
+                });
+            }}
+            resetdisplayedDate={() => {
+                yearsRanges.update((values) => ({
+                    ...values,
+                    crrRangeIndex: values.ranges.findIndex(
+                        (range) => range === values.todayRange,
+                    ),
+                }));
 
-            displayedDateStore.set(todayMoment.clone());
-        }}
-        incrementdisplayedDate={() => {
-            console.log(
-                "incrementedisplayedDate() > yearsRanges store: ",
-                $yearsRanges,
-            );
+                displayedDateStore.set(todayMoment.clone());
+            }}
+            incrementdisplayedDate={() => {
+                console.log(
+                    "incrementedisplayedDate() > yearsRanges store: ",
+                    $yearsRanges,
+                );
 
-            yearsRanges.updateRanges({ action: "increment" });
-        }}
-    />
+                yearsRanges.updateRanges({ action: "increment" });
+            }}
+        />
+    {/snippet}
 </Header>

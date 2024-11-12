@@ -2,16 +2,19 @@
     import { monthsIndexesInQuarters, togglePeriods } from "@/constants";
     import { settingsStore } from "@/settings";
     import { displayedDateStore, localeDataStore, yearsRanges } from "@/stores";
-    import { getMonth, getStartOfWeek, getYears, isWeekend } from "../utils";
-    import Day from "./Day.svelte";
-    import Month from "./Month.svelte";
+    import { getContext } from "svelte";
+    import {
+        cn,
+        getMonth,
+        getStartOfWeek,
+        getYears,
+        isWeekend,
+    } from "../utils";
     import MonthHeader from "./MonthHeader.svelte";
-    import QuarterNum from "./QuarterNum.svelte";
-    import Tabs from "./Tabs.svelte";
-    import WeekNum from "./WeekNum.svelte";
-    import Year from "./Year.svelte";
     import YearHeader from "./YearHeader.svelte";
     import YearsHeader from "./YearsHeader.svelte";
+    import { Tabs } from "./core";
+    import DateBttn from "./core/DateBttn.svelte";
 
     let {
         localeSettings: { showWeekNums, showQuarterNums },
@@ -20,6 +23,7 @@
     let month = $derived(getMonth($displayedDateStore));
 
     let crrView: (typeof togglePeriods)[number] = $state("day");
+    let minimalMode = getContext("minimalMode") as { value: boolean } | undefined;
 </script>
 
 <div class="pnc-container px-4 !pt-2">
@@ -56,12 +60,46 @@
                 {#each month as week (week.weekNum)}
                     <tr>
                         {#if showWeekNums}
-                            <!-- on:hoverDay={updatePopover}
-							on:endHoverDay={dismissPopover} -->
-                            <WeekNum date={getStartOfWeek(week.days)} />
+                            <td
+                                class="[border-right:1px_solid_var(--background-modifier-border)] pr-1"
+                            >
+                                <DateBttn
+                                    date={getStartOfWeek(week.days)}
+                                    granularity="week"
+                                    className={cn(
+                                        "px-1 pt-2.5 pb-4 opacity-85 mx-auto",
+                                        minimalMode?.value
+                                            ? "[font-size:var(--font-ui-smaller)] "
+                                            : "[font-size:var(--font-ui-small)] ",
+                                    )}
+                                    dotContainerClassName={"bottom-[calc(1rem/2)] translate-y-1/3"}
+                                >
+                                    {getStartOfWeek(week.days).week() < 10 ? "0" : ""}{getStartOfWeek(week.days).week()}
+                                </DateBttn>
+                            </td>
                         {/if}
                         {#each week.days as day (day.format())}
-                            <Day date={day} />
+                            <td
+                                class={cn(
+                                    $settingsStore.localeSettings
+                                        .showWeekNums &&
+                                        "[&:nth-child(2)]:pl-1",
+                                )}
+                            >
+                                <DateBttn
+                                    date={day}
+                                    granularity="day"
+                                    className={cn(
+                                        "px-1 pt-2.5 pb-4",
+                                        minimalMode?.value
+                                            ? "text-xs"
+                                            : "text-sm",
+                                    )}
+                                    dotContainerClassName={"bottom-[calc(1rem/2)] translate-y-1/3"}
+                                >
+                                    {day.format("D")}
+                                </DateBttn>
+                            </td>
                         {/each}
                     </tr>
                 {/each}
@@ -75,20 +113,62 @@
                 {#each monthsIndexesInQuarters as quarterMonthsIndexes, i}
                     <tr>
                         {#if showQuarterNums}
-                            <QuarterNum
-                                date={$displayedDateStore
-                                    .clone()
-                                    .quarter(i + 1)
-                                    .startOf("quarter")}
-                            />
+                            <td>
+                                <DateBttn
+                                    date={$displayedDateStore
+                                        .clone()
+                                        .quarter(i + 1)
+                                        .startOf("quarter")}
+                                    granularity='quarter'
+                                    className={cn(
+                                        "px-1 pt-2.5 pb-4 opacity-85",
+                                        minimalMode?.value
+                                            ? "[font-size:var(--font-ui-smaller)]"
+                                            : "[font-size:var(--font-ui-small)] ",
+                                    )}
+                                    dotContainerClassName="bottom-[calc(1rem/2)] translate-y-1/3"
+                                >
+                                    Q{$displayedDateStore
+                                        .clone()
+                                        .quarter(i + 1)
+                                        .startOf("quarter").quarter()}
+                                </DateBttn>
+                            </td>
                         {/if}
                         {#each quarterMonthsIndexes as monthIndex}
-                            <Month
-                                date={$displayedDateStore
-                                    .clone()
-                                    .month(monthIndex)
-                                    .startOf("month")}
-                            />
+                            <td>
+                                <DateBttn
+                                    date={$displayedDateStore
+                                        .clone()
+                                        .month(monthIndex)
+                                        .startOf("month")}
+                                    granularity="month"
+                                    className={cn(
+                                        "px-1 mb-3 items-center justify-center",
+                                        minimalMode?.value
+                                            ? "text-sm pt-2.5 pb-4"
+                                            : "text-base py-8",
+                                    )}
+                                    dotContainerClassName={cn(
+                                        "translate-y-full",
+                                        minimalMode?.value ? "bottom-[calc(1rem/2)]" : "bottom-[calc(1.75rem/2)]"
+                                    )}
+                                >
+                                        {#snippet text()}
+                                            {#if !minimalMode?.value}
+                                                <p
+                                                    class="text-5xl font-normal opacity-15 text-[--text-muted] absolute top-1/2 left-1/2 [transform:translate(-50%,-50%)] m-0"
+                                                >
+                                                    {monthIndex < 9 ? "0" : ""}{monthIndex + 1}
+                                                </p>
+                                            {/if}
+                                        {/snippet}
+                                    {$displayedDateStore
+                                        .clone()
+                                        .month(monthIndex)
+                                        .format("MMM")}
+                                </DateBttn>
+                            </td>
                         {/each}
                     </tr>
                 {/each}
@@ -102,12 +182,27 @@
                 {#each getYears( { startRangeYear: +$yearsRanges.ranges[$yearsRanges.crrRangeIndex].split("-")[0] }, ) as rowYearsRange}
                     <tr>
                         {#each rowYearsRange as year}
-                            <Year
-                                date={$displayedDateStore
+                            <td>
+                                <DateBttn
+                                    date={$displayedDateStore
+                                        .clone()
+                                        .year(year)
+                                        .startOf("year")}
+                                    granularity="year"
+                                    className={cn(
+                                        "tracking-wide px-1 pt-2.5 pb-4",
+                                        minimalMode?.value
+                                            ? "text-base"
+                                            : "text-xl",
+                                    )}
+                                    dotContainerClassName="bottom-[calc(1rem/2)] translate-y-[35%]"
+                                >
+                                    {$displayedDateStore
                                     .clone()
                                     .year(year)
-                                    .startOf("year")}
-                            />
+                                    .startOf("year").year()}
+                                </DateBttn>
+                            </td>
                         {/each}
                     </tr>
                 {/each}

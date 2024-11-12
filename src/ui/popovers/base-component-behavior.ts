@@ -10,6 +10,7 @@ export class BaseComponentBehavior {
     public componentHtmlEl: HTMLElement;
     public component: Record<string, any>;
     public autoUpdateCleanup: (() => void) | null | undefined;
+    public opened = false;
 
     constructor(
         public id: typeof STICKER_POPOVER_ID | typeof CALENDAR_POPOVER_ID,
@@ -28,7 +29,17 @@ export class BaseComponentBehavior {
         this.componentHtmlEl = document.querySelector(`#${id}[data-popover="true"]`) as HTMLElement;
     }
 
+    public toggle(param: Element) {
+        if (this.opened) {
+            this.close()
+        } else {
+            this.open(param)
+        }
+    }
+
     public open(refHtmlEl: Element) {
+        this.opened = true;
+
         // close all popovers when a new modal is displayed to prevent overlapping
         if (!Popover.mutationObserverStarted) {
             const cb = (mutationRecords: MutationRecord[]) => {
@@ -54,6 +65,7 @@ export class BaseComponentBehavior {
             });
         }
 
+        console.log("open BaseComponentBehavior", this);
         this.show()
         this.setInteractivity(true);
         this.positionComponent({ refHtmlEl });
@@ -62,6 +74,8 @@ export class BaseComponentBehavior {
         })
     }
     public close() {
+        this.opened = false;
+
         this.hide();
         this.setInteractivity(false);
         this.autoUpdateCleanup?.();

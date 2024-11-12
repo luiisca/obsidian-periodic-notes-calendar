@@ -1,13 +1,13 @@
-import { CALENDAR_POPOVER_ID, FILE_MENU_POPOVER_ID, STICKER_POPOVER_ID } from '@/constants';
+import { CALENDAR_POPOVER_ID, CALENDAR_RIBBON_ID, STICKER_POPOVER_ID } from '@/constants';
 import { settingsStore } from "@/settings";
 import { Component, unmount } from 'svelte';
 import { get } from 'svelte/store';
 import { type TWindowEvents } from '../types';
-import { getPopoverInstance } from './base';
+import { getBehaviorInstance, Popover } from './base';
 import { BaseComponentBehavior } from './base-component-behavior';
 
 function getRefHtmlEl() {
-    return document.querySelector(`[id=${CALENDAR_POPOVER_ID}-ribbon-ref-el]`) as HTMLElement | undefined
+    return document.querySelector(`[id=${CALENDAR_RIBBON_ID}]`) as HTMLElement | undefined
 }
 
 export type TCalendarPopoverParams = {
@@ -21,6 +21,7 @@ export type TCalendarPopoverParams = {
 export class CalendarPopoverBehavior extends BaseComponentBehavior {
     public refHtmlEl: HTMLElement | undefined;
     public boundCallbacks = new Map();
+    public boundRefElCallback = new Map();
 
     constructor(
         private params: TCalendarPopoverParams,
@@ -29,7 +30,11 @@ export class CalendarPopoverBehavior extends BaseComponentBehavior {
         this.refHtmlEl = getRefHtmlEl();
 
         if (this.refHtmlEl && get(settingsStore).openPopoverOnRibbonHover) {
-            this.refHtmlEl.addEventListener('mouseover', this.handleReferenceElHover);
+            const boundCallback = this.handleReferenceElHover.bind(this);
+            this.boundRefElCallback.set('mouseover', boundCallback);
+
+            console.log("about to add mouseover handler to refHtmlEl", this.refHtmlEl, boundCallback);
+            this.refHtmlEl.addEventListener('mouseover', boundCallback);
         }
     }
 
@@ -45,7 +50,7 @@ export class CalendarPopoverBehavior extends BaseComponentBehavior {
     }
     public cleanup() {
         this.close();
-        this.refHtmlEl?.removeEventListener('mouseover', this.handleReferenceElHover);
+        this.refHtmlEl?.removeEventListener('mouseover', this.boundRefElCallback.get("mouseover"));
         unmount(this.component)
     }
 
@@ -70,14 +75,14 @@ export class CalendarPopoverBehavior extends BaseComponentBehavior {
         const stickerElTouched =
             stickerEl?.contains(ev.target) ||
             ev.target?.id.includes(STICKER_POPOVER_ID);
-        const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
+        const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className?.includes('menu');
 
         const targetOut = !calendarElTouched && !menuElTouched && !stickerElTouched;
 
         // avoids closing calendar if sticker is open too 
         if (
-            getPopoverInstance(this.params.id)?.opened &&
-            getPopoverInstance(STICKER_POPOVER_ID)?.opened &&
+            this.opened &&
+            getBehaviorInstance(STICKER_POPOVER_ID)?.opened &&
             settings.popoversClosing.closePopoversOneByOneOnClickOut
         ) {
             return;
@@ -100,7 +105,7 @@ export class CalendarPopoverBehavior extends BaseComponentBehavior {
         );
 
         const referenceElFocused: boolean =
-            (getPopoverInstance(this.params.id)?.opened && document.activeElement === this.refHtmlEl) || false;
+            (this.opened && document.activeElement === this.refHtmlEl) || false;
         // When the user focuses on 'referenceEl' and then presses the Tab or ArrowDown key, the first element inside the view should receive focus.
         // TODO: make it work!
         if (
@@ -115,8 +120,8 @@ export class CalendarPopoverBehavior extends BaseComponentBehavior {
 
         // avoids closing calendar if sticker is open too 
         if (
-            getPopoverInstance(this.params.id)?.opened &&
-            getPopoverInstance(STICKER_POPOVER_ID)?.opened &&
+            this.opened &&
+            getBehaviorInstance(STICKER_POPOVER_ID)?.opened &&
             settings.popoversClosing.closePopoversOneByOneOnEscKeydown
         ) {
             return;
@@ -134,10 +139,6 @@ export class CalendarPopoverBehavior extends BaseComponentBehavior {
         if (get(settingsStore).openPopoverOnRibbonHover) {
             const ev = event as MouseEvent & { target: HTMLElement | null };
 
-            const calendarPopover = getPopoverInstance(CALENDAR_POPOVER_ID);
-            const stickerPopover = getPopoverInstance(STICKER_POPOVER_ID);
-            const fileMenuPopover = getPopoverInstance(FILE_MENU_POPOVER_ID);
-
             const menuEl = document.querySelector('.menu');
             const stickerEl = document.querySelector(`#${STICKER_POPOVER_ID}[data-popover="true"]`) as HTMLElement | undefined;
 
@@ -147,7 +148,7 @@ export class CalendarPopoverBehavior extends BaseComponentBehavior {
             const stickerElTouched =
                 stickerEl?.contains(ev.target) ||
                 ev.target?.id.includes(STICKER_POPOVER_ID);
-            const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
+            const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className?.includes('menu');
             const referenceElTouched = this.refHtmlEl?.contains(event.target as Node);
 
             const targetOut = !calendarElTouched && !menuElTouched && !stickerElTouched;
@@ -155,7 +156,7 @@ export class CalendarPopoverBehavior extends BaseComponentBehavior {
             if (referenceElTouched) return;
 
             const isOnlyCalendarPopoverOpen =
-                calendarPopover?.opened && !stickerPopover?.opened && !fileMenuPopover?.opened;
+                this.opened && !getBehaviorInstance(STICKER_POPOVER_ID)?.opened;
 
             // close calendar popover if opened and user hovered anywhere but calendar popover
             if (isOnlyCalendarPopoverOpen && targetOut) {
@@ -164,9 +165,7 @@ export class CalendarPopoverBehavior extends BaseComponentBehavior {
         }
     };
     public handleReferenceElHover() {
-        console.log('🖱️🖱️🖱️handleReferenceElHover()!!! 🤯🤯🤯');
-
-        if (!getPopoverInstance(this.params.id)?.opened) {
+        if (!this.opened) {
             this.open();
         }
     }

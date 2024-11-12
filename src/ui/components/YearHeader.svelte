@@ -3,8 +3,10 @@
     import { settingsStore } from "@/settings";
     import { displayedDateStore, yearsRanges } from "@/stores";
     import { todayStore } from "@/stores/dates";
+    import { getContext } from "svelte";
+    import { Header } from "./core";
     import DateNavigator from "./DateNavigator.svelte";
-    import Header from "./Header.svelte";
+    import { cn } from "../utils";
 
     let fileData = $derived.by(() => {
         $settingsStore.filepaths; // trigger reactivity
@@ -18,6 +20,8 @@
             yearsRanges.selectOrCreateRanges();
         }
     });
+
+    let minimalMode = getContext('minimalMode') as { value: boolean } | undefined;
 </script>
 
 <Header
@@ -28,34 +32,40 @@
         formatValue: "YYYY",
     }}
 >
-    <button
-        slot="right-title"
-        class="text-[--interactive-accent] font-medium text-lg hover:!shadow-[0px_0px_0px_6px_var(--interactive-hover)] rounded-[2px]"
-        id="years-range"
-    >
-        {$yearsRanges.ranges[$yearsRanges.crrRangeIndex]}
-    </button>
-    <DateNavigator
-        slot="bottom-nav"
+    {#snippet rightTitleSnippet()}
+        <button
+            class={cn(
+                "text-[--interactive-accent] font-medium hover:!shadow-[0px_0px_0px_6px_var(--interactive-hover)] rounded-[2px]",
+                minimalMode?.value ? "text-sm" : "text-lg"
+            )}
+            id="years-range"
+        >
+            {$yearsRanges.ranges[$yearsRanges.crrRangeIndex]}
+        </button>
+    {/snippet}
+
+    {#snippet bottomNavSnippet()}
+        <DateNavigator
         showingCrrDate={isToday}
         type="year"
         decrementdisplayedDate={() => {
             displayedDateStore.update((date) =>
-                date.clone().subtract(1, "year"),
-            );
+                    date.clone().subtract(1, "year"),
+                    );
         }}
         resetdisplayedDate={() => {
             yearsRanges.update((values) => ({
-                ...values,
-                crrRangeIndex: values.ranges.findIndex(
-                    (range) => range === values.todayRange,
-                ),
-            }));
+                        ...values,
+                        crrRangeIndex: values.ranges.findIndex(
+                                (range) => range === values.todayRange,
+                                ),
+                        }));
 
             displayedDateStore.set($todayStore);
         }}
         incrementdisplayedDate={() => {
             displayedDateStore.update((date) => date.clone().add(1, "year"));
         }}
-    />
+        />
+    {/snippet}
 </Header>

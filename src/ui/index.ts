@@ -1,7 +1,6 @@
 import { type Moment } from "moment";
 import type { App } from "obsidian";
 
-import Calendar from "./components/Calendar.svelte";
 import type {
     ICalendarSource,
     IDot,
@@ -17,5 +16,5 @@ declare global {
 }
 
 export * from './notice'
-export { Calendar };
+export * from './components';
 export type { ICalendarSource, IDot, IDayMetadata, ISourceSettings };

@@ -16,6 +16,8 @@ export const YEARS_RANGE_SIZE = 12
 export const STICKER_TAG_PREFIX = '#sticker-';
 
 export const CALENDAR_POPOVER_ID = 'calendar-popover';
+export const CALENDAR_RIBBON_ID = `${CALENDAR_POPOVER_ID}-ribbon-ref-el`;
+
 export const STICKER_POPOVER_ID = 'sticker-popover';
 export const FILE_MENU_POPOVER_ID = 'file-menu-popover';
 

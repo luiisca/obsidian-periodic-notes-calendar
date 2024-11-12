@@ -20,12 +20,23 @@ export type TFileMenuOpenParams = {
 export class FileMenuPopoverBehavior {
     private menu: Menu | null = null;
     private refHtmlEl: Element | null = null;
+    public opened = false;
 
     constructor(params: TFileMenuPopoverParams) {
         // Do nothing
     }
 
+    public toggle(param: TFileMenuOpenParams) {
+        if (this.opened) {
+            this.close()
+        } else {
+            this.open(param)
+        }
+    }
+
     public open({ event, fileData, date, granularity }: TFileMenuOpenParams) {
+        this.opened = true;
+
         this.refHtmlEl = event.target as Element;
         this.menu = new Menu();
 
@@ -51,6 +62,8 @@ export class FileMenuPopoverBehavior {
         this.menu.showAtPosition(event);
     }
     public close() {
+        this.opened = false;
+
         this.menu?.close()
     }
     public cleanup() {

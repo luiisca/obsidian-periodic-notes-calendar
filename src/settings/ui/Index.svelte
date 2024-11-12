@@ -1,6 +1,6 @@
 <script lang="ts">
-    import Tabs from "@/ui/components/Tabs.svelte";
     import { Notes, Calendar } from "@/settings/ui";
+    import { Tabs } from "@/ui";
 
     const tabs = ["calendar", "notes"] as const;
     let selectedTab: (typeof tabs)[number] = $state("notes");

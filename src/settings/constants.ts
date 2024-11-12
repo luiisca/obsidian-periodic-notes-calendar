@@ -25,7 +25,12 @@ export interface ISettings {
     /** Position of the calendar view leaf ('left' or 'right') */
     viewLeafPosition: "left" | "right";
 
-    viewMode: "dedicated-panel" | "floating-window";
+    floatingMode: boolean;
+
+    /** Whether to show a minimal view of the calendar */
+    minimalMode: boolean;
+    /** Whether to always show a minimal view of the calendar when in floating mode*/
+    floatingViewAlwaysMinimal: boolean;
 
     /** Whether to show a confirmation dialog before creating a new note */
     shouldConfirmBeforeCreate: boolean;
@@ -114,7 +119,9 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
     filepaths: {},
     filepathsByFormatValue: {},
     viewLeafPosition: "right",
-    viewMode: "dedicated-panel",
+    floatingMode: false,
+    minimalMode: false,
+    floatingViewAlwaysMinimal: true,
     shouldConfirmBeforeCreate: true,
     shouldConfirmBeforeDeleteFormat: true,
     shouldConfirmBeforeReplaceAllFormats: true,

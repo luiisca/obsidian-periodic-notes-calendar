@@ -1,8 +1,8 @@
 <script lang="ts">
     import { capitalize } from "@/utils";
-    import Arrow from "./Arrow.svelte";
-    import Dot from "./Dot.svelte";
+    import { getContext } from "svelte";
     import { cn } from "../utils";
+    import { Arrow, Dot } from "./core";
 
     interface Props {
         showingCrrDate: boolean;
@@ -19,13 +19,21 @@
         resetdisplayedDate,
         incrementdisplayedDate,
     }: Props = $props();
+
+    let minimalMode = getContext("minimalMode") as
+        | { value: boolean }
+        | undefined;
 </script>
 
-<div class="flex items-center -ml-1" id="bottom-nav">
+<div
+    class={cn("flex items-center", minimalMode?.value ? "-ml-2" : "-ml-1")}
+    id="bottom-nav"
+>
     <Arrow
         direction="left"
         onClick={decrementdisplayedDate}
         tooltip={`Previous ${capitalize(type)}`}
+        className={cn(minimalMode?.value && "[&>svg]:w-1.5")}
     />
     <button
         class={cn(
@@ -36,11 +44,15 @@
         onclick={resetdisplayedDate}
         aria-label={!showingCrrDate ? `Current ${capitalize(type)}` : null}
     >
-        <Dot className="h-[8px] w-[8px]" isFilled={showingCrrDate} />
+        <Dot
+            className={cn("h-[8px] w-[8px]", minimalMode?.value && "w-[0.3rem]")}
+            isFilled={showingCrrDate}
+        />
     </button>
     <Arrow
         direction="right"
         onClick={incrementdisplayedDate}
         tooltip={`Next ${capitalize(type)}`}
+        className={cn(minimalMode?.value && "[&>svg]:w-1.5")}
     />
 </div>

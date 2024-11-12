@@ -2,7 +2,7 @@ import { DEFAULT_SETTINGS, settingsStore, SettingsTab, type ISettings } from '@/
 import { Notice, Plugin, WorkspaceLeaf, WorkspaceRoot } from 'obsidian';
 import type { SvelteComponent } from 'svelte';
 import { get } from 'svelte/store';
-import { CALENDAR_POPOVER_ID, granularities, NLDATES_PLUGIN_ID, VIEW_TYPE } from './constants';
+import { CALENDAR_POPOVER_ID, CALENDAR_RIBBON_ID, granularities, NLDATES_PLUGIN_ID, VIEW_TYPE } from './constants';
 import { createOrOpenNote, getStartupNoteGranularity } from './io';
 import { getPeriodicityFromGranularity } from './io/parse';
 import type { IPeriodicity } from './io/types';
@@ -15,7 +15,7 @@ import {
     updateWeekStart
 } from './stores';
 import { createNldatePickerDialog } from './ui/modals/nldate-picker';
-import { getPopoverInstance, Popover } from './ui/popovers';
+import { getBehaviorInstance, getPopoverInstance, Popover } from './ui/popovers';
 import { capitalize, getDailyNotesPlugin, getPlugin } from './utils';
 import { CalendarView } from './view';
 import View from './View.svelte';
@@ -149,7 +149,10 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
                 Popover.create({
                     id: CALENDAR_POPOVER_ID,
                     view: {
-                        Component: View
+                        Component: View,
+                        props: {
+                            popover: true
+                        }
                     }
                 });
             }
@@ -186,12 +189,13 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
     handleRibbon() {
         const ribbonEl = this.addRibbonIcon('dice', 'Open calendar', (ev) => {
             const calendarPopover = getPopoverInstance(CALENDAR_POPOVER_ID);
+            const calendarBehavior = getBehaviorInstance(CALENDAR_POPOVER_ID);
 
             if (get(settingsStore).viewMode === "dedicated-panel") {
                 this.toggleView();
 
-                if (get(settingsStore).openPopoverOnRibbonHover && calendarPopover?.opened) {
-                    calendarPopover.close();
+                if (get(settingsStore).openPopoverOnRibbonHover && calendarBehavior?.opened) {
+                    calendarBehavior.close();
                 }
 
                 return;
@@ -207,7 +211,10 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
                     Popover.create({
                         id: CALENDAR_POPOVER_ID,
                         view: {
-                            Component: View
+                            Component: View,
+                            props: {
+                                popover: true,
+                            }
                         }
                     }).open(target);
                 } else {
@@ -216,7 +223,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
             }
         });
 
-        ribbonEl.id = `${CALENDAR_POPOVER_ID}-ribbon-ref-el`
+        ribbonEl.id = CALENDAR_RIBBON_ID
     }
 
     async initView({ active }: { active: boolean } = { active: true }) {

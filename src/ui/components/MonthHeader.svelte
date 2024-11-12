@@ -1,18 +1,16 @@
 <script lang="ts">
-    import { run } from "svelte/legacy";
-
     import { getFileData } from "@/io";
     import { settingsStore } from "@/settings";
     import { displayedDateStore, yearsRanges } from "@/stores";
     import DateNavigator from "./DateNavigator.svelte";
-    import Header from "./Header.svelte";
     import { todayStore } from "@/stores/dates";
+    import { Header } from "./core";
 
     let monthFileData = $state(getFileData("month", $displayedDateStore));
     let yearFileData = $state(
         getFileData("year", $displayedDateStore.clone().startOf("year")),
     );
-    run(() => {
+    $effect.pre(() => {
         if ($settingsStore.filepaths) {
             monthFileData = getFileData("month", $displayedDateStore);
 
@@ -39,27 +37,28 @@
         formatValue: "YYYY",
     }}
 >
-    <DateNavigator
-        slot="bottom-nav"
-        showingCrrDate={isToday}
-        type="month"
-        decrementdisplayedDate={() => {
-            displayedDateStore.update((date) =>
-                date.clone().subtract(1, "month"),
-            );
-        }}
-        resetdisplayedDate={() => {
-            yearsRanges.update((values) => ({
-                ...values,
-                crrRangeIndex: values.ranges.findIndex(
-                    (range) => range === values.todayRange,
-                ),
-            }));
+    {#snippet bottomNavSnippet()}
+        <DateNavigator
+            showingCrrDate={isToday}
+            type="month"
+            decrementdisplayedDate={() => {
+                displayedDateStore.update((date) =>
+                    date.clone().subtract(1, "month"),
+                );
+            }}
+            resetdisplayedDate={() => {
+                yearsRanges.update((values) => ({
+                    ...values,
+                    crrRangeIndex: values.ranges.findIndex(
+                        (range) => range === values.todayRange,
+                    ),
+                }));
 
-            displayedDateStore.set($todayStore);
-        }}
-        incrementdisplayedDate={() => {
-            displayedDateStore.update((date) => date.clone().add(1, "month"));
-        }}
-    />
+                displayedDateStore.set($todayStore);
+            }}
+            incrementdisplayedDate={() => {
+                displayedDateStore.update((date) => date.clone().add(1, "month"));
+            }}
+        />
+    {/snippet}
 </Header>

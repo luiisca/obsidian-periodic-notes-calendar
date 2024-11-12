@@ -1,6 +1,6 @@
 import { STICKER_POPOVER_ID } from '@/constants';
 import { settingsStore } from '@/settings';
-import { Component } from 'svelte';
+import { Component, unmount } from 'svelte';
 import { get } from 'svelte/store';
 import { type TWindowEvents } from '../types';
 import { getPopoverInstance, Popover } from './base';
@@ -37,7 +37,7 @@ export class StickerPopoverBehavior extends BaseComponentBehavior {
     }
     public cleanup() {
         this.close();
-        this.component.$destroy();
+        unmount(this.component);
     }
 
     private getWindowEvents(): TWindowEvents {
@@ -58,7 +58,7 @@ export class StickerPopoverBehavior extends BaseComponentBehavior {
         const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
 
         // close SP if user clicks anywhere but SP
-        if (getPopoverInstance(this.params?.id)?.opened && !stickerElTouched && !menuElTouched) {
+        if (this.opened && !stickerElTouched && !menuElTouched) {
             this.close();
 
             return;
@@ -76,7 +76,7 @@ export class StickerPopoverBehavior extends BaseComponentBehavior {
         );
 
         const referenceElFocused: boolean =
-            (getPopoverInstance(this.params.id)?.opened && document.activeElement === this.refHtmlEl) || false;
+            (this.opened && document.activeElement === this.refHtmlEl) || false;
         // When the user focuses on 'referenceEl' and then presses the Tab or ArrowDown key, the first element inside the view should receive focus.
         // TODO: make it work!
         if (

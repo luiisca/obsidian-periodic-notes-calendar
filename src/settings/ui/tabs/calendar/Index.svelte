@@ -26,21 +26,48 @@
 			viewLeafPosition: position as 'left' | 'right'
 		}));
 	};
-	const handleViewModeChange = (viewMode: 'dedicated-panel' | 'floating-window') => {
+	const handleFloatingModeToggle = (floatingMode: boolean) => {
 		Popover.cleanup();
 
-		if (viewMode === 'floating-window') {
+		if (floatingMode) {
 			Popover.create({
 				id: CALENDAR_POPOVER_ID,
 				view: {
-					Component: View
+					Component: View,
+                    props: {
+                        popover: true
+                    }
 				}
 			});
 		}
 
 		settingsStore.update((settings) => ({
 			...settings,
-			viewMode
+			floatingMode
+		}));
+	};
+	const handleMinimalModeToggle = (minimalMode: boolean) => {
+		settingsStore.update((settings) => ({
+			...settings,
+			minimalMode
+		}));
+	};
+
+	const handleFloatingAlwaysMinimalToggle = (alwaysMinimal: boolean) => {
+		Popover.cleanup();
+        Popover.create({
+            id: CALENDAR_POPOVER_ID,
+            view: {
+                Component: View,
+                props: {
+                    popover: true,
+                }
+            }
+        });
+
+		settingsStore.update((settings) => ({
+			...settings,
+			floatingViewAlwaysMinimal: alwaysMinimal
 		}));
 	};
 
@@ -77,7 +104,10 @@
 			Popover.create({
 				id: CALENDAR_POPOVER_ID,
 				view: {
-					Component: View
+					Component: View,
+                    props: {
+                        popover: true
+                    }
 				}
 			});
 		}
@@ -196,21 +226,42 @@
 </SettingItem>
 
 <SettingItem
-	name="View Mode"
-	description="Show calendar in a dedicated workspace panel (recommended) or as a floating window"
+    name="Minimal Mode"
+    description="Use compact layout with simplified visuals"
+>
+    {#snippet control()}
+        <Toggle
+            onChange={handleMinimalModeToggle}
+            isEnabled={$settingsStore.minimalMode}
+        />
+    {/snippet}
+</SettingItem>
+
+<SettingItem
+	name="Floating Mode"
+	description="Show calendar on ribbon click or hover (always available in panel or through command palette)"
 >
 	{#snippet control()}
-		<Dropdown
-			
-			options={[
-				{ label: 'Dedicated Panel', value: 'dedicated-panel' },
-				{ label: 'Floating Window', value: 'floating-window' }
-			]}
-			onChange={handleViewModeChange}
-			value={$settingsStore.viewMode}
+		<Toggle
+			onChange={handleFloatingModeToggle}
+			isEnabled={$settingsStore.floatingMode}
 		/>
 	{/snippet}
 </SettingItem>
+
+{#if $settingsStore.floatingMode}
+    <SettingItem
+        name="Always Minimal"
+        description="Keep floating view compact for quick reference"
+    >
+        {#snippet control()}
+            <Toggle
+                onChange={handleFloatingAlwaysMinimalToggle}
+                isEnabled={$settingsStore.floatingViewAlwaysMinimal}
+            />
+        {/snippet}
+    </SettingItem>
+{/if}
 
 <SettingItem
 	name="Week Numbers"

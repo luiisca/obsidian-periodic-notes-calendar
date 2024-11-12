@@ -1,17 +1,29 @@
 <script lang="ts">
     import "./app.css";
     import { cn } from "@/ui/utils";
-    import { onDestroy } from "svelte";
+    import { onDestroy, setContext } from "svelte";
     import { CALENDAR_POPOVER_ID } from "./constants";
     import { displayedDateStore } from "./stores";
     import Calendar from "./ui/components/Calendar.svelte";
     import { todayStore } from "./stores/dates";
+    import { settingsStore } from "./settings";
 
     interface Props {
         popover?: boolean;
     }
 
     let { popover = false }: Props = $props();
+    let minimalMode = $state({ value: false });
+
+    $effect.pre(() => {
+        if (popover) {
+            minimalMode.value = $settingsStore.floatingViewAlwaysMinimal;
+        } else {
+            minimalMode.value = $settingsStore.minimalMode;
+        }
+    });
+
+    setContext("minimalMode", minimalMode);
 
     export function rerenderCalendar() {
         // TODO: reimplement
@@ -44,17 +56,15 @@
     <div
         class={cn(
             popover &&
-                "bg-transparent z-10 w-max opacity-0 pointer-events-none absolute top-0 left-0",
+                "bg-transparent z-[var(--layer-menu)] w-max opacity-0 pointer-events-none absolute top-0 left-0",
         )}
         data-popover={popover}
         id={CALENDAR_POPOVER_ID}
     >
-        <div
-            id={`${CALENDAR_POPOVER_ID}-arrow`}
-            class="rotate-45 absolute w-2.5 h-2.5 bg-slate-500"
-        ></div>
-        <div class="ml-[5px] p-2">
-            <div class="bg-slate-500 rounded-sm">
+        <div class="ml-[5px] p-2 pr-0 w-[clamp(320px,_35vw,_500px)]">
+            <div
+                class="[border:1px_solid_var(--background-modifier-border-hover)] bg-[var(--background-secondary)] rounded-[var(--radius-m)] [box-shadow:var(--shadow-s)] p-[var(--size-2-3)]"
+            >
                 <Calendar />
             </div>
         </div>

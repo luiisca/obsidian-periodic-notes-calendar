@@ -1,7 +1,7 @@
 import { Modal } from 'obsidian';
-import ConfirmationModalComponent from '../components/ConfirmationModal.svelte';
 import { Component, mount } from 'svelte';
 import { ModalManager } from './modals-manager';
+import { ConfirmationModal as ConfirmationModalComponent } from '../components';
 
 type TextContent = string | {
     Component: Component;

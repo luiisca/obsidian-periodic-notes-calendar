@@ -18,6 +18,7 @@
     class={cn(
         "flex items-center px-1.5",
         direction === "right" && "[transform:rotate(180deg)]",
+        isMobile ? "[&>svg]:w-3.5" : "[&>svg]:w-2.5",
         className,
     )}
     id="arrow"
@@ -25,7 +26,7 @@
     aria-label={tooltip}
 >
     <svg
-        class={cn("text-[--color-arrow]", isMobile ? "w-3.5" : "w-2.5")}
+        class={cn("text-[--color-arrow]")}
         focusable="false"
         role="img"
         xmlns="http://www.w3.org/2000/svg"

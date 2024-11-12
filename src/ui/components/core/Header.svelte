@@ -1,21 +1,31 @@
 <script lang="ts">
     import { IGranularity, TFileData } from "@/io";
-    import { eventHandlers, isControlPressed } from "../utils";
+    import { cn, eventHandlers, isControlPressed } from "@/ui/utils";
+    import { getContext, Snippet } from "svelte";
 
-    export let leftTitle: {
-        className?: string;
-        date: moment.Moment;
-        granularity: IGranularity;
-        fileData: TFileData;
-        formatValue: string;
-    } | null = null;
-    export let rightTitle: {
-        className?: string;
-        date: moment.Moment;
-        granularity: IGranularity;
-        fileData: TFileData;
-        formatValue: string;
-    } | null = null;
+    interface Props {
+        leftTitle?: {
+            className?: string;
+            date: moment.Moment;
+            granularity: IGranularity;
+            fileData: TFileData;
+            formatValue: string;
+        } | null;
+
+        rightTitle?: {
+            className?: string;
+            date: moment.Moment;
+            granularity: IGranularity;
+            fileData: TFileData;
+            formatValue: string;
+        } | null;
+
+        leftTitleSnippet?: Snippet;
+        rightTitleSnippet?: Snippet;
+        bottomNavSnippet?: Snippet;
+    }
+    let { leftTitle = null, rightTitle = null, leftTitleSnippet, rightTitleSnippet, bottomNavSnippet }: Props = $props();
+    let minimalMode = getContext('minimalMode') as { value: boolean } | undefined;
 </script>
 
 <div class="flex flex-col mt-4 mb-[1.1rem]" id="header">
@@ -24,25 +34,28 @@
         id="title"
     >
         <!-- left title -->
-        <slot name="left-title" />
+        {@render leftTitleSnippet?.()}
         {#if leftTitle}
             <button
-                class="h-auto text-7xl font-semibold hover:!shadow-[3px_0px_0_7px_var(--interactive-hover)] rounded-[2px] p-0"
+                class={cn(
+                    "h-auto font-semibold hover:!shadow-[3px_0px_0_7px_var(--interactive-hover)] rounded-[2px] p-0",
+                    minimalMode?.value ? "text-xl" : "text-7xl"
+                )}
                 id={leftTitle.granularity}
-                on:click={(event) =>
+                onclick={(event) =>
                     eventHandlers.onClick({
                         date: leftTitle.date,
                         createNewSplitLeaf: isControlPressed(event),
                         granularity: leftTitle.granularity,
                     })}
-                on:contextmenu={(event) =>
+                oncontextmenu={(event) =>
                     eventHandlers.onContextMenu({
                         event,
                         fileData: leftTitle.fileData,
                         date: leftTitle.date,
                         granularity: leftTitle.granularity,
                     })}
-                on:pointerenter={(event) => {
+                onpointerenter={(event) => {
                     eventHandlers.onHover({
                         event,
                         isControlPressed: isControlPressed(event),
@@ -54,25 +67,28 @@
             </button>
         {/if}
         <!-- right title -->
-        <slot name="right-title" />
+        {@render rightTitleSnippet?.()}
         {#if rightTitle}
             <button
-                class="text-[--interactive-accent] font-medium text-lg hover:!shadow-[0px_0px_0px_6px_var(--interactive-hover)] rounded-[2px] p-0"
+                class={cn(
+                    "text-[--interactive-accent] font-medium hover:!shadow-[0px_0px_0px_6px_var(--interactive-hover)] rounded-[2px] p-0",
+                    minimalMode?.value ? "text-sm" : "text-lg"
+                )}
                 id={rightTitle.granularity}
-                on:click={(event) =>
+                onclick={(event) =>
                     eventHandlers.onClick({
                         date: rightTitle.date,
                         createNewSplitLeaf: isControlPressed(event),
                         granularity: rightTitle.granularity,
                     })}
-                on:contextmenu={(event) =>
+                oncontextmenu={(event) =>
                     eventHandlers.onContextMenu({
                         event,
                         fileData: rightTitle.fileData,
                         date: rightTitle.date,
                         granularity: rightTitle.granularity,
                     })}
-                on:pointerenter={(event) => {
+                onpointerenter={(event) => {
                     eventHandlers.onHover({
                         event,
                         isControlPressed: isControlPressed(event),
@@ -85,5 +101,5 @@
         {/if}
     </div>
 
-    <slot name="bottom-nav" />
+    {@render bottomNavSnippet?.()}
 </div>
