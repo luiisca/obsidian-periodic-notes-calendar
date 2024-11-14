@@ -13,7 +13,7 @@ interface NldResult {
     moment: Moment;
 }
 export default class NldatePickerModal extends Modal {
-    constructor(nlDatesPlugin: NldPlugin) {
+    constructor() {
         super(window.app);
         ModalManager.register(this);
 
@@ -27,12 +27,11 @@ export default class NldatePickerModal extends Modal {
             target: svelteContainer,
             props: {
                 modalClass: this,
-                nlDatesPlugin
             }
         });
     }
 }
 
-export function createNldatePickerDialog(nlDatesPlugin: NldPlugin) {
-    new NldatePickerModal(nlDatesPlugin).open();
+export function createNldatePickerDialog() {
+    new NldatePickerModal().open();
 }

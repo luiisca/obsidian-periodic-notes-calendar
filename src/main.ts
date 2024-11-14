@@ -1,8 +1,8 @@
 import { DEFAULT_SETTINGS, settingsStore, SettingsTab, type ISettings } from '@/settings';
-import { Notice, Plugin, WorkspaceLeaf, WorkspaceRoot } from 'obsidian';
+import { Plugin, WorkspaceLeaf, WorkspaceRoot } from 'obsidian';
 import type { SvelteComponent } from 'svelte';
 import { get } from 'svelte/store';
-import { CALENDAR_POPOVER_ID, CALENDAR_RIBBON_ID, granularities, NLDATES_PLUGIN_ID, VIEW_TYPE } from './constants';
+import { CALENDAR_POPOVER_ID, CALENDAR_RIBBON_ID, granularities, VIEW_TYPE } from './constants';
 import { createOrOpenNote, getStartupNoteGranularity } from './io';
 import { getPeriodicityFromGranularity } from './io/parse';
 import type { IPeriodicity } from './io/types';
@@ -16,10 +16,9 @@ import {
 } from './stores';
 import { createNldatePickerDialog } from './ui/modals/nldate-picker';
 import { getBehaviorInstance, getPopoverInstance, Popover } from './ui/popovers';
-import { capitalize, getDailyNotesPlugin, getPlugin } from './utils';
+import { capitalize, getDailyNotesPlugin } from './utils';
 import { CalendarView } from './view';
 import View from './View.svelte';
-import { genNoticeFragment } from './ui/utils';
 
 export default class PeriodicNotesCalendarPlugin extends Plugin {
     popovers: Record<string, SvelteComponent | null> = {};
@@ -110,18 +109,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
             id: 'open-nldate-note',
             // TODO: reword
             name: 'Open a Periodic Note based on Natural Language Date selection',
-            callback: async () => {
-                const nlDatesPlugin = await getPlugin(NLDATES_PLUGIN_ID);
-                if (nlDatesPlugin) {
-                    createNldatePickerDialog(nlDatesPlugin);
-                } else {
-                    new Notice(genNoticeFragment([
-                        ['Please install '],
-                        ['Natural Language Dates', 'u-pop'],
-                        [' plugin to use this command']
-                    ]))
-                }
-            }
+            callback: createNldatePickerDialog,
         });
 
         // add quick locales switch commands

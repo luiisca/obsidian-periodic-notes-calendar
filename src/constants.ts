@@ -45,4 +45,3 @@ export const DEFAULT_FORMATS_PER_GRANULARITY: Record<IGranularity, string> = {
 };
 
 export const DAILY_NOTES_PLUGIN_ID = 'daily-notes'
-export const NLDATES_PLUGIN_ID = 'nldates-obsidian'

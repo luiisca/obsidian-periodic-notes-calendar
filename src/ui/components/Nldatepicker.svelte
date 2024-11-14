@@ -1,22 +1,20 @@
 <script lang="ts">
     import { DEFAULT_DAILY_NOTE_FORMAT, granularities } from "@/constants";
     import { createOrOpenNote, IGranularity } from "@/io";
-    import { getPeriodicityFromGranularity } from "@/io/parse";
+    import { getPeriodicityFromGranularity, parseNlDate } from "@/io/parse";
     import { getNormalizedPeriodSettings } from "@/io/settings";
     import { LoadingCircle, settingsStore } from "@/settings";
     import { capitalize } from "@/utils";
     import type { Moment } from "moment";
     import { debounce } from "obsidian";
     import type NldatePickerModal from "../modals/nldate-picker";
-    import { NldPlugin } from "../modals/nldate-picker";
     import { onMount } from "svelte";
 
     interface Props {
         modalClass: NldatePickerModal;
-        nlDatesPlugin: NldPlugin;
     }
 
-    let { modalClass, nlDatesPlugin }: Props = $props();
+    let { modalClass }: Props = $props();
 
     let nlDateInputVal = $state("Today");
     let granularityInputVal: IGranularity = $state("day");
@@ -47,13 +45,11 @@
             }
 
             loading = true;
-            const nlParsedDate = nlDatesPlugin.parseDate(
-                cleanDateInput || "today",
-            );
+            const nlParsedDate = parseNlDate(cleanDateInput || "today");
             loading = false;
 
-            if (nlParsedDate.moment.isValid()) {
-                parsedDate = nlParsedDate.moment;
+            if (nlParsedDate?.isValid()) {
+                parsedDate = nlParsedDate;
                 error = "";
             } else {
                 parsedDate = null;
