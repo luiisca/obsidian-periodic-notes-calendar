@@ -1,35 +1,29 @@
 <script lang="ts">
     import { BASE_POPOVER_ID } from "@/constants";
     import { settingsStore } from "@/settings";
-    import { internalFileModStore } from "@/stores";
-    import {
-        HeadingCache,
-        MarkdownView,
-        setIcon,
-        TFile,
-        WorkspaceLeaf,
-    } from "obsidian";
-    import { onMount } from "svelte";
-    import { escapeRegex } from "@/utils";
-    import Node from "./Node.svelte";
+    import { internalFileModStore, previewLeafStore } from "@/stores";
     import { cn } from "@/ui/utils";
+    import { escapeRegex } from "@/utils";
+    import { HeadingCache, setIcon, TFile, WorkspaceLeaf } from "obsidian";
+    import { onMount } from "svelte";
     import { writable } from "svelte/store";
     import { slide } from "svelte/transition";
+    import Node from "./Node.svelte";
 
-    interface Props {
-        file: TFile;
-        previewLeaf: WorkspaceLeaf;
-    }
     type TNode = HeadingCache & {
         parts?: string[];
         children: TNode[];
     };
 
-    let { file, previewLeaf }: Props = $props();
+    let file: TFile | null = $state(null);
+    let leaf: WorkspaceLeaf | null = $state(null);
+
     let headings: HeadingCache[] | undefined = $derived.by(() => {
         $settingsStore;
         $internalFileModStore;
-        return window.app.metadataCache.getFileCache(file)?.headings;
+        if (file) {
+            return window.app.metadataCache.getFileCache(file)?.headings;
+        }
     });
     let searchQuery = $state("");
     let searchActive = $state(false);
@@ -73,7 +67,6 @@
                 stack.push(node);
             });
 
-        console.log(roots);
         return roots;
     });
 
@@ -137,7 +130,6 @@
 
     const handleSearchIconClick = () => {
         searchActive = !searchActive;
-        console.log("searchINput", searchInputEl);
         if (searchActive) {
             searchInputEl?.focus();
         }
@@ -171,6 +163,13 @@
                     ? "lucide-chevrons-down-up"
                     : "lucide-chevrons-up-down",
             );
+        }
+    });
+
+    $effect.pre(() => {
+        if ($previewLeafStore) {
+            file = $previewLeafStore.file;
+            leaf = $previewLeafStore.leaf;
         }
     });
 
@@ -258,7 +257,6 @@
                 <div transition:slide={{ duration: 200 }}>
                     <Node
                         {node}
-                        {previewLeaf}
                         {searchQuery}
                         {collapseAll}
                         {updateCollapsedCount}

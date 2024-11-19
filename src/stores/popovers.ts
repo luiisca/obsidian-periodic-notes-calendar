@@ -1,6 +1,6 @@
 import type { IGranularity, TFileData } from "@/io";
 import { type Moment } from "moment";
-import { TFile } from "obsidian";
+import { TFile, WorkspaceLeaf } from "obsidian";
 import { writable } from "svelte/store";
 
 export type TStickerComponentProps = {
@@ -10,3 +10,4 @@ export type TStickerComponentProps = {
 }
 
 export const spFileDataStore = writable<TFileData | null>(null)
+export const previewLeafStore = writable<{ leaf: WorkspaceLeaf | null, file: TFile } | null>(null)

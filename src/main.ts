@@ -11,18 +11,18 @@ import locales from './locales';
 import { PeriodSettings } from './settings';
 import {
     pluginClassStore,
+    previewLeafStore,
     themeStore,
     updateLocale,
     updateWeekdays,
     updateWeekStart
 } from './stores';
+import TopPreview from './TopPreview.svelte';
 import { createNldatePickerDialog } from './ui/modals/nldate-picker';
 import { getBehaviorInstance, getPopoverInstance, Popover } from './ui/popovers';
 import { capitalize, getDailyNotesPlugin } from './utils';
 import { CalendarView } from './view';
 import View from './View.svelte';
-import TopPreview from './TopPreview.svelte';
-import { isValidPeriodicNote } from './io/validation';
 
 export default class PeriodicNotesCalendarPlugin extends Plugin {
     popovers: Record<string, SvelteComponent | null> = {};
@@ -310,7 +310,6 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
 
 export class ViewManager {
     static mainLeaf: WorkspaceLeaf | null;
-    static previewLeaf: WorkspaceLeaf | null;
     static previewComponent: Record<string, any>;
 
     static previewLeafCleanups: (() => void)[] = [];
@@ -352,41 +351,39 @@ export class ViewManager {
         })
 
         // TODO: check settings.autoCreate to create a new file if none found
-        if (file) {
-            this.previewLeaf = this.mainLeaf && window.app.workspace.createLeafBySplit(this.mainLeaf, 'horizontal');
-            this.previewLeaf?.openFile(file);
+        if (file && this.mainLeaf) {
+            const previewLeaf = window.app.workspace.createLeafBySplit(this.mainLeaf, 'horizontal');
+            previewLeaf?.openFile(file);
+
+            previewLeafStore.set({ leaf: previewLeaf, file });
             settingsStore.update(s => {
                 s.lastPreviewFilepath = file!.path
                 return s
             });
 
+            const tabHeaderContainerEl = (previewLeaf.parent as any).tabHeaderContainerEl as HTMLElement | null
+            tabHeaderContainerEl?.remove()
+
             // add extra buttons at the top
-            if (this.previewLeaf) {
-                const tabHeaderContainerEl = (this.previewLeaf.parent as any).tabHeaderContainerEl as HTMLElement | null
-                tabHeaderContainerEl?.remove()
-                this.previewComponent = mount(TopPreview, {
-                    target: this.previewLeaf.view.containerEl,
-                    props: {
-                        file,
-                        previewLeaf: this.previewLeaf
-                    }
-                })
-            }
+            this.previewComponent = mount(TopPreview, {
+                target: previewLeaf.view.containerEl,
+            })
         }
     }
 
     private static setupVisibilityTracking(): () => void {
         // Handler for layout changes
         const handleLayoutChange = async () => {
+            const previewLeaf = get(previewLeafStore)?.leaf;
             const isMainVisible = this.mainLeaf && this.isLeafVisible(this.mainLeaf);
 
-            if (isMainVisible && !this.previewLeaf) {
+            if (isMainVisible && !previewLeaf) {
                 this.initPreview();
             }
-            if (!isMainVisible && this.previewLeaf) {
-                this.previewLeaf.detach();
+            if (!isMainVisible && previewLeaf) {
+                previewLeaf.detach();
                 unmount(this.previewComponent);
-                this.previewLeaf = null;
+                previewLeafStore.set(null);
             }
         };
 
@@ -420,13 +417,12 @@ export class ViewManager {
         window.app.workspace.detachLeavesOfType(LEAF_TYPE);
 
         let previewLeafClosed = false;
-
         window.app.workspace.iterateAllLeaves((leaf) => {
             if (!previewLeafClosed && leaf.getViewState().type === 'markdown') {
                 const leafFile = (leaf.view as any).file as TFile;
                 if (leafFile.path === get(settingsStore).lastPreviewFilepath) {
                     leaf.detach();
-                    this.previewLeaf = null;
+                    previewLeafStore.set(null);
                     previewLeafClosed = true;
                     settingsStore.update(s => {
                         s.lastPreviewFilepath = ''

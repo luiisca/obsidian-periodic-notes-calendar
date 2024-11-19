@@ -1,19 +1,15 @@
 <script lang="ts">
     import { BASE_POPOVER_ID } from "@/constants";
-    import { settingsStore } from "@/settings";
-    import { internalFileModStore } from "@/stores";
-    import { HeadingCache, MarkdownView, setIcon, TFile, WorkspaceLeaf } from "obsidian";
-    import { onMount } from "svelte";
-    import { escapeRegex } from "@/utils";
+    import { previewLeafStore } from "@/stores";
     import { getPopoverInstance } from "@/ui/popovers";
     import { cn } from "@/ui/utils";
-    import Node from "./Node.svelte"
+    import { HeadingCache, MarkdownView, WorkspaceLeaf } from "obsidian";
     import { Writable } from "svelte/store";
     import { slide } from "svelte/transition";
+    import Node from "./Node.svelte";
 
     interface Props {
         node: TNode;
-        previewLeaf: WorkspaceLeaf;
         searchQuery: string;
         collapseAll: Writable<boolean | null>;
         updateCollapsedCount: (collapsed: boolean) => void;
@@ -23,24 +19,26 @@
         parts?: string[];
         children: TNode[];
     };
-    let { node, previewLeaf, searchQuery, collapseAll, updateCollapsedCount, depth = 0 }: Props = $props();
-    let markdownView: MarkdownView = previewLeaf.view as MarkdownView;
+    let { node, searchQuery, collapseAll, updateCollapsedCount, depth = 0 }: Props = $props();
+    let leaf: WorkspaceLeaf | null = $state(null);
+
+    let markdownView: MarkdownView | null = $state(null);
     let collapsed = $state($collapseAll);
 
     const handleNodeClick = (ev: MouseEvent | KeyboardEvent) => {
         ev.stopPropagation()
 
-        const editor = markdownView.editor as unknown as CodeMirror.Editor;
-        const headingLine = findHeadingLine(editor, node.heading);
+        const editor = markdownView?.editor as unknown as CodeMirror.Editor | undefined;
+        const headingLine = editor ? findHeadingLine(editor, node.heading) : -1;
         getPopoverInstance(BASE_POPOVER_ID)?.close();
 
-        previewLeaf.setViewState({
+        leaf?.setViewState({
             type: "markdown",
             active: true
         })
 
         if (headingLine === -1) return;
-        editor.setCursor(headingLine, 0, { scroll: true });
+        editor?.setCursor(headingLine, 0, { scroll: true });
         // editor.scrollIntoView({ from: { line: headingLine, ch: 0 }, to: { line: headingLine + 1, ch: 0 } });
     }
 
@@ -65,6 +63,14 @@
             collapsed = $collapseAll
         }
     })
+    $effect.pre(() => {
+        if ($previewLeafStore) {
+            leaf = $previewLeafStore.leaf;
+            if (leaf) {
+                markdownView = leaf.view as MarkdownView
+            }
+        }
+    });
 </script>
 
 {#snippet Heading(heading: string, parts: string[] | undefined)}
@@ -129,7 +135,6 @@
         {#each node.children as child}
             <Node
                 node={child}
-                {previewLeaf}
                 {searchQuery}
                 {collapseAll}
                 {updateCollapsedCount}
