@@ -22,6 +22,7 @@ import { capitalize, getDailyNotesPlugin } from './utils';
 import { CalendarView } from './view';
 import View from './View.svelte';
 import TopPreview from './TopPreview.svelte';
+import { isValidPeriodicNote } from './io/validation';
 
 export default class PeriodicNotesCalendarPlugin extends Plugin {
     popovers: Record<string, SvelteComponent | null> = {};
@@ -321,7 +322,7 @@ export class ViewManager {
             const rootLeaves: WorkspaceLeaf[] = []
             window.app.workspace.iterateRootLeaves((leaf) => rootLeaves.push(leaf))
             this.mainLeaf = rootLeaves[0];
-            rootLeaves[0].setViewState({
+            this.mainLeaf.setViewState({
                 type: LEAF_TYPE,
                 active
             })
@@ -354,6 +355,10 @@ export class ViewManager {
         if (file) {
             this.previewLeaf = this.mainLeaf && window.app.workspace.createLeafBySplit(this.mainLeaf, 'horizontal');
             this.previewLeaf?.openFile(file);
+            settingsStore.update(s => {
+                s.lastPreviewFilepath = file!.path
+                return s
+            });
 
             // add extra buttons at the top
             if (this.previewLeaf) {
@@ -413,13 +418,23 @@ export class ViewManager {
     private static cleanupExistingViews() {
         // Detach all leaves of both types
         window.app.workspace.detachLeavesOfType(LEAF_TYPE);
-        // TODO: add some heuristics here to detach the correct markdown preview leaf
-        // - check settings.previewVisible
-        // - check setttings...preview
-        // - check the panel where calendar will open for a markdown preview leaf
-        // - check if this markdown preview leaf displays a periodic note
-        this.previewLeaf?.detach()
-        this.previewLeaf = null;
+
+        let previewLeafClosed = false;
+
+        window.app.workspace.iterateAllLeaves((leaf) => {
+            if (!previewLeafClosed && leaf.getViewState().type === 'markdown') {
+                const leafFile = (leaf.view as any).file as TFile;
+                if (leafFile.path === get(settingsStore).lastPreviewFilepath) {
+                    leaf.detach();
+                    this.previewLeaf = null;
+                    previewLeafClosed = true;
+                    settingsStore.update(s => {
+                        s.lastPreviewFilepath = ''
+                        return s
+                    })
+                }
+            }
+        })
 
         this.previewLeafCleanups.length > 0 && this.previewLeafCleanups.forEach((cleanup) => cleanup());
         this.previewLeafCleanups = [];

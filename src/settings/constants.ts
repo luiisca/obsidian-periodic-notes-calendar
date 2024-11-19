@@ -27,6 +27,7 @@ export interface PeriodSettings {
 
 export interface ISettings {
     periods: Record<IGranularity, PeriodSettings>;
+    lastPreviewFilepath: string;
     filepaths: Record<string, string>;
     filepathsByFormatValue: Record<string, Record<string, string> | undefined>;
     /** Position of the calendar view leaf ('left' or 'right') */
@@ -92,9 +93,6 @@ export interface ISettings {
 
     /** Whether to allow switching locales from the Command Palette */
     allowLocalesSwitchFromCommandPalette: boolean;
-
-    /** Format settings for different periodicities */
-    // formats: IFormatsSettings;
 }
 
 export function getDefaultPeriodicNotesConfig(
@@ -130,6 +128,7 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
     periods: Object.fromEntries(granularities.map(
         g => [g, getDefaultPeriodicNotesConfig(g)],
     )) as Record<IGranularity, PeriodSettings>,
+    lastPreviewFilepath: "",
     filepaths: {},
     filepathsByFormatValue: {},
     viewLeafPosition: "right",
