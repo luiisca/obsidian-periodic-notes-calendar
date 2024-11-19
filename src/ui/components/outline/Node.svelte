@@ -7,6 +7,7 @@
     import { Writable } from "svelte/store";
     import { slide } from "svelte/transition";
     import Node from "./Node.svelte";
+    import { escapeRegex } from "@/utils";
 
     interface Props {
         node: TNode;
@@ -29,7 +30,7 @@
         ev.stopPropagation()
 
         const editor = markdownView?.editor as unknown as CodeMirror.Editor | undefined;
-        const headingLine = editor ? findHeadingLine(editor, node.heading) : -1;
+        const headingLine = editor ? findHeadingLine(editor, `${'#'.repeat(node.level)} ${node.heading}`) : -1;
         getPopoverInstance(BASE_POPOVER_ID)?.close();
 
         leaf?.setViewState({
@@ -45,7 +46,8 @@
     const findHeadingLine = (editor: CodeMirror.Editor, heading: string): number => {
         const lines = editor.lineCount();
         for (let i = 0; i < lines; i++) {
-            if (editor.getLine(i).split(' ').slice(1).join('') === heading) {
+            const regex = new RegExp(`${escapeRegex(heading)}$`);
+            if (regex.test(editor.getLine(i).trim())) {
                 return i;
             }
         }
