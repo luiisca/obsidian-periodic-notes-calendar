@@ -1,12 +1,14 @@
 import { DEFAULT_SETTINGS, settingsStore, SettingsTab, type ISettings } from '@/settings';
-import { Plugin, WorkspaceLeaf, WorkspaceRoot } from 'obsidian';
-import type { SvelteComponent } from 'svelte';
+import moment from 'moment';
+import { Plugin, TFile, WorkspaceLeaf, WorkspaceRoot } from 'obsidian';
+import { mount, unmount, type SvelteComponent } from 'svelte';
 import { get } from 'svelte/store';
-import { CALENDAR_POPOVER_ID, CALENDAR_RIBBON_ID, granularities, VIEW_TYPE } from './constants';
-import { createOrOpenNote, getStartupNoteGranularity } from './io';
+import { CALENDAR_POPOVER_ID, CALENDAR_RIBBON_ID, granularities, LEAF_TYPE } from './constants';
+import { createOrOpenNote, getFileData, getStartupNoteGranularity, IGranularity } from './io';
 import { getPeriodicityFromGranularity } from './io/parse';
 import type { IPeriodicity } from './io/types';
 import locales from './locales';
+import { PeriodSettings } from './settings';
 import {
     pluginClassStore,
     themeStore,
@@ -19,6 +21,7 @@ import { getBehaviorInstance, getPopoverInstance, Popover } from './ui/popovers'
 import { capitalize, getDailyNotesPlugin } from './utils';
 import { CalendarView } from './view';
 import View from './View.svelte';
+import TopPreview from './TopPreview.svelte';
 
 export default class PeriodicNotesCalendarPlugin extends Plugin {
     popovers: Record<string, SvelteComponent | null> = {};
@@ -28,9 +31,8 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
     onunload() {
         console.log('ON Unload ⛰️');
 
-        this.app.workspace.getLeavesOfType(VIEW_TYPE).forEach((leaf) => leaf.detach());
-
-        this.popoversCleanups.length > 0 && this.popoversCleanups.forEach((cleanup) => cleanup());
+        ViewManager.unload();
+        this.popoversCleanups.forEach((cleanup) => cleanup());
     }
 
     async onload() {
@@ -54,8 +56,9 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
 
         this.handleRibbon();
 
-        // register view
-        this.registerView(VIEW_TYPE, (leaf) => new CalendarView(leaf, this));
+        // register view and preview
+        // register a view under a specific leaf type so obsidian knows to render it when calling `setViewState` with LEAF_TYPE
+        this.registerView(LEAF_TYPE, (leaf) => new CalendarView(leaf, this));
 
         // Commands
         this.addCommand({
@@ -131,7 +134,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         this.app.workspace.onLayoutReady(() => {
             console.log('ON Layout REady 🙌');
 
-            this.initView({ active: false });
+            ViewManager.initView({ active: false });
 
             if (get(settingsStore).openPopoverOnRibbonHover) {
                 Popover.create({
@@ -179,7 +182,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
             const calendarPopover = getPopoverInstance(CALENDAR_POPOVER_ID);
             const calendarBehavior = getBehaviorInstance(CALENDAR_POPOVER_ID);
 
-            if (get(settingsStore).viewMode === "dedicated-panel") {
+            if (!get(settingsStore).floatingMode) {
                 this.toggleView();
 
                 if (get(settingsStore).openPopoverOnRibbonHover && calendarBehavior?.opened) {
@@ -214,19 +217,11 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         ribbonEl.id = CALENDAR_RIBBON_ID
     }
 
-    async initView({ active }: { active: boolean } = { active: true }) {
-        this.app.workspace.detachLeavesOfType(VIEW_TYPE);
-
-        await this.app.workspace[`get${capitalize(get(settingsStore).viewLeafPosition) as "Left" | "Right"}Leaf`](false)?.setViewState({
-            type: VIEW_TYPE,
-            active
-        });
-    }
     revealView() {
         // get calendar view and set it as active
-        this.app.workspace.revealLeaf(this.app.workspace.getLeavesOfType(VIEW_TYPE)[0]);
-        this.app.workspace.getLeavesOfType(VIEW_TYPE)[0].setViewState({
-            type: VIEW_TYPE,
+        this.app.workspace.revealLeaf(this.app.workspace.getLeavesOfType(LEAF_TYPE)[0]);
+        this.app.workspace.getLeavesOfType(LEAF_TYPE)[0].setViewState({
+            type: LEAF_TYPE,
             active: true
         });
     }
@@ -235,12 +230,12 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         /**
          * HTMLElement where View is rendered at
          */
-        const leaf = this.app.workspace.getLeavesOfType(VIEW_TYPE)[0] as
+        const leaf = this.app.workspace.getLeavesOfType(LEAF_TYPE)[0] as
             | (WorkspaceLeaf & { containerEl: HTMLElement; tabHeaderEl: HTMLElement })
             | undefined;
 
         if (!leaf) {
-            await this.initView();
+            await ViewManager.initView();
 
             return;
         }
@@ -281,7 +276,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
             if (leafActive) {
                 // 1. root split && leaf active
                 leaf.view.unload();
-                await this.initView({ active: false });
+                await ViewManager.initView({ active: false });
 
                 return;
             }
@@ -309,5 +304,129 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
 
     public getTheme() {
         return (this.app as any).getTheme() as string
+    }
+}
+
+export class ViewManager {
+    static mainLeaf: WorkspaceLeaf | null;
+    static previewLeaf: WorkspaceLeaf | null;
+    static previewComponent: Record<string, any>;
+
+    static previewLeafCleanups: (() => void)[] = [];
+    static async initView({ active }: { active: boolean } = { active: true }) {
+        this.cleanupExistingViews()
+
+        const leafPosition = capitalize(get(settingsStore).viewLeafPosition) as ISettings["viewLeafPosition"];
+        if (leafPosition === 'center') {
+            const rootLeaves: WorkspaceLeaf[] = []
+            window.app.workspace.iterateRootLeaves((leaf) => rootLeaves.push(leaf))
+            this.mainLeaf = rootLeaves[0];
+            rootLeaves[0].setViewState({
+                type: LEAF_TYPE,
+                active
+            })
+        } else {
+            this.mainLeaf = window.app.workspace[`get${leafPosition as "Left" | "Right"}Leaf`](false);
+            await this.mainLeaf?.setViewState({
+                type: LEAF_TYPE,
+                active
+            });
+        }
+
+        if (this.mainLeaf) {
+            const cleanup = this.setupVisibilityTracking();
+            this.previewLeafCleanups.push(cleanup);
+        }
+    }
+
+    private static async initPreview() {
+        const periodsSettings = get(settingsStore).periods;
+        let file: TFile | null = null;
+        Object.entries(periodsSettings).find((entry) => {
+            const [g, s] = entry as [IGranularity, PeriodSettings];
+            if (s.preview.enabled) {
+                file = getFileData(g, moment()).file;
+                return true;
+            }
+        })
+
+        // TODO: check settings.autoCreate to create a new file if none found
+        if (file) {
+            this.previewLeaf = this.mainLeaf && window.app.workspace.createLeafBySplit(this.mainLeaf, 'horizontal');
+            this.previewLeaf?.openFile(file);
+
+            // add extra buttons at the top
+            if (this.previewLeaf) {
+                const tabHeaderContainerEl = (this.previewLeaf.parent as any).tabHeaderContainerEl as HTMLElement | null
+                tabHeaderContainerEl?.remove()
+                this.previewComponent = mount(TopPreview, {
+                    target: this.previewLeaf.view.containerEl,
+                    props: {
+                        file,
+                        previewLeaf: this.previewLeaf
+                    }
+                })
+            }
+        }
+    }
+
+    private static setupVisibilityTracking(): () => void {
+        // Handler for layout changes
+        const handleLayoutChange = async () => {
+            const isMainVisible = this.mainLeaf && this.isLeafVisible(this.mainLeaf);
+
+            if (isMainVisible && !this.previewLeaf) {
+                this.initPreview();
+            }
+            if (!isMainVisible && this.previewLeaf) {
+                this.previewLeaf.detach();
+                unmount(this.previewComponent);
+                this.previewLeaf = null;
+            }
+        };
+
+        // Register event handlers
+        window.app.workspace.on('layout-change', handleLayoutChange);
+        window.app.workspace.on('resize', handleLayoutChange);
+
+        // Initial check
+        // handleLayoutChange();
+
+        // Return cleanup function
+        return () => {
+            window.app.workspace.off('layout-change', handleLayoutChange);
+            window.app.workspace.off('resize', handleLayoutChange);
+        };
+    }
+
+    private static isLeafVisible(leaf: WorkspaceLeaf): boolean {
+        const _leaf = leaf as WorkspaceLeaf & { containerEl: HTMLElement, width: number, height: number };
+        // Check if the leaf is in the DOM and visible
+        return (
+            _leaf.containerEl.style.display !== 'none' &&
+            _leaf.width > 0 &&
+            _leaf.height > 0
+        );
+    }
+
+
+    private static cleanupExistingViews() {
+        // Detach all leaves of both types
+        window.app.workspace.detachLeavesOfType(LEAF_TYPE);
+        // TODO: add some heuristics here to detach the correct markdown preview leaf
+        // - check settings.previewVisible
+        // - check setttings...preview
+        // - check the panel where calendar will open for a markdown preview leaf
+        // - check if this markdown preview leaf displays a periodic note
+        this.previewLeaf?.detach()
+        this.previewLeaf = null;
+
+        this.previewLeafCleanups.length > 0 && this.previewLeafCleanups.forEach((cleanup) => cleanup());
+        this.previewLeafCleanups = [];
+    }
+
+    // Call this when unloading the plugin
+    static unload() {
+        this.cleanupExistingViews();
     }
 }

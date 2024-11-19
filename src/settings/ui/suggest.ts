@@ -9,7 +9,7 @@ interface Suggestion<T> {
 
 /**
     * Get suggestion values based on `inputEl.value` and render them inside `suggestionContainerEl`,
-    * they will only be visible to the user after opening the popover on `this.open()`.
+    * they will only be visible to the user after opening the popover on `this.render()`.
     *
     * Everything is controlled by event handlers added to both `inputEl` and `suggestionContainerEl`, all located in `this.setupEventListeners`
 */
@@ -44,8 +44,8 @@ abstract class BaseSuggest<T> extends PopoverSuggest<T> {
     }
 
 
-    open() {
-        const suggestionValues = this.getSuggestions(this.inputEl.value)
+    render(...props: any[]) {
+        const suggestionValues = this.getSuggestions(this.inputEl.value, ...props)
 
         if (suggestionValues.length > 0) {
             this.clear()
@@ -71,7 +71,7 @@ abstract class BaseSuggest<T> extends PopoverSuggest<T> {
         }
     }
     close() {
-        // remove global event handlers, added in `this.open()`
+        // remove global event handlers, added in `this.render()`
         window.app.keymap.popScope(this.scope);
 
         this.clear()
@@ -80,7 +80,6 @@ abstract class BaseSuggest<T> extends PopoverSuggest<T> {
         this.autoUpdateCleanup = null;
     }
     destroy() {
-        console.log("🎉 destroy")
         this.suggestionContainerEl.remove();
         this.inputEvHandlers && (Object.entries(this.inputEvHandlers) as [keyof WindowEventMap, WindowEventHandler<keyof WindowEventMap>][]).forEach(([event, handler]) =>
             this.inputEl.removeEventListener(event, handler)
@@ -95,17 +94,17 @@ abstract class BaseSuggest<T> extends PopoverSuggest<T> {
     private setupEventListeners() {
         // register input event handlers
         this.inputEvHandlers = {
-            click: () => this.open(),
+            click: () => this.render(),
             input: debounce(() => {
                 // need to make sure it doesnt reopen popover now that is called 500ms after 
                 // input triggered in this.selectSuggestion and after this.close()
                 if (!this.suggestionSelected) {
-                    this.open()
+                    this.render()
                 } else {
                     this.suggestionSelected = false
                 }
             }, 200, true),
-            focus: () => this.open(),
+            focus: () => this.render(),
             blur: () => this.close(),
         };
 
@@ -152,7 +151,7 @@ abstract class BaseSuggest<T> extends PopoverSuggest<T> {
 
     /**
         * Get suggestions based on input string and add them inside suggestionContainerEl,
-        * they will only be visible to the user after opening the popover on this.open()
+        * they will only be visible to the user after opening the popover on this.render()
         */
     private renderSuggestions(values: T[]) {
         values.forEach(value => {
@@ -187,7 +186,7 @@ abstract class BaseSuggest<T> extends PopoverSuggest<T> {
         }
     }
 
-    abstract getSuggestions(inputVal: string): T[];
+    abstract getSuggestions(inputVal: string, ...props: any[]): T[];
 }
 
 export class FolderSuggest extends BaseSuggest<TFolder> {
@@ -253,6 +252,71 @@ export class FileSuggest extends BaseSuggest<TFile> {
 
     selectSuggestion(value: TFile, _: KeyboardEvent | MouseEvent): void {
         this.inputEl.value = value.path;
+        this.inputEl.trigger("input");
+        this.suggestionSelected = true;
+        this.close();
+    }
+}
+
+export class HeadingsSuggest extends BaseSuggest<string> {
+    public headings: string[];
+    public noHeadingsFound: boolean;
+    public newHeadingVal: string | null = null;
+    public templatePath: string;
+
+    update(headings: string[], templatePath: string) {
+        if (headings) {
+            this.headings = headings;
+        }
+        if (templatePath) {
+            this.templatePath = templatePath;
+        }
+    }
+
+    getSuggestions(inputVal: string) {
+        let filteredHeadings: string[] = [];
+
+        this.headings.forEach((heading) => {
+            if (
+                heading.toLowerCase().contains(inputVal.toLowerCase())
+            ) {
+                filteredHeadings.push(heading);
+            }
+        });
+        if (filteredHeadings.length === 0 && inputVal.trim() !== "") {
+            this.noHeadingsFound = true;
+            this.newHeadingVal = /^#{1,6} /.test(inputVal.trim()) ? inputVal : `# ${inputVal}`;
+            filteredHeadings = [`+ Add "${inputVal}" to template headings`];
+        } else {
+            this.noHeadingsFound = false;
+            this.newHeadingVal = null;
+        }
+
+        return filteredHeadings;
+    }
+
+    /**
+        * Set content of each individual suggestion div element
+        *
+        * called for each suggestion item from getSuggestions() in renderSuggestions()
+    */
+    renderSuggestion(heading: string, el: HTMLElement): void {
+        el.setText(heading);
+    }
+
+    async selectSuggestion(heading: string, _: KeyboardEvent | MouseEvent): Promise<void> {
+        if (this.noHeadingsFound && heading.includes("+ Add")) {
+            const file = this.templatePath ? (window.app.vault.getAbstractFileByPath(this.templatePath) as TFile) : null;
+            if (file) {
+                const content = await window.app.vault.read(file)
+                if (this.newHeadingVal) {
+                    window.app.vault.modify(file, `${content.trim() === "" ? this.newHeadingVal : `${content.trim()}\n\n${this.newHeadingVal}`}`)
+                    this.inputEl.value = this.newHeadingVal;
+                }
+            }
+        } else {
+            this.inputEl.value = heading;
+        }
         this.inputEl.trigger("input");
         this.suggestionSelected = true;
         this.close();

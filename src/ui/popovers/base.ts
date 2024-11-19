@@ -1,28 +1,27 @@
-import { CALENDAR_POPOVER_ID, FILE_MENU_POPOVER_ID, STICKER_POPOVER_ID } from "@/constants";
-import { BaseComponentBehavior } from "./base-component-behavior";
+import { BASE_POPOVER_ID, CALENDAR_POPOVER_ID, FILE_MENU_POPOVER_ID, STICKER_POPOVER_ID } from "@/constants";
+import { BaseComponentBehavior, TBasePopoverId, TBasePopoverParams } from "./base-component-behavior";
 import { CalendarPopoverBehavior, type TCalendarPopoverParams } from "./calendar";
 import { FileMenuPopoverBehavior, type TFileMenuOpenParams, type TFileMenuPopoverParams } from "./file-menu";
 import { StickerPopoverBehavior, type TStickerPopoverParams } from "./sticker";
 
-export type TPopoverType = typeof CALENDAR_POPOVER_ID | typeof STICKER_POPOVER_ID | typeof FILE_MENU_POPOVER_ID;
-export type TPopoverParams = TCalendarPopoverParams | TStickerPopoverParams | TFileMenuPopoverParams;
+export type TPopoverId = TBasePopoverId | typeof FILE_MENU_POPOVER_ID;
+export type TPopoverParams = TCalendarPopoverParams | TStickerPopoverParams | TFileMenuPopoverParams | TBasePopoverParams;
 
 export class Popover {
-    static instances = new Map<TPopoverType, Popover>();
-    static behaviorInstances = new Map<TPopoverType, ReturnType<typeof createBehavior>>();
+    static instances = new Map<TPopoverId, Popover>();
+    static behaviorInstances = new Map<TPopoverId, ReturnType<typeof createBehavior>>();
     static mutationObserverStarted = false;
 
     constructor(
-        private id: TPopoverType,
+        private id: TPopoverId,
         private behavior: BaseComponentBehavior | FileMenuPopoverBehavior,
     ) { }
 
-    static create(params: TCalendarPopoverParams | TStickerPopoverParams | TFileMenuPopoverParams) {
+    static create(params: TPopoverParams) {
         let popover = getPopoverInstance(params.id);
         if (!popover) {
             const behavior = createBehavior(params);
             popover = new Popover(params.id, behavior);
-            console.log("🎉🎉 New popover created + behavior", popover, behavior)
             Popover.instances.set(params.id, popover);
             Popover.behaviorInstances.set(params.id, behavior);
         }
@@ -66,15 +65,18 @@ function createBehavior(params: TPopoverParams) {
             return new StickerPopoverBehavior(params);
         case FILE_MENU_POPOVER_ID:
             return new FileMenuPopoverBehavior(params);
+        default:
+            return new BaseComponentBehavior(params.id, params.view, params.cbs);
     }
 }
 
-export function getPopoverInstance(id: TPopoverType) {
+export function getPopoverInstance(id: TPopoverId) {
     return Popover.instances.get(id);
 }
 export function getBehaviorInstance(id: typeof CALENDAR_POPOVER_ID): CalendarPopoverBehavior | undefined;
 export function getBehaviorInstance(id: typeof STICKER_POPOVER_ID): StickerPopoverBehavior | undefined;
+export function getBehaviorInstance(id: typeof BASE_POPOVER_ID): BaseComponentBehavior | undefined;
 export function getBehaviorInstance(id: typeof FILE_MENU_POPOVER_ID): FileMenuPopoverBehavior | undefined;
-export function getBehaviorInstance(id: TPopoverType): CalendarPopoverBehavior | StickerPopoverBehavior | FileMenuPopoverBehavior | undefined {
+export function getBehaviorInstance(id: TPopoverId): CalendarPopoverBehavior | StickerPopoverBehavior | BaseComponentBehavior | FileMenuPopoverBehavior | undefined {
     return Popover.behaviorInstances.get(id);
 }

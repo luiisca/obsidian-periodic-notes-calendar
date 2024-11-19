@@ -54,7 +54,9 @@
             oninput={() => {
                 error = validateTemplate(value);
                 if (error.trim() === "") {
-                    $settings.templatePath = value.trim();
+                    $settings.templatePath =
+                        value.trim() +
+                        (!value.trim().endsWith(".md") ? ".md" : "");
                 }
             }}
         />

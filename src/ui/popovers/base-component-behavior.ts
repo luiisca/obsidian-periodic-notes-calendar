@@ -1,23 +1,41 @@
 import { Component, mount } from "svelte";
 import { Popover } from "./base";
 import { arrow, autoUpdate, computePosition, flip } from "@floating-ui/dom";
-import { CALENDAR_POPOVER_ID, MODAL_CLASS, STICKER_POPOVER_ID } from "@/constants";
+import { BASE_POPOVER_ID, CALENDAR_POPOVER_ID, MODAL_CLASS, STICKER_POPOVER_ID } from "@/constants";
 import { type TWindowEvents, type WindowEventHandler } from "../types";
 import { get } from "svelte/store";
 import { settingsStore } from "@/settings";
+
+export type TBasePopoverParams = {
+    id: typeof BASE_POPOVER_ID,
+    view: {
+        Component: Component;
+        props?: Record<string, any>;
+    },
+    cbs?: {
+        onOpen?: () => void,
+        onClose?: () => void,
+    }
+}
+export type TBasePopoverId = typeof STICKER_POPOVER_ID | typeof CALENDAR_POPOVER_ID | typeof BASE_POPOVER_ID
 
 export class BaseComponentBehavior {
     public componentHtmlEl: HTMLElement;
     public component: Record<string, any>;
     public autoUpdateCleanup: (() => void) | null | undefined;
+    public boundCallbacks = new Map();
     public opened = false;
 
     constructor(
-        public id: typeof STICKER_POPOVER_ID | typeof CALENDAR_POPOVER_ID,
+        public id: TBasePopoverId,
         view: {
             Component: Component;
             props?: Record<string, any>;
         },
+        public cbs?: {
+            onOpen?: () => void,
+            onClose?: () => void,
+        }
     ) {
         this.component = mount(view.Component, {
             target: document.body,
@@ -37,7 +55,7 @@ export class BaseComponentBehavior {
         }
     }
 
-    public open(refHtmlEl: Element) {
+    public open(refHtmlEl: Element, addDefaultEvListners = true) {
         this.opened = true;
 
         // close all popovers when a new modal is displayed to prevent overlapping
@@ -65,13 +83,15 @@ export class BaseComponentBehavior {
             });
         }
 
-        console.log("open BaseComponentBehavior", this);
         this.show()
         this.setInteractivity(true);
         this.positionComponent({ refHtmlEl });
         this.autoUpdateCleanup = autoUpdate(refHtmlEl, this.componentHtmlEl, () => {
             this.positionComponent({ refHtmlEl });
         })
+
+        addDefaultEvListners && this.addWindowListeners(this.getWindowEvents(), this, this.boundCallbacks);
+        this.cbs?.onOpen?.();
     }
     public close() {
         this.opened = false;
@@ -80,6 +100,9 @@ export class BaseComponentBehavior {
         this.setInteractivity(false);
         this.autoUpdateCleanup?.();
         this.autoUpdateCleanup = null;
+
+        this.removeWindowListeners(this.getWindowEvents(), this.boundCallbacks);
+        this.cbs?.onClose?.();
     }
     public cleanup() {
         // needed to avoid breaking inheritance
@@ -152,6 +175,25 @@ export class BaseComponentBehavior {
             }
         )
     }
+
+    public getWindowEvents(): TWindowEvents {
+        return {
+            click: this.handleWindowClick,
+        }
+    }
+    public handleWindowClick(event: MouseEvent) {
+        const ev = event as MouseEvent & { target: HTMLElement | null };
+
+
+        const baseElTouched =
+            this.componentHtmlEl.contains(ev.target) ||
+            ev.target?.closest(`[id*=${BASE_POPOVER_ID}]`)
+
+        // close base popover if user clicked anywhere but base popover
+        if (!baseElTouched) {
+            this.close();
+        }
+    };
 
     private show() {
         this.componentHtmlEl.style.display = 'block';

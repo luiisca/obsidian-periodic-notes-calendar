@@ -8,6 +8,12 @@ export type TFormat = {
     error: string;
     loading: boolean;
 }
+export interface IPreview {
+    enabled: boolean,
+    mainSection: "" | null,
+    todoSection: "# TODO" | string,
+    destination: "default" | "below",
+}
 export interface PeriodSettings {
     enabled: boolean;
     openAtStartup: boolean;
@@ -16,6 +22,7 @@ export interface PeriodSettings {
     formats: Record<string, TFormat>;
     folder: string;
     templatePath: string;
+    preview: IPreview;
 }
 
 export interface ISettings {
@@ -23,7 +30,7 @@ export interface ISettings {
     filepaths: Record<string, string>;
     filepathsByFormatValue: Record<string, Record<string, string> | undefined>;
     /** Position of the calendar view leaf ('left' or 'right') */
-    viewLeafPosition: "left" | "right";
+    viewLeafPosition: "left" | "center" | "right";
 
     floatingMode: boolean;
 
@@ -109,6 +116,13 @@ export function getDefaultPeriodicNotesConfig(
         formats: { [id]: selectedFormat },
         templatePath: "",
         folder: "/",
+        preview: {
+            enabled: true,
+            mainSection: null,
+            todoSection: '## TODO',
+            destination: "below" as const,
+        },
+
     } satisfies PeriodSettings
 }
 

@@ -33,14 +33,13 @@ export class CalendarPopoverBehavior extends BaseComponentBehavior {
             const boundCallback = this.handleReferenceElHover.bind(this);
             this.boundRefElCallback.set('mouseover', boundCallback);
 
-            console.log("about to add mouseover handler to refHtmlEl", this.refHtmlEl, boundCallback);
             this.refHtmlEl.addEventListener('mouseover', boundCallback);
         }
     }
 
     public open() {
         this.refHtmlEl = getRefHtmlEl();
-        this.refHtmlEl && super.open(this.refHtmlEl);
+        this.refHtmlEl && super.open(this.refHtmlEl, false);
         this.addWindowListeners(this.getWindowEvents(), this, this.boundCallbacks);
     }
 
@@ -54,7 +53,7 @@ export class CalendarPopoverBehavior extends BaseComponentBehavior {
         unmount(this.component)
     }
 
-    private getWindowEvents(): TWindowEvents {
+    public getWindowEvents(): TWindowEvents {
         return {
             click: this.handleWindowClick,
             auxclick: this.handleWindowClick,
@@ -144,10 +143,10 @@ export class CalendarPopoverBehavior extends BaseComponentBehavior {
 
             const calendarElTouched =
                 this.componentHtmlEl.contains(ev.target) ||
-                ev.target?.id.includes(CALENDAR_POPOVER_ID);
+                ev.target?.closest(`[id*=${CALENDAR_POPOVER_ID}]`);
             const stickerElTouched =
                 stickerEl?.contains(ev.target) ||
-                ev.target?.id.includes(STICKER_POPOVER_ID);
+                ev.target?.closest(`[id*=${STICKER_POPOVER_ID}]`);
             const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className?.includes('menu');
             const referenceElTouched = this.refHtmlEl?.contains(event.target as Node);
 

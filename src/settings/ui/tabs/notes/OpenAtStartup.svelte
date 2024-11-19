@@ -15,6 +15,7 @@
 	let { settings, granularity }: Props = $props();
 </script>
 
+<!-- // TODO: reword description -->
 <SettingItem
 	name="Open on startup"
 	description={`Opens your ${capitalize(

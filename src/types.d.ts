@@ -1,7 +1,7 @@
 import PeriodicNotesCalendarPlugin from "./main";
 
 declare global {
-	interface Window {
+    interface Window {
         plugin: PeriodicNotesCalendarPlugin | null;
-	}
+    }
 }

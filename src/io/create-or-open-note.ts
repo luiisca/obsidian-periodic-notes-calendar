@@ -11,6 +11,7 @@ import { getPeriodicityFromGranularity, replaceTemplateContents } from "./parse"
 import { getNormalizedPeriodSettings } from "./settings";
 import { type IGranularity } from "./types";
 import { ensureFolderExists, getNotePath, getTemplateInfo } from "./vault";
+import { extractAndReplaceTODOItems } from "./utils";
 
 
 export async function createOrOpenNote({
@@ -92,6 +93,7 @@ async function createNote(granularity: IGranularity, date: Moment) {
             normalizedPath,
             replaceTemplateContents(date, selectedFormat.value, templateContents)
         );
+        await extractAndReplaceTODOItems(date, granularity, file);
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (window.app as any).foldManager.save(file, IFoldInfo);

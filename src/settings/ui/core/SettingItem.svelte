@@ -1,7 +1,7 @@
 <script lang="ts">
 	interface Props {
 		name: string;
-		description: string;
+		description?: string;
 		isHeading?: boolean;
 		type?: 'dropdown' | 'toggle' | undefined;
 		control?: import('svelte').Snippet;
@@ -9,7 +9,7 @@
 
 	let {
 		name,
-		description,
+		description = '',
 		isHeading = false,
 		type = undefined,
 		control

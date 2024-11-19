@@ -9,6 +9,7 @@
     import Template from "./Template.svelte";
     import OpenAtStartup from "./OpenAtStartup.svelte";
     import Formats from "./Formats.svelte";
+    import Preview from "./Preview.svelte";
 
     interface Props {
         granularity: IGranularity;
@@ -84,6 +85,8 @@
             <Folder {settings} {granularity} />
             <Template {settings} />
             <OpenAtStartup {settings} {granularity} />
+            <Preview {settings} {granularity} />
         </div>
     {/if}
 </div>
+

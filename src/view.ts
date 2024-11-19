@@ -11,8 +11,8 @@ import { InvalidFormat } from '@/ui';
 import { mount, unmount } from "svelte";
 import { get } from 'svelte/store';
 import View from './View.svelte';
-import { VIEW_TYPE } from './constants';
-import { basename, storeAllVaultPeriodicFilepaths } from './io';
+import { LEAF_TYPE } from './constants';
+import { basename, extractAndReplaceTODOItems, storeAllVaultPeriodicFilepaths } from './io';
 import { isValidPeriodicNote } from './io/validation';
 import type PeriodicNotesCalendarPlugin from './main';
 import { settingsStore } from './settings';
@@ -53,7 +53,7 @@ export class CalendarView extends ItemView {
     }
 
     getViewType() {
-        return VIEW_TYPE;
+        return LEAF_TYPE;
     }
 
     getDisplayText() {
@@ -81,7 +81,6 @@ export class CalendarView extends ItemView {
     }
 
     private onMetadataChanged(file: TFile) {
-        // little hack to trigger a rerender every time metadata changes
         internalFileModStore.set({ modified: Math.random() })
     }
 
@@ -93,7 +92,7 @@ export class CalendarView extends ItemView {
         if (this.app.workspace.layoutReady && this.view) {
             if (file.extension !== 'md') return;
 
-            const { isValid, granularity, format } = isValidPeriodicNote(file.basename);
+            const { isValid, date, granularity, format } = isValidPeriodicNote(file.basename);
 
             if (isValid === false) {
                 const fragment = document.createDocumentFragment();
@@ -111,6 +110,7 @@ export class CalendarView extends ItemView {
             }
             if (typeof isValid === "boolean") {
                 settingsStore.addFilepath(file.path, format.value)
+                extractAndReplaceTODOItems(date, granularity, file)
             }
         }
     }

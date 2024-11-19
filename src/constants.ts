@@ -1,6 +1,6 @@
 import { type IGranularity } from "./io";
 
-export const VIEW_TYPE = 'periodic-notes-calendar-view';
+export const LEAF_TYPE = 'periodic-notes-calendar-view';
 export const granularities = ['day', 'week', 'month', 'quarter', 'year'] as const;
 export const granularitiesCapitalize = ['Day', 'Week', 'Month', 'Quarter', 'Year'] as const;
 export const togglePeriods = ['day', 'month', 'year'] as const;
@@ -15,6 +15,7 @@ export const YEARS_RANGE_SIZE = 12
 
 export const STICKER_TAG_PREFIX = '#sticker-';
 
+export const BASE_POPOVER_ID = "base-popover";
 export const CALENDAR_POPOVER_ID = 'calendar-popover';
 export const CALENDAR_RIBBON_ID = `${CALENDAR_POPOVER_ID}-ribbon-ref-el`;
 

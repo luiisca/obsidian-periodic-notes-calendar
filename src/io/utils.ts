@@ -6,6 +6,8 @@ import { getPeriodicityFromGranularity } from "./parse";
 import { getNormalizedPeriodSettings } from "./settings";
 import { type IGranularity } from "./types";
 import { isValidPeriodicNote } from "./validation";
+import { Moment } from "moment";
+import { getFileData, getNotePath } from "./vault";
 
 export function storeAllVaultPeriodicFilepaths(
     firstRun = false,
@@ -75,4 +77,102 @@ export function getStartupNoteGranularity() {
             return granularity
         }
     }
+}
+
+export async function extractAndReplaceTODOItems(date: Moment, granularity: IGranularity, file: TFile, c = 0) {
+    const previewSettings = get(settingsStore).periods[granularity].preview
+    if (previewSettings.todoSection.trim() !== "") {
+        const prevPeriodDate = date.clone().subtract(1, granularity);
+        const { file: prevPeriodFile } = getFileData(granularity, prevPeriodDate);
+        console.log("prevPeriodFile: ", prevPeriodFile);
+        if (prevPeriodFile) {
+            const content = await window.app.vault.read(prevPeriodFile)
+            const todos = extractTODOs(content, granularity);
+
+            console.log(todos);
+
+            if (todos.length > 0) {
+                const currentFileContent = await window.app.vault.read(file);
+                const updatedContent = appendTODOs(currentFileContent, todos, granularity);
+                await window.app.vault.modify(file, updatedContent);
+            }
+        } else {
+            if (c < 3) {
+                extractAndReplaceTODOItems(prevPeriodDate, granularity, file, c + 1)
+            }
+        }
+    }
+}
+
+function extractTODOs(content: string, granularity: IGranularity): string[] {
+    const todoSection = get(settingsStore).periods[granularity].preview.todoSection;
+    const lines = content.trim().split('\n');
+    const todos: string[] = [];
+    let inTODOSection = false;
+
+    for (const line of lines) {
+        if (line.trim().startsWith(todoSection)) {
+            inTODOSection = true;
+            continue;
+        }
+
+        // Stop collecting items when hitting the next heading
+        if (inTODOSection && /^#{1,6} /.test(line.trim())) {
+            break;
+        }
+
+        // Collect TODO items that match a checklist pattern
+        if (inTODOSection && /^\s*- \[ \]/.test(line.trim())) {
+            todos.push(line.trim());
+        }
+    }
+
+    return todos;
+}
+
+function appendTODOs(content: string, todos: string[], granularity: IGranularity): string {
+    const todoSection = get(settingsStore).periods[granularity].preview.todoSection;
+    const lines = content.trim().split('\n');
+    const updatedLines: string[] = [];
+    let inTODOSection = false;
+    let appended = false;
+
+    console.log("APPENDTODOS: content: ", content);
+    if (content.trim() !== "") {
+        lines.forEach((line, index) => {
+            const nextLine = lines[index + 1] || "";
+            updatedLines.push(line);
+
+            console.log("APPENDTODOS: line: ", line);
+            if (line.trim().startsWith(todoSection)) {
+                inTODOSection = true;
+            }
+
+            if (inTODOSection && /^#{1,6} /.test(nextLine.trim())) {
+                // ensures todo items are added inmediately before next heading
+                !appended && updatedLines.push(...todos);
+                appended = true;
+
+                return;
+            }
+
+            if (index === lines.length - 1) {
+                if (!inTODOSection) {
+                    updatedLines.push(todoSection);
+                }
+                !appended && updatedLines.push(...todos);
+                appended = true;
+
+                return;
+            }
+        })
+    } else {
+        // If the TODO section doesn't exist, add it at the end
+        updatedLines.push(todoSection);
+        updatedLines.push(...todos);
+    }
+
+    console.log("APPENDTODOS: updatedLines: ", updatedLines);
+
+    return updatedLines.join('\n');
 }

@@ -1,29 +1,23 @@
 <script lang="ts">
-	import { CALENDAR_POPOVER_ID, VIEW_TYPE } from '@/constants';
+	import { CALENDAR_POPOVER_ID } from '@/constants';
 	import locales from '@/locales';
 	import { defaultWeekdays, sysLocaleKey } from '@/localization';
+    import { ViewManager } from '@/main';
+	import { ISettings } from '@/settings/constants';
 	import { settingsStore } from '@/settings/store';
 	import { Dropdown, SettingItem, Toggle } from '@/settings/ui';
 	import { updateLocale, updateWeekdays, updateWeekStart } from '@/stores';
 	import { Popover } from '@/ui/popovers';
-	import { capitalize } from '@/utils';
 	import View from '@/View.svelte';
 	import { derived as derivedStore } from 'svelte/store';
 
 	// Display
-	const handleViewLeafPositionChange = async (position: 'left' | 'right') => {
-		window.app.workspace.detachLeavesOfType(VIEW_TYPE);
-
-		await window.app.workspace[`get${capitalize(position) as 'Left' | 'Right'}Leaf`](
-			false
-		)?.setViewState({
-			type: VIEW_TYPE,
-			active: false
-		});
+	const handleViewLeafPositionChange = async (position: ISettings["viewLeafPosition"]) => {
+        ViewManager.initView({ active: false });
 
 		settingsStore.update((settings) => ({
 			...settings,
-			viewLeafPosition: position as 'left' | 'right'
+			viewLeafPosition: position as ISettings["viewLeafPosition"]
 		}));
 	};
 	const handleFloatingModeToggle = (floatingMode: boolean) => {
@@ -217,6 +211,7 @@
 			
 			options={[
 				{ label: 'Left', value: 'left' },
+				{ label: 'Center', value: 'center' },
 				{ label: 'Right', value: 'right' }
 			]}
 			onChange={handleViewLeafPositionChange}
@@ -289,7 +284,7 @@
 	{/snippet}
 </SettingItem>
 
-{#if $settingsStore.viewMode === 'floating-window'}
+{#if $settingsStore.floatingMode}
 	<h3>Popover Windows</h3>
 	<SettingItem
 		name="Sequential Dismissal (Click)"

@@ -23,7 +23,7 @@ export class StickerPopoverBehavior extends BaseComponentBehavior {
 
     public open(refHtmlEl: HTMLElement) {
         this.refHtmlEl = refHtmlEl;
-        super.open(refHtmlEl);
+        super.open(refHtmlEl, false);
 
         this.getSearchInput()?.focus();
         this.addWindowListeners(this.getWindowEvents(), this, this.boundCallbacks);
@@ -40,7 +40,7 @@ export class StickerPopoverBehavior extends BaseComponentBehavior {
         unmount(this.component);
     }
 
-    private getWindowEvents(): TWindowEvents {
+    public getWindowEvents(): TWindowEvents {
         return {
             click: this.handleWindowClick,
             auxclick: this.handleWindowClick,
@@ -54,7 +54,7 @@ export class StickerPopoverBehavior extends BaseComponentBehavior {
 
         const stickerElTouched =
             this.componentHtmlEl?.contains(ev.target) ||
-            ev.target?.id.includes(STICKER_POPOVER_ID);
+            ev.target?.closest(`[id*=${STICKER_POPOVER_ID}]`);
         const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
 
         // close SP if user clicks anywhere but SP
@@ -91,7 +91,6 @@ export class StickerPopoverBehavior extends BaseComponentBehavior {
 
         if (event.key === 'Escape') {
             const searchInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
-            console.log("searchInput active and event: ", event, searchInput, searchInput?.isActiveElement());
 
             if (settings.popoversClosing.closePopoversOneByOneOnEscKeydown) {
                 this.close();
