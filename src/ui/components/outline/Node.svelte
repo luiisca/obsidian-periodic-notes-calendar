@@ -3,11 +3,12 @@
     import { previewLeafStore } from "@/stores";
     import { getPopoverInstance } from "@/ui/popovers";
     import { cn } from "@/ui/utils";
-    import { HeadingCache, MarkdownView, WorkspaceLeaf } from "obsidian";
-    import { Writable } from "svelte/store";
-    import { slide } from "svelte/transition";
-    import Node from "./Node.svelte";
     import { escapeRegex } from "@/utils";
+    import { HeadingCache, MarkdownView, WorkspaceLeaf } from "obsidian";
+    import { cubicOut } from "svelte/easing";
+    import { tweened } from "svelte/motion";
+    import { Writable } from "svelte/store";
+    import Node from "./Node.svelte";
 
     interface Props {
         node: TNode;
@@ -22,6 +23,8 @@
     };
     let { node, searchQuery, collapseAll, updateCollapsedCount, depth = 0 }: Props = $props();
     let leaf: WorkspaceLeaf | null = $state(null);
+    let childrenContainerEl: HTMLDivElement | null = $state(null);
+    let childrenContainerElHeight = tweened(0, {duration: 300, easing: cubicOut})
 
     let markdownView: MarkdownView | null = $state(null);
     let collapsed = $state($collapseAll);
@@ -60,6 +63,11 @@
         depth === 0 && updateCollapsedCount(collapsed);
     }
 
+    $effect(() => {
+        if (childrenContainerEl) {
+            childrenContainerElHeight.set(collapsed ? 0 : childrenContainerEl.scrollHeight)
+        }
+    })
     $effect(() => {
         if (typeof $collapseAll === "boolean") {
             collapsed = $collapseAll
@@ -133,16 +141,27 @@
         </div>
     </div>
     {#if node.children && node.children.length > 0}
-      <div class={cn("tree-item-children", collapsed && "!hidden")} transition:slide={{ duration: 200}}>
-        {#each node.children as child}
-            <Node
-                node={child}
-                {searchQuery}
-                {collapseAll}
-                {updateCollapsedCount}
-                depth={depth + 1}
-            />
-        {/each}
-      </div>
+        <div class={cn(
+            "grid overflow-hidden [transition:grid-template-rows_200ms]",
+            collapsed ? "grid-rows-[0fr]" : "grid-rows-[1fr]",
+        )}>
+            <div 
+              bind:this={childrenContainerEl} 
+              class={cn(
+                  "tree-item-children min-h-0  [transition:visibility_200ms]", 
+                  collapsed ? "[visibility:hidden]" : "visible"
+              )}
+            >
+            {#each node.children as child}
+                <Node
+                    node={child}
+                    {searchQuery}
+                    {collapseAll}
+                    {updateCollapsedCount}
+                    depth={depth + 1}
+                />
+            {/each}
+            </div>
+        </div>
     {/if}
-  </div>
+</div>

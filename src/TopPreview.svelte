@@ -40,7 +40,9 @@
 </script>
 
 {#if file && leaf}
-    <div class="flex space-x-1 pt-[1px] pb-1.5 px-3 h-[var(--header-height)]">
+    <div
+        class="absolute right-0 flex space-x-1 pb-1.5 mt-1.5 px-3 h-[var(--header-height)]"
+    >
         <div
             tabindex="0"
             role="button"
