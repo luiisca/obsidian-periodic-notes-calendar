@@ -6,6 +6,7 @@ import { Menu } from "obsidian";
 import StickerPopoverComponent from "../components/StickerPopover.svelte";
 import { eventHandlers, isControlPressed } from "../utils";
 import { Popover } from "./base";
+import { ViewManager } from "@/main";
 
 export type TFileMenuPopoverParams = {
     id: typeof FILE_MENU_POPOVER_ID,
@@ -13,8 +14,12 @@ export type TFileMenuPopoverParams = {
 export type TFileMenuOpenParams = {
     event: MouseEvent,
     fileData: TFileData,
-    date: Moment,
-    granularity: IGranularity,
+    date?: Moment,
+    granularity?: IGranularity,
+    extraItems?: {
+        add: (menu: Menu) => void,
+        newSections: string[]
+    },
 }
 
 export class FileMenuPopoverBehavior {
@@ -34,15 +39,15 @@ export class FileMenuPopoverBehavior {
         }
     }
 
-    public open({ event, fileData, date, granularity }: TFileMenuOpenParams) {
+    public open({ event, fileData, date, granularity, extraItems }: TFileMenuOpenParams) {
         this.opened = true;
 
         this.refHtmlEl = event.target as Element;
         this.menu = new Menu();
 
-        if (fileData) {
-            this.openCustomFileMenu(this.menu, fileData)
-        } else {
+        if (fileData.file) {
+            this.openCustomFileMenu(this.menu, fileData, extraItems)
+        } else if (date && granularity) {
             this.menu.addItem((item) => {
                 item
                     .setTitle("Create Note")
@@ -71,11 +76,11 @@ export class FileMenuPopoverBehavior {
         this.menu?.unload();
     }
 
-    private openCustomFileMenu(menu: Menu, fileData: TFileData) {
+    private openCustomFileMenu(menu: Menu, fileData: TFileData, extraItems?: TFileMenuOpenParams['extraItems']) {
         const file = fileData.file;
         if (file) {
             // Add sections to the menu
-            (menu as any).addSections(["title", "open", "action-primary", "action", "info", "view", "system", "", "danger"]);
+            (menu as any).addSections([...(extraItems?.newSections || []), "title", "open", "action-primary", "action", "info", "view", "system", "", "danger"]);
 
             // Add title (for mobile)
             if ((window.app as any).isMobile) {
@@ -94,6 +99,15 @@ export class FileMenuPopoverBehavior {
                     .setIcon("lucide-file-plus")
                     .onClick(() => {
                         window.app.workspace.openLinkText(file.path, "", "tab");
+                    })
+            );
+            // Open preview
+            menu.addItem((item) =>
+                item.setSection("open")
+                    .setTitle("Open in preview window")
+                    .setIcon("lucide-eye")
+                    .onClick(() => {
+                        ViewManager.initPreview(file);
                     })
             );
 
@@ -138,7 +152,6 @@ export class FileMenuPopoverBehavior {
                     .setIcon("lucide-smile-plus")
                     .onClick(() => {
                         if (this.refHtmlEl) {
-                            console.log("🤝 about to SET fileData", fileData)
                             spFileDataStore.set(fileData);
                             Popover.create({
                                 id: STICKER_POPOVER_ID,
@@ -149,6 +162,7 @@ export class FileMenuPopoverBehavior {
                         }
                     })
             );
+            extraItems?.add?.(menu)
 
             window.app.workspace.trigger("file-menu", menu, file, "custom-file-menu");
         }

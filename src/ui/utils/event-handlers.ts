@@ -3,7 +3,7 @@ import type { IGranularity } from '@/io';
 import { createOrOpenNote } from "@/io";
 import { settingsStore } from '@/settings';
 import type { Moment } from 'moment';
-import { TFile } from 'obsidian';
+import { TFile, WorkspaceLeaf } from 'obsidian';
 import { get } from 'svelte/store';
 import { Popover } from '../popovers';
 import { TFileMenuOpenParams } from '../popovers/file-menu';
@@ -12,6 +12,7 @@ type TOnClickParams = {
     date: Moment;
     createNewSplitLeaf: boolean;
     granularity: IGranularity;
+    isPreview?: boolean;
 };
 type TOnHoverParams = {
     event: PointerEvent | null;
@@ -23,11 +24,16 @@ type TOnHoverParams = {
 const onClick = async ({
     date,
     createNewSplitLeaf,
-    granularity
+    granularity,
+    isPreview,
 }: TOnClickParams): Promise<void> => {
-    const leaf = window.app.workspace.getLeaf(createNewSplitLeaf);
-
-    createOrOpenNote({ leaf, date, granularity });
+    let leaf: WorkspaceLeaf | null;
+    if (isPreview || (get(settingsStore).preview.openNotesInPreview && !createNewSplitLeaf)) {
+        leaf = null;
+    } else {
+        leaf = window.app.workspace.getLeaf(createNewSplitLeaf);
+    }
+    createOrOpenNote({ leaf, date, granularity, isPreview });
 };
 
 const onHover = ({

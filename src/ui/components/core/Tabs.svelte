@@ -6,6 +6,7 @@
     interface Props {
         tabs?: string[];
         selectedTab: string;
+        selectTab: (tab: string) => void;
         id?: string | undefined;
         tabId?: string | undefined;
         className?: string | null;
@@ -14,6 +15,7 @@
     let {
         tabs = [],
         selectedTab = $bindable(),
+        selectTab,
         id = undefined,
         tabId = undefined,
         className = null,
@@ -41,7 +43,8 @@
                 minimalMode?.value ? "py-1 h-fit" : "py-2 [font-size:100%]",
             )}
             id={tabId}
-            onclick={() => (selectedTab = tab)}>{capitalize(tab)}</button
+            onclick={() => selectTab(tab)}>{capitalize(tab)}</button
         >
     {/each}
 </div>
+

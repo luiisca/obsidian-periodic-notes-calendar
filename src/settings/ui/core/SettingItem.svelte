@@ -1,6 +1,9 @@
 <script lang="ts">
+    import { cn } from '@/ui/utils';
+
 	interface Props {
-		name: string;
+		name?: string;
+        className?: string;
 		description?: string;
 		isHeading?: boolean;
 		type?: 'dropdown' | 'toggle' | undefined;
@@ -9,6 +12,7 @@
 
 	let {
 		name,
+        className = '',
 		description = '',
 		isHeading = false,
 		type = undefined,
@@ -18,16 +22,18 @@
 
 <!-- doubles as section title thanks to `setting-item-heading` -->
 <div
-	class="setting-item"
+	class={cn("setting-item", className)}
 	class:setting-item-heading={isHeading}
 	class:mod-dropdown={type === 'dropdown'}
 >
 	<div class="setting-item-info">
-		<div class="setting-item-name">
-			<div>
-				{name}
-			</div>
-		</div>
+        {#if name}
+            <div class="setting-item-name">
+                <div>
+                    {name}
+                </div>
+            </div>
+        {/if}
 		{#if description}
 			<div class="setting-item-description">
 				{description}

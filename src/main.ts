@@ -3,26 +3,29 @@ import moment from 'moment';
 import { Plugin, TFile, WorkspaceLeaf, WorkspaceRoot } from 'obsidian';
 import { mount, unmount, type SvelteComponent } from 'svelte';
 import { get } from 'svelte/store';
-import { CALENDAR_POPOVER_ID, CALENDAR_RIBBON_ID, granularities, LEAF_TYPE } from './constants';
-import { createOrOpenNote, getFileData, getStartupNoteGranularity, IGranularity } from './io';
+import { CALENDAR_POPOVER_ID, CALENDAR_RIBBON_ID, granularities, LEAF_TYPE, PREVIEW_CONTROLS_TYPE } from './constants';
+import { createNote, createOrOpenNote, getFileData, getStartupNoteGranularity, IGranularity } from './io';
 import { getPeriodicityFromGranularity } from './io/parse';
 import type { IPeriodicity } from './io/types';
 import locales from './locales';
 import { PeriodSettings } from './settings';
 import {
+    activeFilepathStore,
+    isPreviewMaximizedStore,
     pluginClassStore,
     previewLeafStore,
+    previewSplitDirectionStore,
+    processingPreviewChangeStore,
     themeStore,
     updateLocale,
     updateWeekdays,
     updateWeekStart
 } from './stores';
-import TopPreview from './TopPreview.svelte';
+import { PreviewControls, View } from './ui';
 import { createNldatePickerDialog } from './ui/modals/nldate-picker';
 import { getBehaviorInstance, getPopoverInstance, Popover } from './ui/popovers';
 import { capitalize, getDailyNotesPlugin } from './utils';
 import { CalendarView } from './view';
-import View from './View.svelte';
 
 export default class PeriodicNotesCalendarPlugin extends Plugin {
     popovers: Record<string, SvelteComponent | null> = {};
@@ -30,15 +33,12 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
     popoverAutoUpdateCleanup: (() => void) | null = null;
 
     onunload() {
-        console.log('ON Unload ⛰️');
-
         ViewManager.unload();
         this.popoversCleanups.forEach((cleanup) => cleanup());
     }
 
     async onload() {
         await this.loadSettings();
-        console.log('ON Load 🫵');
 
         pluginClassStore.set(this);
 
@@ -133,8 +133,6 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         }
 
         this.app.workspace.onLayoutReady(() => {
-            console.log('ON Layout REady 🙌');
-
             ViewManager.initView({ active: false });
 
             if (get(settingsStore).openPopoverOnRibbonHover) {
@@ -152,7 +150,6 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
             // open note at startup
             const startupNoteGranularity = getStartupNoteGranularity();
             if (startupNoteGranularity) {
-                console.log("🎉 [layout ready] about to open or create note");
                 createOrOpenNote({
                     leaf: this.app.workspace.getLeaf(),
                     date: window.moment(),
@@ -174,7 +171,6 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
     }
 
     async saveSettings(newSettings: ISettings) {
-        console.log("✅ saveSettings triggered", newSettings);
         await this.saveData(newSettings);
     }
 
@@ -261,15 +257,12 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
          * based on closest workspace split className
          */
         const crrSplitPos = getSplitPos();
-        console.log('crrSplitPos', crrSplitPos);
         /**
          * A split is a container for leaf nodes that slides in when clicking the collapse button, except for the root split (markdown editor). There are three types: left, root, and right.
          */
         const crrSplit = this.app.workspace[`${crrSplitPos}Split`];
-        console.log('crrSplit', crrSplit);
 
         const leafActive = leaf.tabHeaderEl.className.includes('is-active');
-        console.log('leafActive', leafActive);
 
         // Scnearios
         // eval root split
@@ -310,85 +303,93 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
 
 export class ViewManager {
     static mainLeaf: WorkspaceLeaf | null;
-    static previewComponent: Record<string, any>;
-
+    static previewControlsComponent: Record<string, any> | null;
+    static previewTabHeaderEl: HTMLElement | null;
     static previewLeafCleanups: (() => void)[] = [];
-    static async initView({ active }: { active: boolean } = { active: true }) {
-        this.cleanupExistingViews()
 
-        const leafPosition = capitalize(get(settingsStore).viewLeafPosition) as ISettings["viewLeafPosition"];
-        if (leafPosition === 'center') {
-            const rootLeaves: WorkspaceLeaf[] = []
-            window.app.workspace.iterateRootLeaves((leaf) => rootLeaves.push(leaf))
-            this.mainLeaf = rootLeaves[0];
-            this.mainLeaf.setViewState({
+    static async initView({ active }: { active: boolean } = { active: true }) {
+        this.cleanup()
+
+        const leafPosition = get(settingsStore).viewLeafPosition as ISettings["viewLeafPosition"];
+        if (leafPosition === 'root') {
+            this.mainLeaf = window.app.workspace.getLeaf('tab')
+            this.mainLeaf?.setViewState({
                 type: LEAF_TYPE,
                 active
             })
         } else {
-            this.mainLeaf = window.app.workspace[`get${leafPosition as "Left" | "Right"}Leaf`](false);
-            await this.mainLeaf?.setViewState({
+            this.mainLeaf = window.app.workspace[`get${capitalize(leafPosition) as "Left" | "Right"}Leaf`](false);
+            this.mainLeaf?.setViewState({
                 type: LEAF_TYPE,
                 active
             });
         }
 
-        if (this.mainLeaf) {
+        if (this.mainLeaf && get(settingsStore).preview.enabled) {
             const cleanup = this.setupVisibilityTracking();
             this.previewLeafCleanups.push(cleanup);
-        }
-    }
-
-    private static async initPreview() {
-        const periodsSettings = get(settingsStore).periods;
-        let file: TFile | null = null;
-        Object.entries(periodsSettings).find((entry) => {
-            const [g, s] = entry as [IGranularity, PeriodSettings];
-            if (s.preview.enabled) {
-                file = getFileData(g, moment()).file;
-                return true;
-            }
-        })
-
-        // TODO: check settings.autoCreate to create a new file if none found
-        if (file && this.mainLeaf) {
-            const previewLeaf = window.app.workspace.createLeafBySplit(this.mainLeaf, 'horizontal');
-            previewLeaf?.openFile(file);
-
-            previewLeafStore.set({ leaf: previewLeaf, file });
-            settingsStore.update(s => {
-                s.lastPreviewFilepath = file!.path
-                return s
-            });
-
-            const tabHeaderContainerEl = (previewLeaf.parent as any).tabHeaderContainerEl as HTMLElement | null
-            tabHeaderContainerEl?.remove()
-
-            // add extra buttons at the top
-            this.previewComponent = mount(TopPreview, {
-                target: previewLeaf.view.containerEl,
-            })
+        } else {
+            this.cleanupPreview();
         }
     }
 
     private static setupVisibilityTracking(): () => void {
         // Handler for layout changes
         const handleLayoutChange = async () => {
-            const previewLeaf = get(previewLeafStore)?.leaf;
-            const isMainVisible = this.mainLeaf && this.isLeafVisible(this.mainLeaf);
+            const mainLeaf = this.mainLeaf as WorkspaceLeaf & { containerEl: HTMLElement, width: number, height: number } | null;
+            const previewLeaf = ViewManager.searchPreviewLeaf()
+            const mainLeafvisible = mainLeaf && this.isLeafVisible(mainLeaf)
+            const previewLeafVisible = previewLeaf && ViewManager.isLeafVisible(previewLeaf)
 
-            if (isMainVisible && !previewLeaf) {
-                this.initPreview();
+            // check if preview is maximized
+            const isPreviewMaximized = this.checkIfPreviewIsMaximized(previewLeaf);
+            isPreviewMaximizedStore.set(isPreviewMaximized)
+
+            // check preview's split direction
+            const previewSplitDirection = this.getPreviewSplitDirection(previewLeaf);
+            previewSplitDirection && previewSplitDirectionStore.set(previewSplitDirection);
+
+            // avoid toggling preview if it has transitioned to an expanded-like state (moved to another tab)
+            if (isPreviewMaximized) {
+                settingsStore.update(s => {
+                    s.preview.visible = false;
+                    return s;
+                })
+                processingPreviewChangeStore.set(false);
+                return;
+            };
+            // very especific check for when an expanded preview window is moved to a split window
+            if (previewLeafVisible && (get(settingsStore).preview.defaultExpansionMode === "maximized" && !isPreviewMaximized)) {
+                settingsStore.update(s => {
+                    s.preview.visible = true;
+                    s.preview.tabHeaderVisible = true;
+                    return s;
+                })
+                return;
             }
-            if (!isMainVisible && previewLeaf) {
-                previewLeaf.detach();
-                unmount(this.previewComponent);
-                previewLeafStore.set(null);
+
+            if (!get(processingPreviewChangeStore)) {
+                const expandMode = get(settingsStore).preview.defaultExpansionMode
+                if (!previewLeaf) {
+                    const storedPreviewLeaf = get(previewLeafStore)?.leaf
+                    ViewManager.cleanupPreview({ leaf: storedPreviewLeaf! });
+                    return;
+                }
+                if (expandMode === 'split') {
+                    if (mainLeafvisible && !previewLeaf && get(settingsStore).preview.visible) {
+                        ViewManager.initPreview();
+                        return;
+                    }
+                }
+                if (!mainLeafvisible && previewLeaf && get(settingsStore).preview.visible) {
+                    ViewManager.cleanupPreview({ leaf: previewLeaf });
+                    return;
+                }
             }
         };
 
         // Register event handlers
-        window.app.workspace.on('layout-change', handleLayoutChange);
+        // window.app.workspace.on('layout-change', handleLayoutChange);
         window.app.workspace.on('resize', handleLayoutChange);
 
         // Initial check
@@ -411,33 +412,186 @@ export class ViewManager {
         );
     }
 
+    static async initPreview(defaultFile?: TFile) {
+        processingPreviewChangeStore.set(true);
 
-    private static cleanupExistingViews() {
-        // Detach all leaves of both types
+        await this.tryPreviewCleanup({ defaultFile });
+
+        if (!get(settingsStore).preview.visible) {
+            const file: TFile | null = defaultFile || await this.getFile();
+
+            if (file && this.mainLeaf) {
+                const viewLeafPosition = get(settingsStore).viewLeafPosition
+                const splitMode = viewLeafPosition === 'root' ? get(settingsStore).preview.centerDefaultSplitMode : get(settingsStore).preview.defaultSplitMode
+                const expandMode = get(settingsStore).preview.defaultExpansionMode;
+
+                let previewLeaf: WorkspaceLeaf | null = null;
+                if (expandMode === 'maximized') {
+                    if (viewLeafPosition === 'root') {
+                        previewLeaf = window.app.workspace.getLeaf('tab')
+                    } else {
+                        previewLeaf = window.app.workspace[`get${capitalize(viewLeafPosition) as "Left" | "Right"}Leaf`](false);
+                    }
+                } else {
+                    previewLeaf = window.app.workspace.createLeafBySplit(this.mainLeaf, splitMode);
+                }
+
+                if (previewLeaf) {
+                    this.setupOpenPreviewLeaf(file, previewLeaf)
+                }
+            }
+        }
+
+        processingPreviewChangeStore.set(false);
+    }
+
+    static cleanup() {
         window.app.workspace.detachLeavesOfType(LEAF_TYPE);
+        this.tryPreviewCleanup();
+        settingsStore.update(s => {
+            s.preview.visible = false
+            return s
+        })
+    }
+    static async tryPreviewCleanup({ leaf, defaultFile }: { leaf?: WorkspaceLeaf, defaultFile?: TFile } = {}) {
+        const previewLeaf = leaf || this.searchPreviewLeaf();
+        if (previewLeaf) {
+            if (this.checkIfPreviewIsMaximized(previewLeaf)) {
+                const file = defaultFile || await this.getFile()
+                if (file) {
+                    this.setupOpenPreviewLeaf(file, previewLeaf)
+                }
+            } else {
+                this.cleanupPreview({ leaf: previewLeaf });
+            }
+        }
+    }
+    static checkIfPreviewIsMaximized(previewLeaf: WorkspaceLeaf | null) {
+        const tabHeaderLeaves = (previewLeaf?.parent as any)?.children as WorkspaceLeaf[] | undefined;
+        let previewIsCalendarLeafSibling = false;
+        if (tabHeaderLeaves) {
+            for (let i = 0; i < tabHeaderLeaves.length; i++) {
+                if (previewIsCalendarLeafSibling) break;
 
-        let previewLeafClosed = false;
+                const leaf = tabHeaderLeaves[i] as WorkspaceLeaf & { containerEl: HTMLElement };
+                const childNodes = leaf.containerEl?.childNodes as unknown as HTMLElement[]
+                for (let j = 0; j < childNodes.length; j++) {
+                    const el = childNodes[j];
+                    if (el.dataset.type === LEAF_TYPE) {
+                        previewIsCalendarLeafSibling = true
+                        break;
+                    }
+                }
+            }
+        }
+        return previewIsCalendarLeafSibling
+    }
+    static getPreviewSplitDirection(previewLeaf: WorkspaceLeaf | null) {
+        return ((previewLeaf?.parent?.parent as any)?.direction || null) as 'vertical' | 'horizontal' | null;
+    }
+    /**
+        * Passing `restart` sets `s.preview.visible` to null which signals `initPreview` to create a new preview split.
+        * Effectively restarting the preview
+    */
+    static cleanupPreview({ leaf }: { leaf?: WorkspaceLeaf } = {}) {
+        processingPreviewChangeStore.set(true);
+
+        const previewLeaf = leaf || this.searchPreviewLeaf()
+        previewLeaf?.detach();
+        this.previewControlsComponent && unmount(this.previewControlsComponent)
+        this.previewControlsComponent = null;
+        previewLeafStore.set(null);
+        this.previewTabHeaderEl = null
+
+        settingsStore.update(s => {
+            s.preview.lastPreviewFilepath = ''
+            s.preview.visible = false
+            return s
+        })
+
+        processingPreviewChangeStore.set(false);
+    }
+    static searchPreviewLeaf(file?: TFile) {
+        let previewLeafFound = false;
+        let previewLeaf: WorkspaceLeaf | null = get(previewLeafStore)?.leaf || null;
         window.app.workspace.iterateAllLeaves((leaf) => {
-            if (!previewLeafClosed && leaf.getViewState().type === 'markdown') {
-                const leafFile = (leaf.view as any).file as TFile;
-                if (leafFile.path === get(settingsStore).lastPreviewFilepath) {
-                    leaf.detach();
-                    previewLeafStore.set(null);
-                    previewLeafClosed = true;
-                    settingsStore.update(s => {
-                        s.lastPreviewFilepath = ''
-                        return s
-                    })
+            if (
+                !previewLeafFound
+                && leaf.getViewState().type === 'markdown'
+                && leaf.view?.containerEl?.dataset?.type !== LEAF_TYPE
+                && (leaf as WorkspaceLeaf & { containerEl: HTMLElement })?.containerEl?.closest(".workspace-split")?.className.includes(`mod-${get(settingsStore).viewLeafPosition}`)
+                && (this.previewControlsComponent ? Array.from(leaf.view.containerEl.childNodes).find((el: HTMLElement) => el?.dataset?.type === PREVIEW_CONTROLS_TYPE) : true)
+            ) {
+                const leafFile = file || (leaf.view as any).file as TFile | undefined;
+                if (leafFile?.path === get(settingsStore).preview.lastPreviewFilepath) {
+                    previewLeaf = leaf
+                    previewLeafFound = true;
                 }
             }
         })
+        return previewLeaf as WorkspaceLeaf | null;
+    }
 
+    static togglePreviewTabHeader() {
+        const previewLeaf = ViewManager.searchPreviewLeaf()
+        const isPreviewMaximized = this.checkIfPreviewIsMaximized(previewLeaf);
+        if (isPreviewMaximized) return;
+
+        this.previewTabHeaderEl = (previewLeaf?.parent as any).tabHeaderContainerEl as HTMLElement | null
+        if (this.previewTabHeaderEl) {
+            if (!get(settingsStore).preview.tabHeaderVisible) {
+                this.previewTabHeaderEl.style.display = 'none'
+            } else {
+                this.previewTabHeaderEl.style.display = 'flex'
+            }
+        }
+    }
+
+    private static async getFile() {
+        let file: TFile | null = null;
+        const enabledGranularities: IGranularity[] = [];
+        Object.entries(get(settingsStore).periods).forEach((entry) => {
+            const [g, s] = entry as [IGranularity, PeriodSettings];
+            if (s.enabled) {
+                enabledGranularities.push(g);
+                if (!file) {
+                    file = getFileData(g, moment()).file;
+                }
+            }
+        })
+        if (!file && enabledGranularities.length > 0) {
+            file = await createNote(enabledGranularities[0], moment())
+        }
+
+        return file;
+    }
+    private static setupOpenPreviewLeaf(file: TFile, previewLeaf: WorkspaceLeaf) {
+        previewLeaf.openFile(file);
+        previewLeafStore.set({ leaf: previewLeaf, file });
+        settingsStore.update(s => {
+            s.preview.visible = true
+            s.preview.lastPreviewFilepath = file!.path
+            return s
+        });
+        activeFilepathStore.set(file.path);
+
+        this.togglePreviewTabHeader()
+
+        // add overlay control buttons
+        if (!this.previewControlsComponent) {
+            this.previewControlsComponent = mount(PreviewControls, {
+                target: previewLeaf.view.containerEl,
+            })
+        }
+    }
+
+    static cleaunupPreviewEvHandlers() {
         this.previewLeafCleanups.length > 0 && this.previewLeafCleanups.forEach((cleanup) => cleanup());
         this.previewLeafCleanups = [];
     }
 
     // Call this when unloading the plugin
     static unload() {
-        this.cleanupExistingViews();
+        this.cleanup();
     }
 }

@@ -1,12 +1,16 @@
 <script lang="ts">
-    import "./app.css";
+    import { settingsStore } from "@/settings";
+    import "@/app.css";
     import { cn } from "@/ui/utils";
     import { onDestroy, setContext } from "svelte";
-    import { CALENDAR_POPOVER_ID } from "./constants";
-    import { displayedDateStore } from "./stores";
-    import Calendar from "./ui/components/Calendar.svelte";
-    import { todayStore } from "./stores/dates";
-    import { settingsStore } from "./settings";
+    import {
+        displayedDateStore,
+        isPreviewMaximizedStore,
+        todayStore,
+    } from "@/stores";
+    import { CALENDAR_POPOVER_ID } from "@/constants";
+    import Calendar from "../Calendar.svelte";
+    import { ViewManager } from "@/main";
 
     interface Props {
         popover?: boolean;
@@ -72,6 +76,34 @@
 {/if}
 {#if !popover}
     <Calendar />
+    {#if $settingsStore.preview.enabled && (!$settingsStore.preview.visible || $isPreviewMaximizedStore)}
+        <div
+            class={cn(
+                "absolute left-0 w-full",
+                $settingsStore.viewLeafPosition === "right"
+                    ? "bottom-11"
+                    : "bottom-8",
+            )}
+        >
+            <div
+                class="[border-top:var(--tab-outline-width)_solid_var(--tab-outline-color)] relative mx-3"
+            >
+                <button
+                    class={cn(
+                        "clickable-icon view-action italic absolute [transform:translateY(-50%)] bg-[var(--background-secondary)] hover:!bg-[var(--background-secondary)] w-fit cursor-pointer",
+                        $settingsStore.viewLeafPosition === "left" && "left-0",
+                        $settingsStore.viewLeafPosition === "root" &&
+                            "left-1/2 [transform:translate(-50%,-50%)] bg-[var(--background-primary)] hover:!bg-[var(--background-primary)]",
+                        $settingsStore.viewLeafPosition === "right" &&
+                            "right-0",
+                    )}
+                    onclick={() => {
+                        ViewManager.initPreview();
+                    }}>Open preview</button
+                >
+            </div>
+        </div>
+    {/if}
 {/if}
 
 <style lang="postcss">

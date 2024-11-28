@@ -1,5 +1,5 @@
 import { settingsStore } from "@/settings";
-import { activeFilepathStore } from "@/stores";
+import { activeFilepathStore, previewLeafStore } from "@/stores";
 import { internalFileModStore } from "@/stores/notes";
 import { createConfirmationDialog } from "@/ui/modals/confirmation";
 import { capitalize } from "@/utils";
@@ -12,18 +12,21 @@ import { getNormalizedPeriodSettings } from "./settings";
 import { type IGranularity } from "./types";
 import { ensureFolderExists, getNotePath, getTemplateInfo } from "./vault";
 import { extractAndReplaceTODOItems } from "./utils";
+import { ViewManager } from "@/main";
 
 
 export async function createOrOpenNote({
     leaf,
     date,
     granularity,
-    confirmBeforeCreateOverride = get(settingsStore).shouldConfirmBeforeCreate
+    confirmBeforeCreateOverride = get(settingsStore).shouldConfirmBeforeCreate,
+    isPreview
 }: {
-    leaf: WorkspaceLeaf;
+    leaf: WorkspaceLeaf | null;
     date: Moment;
     granularity: IGranularity;
     confirmBeforeCreateOverride?: boolean;
+    isPreview?: boolean;
 }) {
     const { settings: { selectedFormat } } = getNormalizedPeriodSettings(granularity);
 
@@ -36,7 +39,11 @@ export async function createOrOpenNote({
 
     async function openFile(file: TFile | null) {
         if (file) {
-            file && (await leaf.openFile(file));
+            if (isPreview || get(settingsStore).preview.openNotesInPreview) {
+                ViewManager.initPreview(file)
+            } else {
+                await leaf?.openFile(file);
+            }
             activeFilepathStore.set(file.path);
         }
     }
@@ -79,7 +86,7 @@ export async function createOrOpenNote({
     }
 }
 
-async function createNote(granularity: IGranularity, date: Moment) {
+export async function createNote(granularity: IGranularity, date: Moment) {
     const { settings: { templatePath, selectedFormat } } = getNormalizedPeriodSettings(granularity);
 
     const normalizedPath = getNotePath(granularity, date);

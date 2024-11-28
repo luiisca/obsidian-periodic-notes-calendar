@@ -2,23 +2,24 @@
 	import { CALENDAR_POPOVER_ID } from '@/constants';
 	import locales from '@/locales';
 	import { defaultWeekdays, sysLocaleKey } from '@/localization';
-    import { ViewManager } from '@/main';
+	import { ViewManager } from '@/main';
 	import { ISettings } from '@/settings/constants';
 	import { settingsStore } from '@/settings/store';
 	import { Dropdown, SettingItem, Toggle } from '@/settings/ui';
 	import { updateLocale, updateWeekdays, updateWeekStart } from '@/stores';
+	import { View } from '@/ui';
 	import { Popover } from '@/ui/popovers';
-	import View from '@/View.svelte';
 	import { derived as derivedStore } from 'svelte/store';
+	import { selectedTabStore } from '../../stores';
 
 	// Display
 	const handleViewLeafPositionChange = async (position: ISettings["viewLeafPosition"]) => {
-        ViewManager.initView({ active: false });
-
 		settingsStore.update((settings) => ({
 			...settings,
 			viewLeafPosition: position as ISettings["viewLeafPosition"]
 		}));
+
+        ViewManager.initView({ active: false });
 	};
 	const handleFloatingModeToggle = (floatingMode: boolean) => {
 		Popover.cleanup();
@@ -65,25 +66,48 @@
 		}));
 	};
 
-	const handleShowWeekNums = (show: boolean) => {
-		settingsStore.update((settings) => ({
-			...settings,
-			localeSettings: {
-				...settings.localeSettings,
-				showWeekNums: show
-			}
-		}));
-	};
-
-	const handleShowQuarterNums = (show: boolean) => {
-		settingsStore.update((settings) => ({
-			...settings,
-			localeSettings: {
-				...settings.localeSettings,
-				showQuarterNums: show
-			}
-		}));
-	};
+    // Preview
+    const handleToggleOpenNotesInPreview = (openNotesInPreview: boolean) => {
+        settingsStore.update(s => {
+            s.preview.openNotesInPreview = openNotesInPreview;
+            return s
+        });
+    }
+    const handlePreviewTabHeaderToggle = (tabHeaderVisible: boolean) => {
+        settingsStore.update(s => {
+            s.preview.tabHeaderVisible = tabHeaderVisible;
+            return s
+        });
+        if ($settingsStore.preview.visible) {
+            ViewManager.initPreview()
+        }
+    }
+    const handleSelectDefaultSplitMode = (splitMode: ISettings["preview"]["defaultSplitMode"], panel: ISettings['viewLeafPosition']) => {
+        settingsStore.update(s => {
+            if (panel === 'root') {
+                s.preview.centerDefaultSplitMode = splitMode;
+            } else {
+                s.preview.defaultSplitMode = splitMode;
+            }
+            return s
+        });
+        if ($settingsStore.preview.visible) {
+            ViewManager.initPreview()
+        }
+    }
+    const handleSelectDefaultExpansionMode = (expansionMode: ISettings["preview"]["defaultExpansionMode"]) => {
+        settingsStore.update(s => {
+            s.preview.defaultExpansionMode = expansionMode;
+            return s
+        })
+        ViewManager.cleanupPreview();
+    }
+    const handleToggleZenmode= (zenMode: boolean) => {
+        settingsStore.update(s => {
+            s.preview.zenMode = zenMode;
+            return s
+        });
+    }
 
 	// Interactive Behavior
 	const handleOpenPopoverOnRibbonHover = (openPopoverOnRibbonHover: boolean) => {
@@ -211,7 +235,7 @@
 			
 			options={[
 				{ label: 'Left', value: 'left' },
-				{ label: 'Center', value: 'center' },
+				{ label: 'Main', value: 'root' },
 				{ label: 'Right', value: 'right' }
 			]}
 			onChange={handleViewLeafPositionChange}
@@ -258,31 +282,109 @@
     </SettingItem>
 {/if}
 
-<SettingItem
-	name="Week Numbers"
-	description="Display week numbers alongside the calendar for easier temporal reference"
->
-	{#snippet control()}
-		<Toggle
-			
-			onChange={handleShowWeekNums}
-			isEnabled={$settingsStore.localeSettings.showWeekNums}
-		/>
-	{/snippet}
-</SettingItem>
+<h3 class="mb-0">Preview</h3>
+<div class="flex justify-between">
+    <p>
+        Configure default settings for the preview window. For period-specific options, visit 
+        <a href={null} onclick={() => selectedTabStore.set('periods')}>Periods</a>.
+    </p>
+    <SettingItem type="toggle" className="[border-top:none]">
+        {#snippet control()}
+            <Toggle
+                isEnabled={$settingsStore.preview.enabled}
+                onChange={(val) => {
+                    $settingsStore.preview.enabled = val
+                }}
+            />
+        {/snippet}
+    </SettingItem>
+</div>
 
-<SettingItem
-	name="Fiscal Quarters"
-	description="Show quarter divisions for business and academic planning"
->
-	{#snippet control()}
-		<Toggle
-			
-			onChange={handleShowQuarterNums}
-			isEnabled={$settingsStore.localeSettings.showQuarterNums}
-		/>
-	{/snippet}
-</SettingItem>
+{#if $settingsStore.preview.enabled}
+    <SettingItem
+        name="Preview Calendar Notes"
+        description="Display opened periodic notes in preview mode by default."
+    >
+        {#snippet control()}
+            <Toggle
+                onChange={handleToggleOpenNotesInPreview}
+                isEnabled={$settingsStore.preview.openNotesInPreview}
+            />
+        {/snippet}
+    </SettingItem>
+
+    <SettingItem
+        name="Display Tab Header"
+        description="By default, the tab header (showing the note's icon) is hidden. Toggle this option to make it visible."
+    >
+        {#snippet control()}
+            <Toggle
+                onChange={handlePreviewTabHeaderToggle}
+                isEnabled={$settingsStore.preview.tabHeaderVisible}
+            />
+        {/snippet}
+    </SettingItem>
+
+    <SettingItem
+        name="Split Mode for Side Panels"
+        description="Select how the preview window will be split in the left and right panels."
+    >
+        {#snippet control()}
+            <Dropdown
+                options={[
+                    { label: 'Horizontal', value: 'horizontal' },
+                    { label: 'Vertical', value: 'vertical' },
+                ]}
+                onChange={(splitMode: ISettings['preview']['defaultSplitMode']) => splitMode ? handleSelectDefaultSplitMode(splitMode, 'left') : null}
+                value={$settingsStore.preview.defaultSplitMode}
+            />
+        {/snippet}
+    </SettingItem>
+
+    <SettingItem
+        name="Split Mode for Main Panel"
+        description="Select how the preview window will be split in the main panel."
+    >
+        {#snippet control()}
+            <Dropdown
+                options={[
+                    { label: 'Horizontal', value: 'horizontal' },
+                    { label: 'Vertical', value: 'vertical' },
+                ]}
+                onChange={(splitMode: ISettings['preview']['defaultSplitMode']) => splitMode ? handleSelectDefaultSplitMode(splitMode, 'root') : null}
+                value={$settingsStore.preview.centerDefaultSplitMode}
+            />
+        {/snippet}
+    </SettingItem>
+
+    <SettingItem
+        name="Expansion Mode"
+        description="Choose whether the preview window fills the entire panel (maximized) or appears as a split view."
+    >
+        {#snippet control()}
+            <Dropdown
+                options={[
+                    { label: 'Maximized', value: 'maximized' },
+                    { label: 'Split', value: 'split' },
+                ]}
+                onChange={handleSelectDefaultExpansionMode}
+                value={$settingsStore.preview.defaultExpansionMode}
+            />
+        {/snippet}
+    </SettingItem>
+
+    <SettingItem
+        name="Zen mode"
+        description="Hide the outline and periodic notes navigation buttons for a focused view."
+    >
+        {#snippet control()}
+            <Toggle
+                onChange={handleToggleZenmode}
+                isEnabled={$settingsStore.preview.zenMode}
+            />
+        {/snippet}
+    </SettingItem>
+{/if}
 
 {#if $settingsStore.floatingMode}
 	<h3>Popover Windows</h3>

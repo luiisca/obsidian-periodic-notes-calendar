@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { monthsIndexesInQuarters, togglePeriods } from "@/constants";
+    import { monthsIndexesInQuarters, periodTabs} from "@/constants";
     import { settingsStore } from "@/settings";
     import { displayedDateStore, localeDataStore, yearsRanges } from "@/stores";
     import { getContext } from "svelte";
@@ -15,31 +15,60 @@
     import YearsHeader from "./YearsHeader.svelte";
     import { Tabs } from "./core";
     import DateBttn from "./core/DateBttn.svelte";
+    import { IGranularity } from "@/io";
 
-    let {
-        localeSettings: { showWeekNums, showQuarterNums },
-    } = $derived($settingsStore);
     let { weekdaysShort } = $derived($localeDataStore);
     let month = $derived(getMonth($displayedDateStore));
 
-    let crrView: (typeof togglePeriods)[number] = $state("day");
+    let crrTab: (typeof periodTabs)[number] = $state("day");
+    let tabs: (typeof periodTabs) = $state(periodTabs);
     let minimalMode = getContext("minimalMode") as { value: boolean } | undefined;
+    let enabledPeriods: Record<IGranularity, boolean>= $state({} as Record<IGranularity, boolean>);
+
+    $effect.pre(() => {
+        let _tabs: string[] = []
+        enabledPeriods = Object.entries($settingsStore.periods).reduce((acc, [g, s]) => {
+            if (g === 'day' || g === 'month' || g === 'year') {
+                if (s.enabled) {
+                    _tabs.push(g)
+                }
+            }
+            return {
+                ...acc,
+                [g]: s.enabled,
+            }
+        }, {}) as Record<IGranularity, boolean>
+
+        tabs = _tabs as unknown as (typeof periodTabs)
+    })
+
+    $effect.pre(() => {
+        if (!tabs.includes(crrTab)) {
+            const newTab = tabs[0]
+            if (newTab !== crrTab) {
+                crrTab = newTab
+            }
+        }
+    });
 </script>
 
 <div class="pnc-container px-4 !pt-2">
-    <Tabs
-        tabs={[...togglePeriods]}
-        bind:selectedTab={crrView}
-        id="periods-container"
-        tabId="period"
-        className="mx-0 ml-auto"
-    />
+    {#if tabs.length > 1}
+        <Tabs
+            tabs={[...tabs]}
+            selectedTab={crrTab}
+            selectTab={(tab: typeof periodTabs[number]) => (crrTab = tab)}
+            id="periods-container"
+            tabId="period"
+            className="mx-0 ml-auto"
+        />
+    {/if}
 
-    {#if crrView === "day"}
+    {#if crrTab === "day" && enabledPeriods.day}
         <MonthHeader />
         <table class="pnc-calendar">
             <colgroup>
-                {#if showWeekNums}
+                {#if enabledPeriods.week}
                     <col />
                 {/if}
                 {#each month[1].days as date}
@@ -48,7 +77,7 @@
             </colgroup>
             <thead>
                 <tr>
-                    {#if showWeekNums}
+                    {#if enabledPeriods.week}
                         <th>W</th>
                     {/if}
                     {#each weekdaysShort as dayOfWeek}
@@ -59,7 +88,7 @@
             <tbody>
                 {#each month as week (week.weekNum)}
                     <tr>
-                        {#if showWeekNums}
+                        {#if enabledPeriods.week}
                             <td
                                 class="[border-right:1px_solid_var(--background-modifier-border)] pr-1"
                             >
@@ -81,8 +110,7 @@
                         {#each week.days as day (day.format())}
                             <td
                                 class={cn(
-                                    $settingsStore.localeSettings
-                                        .showWeekNums &&
+                                    enabledPeriods.week &&
                                         "[&:nth-child(2)]:pl-1",
                                 )}
                             >
@@ -106,13 +134,13 @@
             </tbody>
         </table>
     {/if}
-    {#if crrView === "month"}
+    {#if crrTab === "month" && enabledPeriods.month}
         <YearHeader />
         <table class="pnc-calendar">
             <tbody>
                 {#each monthsIndexesInQuarters as quarterMonthsIndexes, i}
                     <tr>
-                        {#if showQuarterNums}
+                        {#if enabledPeriods.quarter}
                             <td>
                                 <DateBttn
                                     date={$displayedDateStore
@@ -175,7 +203,7 @@
             </tbody>
         </table>
     {/if}
-    {#if crrView === "year"}
+    {#if crrTab === "year" && enabledPeriods.year}
         <YearsHeader />
         <table class="pnc-calendar">
             <tbody>

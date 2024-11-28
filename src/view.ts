@@ -7,14 +7,14 @@ import {
     WorkspaceLeaf
 } from 'obsidian';
 
-import { InvalidFormat } from '@/ui';
+import { InvalidFormat, View } from '@/ui';
 import { mount, unmount } from "svelte";
 import { get } from 'svelte/store';
-import View from './View.svelte';
 import { LEAF_TYPE } from './constants';
 import { basename, extractAndReplaceTODOItems, storeAllVaultPeriodicFilepaths } from './io';
 import { isValidPeriodicNote } from './io/validation';
 import type PeriodicNotesCalendarPlugin from './main';
+import { ViewManager } from './main';
 import { settingsStore } from './settings';
 import { activeFilepathStore, themeStore } from './stores';
 import { internalFileModStore } from './stores/notes';
@@ -46,7 +46,7 @@ export class CalendarView extends ItemView {
                 this.onFileRenamed(file as TFile, oldPath)
             )
         );
-        this.registerEvent(this.app.workspace.on('file-open', () => this.onFileOpen()));
+        this.registerEvent(this.app.workspace.on('file-open', (file) => this.onFileOpen(file)));
         this.registerEvent(
             this.app.metadataCache.on('changed', (file: TFile) => this.onMetadataChanged(file))
         )
@@ -61,8 +61,6 @@ export class CalendarView extends ItemView {
     }
 
     async onOpen() {
-        console.log('On open view👐');
-
         this.view = mount(View, {
             target: this.contentEl
         });
@@ -74,7 +72,6 @@ export class CalendarView extends ItemView {
     }
 
     onClose(): Promise<void> {
-        console.log('On close view❌');
         unmount(this.view);
 
         return Promise.resolve();
@@ -87,7 +84,6 @@ export class CalendarView extends ItemView {
     private onFileCreated(file: TFile) {
         if (get(internalFileModStore) === 'created') return;
 
-        console.log('✅ ON file created ✅', file);
 
         if (this.app.workspace.layoutReady && this.view) {
             if (file.extension !== 'md') return;
@@ -118,8 +114,6 @@ export class CalendarView extends ItemView {
     private async onFileDeleted(file: TFile): Promise<void> {
         if (get(internalFileModStore) === 'deleted') return;
 
-        console.log('❌ ON file deleted ❌', file);
-
         if (this.app.workspace.layoutReady && this.view) {
             if (file.extension !== 'md') return;
 
@@ -128,6 +122,7 @@ export class CalendarView extends ItemView {
             if (granularity && format) {
                 settingsStore.deleteFilepath(file.path, format.value)
             }
+            this.closePreviewOnFileDeleted(file)
         }
     }
 
@@ -165,9 +160,8 @@ export class CalendarView extends ItemView {
         })
     }
 
-    public onFileOpen() {
+    public onFileOpen(file: TFile | null) {
         if (this.app.workspace.layoutReady) {
-            console.log('view.ts > onFileOpen()');
             this.updateActiveFile();
         }
     }
@@ -188,29 +182,10 @@ export class CalendarView extends ItemView {
                 activeFilepathStore.set(file.path);
             }
         }
-
-        console.log('🪟📅 view.ts > updateActiveFile(), activeFilepathStore: ', get(activeFilepathStore));
     }
+    private closePreviewOnFileDeleted(file: TFile) {
+        const previewLeaf = ViewManager.searchPreviewLeaf(file)
 
-    // public revealActiveNote(): void {
-    // 	const { moment } = window;
-    // 	const { activeLeaf } = this.app.workspace;
-
-    // 	if (activeLeaf.view instanceof FileView) {
-    // 		// Check to see if the active note is a daily-note
-    // 		let date = getDateFromFile(activeLeaf.view.file, 'day');
-    // 		if (date) {
-    // 			this.calendar.$set({ displayedDate: date });
-    // 			return;
-    // 		}
-
-    // 		// Check to see if the active note is a weekly-note
-    // 		const { format } = getWeeklyNoteSettings();
-    // 		date = moment(activeLeaf.view.file.basename, format, true);
-    // 		if (date.isValid()) {
-    // 			this.calendar.$set({ displayedDate: date });
-    // 			return;
-    // 		}
-    // 	}
-    // }
+        previewLeaf && ViewManager.cleanupPreview({ leaf: previewLeaf });
+    }
 }

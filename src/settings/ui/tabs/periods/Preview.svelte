@@ -1,19 +1,11 @@
 <script lang="ts">
-	import { getFileData, getPeriodicityFromGranularity, type IGranularity } from '@/io';
+	import { type IGranularity } from '@/io';
 	import type { Readable } from 'svelte/store';
 
-    import {
-        activeFilepathStore,
-        displayedDateStore,
-        todayStore,
-        internalFileModStore,
-    } from "@/stores/";
-	import { type PeriodSettings, settingsStore } from '@/settings';
-	import { Dropdown, HeadingsSuggest, SettingItem, Toggle } from '@/settings/ui';
-	import { capitalize } from '@/utils';
-	import { granularities } from '@/constants';
-    import { debounce, TFile } from 'obsidian';
-    import { mount, onDestroy, onMount } from 'svelte';
+    import { settingsStore, type PeriodSettings } from '@/settings';
+    import { Dropdown, HeadingsSuggest, SettingItem, Toggle } from '@/settings/ui';
+    import { TFile } from 'obsidian';
+    import { onDestroy } from 'svelte';
 
 	interface Props {
 		settings: Readable<PeriodSettings>;
@@ -21,9 +13,10 @@
 	}
 
 	let { settings, granularity }: Props = $props();
-    let inputEl: HTMLInputElement | null = $state(null);
-    let todoSectionValue: string = $state($settings.preview.todoSection || "");
-    let headingsSuggestInstance: HeadingsSuggest;
+    let mainSectionInputEl: HTMLInputElement | null = $state(null);
+    let todoSectionInputEl: HTMLInputElement | null = $state(null);
+    let mainHeadingSuggestInstance: HeadingsSuggest;
+    let todoHeadingSuggestInstance: HeadingsSuggest;
 
     let headings = $derived.by(() => {
         const file = $settings.templatePath ? (window.app.vault.getAbstractFileByPath($settings.templatePath ) as TFile) : null;
@@ -34,13 +27,20 @@
         return h
     })
     $effect(() => {
-        if (inputEl) {
-            if (!headingsSuggestInstance) {
-            headingsSuggestInstance = new HeadingsSuggest(inputEl)
+        if (mainSectionInputEl) {
+            if (!mainHeadingSuggestInstance) {
+                mainHeadingSuggestInstance = new HeadingsSuggest(mainSectionInputEl)
             }
-            headingsSuggestInstance.update(headings, $settings.templatePath)
+            mainHeadingSuggestInstance.update(headings, $settings.templatePath, mainSectionInputEl)
+        }
+        if (todoSectionInputEl) {
+            if (!todoHeadingSuggestInstance) {
+                todoHeadingSuggestInstance = new HeadingsSuggest(todoSectionInputEl)
+            }
+            todoHeadingSuggestInstance.update(headings, $settings.templatePath, todoSectionInputEl)
         }
     })
+
     const handleOpenDestinationChange = (position: 'default' | 'below' | undefined) => {
         if (position) {
             $settings.preview.destination = position
@@ -48,26 +48,13 @@
     }
 
     onDestroy(() => {
-        headingsSuggestInstance?.destroy();
+        mainHeadingSuggestInstance?.destroy();
+        todoHeadingSuggestInstance?.destroy();
     });
 </script>
 
-<SettingItem
-	name="Note Preview"
-	type="toggle"
-	isHeading={true}
->
-	{#snippet control()}
-		<Toggle
-			isEnabled={$settings.preview.enabled}
-			onChange={(val) => {
-                $settings.preview.enabled = val
-			}}
-		/>
-	{/snippet}
-</SettingItem>
-
-{#if $settings.preview.enabled}
+<SettingItem name="Preview" />
+{#if $settingsStore.preview.enabled}
     <!-- TODO: reword -->
     <SettingItem
         name="Main Section"
@@ -77,7 +64,7 @@
             <input
                 class="flex-grow"
                 bind:value={$settings.preview.mainSection}
-                bind:this={inputEl}
+                bind:this={mainSectionInputEl}
                 type="text"
                 spellcheck={false}
                 placeholder="e.g. ## Links"
@@ -95,7 +82,7 @@
         <input
             class="flex-grow"
             bind:value={$settings.preview.todoSection}
-            bind:this={inputEl}
+            bind:this={todoSectionInputEl}
             type="text"
             spellcheck={false}
             placeholder="e.g. ## TODO"
@@ -103,11 +90,11 @@
     {/snippet}
 </SettingItem>
 
-{#if $settings.preview.enabled}
+{#if $settingsStore.preview.enabled}
     <!-- TODO: reword -->
     <SettingItem
         name="Where to Open Notes at"
-        description="Choose whether to open notes on the default view (center) or in a preview (bottom below calendar UI)"
+        description="Choose whether to open notes on the default view (main) or in a preview (bottom below calendar UI)"
         type="dropdown"
     >
         {#snippet control()}

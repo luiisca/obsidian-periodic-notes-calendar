@@ -9,6 +9,7 @@
     import { tweened } from "svelte/motion";
     import { Writable } from "svelte/store";
     import Node from "./Node.svelte";
+    import { goToNoteHeading } from "../utils";
 
     interface Props {
         node: TNode;
@@ -32,29 +33,15 @@
     const handleNodeClick = (ev: MouseEvent | KeyboardEvent) => {
         ev.stopPropagation()
 
-        const editor = markdownView?.editor as unknown as CodeMirror.Editor | undefined;
-        const headingLine = editor ? findHeadingLine(editor, `${'#'.repeat(node.level)} ${node.heading}`) : -1;
-        getPopoverInstance(BASE_POPOVER_ID)?.close();
-
-        leaf?.setViewState({
-            type: "markdown",
-            active: true
-        })
-
-        if (headingLine === -1) return;
-        editor?.setCursor(headingLine, 0, { scroll: true });
-        // editor.scrollIntoView({ from: { line: headingLine, ch: 0 }, to: { line: headingLine + 1, ch: 0 } });
-    }
-
-    const findHeadingLine = (editor: CodeMirror.Editor, heading: string): number => {
-        const lines = editor.lineCount();
-        for (let i = 0; i < lines; i++) {
-            const regex = new RegExp(`${escapeRegex(heading)}$`);
-            if (regex.test(editor.getLine(i).trim())) {
-                return i;
-            }
+        if (leaf) {
+            goToNoteHeading({
+                leaf,
+                heading: `${'#'.repeat(node.level)} ${node.heading}`,
+                extra: () => {
+                    getPopoverInstance(BASE_POPOVER_ID)?.close()
+                }
+            })
         }
-        return -1; // Heading not found
     }
 
     const handleCollapseClick = (ev: MouseEvent | KeyboardEvent) => {

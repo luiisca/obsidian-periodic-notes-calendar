@@ -9,7 +9,6 @@ export type TFormat = {
     loading: boolean;
 }
 export interface IPreview {
-    enabled: boolean,
     mainSection: "" | null,
     todoSection: "# TODO" | string,
     destination: "default" | "below",
@@ -27,11 +26,23 @@ export interface PeriodSettings {
 
 export interface ISettings {
     periods: Record<IGranularity, PeriodSettings>;
-    lastPreviewFilepath: string;
+    preview: {
+        enabled: boolean;
+        openNotesInPreview: boolean;
+        visible: boolean;
+        zenMode: boolean;
+        tabHeaderVisible: boolean;
+        defaultSplitMode: "vertical" | "horizontal";
+        centerDefaultSplitMode: "vertical" | "horizontal";
+        defaultExpansionMode: 'maximized' | 'split';
+        lastPreviewFilepath: string;
+        enabledGranularities: IGranularity[] | null;
+        crrGranularity: IGranularity | null;
+    };
     filepaths: Record<string, string>;
     filepathsByFormatValue: Record<string, Record<string, string> | undefined>;
     /** Position of the calendar view leaf ('left' or 'right') */
-    viewLeafPosition: "left" | "center" | "right";
+    viewLeafPosition: "left" | "root" | "right";
 
     floatingMode: boolean;
 
@@ -66,12 +77,6 @@ export interface ISettings {
 
     /** Locale and display settings */
     localeSettings: {
-        /** Whether to show week numbers in the calendar */
-        showWeekNums: boolean;
-
-        /** Whether to show quarter numbers in the calendar */
-        showQuarterNums: boolean;
-
         /** Override for the default locale */
         localeOverride: string;
 
@@ -107,7 +112,7 @@ export function getDefaultPeriodicNotesConfig(
     }
 
     return {
-        enabled: false,
+        enabled: granularity === "day",
         openAtStartup: false,
 
         selectedFormat,
@@ -115,7 +120,6 @@ export function getDefaultPeriodicNotesConfig(
         templatePath: "",
         folder: "/",
         preview: {
-            enabled: true,
             mainSection: null,
             todoSection: '## TODO',
             destination: "below" as const,
@@ -128,7 +132,19 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
     periods: Object.fromEntries(granularities.map(
         g => [g, getDefaultPeriodicNotesConfig(g)],
     )) as Record<IGranularity, PeriodSettings>,
-    lastPreviewFilepath: "",
+    preview: {
+        enabled: true,
+        openNotesInPreview: false,
+        visible: false,
+        zenMode: false,
+        tabHeaderVisible: false,
+        defaultSplitMode: "horizontal" as const,
+        centerDefaultSplitMode: "vertical" as const,
+        defaultExpansionMode: "split" as const,
+        lastPreviewFilepath: "",
+        enabledGranularities: null,
+        crrGranularity: null,
+    },
     filepaths: {},
     filepathsByFormatValue: {},
     viewLeafPosition: "right",
@@ -146,8 +162,6 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
     crrNldModalGranularity: "day",
 
     localeSettings: {
-        showWeekNums: false,
-        showQuarterNums: false,
         localeOverride: sysLocaleKey,
         weekStartId: sysWeekStartId,
     },

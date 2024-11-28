@@ -5,7 +5,3 @@
 .confirmation-modal h2 {
     @apply mt-0;
 }
-
-.confirmation-modal p {
-    /* @apply my-[var(--p-spacing)]; */
-}

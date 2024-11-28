@@ -252,7 +252,7 @@
                 ></div>
             </div>
         </div>
-        <div>
+        {#if filteredTree.length > 0}
             {#each filteredTree as node}
                 <div transition:slide={{ duration: 200 }}>
                     <Node
@@ -263,6 +263,8 @@
                     />
                 </div>
             {/each}
-        </div>
+        {:else}
+            <div class="pane-empty">No headings found.</div>
+        {/if}
     </div>
 </div>

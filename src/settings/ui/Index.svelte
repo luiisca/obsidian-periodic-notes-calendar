@@ -1,18 +1,21 @@
 <script lang="ts">
-    import { Notes, Calendar } from "@/settings/ui";
+    import { Calendar, Periods } from "@/settings/ui";
     import { Tabs } from "@/ui";
-
-    const tabs = ["calendar", "notes"] as const;
-    let selectedTab: (typeof tabs)[number] = $state("notes");
+    import { tabs, selectedTabStore } from "./stores";
 </script>
 
 <div class="pnc-container">
-    <Tabs tabs={[...tabs]} bind:selectedTab className="max-w-56" />
+    <Tabs 
+        tabs={[...tabs]} 
+        selectedTab={$selectedTabStore} 
+        selectTab={(tab: typeof tabs[number]) => selectedTabStore.set(tab)} 
+        className="max-w-56" 
+    />
     <div class="mt-6">
-        {#if selectedTab === "calendar"}
+        {#if $selectedTabStore === "calendar"}
             <Calendar />
-        {:else if selectedTab === "notes"}
-            <Notes />
+        {:else if $selectedTabStore === "periods"}
+            <Periods />
         {/if}
     </div>
 </div>

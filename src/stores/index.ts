@@ -8,6 +8,8 @@ export {
 } from './locale';
 export * from './notes';
 export * from './popovers';
+export * from './preview';
+
 export const pluginClassStore = writable<PeriodicNotesCalendarPlugin>();
 export const crrFileMenu = writable<Menu | null>(null);
 export const rerenderStore = writable({ rerender: false });
