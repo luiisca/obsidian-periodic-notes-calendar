@@ -114,7 +114,7 @@ export async function getTemplateInfo(
 
     try {
         // get First file matching given normalizedPath
-        const templateFile = metadataCache.getFirstLinkpathDest(normalizedPath, "");
+        const templateFile = vault.getAbstractFileByPath(normalizedPath);
         const contents = await vault.cachedRead(templateFile as TFile);
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

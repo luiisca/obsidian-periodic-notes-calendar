@@ -45,5 +45,10 @@ export const DEFAULT_FORMATS_PER_GRANULARITY: Record<IGranularity, string> = {
     quarter: DEFAULT_QUARTERLY_NOTE_FORMAT,
     year: DEFAULT_YEARLY_NOTE_FORMAT,
 };
+export const HUMAN_FORMATS_PER_GRANULARITY = Object.freeze({
+    month: "MMMM YYYY",
+    quarter: "YYYY Q[Q]",
+    year: "YYYY",
+});
 
 export const DAILY_NOTES_PLUGIN_ID = 'daily-notes'

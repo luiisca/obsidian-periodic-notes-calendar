@@ -1,23 +1,24 @@
 import {
     FileView,
     ItemView,
+    MarkdownView,
     Notice,
     TAbstractFile,
     TFile,
     WorkspaceLeaf
 } from 'obsidian';
 
-import { InvalidFormat, View } from '@/ui';
+import { InvalidFormat, View, ViewManager } from '@/ui';
 import { mount, unmount } from "svelte";
 import { get } from 'svelte/store';
 import { LEAF_TYPE } from './constants';
 import { basename, extractAndReplaceTODOItems, storeAllVaultPeriodicFilepaths } from './io';
 import { isValidPeriodicNote } from './io/validation';
 import type PeriodicNotesCalendarPlugin from './main';
-import { ViewManager } from './main';
 import { settingsStore } from './settings';
 import { activeFilepathStore, themeStore } from './stores';
 import { internalFileModStore } from './stores/notes';
+import TimelineManager from './ui/components/timeline/manager';
 
 export class CalendarView extends ItemView {
     private view: Record<string, any>;
@@ -50,6 +51,7 @@ export class CalendarView extends ItemView {
         this.registerEvent(
             this.app.metadataCache.on('changed', (file: TFile) => this.onMetadataChanged(file))
         )
+        this.registerEvent(this.app.workspace.on('layout-change', () => this.onLayoutChange()))
     }
 
     getViewType() {
@@ -165,13 +167,15 @@ export class CalendarView extends ItemView {
             this.updateActiveFile();
         }
     }
+    public onLayoutChange() {
+        if (this.app.workspace.layoutReady) {
+            TimelineManager.initTimeline()
+        }
+    }
 
     // Utils
     private updateActiveFile(): void {
-        // const activeLeafOG = this.app.workspace.activeLeaf;
-
-        // TODO: may cause unexpected behavior.
-        const activeLeaf = this.app.workspace.getActiveViewOfType(CalendarView)
+        const activeLeaf = this.app.workspace.activeLeaf;
 
         if (activeLeaf?.view && activeLeaf.view instanceof FileView) {
             const file = activeLeaf.view.file;

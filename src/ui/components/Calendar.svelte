@@ -240,27 +240,6 @@
 </div>
 
 <style lang="postcss">
-    .pnc-container {
-        --color-background-heading: transparent;
-        --color-background-day: transparent;
-        --color-background-weeknum: transparent;
-        --color-background-weekend: transparent;
-
-        --color-dot: var(--text-muted);
-        --color-arrow: var(--text-muted);
-        --color-button: var(--text-muted);
-
-        --color-text-title: var(--text-normal);
-        --color-text-heading: var(--text-muted);
-        --color-text-day: var(--text-normal);
-        --color-text-today: var(--interactive-accent);
-        --color-text-weeknum: var(--text-muted);
-    }
-
-    .weekend {
-        background-color: var(--color-background-weekend);
-    }
-
     .pnc-calendar {
         border-collapse: collapse;
         width: calc(100% + 2rem);

@@ -10,7 +10,7 @@
     } from "@/stores";
     import { CALENDAR_POPOVER_ID } from "@/constants";
     import Calendar from "../Calendar.svelte";
-    import { ViewManager } from "@/main";
+    import { ViewManager } from "@/ui";
 
     interface Props {
         popover?: boolean;

@@ -1,12 +1,12 @@
 import { FILE_MENU_POPOVER_ID, STICKER_POPOVER_ID } from "@/constants";
 import { TFileData, type IGranularity } from "@/io";
-import { spFileDataStore } from "@/stores";
+import { activeFilepathStore, displayedDateStore, spFileDataStore } from "@/stores";
 import { type Moment } from "moment";
 import { Menu } from "obsidian";
 import StickerPopoverComponent from "../components/StickerPopover.svelte";
 import { eventHandlers, isControlPressed } from "../utils";
 import { Popover } from "./base";
-import { ViewManager } from "@/main";
+import { ViewManager } from "../components";
 
 export type TFileMenuPopoverParams = {
     id: typeof FILE_MENU_POPOVER_ID,
@@ -107,9 +107,25 @@ export class FileMenuPopoverBehavior {
                     .setTitle("Open in preview window")
                     .setIcon("lucide-eye")
                     .onClick(() => {
+                        ViewManager.revealView();
                         ViewManager.initPreview(file);
                     })
             );
+            // Reveal on calendar
+            if (window.app.workspace.activeLeaf?.getViewState()?.type === 'markdown') {
+                menu.addItem((item) =>
+                    item.setSection("open")
+                        .setTitle("Reveal on calendar")
+                        .setIcon("lucide-calendar")
+                        .onClick(() => {
+                            ViewManager.revealView();
+                            console.log("Revealing on calendar", file);
+                            activeFilepathStore.set(file.path);
+                            const date =
+                                displayedDateStore.set()
+                        })
+                )
+            }
 
             // Open to the right
             menu.addItem((item) =>

@@ -42,10 +42,15 @@
         )}
         id="reset-button"
         onclick={resetdisplayedDate}
-        aria-label={!showingCrrDate ? `Current ${capitalize(type)}` : null}
+        aria-label={!showingCrrDate
+            ? `Go to current ${capitalize(type)}`
+            : null}
     >
         <Dot
-            className={cn("h-[8px] w-[8px]", minimalMode?.value && "w-[0.3rem]")}
+            className={cn(
+                "h-[8px] w-[8px]",
+                minimalMode?.value && "w-[0.3rem]",
+            )}
             isFilled={showingCrrDate}
         />
     </button>

@@ -12,7 +12,9 @@ type TOnClickParams = {
     date: Moment;
     createNewSplitLeaf: boolean;
     granularity: IGranularity;
+    openState?: Record<string, any>;
     isPreview?: boolean;
+    openNotesInPreviewOverride?: boolean;
 };
 type TOnHoverParams = {
     event: PointerEvent | null;
@@ -25,15 +27,24 @@ const onClick = async ({
     date,
     createNewSplitLeaf,
     granularity,
+    openState,
     isPreview,
+    openNotesInPreviewOverride = true,
 }: TOnClickParams): Promise<void> => {
     let leaf: WorkspaceLeaf | null;
-    if (isPreview || (get(settingsStore).preview.openNotesInPreview && !createNewSplitLeaf)) {
+    if (openNotesInPreviewOverride && (isPreview || (get(settingsStore).preview.openNotesInPreview && !createNewSplitLeaf))) {
         leaf = null;
     } else {
         leaf = window.app.workspace.getLeaf(createNewSplitLeaf);
     }
-    createOrOpenNote({ leaf, date, granularity, isPreview });
+    createOrOpenNote({
+        leaf,
+        date,
+        openState,
+        granularity,
+        openNotesInPreviewOverride,
+        isPreview,
+    });
 };
 
 const onHover = ({
@@ -55,8 +66,6 @@ const onHover = ({
 };
 
 const onContextMenu = ({ event, fileData, date, granularity }: TFileMenuOpenParams): void => {
-    console.log("🤝 about to OPEN FILE MENU", fileData)
-
     Popover.create({
         id: FILE_MENU_POPOVER_ID
     }).open({ event, fileData, date, granularity });

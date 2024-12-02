@@ -1,7 +1,6 @@
 <script lang="ts">
     import { BASE_POPOVER_ID, FILE_MENU_POPOVER_ID, PREVIEW_CONTROLS_TYPE } from "@/constants";
     import { getPeriodicityFromGranularity, IGranularity } from "@/io";
-    import { ViewManager } from "@/main";
     import { settingsStore } from "@/settings";
     import { previewLeafStore, previewSplitDirectionStore, todayStore } from "@/stores";
     import { Popover } from "@/ui/popovers";
@@ -17,6 +16,7 @@
     import { Dot } from "../core";
     import { Outline } from "./outline";
     import { goToNoteHeading } from "./utils";
+    import { ViewManager } from "@/ui";
 
     let file: TFile | null = $state(null);
     let leaf: WorkspaceLeaf | null = $state(null);

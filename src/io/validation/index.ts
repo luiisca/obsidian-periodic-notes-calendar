@@ -74,7 +74,7 @@ export function validateTemplate(template: string): string {
         return "";
     }
 
-    if (!window.app.metadataCache.getFirstLinkpathDest(template, "")) {
+    if (!window.app.vault.getAbstractFileByPath(template)) {
         return "Template file not found";
     }
 

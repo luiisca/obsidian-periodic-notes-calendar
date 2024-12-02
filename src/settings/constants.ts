@@ -39,6 +39,12 @@ export interface ISettings {
         enabledGranularities: IGranularity[] | null;
         crrGranularity: IGranularity | null;
     };
+    timeline: {
+        enabled: boolean;
+        /** Whether the adjacent dates will be based in the crr file granularity or if they'll always be adjacent days. */
+        granularityBased: boolean;
+        displayOnAllNotes: boolean;
+    };
     filepaths: Record<string, string>;
     filepathsByFormatValue: Record<string, Record<string, string> | undefined>;
     /** Position of the calendar view leaf ('left' or 'right') */
@@ -144,6 +150,11 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
         lastPreviewFilepath: "",
         enabledGranularities: null,
         crrGranularity: null,
+    },
+    timeline: {
+        enabled: true,
+        granularityBased: true,
+        displayOnAllNotes: false,
     },
     filepaths: {},
     filepathsByFormatValue: {},

@@ -1,3 +1,5 @@
+import { DEFAULT_FORMATS_PER_GRANULARITY, HUMAN_FORMATS_PER_GRANULARITY } from '@/constants';
+import { IGranularity } from '@/io';
 import { localeDataStore } from '@/stores';
 import type { Moment } from 'moment';
 import { get } from 'svelte/store';
@@ -75,6 +77,36 @@ export function getYears({ startRangeYear }: { startRangeYear: number }): IYears
     }
 
     return years;
+}
+
+export function getRelativeDate(granularity: IGranularity, date: Moment) {
+    if (granularity == "week") {
+        const startOfThisWeek = window.moment().startOf(granularity);
+        const fromNow = window.moment(date).diff(startOfThisWeek, "week");
+        if (fromNow === 0) {
+            return "This week";
+        } else if (fromNow === -1) {
+            return "Last week";
+        } else if (fromNow === 1) {
+            return "Next week";
+        }
+        return window.moment.duration(fromNow, granularity).humanize(true);
+    } else if (granularity === "day") {
+        const today = window.moment().startOf("day");
+        const fromNow = window.moment(date).from(today);
+        return window.moment(date).calendar(null, {
+            lastWeek: "[Last] dddd",
+            lastDay: "[Yesterday]",
+            sameDay: "[Today]",
+            nextDay: "[Tomorrow]",
+            nextWeek: "dddd",
+            sameElse: function() {
+                return "[" + fromNow + "]";
+            },
+        });
+    } else {
+        return date.format(HUMAN_FORMATS_PER_GRANULARITY[granularity]);
+    }
 }
 
 /**

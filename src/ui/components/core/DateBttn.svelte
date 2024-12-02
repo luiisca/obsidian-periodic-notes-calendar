@@ -20,24 +20,30 @@
         // Properties
         date: Moment;
         granularity: IGranularity;
+        isActiveOverride?: boolean | null;
+        displaySticker?: boolean;
+        displayDot?: boolean;
         className?: string;
         dotContainerClassName?: string;
         children?: Snippet;
         text?: Snippet;
+        ignoreAdjacentMonth?: boolean;
     }
 
-    let { date, granularity, className = "", dotContainerClassName = "", children, text }: Props = $props();
+    let { date, granularity, displaySticker = true, displayDot = true, className = "", dotContainerClassName = "", children, text, ignoreAdjacentMonth = false, isActiveOverride = null}: Props = $props();
 
     let { file, sticker } = $derived.by(() => {
         $settingsStore; // crr file might have been deleted from settings page
         $internalFileModStore; // update on file rename or sticker update
         return getFileData(granularity, date);
     });
-    let isActive = $derived($activeFilepathStore === file?.path);
+    let isActive = $derived(isActiveOverride ?? $activeFilepathStore === file?.path);
     let isToday = $derived(date.isSame($todayStore, granularity));
     let isAdjacentMonth = $state(false);
 
     $effect.pre(() => {
+        if (ignoreAdjacentMonth) return;
+
         if (granularity === "day" && date && $displayedDateStore) {
             isAdjacentMonth = !date.isSame($displayedDateStore, "month");
         }
@@ -85,18 +91,22 @@
 >
     {@render text?.()}
     <span class="relative">
-        <Sticker sticker={sticker?.emoji} />
+        {#if displaySticker}
+            <Sticker sticker={sticker?.emoji} />
+        {/if}
         {@render children?.()}
     </span>
-    <div class={cn(
-        "absolute leading-[0]",
-        dotContainerClassName
-    )}>
-        <Dot
-            className={cn(minimalMode?.value && "w-1")}
-            isVisible={!!file}
-            isFilled={!!file}
-            {isActive}
-        />
-    </div>
+    {#if displayDot}
+        <div class={cn(
+            "absolute leading-[0]",
+            dotContainerClassName
+        )}>
+            <Dot
+                className={cn(minimalMode?.value && "w-1")}
+                isVisible={!!file}
+                isFilled={!!file}
+                {isActive}
+            />
+        </div>
+    {/if}
 </button>

@@ -2,15 +2,15 @@
 	import { CALENDAR_POPOVER_ID } from '@/constants';
 	import locales from '@/locales';
 	import { defaultWeekdays, sysLocaleKey } from '@/localization';
-	import { ViewManager } from '@/main';
 	import { ISettings } from '@/settings/constants';
 	import { settingsStore } from '@/settings/store';
 	import { Dropdown, SettingItem, Toggle } from '@/settings/ui';
 	import { updateLocale, updateWeekdays, updateWeekStart } from '@/stores';
-	import { View } from '@/ui';
+	import { View, ViewManager } from '@/ui';
 	import { Popover } from '@/ui/popovers';
 	import { derived as derivedStore } from 'svelte/store';
 	import { selectedTabStore } from '../../stores';
+    import TimelineManager from '@/ui/components/timeline/manager';
 
 	// Display
 	const handleViewLeafPositionChange = async (position: ISettings["viewLeafPosition"]) => {
@@ -163,6 +163,38 @@
 			}
 		}));
 	};
+
+    // Timeline
+    const handleToggleTimeline = (enabled: boolean) => {
+        settingsStore.update(s => {
+            s.timeline.enabled = enabled
+            return s
+        })
+        if (enabled) {
+            TimelineManager.initTimeline();
+        } else {
+            TimelineManager.unload();
+        }
+    }
+
+    const handleToggleGranularityBased = (granularityBased: boolean) => {
+        settingsStore.update(s => {
+            s.timeline.granularityBased = granularityBased
+            return s
+        })
+        if (granularityBased) {
+            TimelineManager.initTimeline();
+        } else {
+            TimelineManager.unload();
+        }
+    }
+    const handleToggleDisplayOnAllNotes = (displayOnAllNotes: boolean) => {
+        settingsStore.update(s => {
+            s.timeline.displayOnAllNotes = displayOnAllNotes
+            return s
+        })
+        TimelineManager.initTimeline()
+    }
 
 	// Localization
 	const handleSetLanguage = (localeKey: string) => {
@@ -453,6 +485,48 @@
 			isEnabled={$settingsStore.autoHoverPreview}
 		/>
 	{/snippet}
+</SettingItem>
+
+<!-- TODO: reword -->
+<h3 class="mb-0">Timeline</h3>
+<div class="flex justify-between">
+    <p>
+        Display a quickview at the top of your periodic notes to quickly move between periods.
+    </p>
+    <SettingItem type="toggle" className="[border-top:none]">
+        {#snippet control()}
+            <Toggle
+                onChange={handleToggleTimeline}
+                isEnabled={$settingsStore.timeline.enabled}
+            />
+        {/snippet}
+    </SettingItem>
+</div>
+
+<!-- TODO: reword -->
+<SettingItem
+    name="Display related periodic dates"
+    description="Whether the adjacent dates will be based in the crr file granularity or if they'll always be adjacent days."
+>
+    {#snippet control()}
+        <Toggle
+            onChange={handleToggleGranularityBased}
+            isEnabled={$settingsStore.timeline.granularityBased}
+        />
+    {/snippet}
+</SettingItem>
+
+<!-- TODO: reword -->
+<SettingItem
+    name="Display timeline on all notes"
+    description="Display timeline on all notes, instead of default periodic ones."
+>
+    {#snippet control()}
+        <Toggle
+            onChange={handleToggleDisplayOnAllNotes}
+            isEnabled={$settingsStore.timeline.displayOnAllNotes}
+        />
+    {/snippet}
 </SettingItem>
 
 <h3>Localization</h3>

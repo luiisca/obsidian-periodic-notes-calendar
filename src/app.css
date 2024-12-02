@@ -1,3 +1,25 @@
+.pnc-container {
+    --color-background-heading: transparent;
+    --color-background-day: transparent;
+    --color-background-weeknum: transparent;
+    --color-background-weekend: transparent;
+
+    --color-dot: var(--text-muted);
+    --color-arrow: var(--text-muted);
+    --color-button: var(--text-muted);
+
+    --color-text-title: var(--text-normal);
+    --color-text-heading: var(--text-muted);
+    --color-text-day: var(--text-normal);
+    --color-text-today: var(--interactive-accent);
+    --color-text-weeknum: var(--text-muted);
+}
+
+.weekend {
+    background-color: var(--color-background-weekend);
+}
+
+
 .pnc-container button {
     @apply bg-transparent hover:bg-[var(--interactive-hover)] [&:not(:focus-visible)]:shadow-none cursor-pointer;
 }

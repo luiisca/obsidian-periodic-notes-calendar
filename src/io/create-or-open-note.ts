@@ -12,21 +12,24 @@ import { getNormalizedPeriodSettings } from "./settings";
 import { type IGranularity } from "./types";
 import { ensureFolderExists, getNotePath, getTemplateInfo } from "./vault";
 import { extractAndReplaceTODOItems } from "./utils";
-import { ViewManager } from "@/main";
-
+import { ViewManager } from "@/ui";
 
 export async function createOrOpenNote({
     leaf,
     date,
     granularity,
+    openState,
     confirmBeforeCreateOverride = get(settingsStore).shouldConfirmBeforeCreate,
-    isPreview
+    isPreview,
+    openNotesInPreviewOverride = true,
 }: {
     leaf: WorkspaceLeaf | null;
     date: Moment;
+    openState?: Record<string, any>;
     granularity: IGranularity;
     confirmBeforeCreateOverride?: boolean;
     isPreview?: boolean;
+    openNotesInPreviewOverride?: boolean;
 }) {
     const { settings: { selectedFormat } } = getNormalizedPeriodSettings(granularity);
 
@@ -34,15 +37,16 @@ export async function createOrOpenNote({
     const normalizedPath = getNotePath(granularity, date);
 
     console.log("[createOrOpenNote()] > normalizedPath: ", normalizedPath);
-    let file = window.app.metadataCache.getFirstLinkpathDest(normalizedPath, "")
+    let file = window.app.vault.getAbstractFileByPath(normalizedPath)
     console.log("[createOrOpenNote()] > file: ", file);
 
     async function openFile(file: TFile | null) {
         if (file) {
-            if (isPreview || get(settingsStore).preview.openNotesInPreview) {
-                ViewManager.initPreview(file)
+            if (openNotesInPreviewOverride && (isPreview || get(settingsStore).preview.openNotesInPreview)) {
+                ViewManager.revealView();
+                ViewManager.initPreview(file);
             } else {
-                await leaf?.openFile(file);
+                await leaf?.openFile(file, openState);
             }
             activeFilepathStore.set(file.path);
         }
