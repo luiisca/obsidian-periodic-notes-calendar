@@ -8,6 +8,7 @@ export type TFormat = {
     error: string;
     loading: boolean;
 }
+export type TimelineViewMode = 'expanded' | 'collapsed';
 export interface IPreview {
     mainSection: "" | null,
     todoSection: "# TODO" | string,
@@ -43,7 +44,9 @@ export interface ISettings {
         enabled: boolean;
         /** Whether the adjacent dates will be based in the crr file granularity or if they'll always be adjacent days. */
         granularityBased: boolean;
-        displayOnAllNotes: boolean;
+        displayOnRestNotes: boolean;
+        viewMode: TimelineViewMode;
+        restViewMode: TimelineViewMode;
     };
     filepaths: Record<string, string>;
     filepathsByFormatValue: Record<string, Record<string, string> | undefined>;
@@ -154,7 +157,9 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
     timeline: {
         enabled: true,
         granularityBased: true,
-        displayOnAllNotes: false,
+        displayOnRestNotes: false,
+        viewMode: 'expanded' as const,
+        restViewMode: 'collapsed' as const,
     },
     filepaths: {},
     filepathsByFormatValue: {},

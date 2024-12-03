@@ -205,7 +205,7 @@
             onclick={handleOutlineClick}
             onkeydown={handleOutlineClick}
         >
-            <div class="workspace-tab-header-inner">
+            <div class="workspace-tab-header-inner p-0">
                 <div
                     bind:this={outlineBttn}
                     class="workspace-tab-header-inner-icon"
@@ -229,7 +229,7 @@
 
 <div data-type={PREVIEW_CONTROLS_TYPE}>
     {#if file && leaf}
-        {#if $previewSplitDirectionStore === "horizontal"}
+        {#if $previewSplitDirectionStore === "horizontal" && !$settingsStore.timeline.enabled}
             <div
                 class="absolute right-0 top-0 flex space-x-1 pb-1.5 mt-1.5 px-3 h-[var(--header-height)]"
             >
@@ -239,11 +239,10 @@
         {/if}
         <div
             class={cn(
-                "absolute top-1/2 -translate-y-1/2 flex flex-col gap-y-1 opacity-80 items-center",
-                $previewSplitDirectionStore === "vertical" ? "right-1" : "right-3"
+                "absolute top-1/2 -translate-y-1/2 flex flex-col gap-y-1 opacity-80 items-center right-1",
             )}
         >
-            {#if $previewSplitDirectionStore === "vertical"}
+            {#if $previewSplitDirectionStore === "vertical" || $settingsStore.timeline.enabled}
                 {@render OutlineBttn()}
             {/if}
             {#if !$settingsStore.preview.zenMode && enabledGranularities}
@@ -264,7 +263,7 @@
                     </div>
                 {/each}
             {/if}
-            {#if $previewSplitDirectionStore === "vertical"}
+            {#if $previewSplitDirectionStore === "vertical" || $settingsStore.timeline.enabled}
                 {@render MoreBttn()}
             {/if}
         </div>

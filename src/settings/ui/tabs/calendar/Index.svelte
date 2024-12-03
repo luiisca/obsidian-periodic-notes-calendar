@@ -2,7 +2,7 @@
 	import { CALENDAR_POPOVER_ID } from '@/constants';
 	import locales from '@/locales';
 	import { defaultWeekdays, sysLocaleKey } from '@/localization';
-	import { ISettings } from '@/settings/constants';
+	import { ISettings, TimelineViewMode } from '@/settings/constants';
 	import { settingsStore } from '@/settings/store';
 	import { Dropdown, SettingItem, Toggle } from '@/settings/ui';
 	import { updateLocale, updateWeekdays, updateWeekStart } from '@/stores';
@@ -170,11 +170,7 @@
             s.timeline.enabled = enabled
             return s
         })
-        if (enabled) {
-            TimelineManager.initTimeline();
-        } else {
-            TimelineManager.unload();
-        }
+        TimelineManager.restart();
     }
 
     const handleToggleGranularityBased = (granularityBased: boolean) => {
@@ -182,18 +178,28 @@
             s.timeline.granularityBased = granularityBased
             return s
         })
-        if (granularityBased) {
-            TimelineManager.initTimeline();
-        } else {
-            TimelineManager.unload();
-        }
+        TimelineManager.restart();
     }
-    const handleToggleDisplayOnAllNotes = (displayOnAllNotes: boolean) => {
+    const handleSetViewMode = (viewMode: TimelineViewMode) => {
         settingsStore.update(s => {
-            s.timeline.displayOnAllNotes = displayOnAllNotes
+            s.timeline.viewMode = viewMode 
             return s
         })
-        TimelineManager.initTimeline()
+        TimelineManager.restart();
+    }
+    const handleToggleDisplayOnRestNotes = (displayOnRestNotes: boolean) => {
+        settingsStore.update(s => {
+            s.timeline.displayOnRestNotes =displayOnRestNotes 
+            return s
+        })
+        TimelineManager.restart();
+    }
+    const handleSetRestViewMode = (restViewMode: TimelineViewMode) => {
+        settingsStore.update(s => {
+            s.timeline.restViewMode = restViewMode 
+            return s
+        })
+        TimelineManager.restart();
     }
 
 	// Localization
@@ -256,7 +262,7 @@
 	};
 </script>
 
-<h3>Display</h3>
+<SettingItem isHeading={true} name="Display" />
 <SettingItem
 	name="Calendar Panel Location"
 	description="Choose where the calendar appears in your workspace (left or right sidebar)"
@@ -314,7 +320,7 @@
     </SettingItem>
 {/if}
 
-<h3 class="mb-0">Preview</h3>
+<SettingItem isHeading={true} name="Preview" className="pb-0"/>
 <div class="flex justify-between">
     <p>
         Configure default settings for the preview window. For period-specific options, visit 
@@ -419,7 +425,7 @@
 {/if}
 
 {#if $settingsStore.floatingMode}
-	<h3>Popover Windows</h3>
+    <SettingItem isHeading={true} name="Popover Windows" />
 	<SettingItem
 		name="Sequential Dismissal (Click)"
 		description="Close floating windows one at a time when clicking outside"
@@ -447,7 +453,7 @@
 	</SettingItem>
 {/if}
 
-<h3>Interaction Behavior</h3>
+<SettingItem isHeading={true} name="Interaction Behavior" />
 <SettingItem
 	name="Quick Access"
 	description="Show calendar when hovering over the ribbon icon for faster navigation"
@@ -488,7 +494,7 @@
 </SettingItem>
 
 <!-- TODO: reword -->
-<h3 class="mb-0">Timeline</h3>
+<SettingItem isHeading={true} name="Timeline" className='pb-0' />
 <div class="flex justify-between">
     <p>
         Display a quickview at the top of your periodic notes to quickly move between periods.
@@ -503,33 +509,70 @@
     </SettingItem>
 </div>
 
-<!-- TODO: reword -->
-<SettingItem
-    name="Display related periodic dates"
-    description="Whether the adjacent dates will be based in the crr file granularity or if they'll always be adjacent days."
->
-    {#snippet control()}
-        <Toggle
-            onChange={handleToggleGranularityBased}
-            isEnabled={$settingsStore.timeline.granularityBased}
-        />
-    {/snippet}
-</SettingItem>
+{#if $settingsStore.timeline.enabled}
+    <!-- TODO: reword -->
+    <SettingItem
+        name="Display related periodic dates"
+        description="Whether the adjacent dates will be based in the crr file granularity or if they'll always be adjacent days."
+    >
+        {#snippet control()}
+            <Toggle
+                onChange={handleToggleGranularityBased}
+                isEnabled={$settingsStore.timeline.granularityBased}
+            />
+        {/snippet}
+    </SettingItem>
+    <!-- TODO: reword -->
+    <SettingItem
+        name="Periodic notes timeline view mode"
+        description="Default display mode for timeline"
+    >
+        {#snippet control()}
+            <Dropdown
+                options={[
+                    { label: 'Expanded', value: 'expanded' },
+                    { label: 'Collapsed', value: 'collapsed' },
+                ]}
+                onChange={handleSetViewMode}
+                value={$settingsStore.timeline.viewMode}
+            />
+        {/snippet}
+    </SettingItem>
 
-<!-- TODO: reword -->
-<SettingItem
-    name="Display timeline on all notes"
-    description="Display timeline on all notes, instead of default periodic ones."
->
-    {#snippet control()}
-        <Toggle
-            onChange={handleToggleDisplayOnAllNotes}
-            isEnabled={$settingsStore.timeline.displayOnAllNotes}
-        />
-    {/snippet}
-</SettingItem>
+    <!-- TODO: reword -->
+    <SettingItem
+        name="Display timeline on non-periodic notes"
+        description="Display timeline on all notes, not just periodic notes."
+    >
+        {#snippet control()}
+            <Toggle
+                onChange={handleToggleDisplayOnRestNotes}
+                isEnabled={$settingsStore.timeline.displayOnRestNotes}
+            />
+        {/snippet}
+    </SettingItem>
 
-<h3>Localization</h3>
+    {#if $settingsStore.timeline.displayOnRestNotes}
+        <!-- TODO: reword -->
+        <SettingItem
+            name="Non-periodic notes timeline view mode"
+            description="Default display mode for non-periodic notes timeline"
+        >
+            {#snippet control()}
+                <Dropdown
+                    options={[
+                        { label: 'Expanded', value: 'expanded' },
+                        { label: 'Collapsed', value: 'collapsed' },
+                    ]}
+                    onChange={handleSetRestViewMode}
+                    value={$settingsStore.timeline.restViewMode}
+                />
+            {/snippet}
+        </SettingItem>
+    {/if}
+{/if}
+
+<SettingItem isHeading={true} name="Localization" />
 <SettingItem
 	name="Calendar Language"
 	description="Set a specific language for the calendar interface"

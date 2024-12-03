@@ -2,7 +2,7 @@
     import { cn } from "@/ui/utils";
 
     interface Props {
-        onClick: () => void;
+        onClick: (ev: MouseEvent) => void;
         tooltip: string;
         direction: "left" | "right";
         className?: string;

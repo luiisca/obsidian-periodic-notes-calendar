@@ -1,7 +1,7 @@
 import { LEAF_TYPE, PREVIEW_CONTROLS_TYPE } from '@/constants';
 import { createNote, getFileData, IGranularity } from '@/io';
 import { PeriodSettings, settingsStore, type ISettings } from '@/settings';
-import { activeFilepathStore, isPreviewMaximizedStore, previewLeafStore, previewSplitDirectionStore, processingPreviewChangeStore } from '@/stores';
+import { activeFilepathStore, isPreviewMaximizedStore, previewLeafStore, previewSplitDirectionStore, previewSplitPositionStore, processingPreviewChangeStore } from '@/stores';
 import { capitalize } from '@/utils';
 import moment from 'moment';
 import { TFile, WorkspaceLeaf } from 'obsidian';
@@ -65,6 +65,10 @@ export class ViewManager {
             // check preview's split direction
             const previewSplitDirection = this.getPreviewSplitDirection(previewLeaf);
             previewSplitDirection && previewSplitDirectionStore.set(previewSplitDirection);
+
+            // check preview's leaf position
+            const previewSplitPosition = this.getLeafSplitPosition(previewLeaf as WorkspaceLeaf & { containerEl: HTMLElement; tabHeaderEl: HTMLElement });
+            previewSplitPositionStore.set(previewSplitPosition)
 
             // avoid toggling preview if it has transitioned to an expanded-like state (moved to another tab)
             if (isPreviewMaximized) {
@@ -205,6 +209,20 @@ export class ViewManager {
     }
     static getPreviewSplitDirection(previewLeaf: WorkspaceLeaf | null) {
         return ((previewLeaf?.parent?.parent as any)?.direction || null) as 'vertical' | 'horizontal' | null;
+    }
+    static getLeafSplitPosition(leaf: WorkspaceLeaf & { containerEl: HTMLElement; tabHeaderEl: HTMLElement } | null) {
+        const closestWorkspaceSplitClassName =
+            leaf?.containerEl.closest('.workspace-split')?.className;
+
+        if (closestWorkspaceSplitClassName?.includes('left')) {
+            return 'left';
+        }
+
+        if (closestWorkspaceSplitClassName?.includes('right')) {
+            return 'right';
+        }
+
+        return 'root';
     }
     /**
         * Passing `restart` sets `s.preview.visible` to null which signals `initPreview` to create a new preview split.

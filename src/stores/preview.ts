@@ -8,3 +8,4 @@ export const previewLeafStore = writable<{ leaf: WorkspaceLeaf | null, file: TFi
 export const processingPreviewChangeStore = writable(false);
 export const isPreviewMaximizedStore = writable(false);
 export const previewSplitDirectionStore = writable<"vertical" | "horizontal" | null>(null);
+export const previewSplitPositionStore = writable<"left" | "root" | 'right' | null>(null);

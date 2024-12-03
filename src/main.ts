@@ -224,26 +224,11 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
             return;
         }
 
-        const getSplitPos = () => {
-            const closestWorkspaceSplitClassName =
-                leaf.containerEl.closest('.workspace-split')?.className;
-
-            if (closestWorkspaceSplitClassName?.includes('left')) {
-                return 'left';
-            }
-
-            if (closestWorkspaceSplitClassName?.includes('right')) {
-                return 'right';
-            }
-
-            return 'root';
-        };
-
         /**
          * The worskpace split where leaf is currently attached to
          * based on closest workspace split className
          */
-        const crrSplitPos = getSplitPos();
+        const crrSplitPos = ViewManager.getLeafSplitPosition(leaf);
         /**
          * A split is a container for leaf nodes that slides in when clicking the collapse button, except for the root split (markdown editor). There are three types: left, root, and right.
          */

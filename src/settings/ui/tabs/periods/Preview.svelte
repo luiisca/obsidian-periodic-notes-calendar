@@ -3,7 +3,7 @@
 	import type { Readable } from 'svelte/store';
 
     import { settingsStore, type PeriodSettings } from '@/settings';
-    import { Dropdown, HeadingsSuggest, SettingItem, Toggle } from '@/settings/ui';
+    import { Dropdown, HeadingsSuggest, SettingItem } from '@/settings/ui';
     import { TFile } from 'obsidian';
     import { onDestroy } from 'svelte';
 
@@ -12,7 +12,7 @@
 		granularity: IGranularity;
 	}
 
-	let { settings, granularity }: Props = $props();
+	let { settings }: Props = $props();
     let mainSectionInputEl: HTMLInputElement | null = $state(null);
     let todoSectionInputEl: HTMLInputElement | null = $state(null);
     let mainHeadingSuggestInstance: HeadingsSuggest;
@@ -31,13 +31,13 @@
             if (!mainHeadingSuggestInstance) {
                 mainHeadingSuggestInstance = new HeadingsSuggest(mainSectionInputEl)
             }
-            mainHeadingSuggestInstance.update(headings, $settings.templatePath, mainSectionInputEl)
+            mainHeadingSuggestInstance.update(headings, $settings.templatePath)
         }
         if (todoSectionInputEl) {
             if (!todoHeadingSuggestInstance) {
                 todoHeadingSuggestInstance = new HeadingsSuggest(todoSectionInputEl)
             }
-            todoHeadingSuggestInstance.update(headings, $settings.templatePath, todoSectionInputEl)
+            todoHeadingSuggestInstance.update(headings, $settings.templatePath)
         }
     })
 
@@ -53,7 +53,7 @@
     });
 </script>
 
-<SettingItem name="Preview" />
+<SettingItem isHeading={true} name="Preview" />
 {#if $settingsStore.preview.enabled}
     <!-- TODO: reword -->
     <SettingItem

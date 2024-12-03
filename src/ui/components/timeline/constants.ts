@@ -1,4 +1,5 @@
 import { IGranularity } from "@/io";
+import { TimelineViewMode } from "@/settings";
 
 export const G_MAP: Record<
     IGranularity,
@@ -46,3 +47,4 @@ export const G_MAP: Record<
         format: "YY",
     },
 };
+export const VIEW_MODES: TimelineViewMode[] = ['collapsed', 'expanded'] as const

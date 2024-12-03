@@ -19,15 +19,12 @@ export default class TimelineManager {
                     leaf.view instanceof MarkdownView
                     && leaf.getViewState().type === 'markdown'
                     && leaf.view?.containerEl?.dataset?.type !== LEAF_TYPE
-                    && !leafContainerClassname?.includes(`mod-left`)
-                    && !leafContainerClassname?.includes(`mod-right`)
-                    && !Array.from(leaf.view.containerEl.childNodes).find((el: HTMLElement) => el?.dataset?.type === PREVIEW_CONTROLS_TYPE)
                 ) {
                     const file = leaf.view.file;
                     if (!file) return;
 
                     const { isValid, granularity, date } = isValidPeriodicNote(file.basename);
-                    if ((typeof isValid === 'boolean' && date && granularity) || get(settingsStore).timeline.displayOnAllNotes) {
+                    if ((typeof isValid === 'boolean' && date && granularity) || get(settingsStore).timeline.displayOnRestNotes) {
                         // mount timeline to any markdown view without one
                         const mounted = Array.from(leaf.view.containerEl.children).find(el => {
                             if (el.id.includes(`timeline-container`)) {
@@ -41,24 +38,45 @@ export default class TimelineManager {
                             return false;
                         });
                         if (!mounted) {
+                            const isPeriodic = Boolean(typeof isValid === 'boolean' && date && granularity);
+                            const enoughRoom = leaf.view.containerEl.getBoundingClientRect().width > 640;
+
                             this.timelineComponents[file.path] = mount(Timeline, {
                                 target: leaf.view.containerEl,
                                 props: {
                                     granularity: granularity || "day",
                                     date: date || moment(),
+                                    isPeriodic,
+                                    isPreview: leafContainerClassname?.includes(`mod-left`) || leafContainerClassname?.includes(`mod-right`),
+                                    viewModeOverride: enoughRoom ? (isPeriodic ? get(settingsStore).timeline.viewMode : get(settingsStore).timeline.restViewMode) : 'collapsed'
                                 },
                             })
                         }
+                    } else {
+                        leaf.view.containerEl.childNodes.forEach((el: HTMLElement) => {
+                            if (el.id?.includes(`timeline-container`)) {
+                                el.remove();
+                            }
+                        })
                     }
                 }
             });
         }
     }
 
-    static unload() {
+    static restart() {
+        this.cleanup();
+        this.initTimeline();
+    }
+
+    static cleanup() {
         for (const timeline of Object.values(this.timelineComponents)) {
             unmount(timeline);
         }
         this.timelineComponents = {};
+    }
+
+    static unload() {
+        this.cleanup();
     }
 }
