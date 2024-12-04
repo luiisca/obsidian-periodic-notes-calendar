@@ -13,8 +13,6 @@ type TOnClickParams = {
     createNewSplitLeaf: boolean;
     granularity: IGranularity;
     openState?: Record<string, any>;
-    isPreview?: boolean;
-    openNotesInPreviewOverride?: boolean;
 };
 type TOnHoverParams = {
     event: PointerEvent | null;
@@ -28,11 +26,9 @@ const onClick = async ({
     createNewSplitLeaf,
     granularity,
     openState,
-    isPreview,
-    openNotesInPreviewOverride = true,
 }: TOnClickParams): Promise<void> => {
     let leaf: WorkspaceLeaf | null;
-    if (openNotesInPreviewOverride && (isPreview || (get(settingsStore).preview.openNotesInPreview && !createNewSplitLeaf))) {
+    if (get(settingsStore).preview.openNotesInPreview && !createNewSplitLeaf) {
         leaf = null;
     } else {
         leaf = window.app.workspace.getLeaf(createNewSplitLeaf);
@@ -42,8 +38,6 @@ const onClick = async ({
         date,
         openState,
         granularity,
-        openNotesInPreviewOverride,
-        isPreview,
     });
 };
 

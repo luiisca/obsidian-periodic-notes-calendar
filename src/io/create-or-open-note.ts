@@ -1,18 +1,17 @@
 import { settingsStore } from "@/settings";
-import { activeFilepathStore, previewLeafStore } from "@/stores";
+import { activeFilepathStore } from "@/stores";
 import { internalFileModStore } from "@/stores/notes";
 import { createConfirmationDialog } from "@/ui/modals/confirmation";
 import { capitalize } from "@/utils";
 import { type Moment } from "moment";
-import { Notice, TFile, WorkspaceLeaf } from "obsidian";
+import { Notice, TAbstractFile, TFile, WorkspaceLeaf } from "obsidian";
 import { get } from "svelte/store";
 import CreateNote from "./CreateNote.svelte";
 import { getPeriodicityFromGranularity, replaceTemplateContents } from "./parse";
 import { getNormalizedPeriodSettings } from "./settings";
 import { type IGranularity } from "./types";
-import { ensureFolderExists, getNotePath, getTemplateInfo } from "./vault";
 import { extractAndReplaceTODOItems } from "./utils";
-import { ViewManager } from "@/ui";
+import { ensureFolderExists, getNotePath, getTemplateInfo } from "./vault";
 
 export async function createOrOpenNote({
     leaf,
@@ -20,16 +19,12 @@ export async function createOrOpenNote({
     granularity,
     openState,
     confirmBeforeCreateOverride = get(settingsStore).shouldConfirmBeforeCreate,
-    isPreview,
-    openNotesInPreviewOverride = true,
 }: {
     leaf: WorkspaceLeaf | null;
     date: Moment;
     openState?: Record<string, any>;
     granularity: IGranularity;
     confirmBeforeCreateOverride?: boolean;
-    isPreview?: boolean;
-    openNotesInPreviewOverride?: boolean;
 }) {
     const { settings: { selectedFormat } } = getNormalizedPeriodSettings(granularity);
 
@@ -40,14 +35,9 @@ export async function createOrOpenNote({
     let file = window.app.vault.getAbstractFileByPath(normalizedPath)
     console.log("[createOrOpenNote()] > file: ", file);
 
-    async function openFile(file: TFile | null) {
+    async function openFile(file: TAbstractFile | null) {
         if (file) {
-            if (openNotesInPreviewOverride && (isPreview || get(settingsStore).preview.openNotesInPreview)) {
-                ViewManager.revealView();
-                ViewManager.initPreview(file);
-            } else {
-                await leaf?.openFile(file, openState);
-            }
+            await leaf?.openFile(file as TFile, openState);
             activeFilepathStore.set(file.path);
         }
     }

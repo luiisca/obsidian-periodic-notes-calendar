@@ -1,6 +1,6 @@
 <script lang="ts">
     import { BASE_POPOVER_ID, FILE_MENU_POPOVER_ID, PREVIEW_CONTROLS_TYPE } from "@/constants";
-    import { getPeriodicityFromGranularity, IGranularity } from "@/io";
+    import { createNote, getFileData, getPeriodicityFromGranularity, IGranularity } from "@/io";
     import { settingsStore } from "@/settings";
     import { previewLeafStore, previewSplitDirectionStore, todayStore } from "@/stores";
     import { Popover } from "@/ui/popovers";
@@ -156,17 +156,19 @@
         });
     };
 
-    const handleDotClick = (granularity: IGranularity) => {
+    const handleDotClick = async (granularity: IGranularity) => {
         settingsStore.update(s => {
             s.preview.crrGranularity = granularity;
             return s;
         })
-        eventHandlers.onClick({
-            date: $todayStore,
-            createNewSplitLeaf: false,
-            granularity,
-            isPreview: true,
-        });
+
+        const foundFile = getFileData(granularity, $todayStore).file;
+        let file = foundFile;
+        if (!foundFile) {
+            file = await createNote(granularity, $todayStore);
+        }
+        const previewLeaf = ViewManager.searchPreviewLeaf() || $previewLeafStore?.leaf;
+        file && previewLeaf && ViewManager.setupOpenPreviewLeaf(file, previewLeaf);
     }
 
     $effect.pre(() => {

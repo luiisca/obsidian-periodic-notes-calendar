@@ -312,7 +312,7 @@ export class ViewManager {
         }
         return file;
     }
-    private static setupOpenPreviewLeaf(file: TFile, previewLeaf: WorkspaceLeaf) {
+    static setupOpenPreviewLeaf(file: TFile, previewLeaf: WorkspaceLeaf) {
         previewLeaf.openFile(file);
         previewLeafStore.set({ leaf: previewLeaf, file });
         settingsStore.update(s => {
