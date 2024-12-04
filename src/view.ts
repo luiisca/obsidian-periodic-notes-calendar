@@ -1,7 +1,6 @@
 import {
     FileView,
     ItemView,
-    MarkdownView,
     Notice,
     TAbstractFile,
     TFile,

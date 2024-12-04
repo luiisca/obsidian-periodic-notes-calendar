@@ -175,7 +175,7 @@ export class ViewManager {
         })
     }
     static async tryPreviewCleanup({ leaf, defaultFile }: { leaf?: WorkspaceLeaf, defaultFile?: TFile } = {}) {
-        const previewLeaf = leaf || this.searchPreviewLeaf();
+        const previewLeaf = leaf || this.searchPreviewLeaf() || get(previewLeafStore)?.leaf ;
         if (previewLeaf) {
             if (this.checkIfPreviewIsMaximized(previewLeaf)) {
                 const file = defaultFile || await this.getFile()
@@ -231,7 +231,7 @@ export class ViewManager {
     static cleanupPreview({ leaf }: { leaf?: WorkspaceLeaf } = {}) {
         processingPreviewChangeStore.set(true);
 
-        const previewLeaf = leaf || this.searchPreviewLeaf()
+        const previewLeaf = leaf || this.searchPreviewLeaf() || get(previewLeafStore)?.leaf 
         previewLeaf?.detach();
         this.previewControlsComponent && unmount(this.previewControlsComponent)
         this.previewControlsComponent = null;
@@ -248,7 +248,7 @@ export class ViewManager {
     }
     static searchPreviewLeaf(file?: TFile) {
         let previewLeafFound = false;
-        let previewLeaf: WorkspaceLeaf | null = get(previewLeafStore)?.leaf || null;
+        let previewLeaf: WorkspaceLeaf | null = null;
         window.app.workspace.iterateAllLeaves((leaf) => {
             if (
                 !previewLeafFound
@@ -268,7 +268,7 @@ export class ViewManager {
     }
 
     static togglePreviewTabHeader() {
-        const previewLeaf = this.searchPreviewLeaf()
+        const previewLeaf = this.searchPreviewLeaf() || get(previewLeafStore)?.leaf || null
         const isPreviewMaximized = this.checkIfPreviewIsMaximized(previewLeaf);
         if (isPreviewMaximized) return;
 
@@ -284,20 +284,32 @@ export class ViewManager {
 
     private static async getFile() {
         let file: TFile | null = null;
-        const enabledGranularities: IGranularity[] = [];
-        Object.entries(get(settingsStore).periods).forEach((entry) => {
+        let createNewFile: { granularity: IGranularity | null; create: boolean} = { granularity: null, create: false };
+        Object.entries(get(settingsStore).periods).forEach(async (entry) => {
             const [g, s] = entry as [IGranularity, PeriodSettings];
             if (s.enabled) {
-                enabledGranularities.push(g);
-                if (!file) {
-                    file = getFileData(g, moment()).file;
+                const crrGranularity = get(settingsStore).preview.crrGranularity
+                if (!file && (crrGranularity === g || crrGranularity === null)) {
+                    if (crrGranularity === null) {
+                        settingsStore.update(s => {
+                            s.preview.crrGranularity = g
+                            return s
+                        })
+                    }
+                    const foundFile = getFileData(g, moment()).file;
+                    if (!foundFile) {
+                        createNewFile = { granularity: g, create: true }
+                    } else {
+                        file = foundFile
+                    }
                 }
             }
         })
-        if (!file && enabledGranularities.length > 0) {
-            file = await createNote(enabledGranularities[0], moment())
-        }
 
+        if (createNewFile.create && createNewFile.granularity) {
+            file = await createNote(createNewFile.granularity, moment());
+            return file
+        }
         return file;
     }
     private static setupOpenPreviewLeaf(file: TFile, previewLeaf: WorkspaceLeaf) {
