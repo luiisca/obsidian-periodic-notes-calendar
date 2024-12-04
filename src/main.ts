@@ -106,8 +106,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
 
         this.addCommand({
             id: 'open-nldate-note',
-            // TODO: reword
-            name: 'Open a Periodic Note based on Natural Language Date selection',
+            name: 'Open Periodic Note from Natural Language Date',
             callback: createNldatePickerDialog,
         });
 

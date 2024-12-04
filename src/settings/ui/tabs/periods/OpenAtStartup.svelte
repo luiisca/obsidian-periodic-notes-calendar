@@ -15,12 +15,11 @@
 	let { settings, granularity }: Props = $props();
 </script>
 
-<!-- // TODO: reword description -->
 <SettingItem
-	name="Open on startup"
-	description={`Opens your ${capitalize(
+	name="Open on Startup"
+	description={`Automatically open or create a new ${capitalize(
 		getPeriodicityFromGranularity(granularity)
-	)} note automatically whenever you open this vault`}
+	)} note whenever you open this vault`}
 	type="toggle"
 	isHeading={false}
 >

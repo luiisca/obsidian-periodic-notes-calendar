@@ -19,6 +19,8 @@
     let todoHeadingSuggestInstance: HeadingsSuggest;
 
     let headings = $derived.by(() => {
+        $settings.preview.mainSection // force update
+        $settings.preview.todoSection // force update
         const file = $settings.templatePath ? (window.app.vault.getAbstractFileByPath($settings.templatePath ) as TFile) : null;
         let h: string[] = []
         if (file) {
@@ -31,12 +33,14 @@
             if (!mainHeadingSuggestInstance) {
                 mainHeadingSuggestInstance = new HeadingsSuggest(mainSectionInputEl)
             }
+            $settings.preview.mainSection // force update
             mainHeadingSuggestInstance.update(headings, $settings.templatePath)
         }
         if (todoSectionInputEl) {
             if (!todoHeadingSuggestInstance) {
                 todoHeadingSuggestInstance = new HeadingsSuggest(todoSectionInputEl)
             }
+            $settings.preview.todoSection // force update
             todoHeadingSuggestInstance.update(headings, $settings.templatePath)
         }
     })
@@ -55,10 +59,9 @@
 
 <SettingItem isHeading={true} name="Preview" />
 {#if $settingsStore.preview.enabled}
-    <!-- TODO: reword -->
     <SettingItem
         name="Main Section"
-        description="The default section to open note preview at"
+        description="Set the default section where note previews open. Leave empty to open from the top. Example: '## Links'."
     >
         {#snippet control()}
             <input
@@ -73,10 +76,9 @@
     </SettingItem>
 {/if}
 
-<!-- TODO: reword -->
 <SettingItem
     name="Todo Section"
-    description="The plugin will automatically move uncompleted tasks under the selected section when a new periodic note is created. Leave empty to disable. It looks up to 3 periodic notes before"
+    description="Uncompleted tasks will be moved to this section in new periodic notes. Leave empty to disable. Searches up to 3 previous notes. Example: '## TODO'."
 >
     {#snippet control()}
         <input
@@ -91,10 +93,9 @@
 </SettingItem>
 
 {#if $settingsStore.preview.enabled}
-    <!-- TODO: reword -->
     <SettingItem
-        name="Where to Open Notes at"
-        description="Choose whether to open notes on the default view (main) or in a preview (bottom below calendar UI)"
+        name="Open Notes In"
+        description="Choose whether notes open in the main section or in a preview below the calendar interface."
         type="dropdown"
     >
         {#snippet control()}

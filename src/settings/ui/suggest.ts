@@ -305,20 +305,30 @@ export class HeadingsSuggest extends BaseSuggest<string> {
     }
 
     async selectSuggestion(heading: string, _: KeyboardEvent | MouseEvent): Promise<void> {
-        if (this.noHeadingsFound && heading.includes("+ Add")) {
+        if (this.noHeadingsFound && heading.startsWith("+ Add")) {
             const file = this.templatePath ? (window.app.vault.getAbstractFileByPath(this.templatePath) as TFile) : null;
             if (file) {
                 const content = await window.app.vault.read(file)
                 if (this.newHeadingVal) {
-                    window.app.vault.modify(file, `${content.trim() === "" ? this.newHeadingVal : `${content.trim()}\n\n${this.newHeadingVal}`}`)
-                    this.inputEl.value = this.newHeadingVal;
+                    await window.app.vault.modify(file, `${content.trim() === "" ? this.newHeadingVal : `${content.trim()}\n\n${this.newHeadingVal}`}`)
+
+                    const metadataChangeCb = () => {
+                        if (this.newHeadingVal) {
+                            this.inputEl.value = this.newHeadingVal;
+                            this.inputEl.trigger("input");
+                            this.suggestionSelected = true;
+
+                            window.app.metadataCache.off("changed", metadataChangeCb);
+                        }
+                    }
+                    window.app.metadataCache.on("changed", metadataChangeCb);
                 }
             }
         } else {
             this.inputEl.value = heading;
+            this.inputEl.trigger("input");
+            this.suggestionSelected = true;
         }
-        this.inputEl.trigger("input");
-        this.suggestionSelected = true;
         this.close();
     }
 }

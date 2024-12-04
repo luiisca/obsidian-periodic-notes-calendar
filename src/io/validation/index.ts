@@ -80,5 +80,12 @@ export function validateTemplate(template: string): string {
 
     return "";
 }
+export function isTemplateValid(template: string): boolean {
+    if (!template) {
+        return false;
+    }
+
+    return window.app.vault.getAbstractFileByPath(template) !== null;
+}
 
 export * from "./format"

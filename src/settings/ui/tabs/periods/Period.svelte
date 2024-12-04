@@ -11,6 +11,7 @@
     import Formats from "./Formats.svelte";
     import Preview from "./Preview.svelte";
     import { cn } from "@/ui/utils";
+    import { isTemplateValid } from "@/io/validation";
 
     interface Props {
         granularity: IGranularity;
@@ -196,7 +197,9 @@
             <Folder {settings} {granularity} />
             <Template {settings} />
             <OpenAtStartup {settings} {granularity} />
-            <Preview {settings} {granularity} />
+            {#if isTemplateValid($settings.templatePath)}
+                <Preview {settings} {granularity} />
+            {/if}
         </div>
     {/if}
 </div>

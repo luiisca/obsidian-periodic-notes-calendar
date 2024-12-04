@@ -493,11 +493,10 @@
 	{/snippet}
 </SettingItem>
 
-<!-- TODO: reword -->
 <SettingItem isHeading={true} name="Timeline" className='pb-0' />
 <div class="flex justify-between">
     <p>
-        Display a quickview at the top of your periodic notes to quickly move between periods.
+        Quickly jump between time periods from the top of your periodic notes.
     </p>
     <SettingItem type="toggle" className="[border-top:none]">
         {#snippet control()}
@@ -510,10 +509,9 @@
 </div>
 
 {#if $settingsStore.timeline.enabled}
-    <!-- TODO: reword -->
     <SettingItem
-        name="Display related periodic dates"
-        description="Whether the adjacent dates will be based in the crr file granularity or if they'll always be adjacent days."
+        name="Unique Timelines for Periodic Notes"
+        description="Toggle to show a specific timeline for each type of periodic note. When off, all periodic notes share the same week-based timeline."
     >
         {#snippet control()}
             <Toggle
@@ -522,10 +520,9 @@
             />
         {/snippet}
     </SettingItem>
-    <!-- TODO: reword -->
     <SettingItem
-        name="Periodic notes timeline view mode"
-        description="Default display mode for timeline"
+        name="Periodic Notes Timeline View Mode"
+        description="Set the default display mode for the timeline, either expanded or collapsed."
     >
         {#snippet control()}
             <Dropdown
@@ -539,10 +536,9 @@
         {/snippet}
     </SettingItem>
 
-    <!-- TODO: reword -->
     <SettingItem
-        name="Display timeline on non-periodic notes"
-        description="Display timeline on all notes, not just periodic notes."
+        name="Show Timeline Everywhere"
+        description="Enable the timeline for all notes, not just periodic ones."
     >
         {#snippet control()}
             <Toggle
@@ -553,10 +549,9 @@
     </SettingItem>
 
     {#if $settingsStore.timeline.displayOnRestNotes}
-        <!-- TODO: reword -->
         <SettingItem
-            name="Non-periodic notes timeline view mode"
-            description="Default display mode for non-periodic notes timeline"
+            name="Non-Periodic Notes Timeline View Mode"
+            description="Set the default display mode for the timeline on non-periodic notes."
         >
             {#snippet control()}
                 <Dropdown

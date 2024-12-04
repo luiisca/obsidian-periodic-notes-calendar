@@ -10,8 +10,6 @@
     const periodicity = capitalize(getPeriodicityFromGranularity(granularity));
 </script>
 
-<!-- // TODO: improve wording -->
 <span class="u-pop">
-    ⚠️ {periodicity} notes matching this format will no longer be recognized by the
-    calendar UI
+    ⚠️ Removing this format will prevent {periodicity} notes that match it from being recognized as periodic notes and displaying in the calendar interface.
 </span>
