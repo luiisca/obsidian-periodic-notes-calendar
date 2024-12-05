@@ -2,7 +2,7 @@
     import { BASE_POPOVER_ID, FILE_MENU_POPOVER_ID, PREVIEW_CONTROLS_TYPE } from "@/constants";
     import { createNote, getFileData, getPeriodicityFromGranularity, IGranularity } from "@/io";
     import { settingsStore } from "@/settings";
-    import { previewLeafStore, previewSplitDirectionStore, todayStore } from "@/stores";
+    import { isPreviewMaximizedStore, previewLeafStore, previewSplitDirectionStore, previewSplitPositionStore, todayStore } from "@/stores";
     import { Popover } from "@/ui/popovers";
     import { cn, eventHandlers, getSticker } from "@/ui/utils";
     import { capitalize } from "@/utils";
@@ -17,6 +17,12 @@
     import { Outline } from "./outline";
     import { goToNoteHeading } from "./utils";
     import { ViewManager } from "@/ui";
+    import { Moment } from "moment";
+
+    interface Props {
+        date: Moment;
+    }
+    const { date }: Props = $props();
 
     let file: TFile | null = $state(null);
     let leaf: WorkspaceLeaf | null = $state(null);
@@ -110,7 +116,7 @@
             );
 
             // Toggle tab header visibility
-            if (!ViewManager.checkIfPreviewIsMaximized(leaf)) {
+            if (!$isPreviewMaximizedStore && $previewSplitPositionStore !== 'root') {
                 menu.addItem((item) => {
                     return item
                         .setSection("preview")
@@ -148,6 +154,7 @@
             id: FILE_MENU_POPOVER_ID,
         }).open({
             event,
+            date,
             fileData: { file, sticker },
             extraItems: {
                 newSections: ["preview"],
@@ -167,8 +174,14 @@
         if (!foundFile) {
             file = await createNote(granularity, $todayStore);
         }
+        const data = await ViewManager.getPreviewFileData();
         const previewLeaf = ViewManager.searchPreviewLeaf() || $previewLeafStore?.leaf;
-        file && previewLeaf && ViewManager.setupOpenPreviewLeaf(file, previewLeaf);
+        file && previewLeaf && ViewManager.setupOpenPreviewLeaf({
+            file, 
+            granularity: data.granularity,
+            date: data.date,
+            previewLeaf
+        });
     }
 
     $effect.pre(() => {
@@ -197,8 +210,7 @@
             role="button"
             class={cn(
                 "clickable-icon view-action cursor-pointer !transition-none",
-                outlineOpen && "is-active ",
-                $previewSplitDirectionStore === "vertical" && "h-[var(--header-height)]"
+                outlineOpen && "is-active",
             )}
             aria-label={`Outline of ${file.basename}`}
             data-tooltip-delay="200"
@@ -207,7 +219,7 @@
             onclick={handleOutlineClick}
             onkeydown={handleOutlineClick}
         >
-            <div class="workspace-tab-header-inner p-0">
+            <div class="workspace-tab-header-inner !p-0">
                 <div
                     bind:this={outlineBttn}
                     class="workspace-tab-header-inner-icon"
@@ -220,7 +232,6 @@
     <button
         class={cn(
             "clickable-icon view-action ml-0 cursor-pointer",
-            $previewSplitDirectionStore === "vertical" && "h-[var(--header-height)]"
         )}
         bind:this={moreEl}
         aria-label="More options"
@@ -231,7 +242,7 @@
 
 <div data-type={PREVIEW_CONTROLS_TYPE}>
     {#if file && leaf}
-        {#if $previewSplitDirectionStore === "horizontal" && !$settingsStore.timeline.enabled}
+        {#if !$settingsStore.timeline.enabled && $previewSplitPositionStore !== 'root'}
             <div
                 class="absolute right-0 top-0 flex space-x-1 pb-1.5 mt-1.5 px-3 h-[var(--header-height)]"
             >
@@ -244,7 +255,7 @@
                 "absolute top-1/2 -translate-y-1/2 flex flex-col gap-y-1 opacity-80 items-center right-1",
             )}
         >
-            {#if $previewSplitDirectionStore === "vertical" || $settingsStore.timeline.enabled}
+            {#if $settingsStore.timeline.enabled || $previewSplitPositionStore === 'root'}
                 {@render OutlineBttn()}
             {/if}
             {#if !$settingsStore.preview.zenMode && enabledGranularities}
@@ -265,7 +276,7 @@
                     </div>
                 {/each}
             {/if}
-            {#if $previewSplitDirectionStore === "vertical" || $settingsStore.timeline.enabled}
+            {#if $settingsStore.timeline.enabled || $previewSplitPositionStore === 'root'}
                 {@render MoreBttn()}
             {/if}
         </div>

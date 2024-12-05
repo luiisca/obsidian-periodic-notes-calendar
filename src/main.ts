@@ -145,6 +145,8 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
             // open note at startup
             const startupNoteGranularity = getStartupNoteGranularity();
             if (startupNoteGranularity) {
+                // TODO: modify to open in preview if 
+                // get(settingsStore).preview.openNotesInPreview enabled
                 createOrOpenNote({
                     leaf: this.app.workspace.getLeaf(),
                     date: window.moment(),

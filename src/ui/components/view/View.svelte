@@ -5,6 +5,7 @@
     import { onDestroy, setContext } from "svelte";
     import {
         displayedDateStore,
+        isOpenPreviewBttnVisibleStore,
         isPreviewMaximizedStore,
         todayStore,
     } from "@/stores";
@@ -76,7 +77,7 @@
 {/if}
 {#if !popover}
     <Calendar />
-    {#if $settingsStore.preview.enabled && (!$settingsStore.preview.visible || $isPreviewMaximizedStore)}
+    {#if $isOpenPreviewBttnVisibleStore}
         <div
             class={cn(
                 "absolute left-0 w-full",

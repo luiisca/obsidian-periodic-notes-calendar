@@ -30,7 +30,6 @@ export interface ISettings {
     preview: {
         enabled: boolean;
         openNotesInPreview: boolean;
-        visible: boolean;
         zenMode: boolean;
         tabHeaderVisible: boolean;
         defaultSplitMode: "vertical" | "horizontal";
@@ -144,7 +143,6 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
     preview: {
         enabled: true,
         openNotesInPreview: false,
-        visible: false,
         zenMode: false,
         tabHeaderVisible: false,
         defaultSplitMode: "horizontal" as const,

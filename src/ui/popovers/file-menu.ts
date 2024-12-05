@@ -14,7 +14,7 @@ export type TFileMenuPopoverParams = {
 export type TFileMenuOpenParams = {
     event: MouseEvent,
     fileData: TFileData,
-    date?: Moment,
+    date: Moment,
     granularity?: IGranularity,
     extraItems?: {
         add: (menu: Menu) => void,
@@ -46,7 +46,7 @@ export class FileMenuPopoverBehavior {
         this.menu = new Menu();
 
         if (fileData.file) {
-            this.openCustomFileMenu(this.menu, fileData, extraItems)
+            this.openCustomFileMenu(this.menu, fileData, date, granularity, extraItems)
         } else if (date && granularity) {
             this.menu.addItem((item) => {
                 item
@@ -76,7 +76,7 @@ export class FileMenuPopoverBehavior {
         this.menu?.unload();
     }
 
-    private openCustomFileMenu(menu: Menu, fileData: TFileData, extraItems?: TFileMenuOpenParams['extraItems']) {
+    private openCustomFileMenu(menu: Menu, fileData: TFileData, date: Moment, granularity?: IGranularity, extraItems?: TFileMenuOpenParams['extraItems']) {
         const file = fileData.file;
         if (file) {
             // Add sections to the menu
@@ -107,11 +107,11 @@ export class FileMenuPopoverBehavior {
                     .setTitle("Open in preview window")
                     .setIcon("lucide-eye")
                     .onClick(() => {
-                        ViewManager.revealView();
-                        ViewManager.initPreview(file);
+                        ViewManager.initPreview(file, true);
                     })
             );
             // Reveal on calendar
+            // TODO: replace activeLeaf() with recommended Workspace.getActiveViewOfType() method 
             if (window.app.workspace.activeLeaf?.getViewState()?.type === 'markdown') {
                 menu.addItem((item) =>
                     item.setSection("open")
@@ -121,8 +121,7 @@ export class FileMenuPopoverBehavior {
                             ViewManager.revealView();
                             console.log("Revealing on calendar", file);
                             activeFilepathStore.set(file.path);
-                            const date =
-                                displayedDateStore.set()
+                            displayedDateStore.set(date)
                         })
                 )
             }

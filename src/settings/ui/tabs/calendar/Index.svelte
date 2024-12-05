@@ -5,7 +5,7 @@
 	import { ISettings, TimelineViewMode } from '@/settings/constants';
 	import { settingsStore } from '@/settings/store';
 	import { Dropdown, SettingItem, Toggle } from '@/settings/ui';
-	import { updateLocale, updateWeekdays, updateWeekStart } from '@/stores';
+	import { isPreviewVisibleStore, updateLocale, updateWeekdays, updateWeekStart } from '@/stores';
 	import { View, ViewManager } from '@/ui';
 	import { Popover } from '@/ui/popovers';
 	import { derived as derivedStore } from 'svelte/store';
@@ -78,7 +78,7 @@
             s.preview.tabHeaderVisible = tabHeaderVisible;
             return s
         });
-        if ($settingsStore.preview.visible) {
+        if ($isPreviewVisibleStore) {
             ViewManager.initPreview()
         }
     }
@@ -91,7 +91,7 @@
             }
             return s
         });
-        if ($settingsStore.preview.visible) {
+        if ($isPreviewVisibleStore) {
             ViewManager.initPreview()
         }
     }
