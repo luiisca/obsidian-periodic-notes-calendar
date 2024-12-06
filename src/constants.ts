@@ -47,7 +47,7 @@ export const DEFAULT_FORMATS_PER_GRANULARITY: Record<IGranularity, string> = {
 };
 export const HUMAN_FORMATS_PER_GRANULARITY = Object.freeze({
     month: "MMMM YYYY",
-    quarter: "YYYY Q[Q]",
+    quarter: "YYYY",
     year: "YYYY",
 });
 
