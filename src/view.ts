@@ -15,7 +15,7 @@ import { basename, extractAndReplaceTODOItems, storeAllVaultPeriodicFilepaths } 
 import { isValidPeriodicNote } from './io/validation';
 import type PeriodicNotesCalendarPlugin from './main';
 import { settingsStore } from './settings';
-import { activeFilepathStore, themeStore } from './stores';
+import { activeFilepathStore, processingPreviewChangeStore, themeStore } from './stores';
 import { internalFileModStore } from './stores/notes';
 import TimelineManager from './ui/components/timeline/manager';
 
@@ -190,5 +190,6 @@ export class CalendarView extends ItemView {
         const previewLeaf = ViewManager.searchPreviewLeaf(file)
 
         previewLeaf && ViewManager.cleanupPreview({ leaf: previewLeaf });
+        processingPreviewChangeStore.set(true)
     }
 }

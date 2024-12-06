@@ -22,49 +22,57 @@
         parts?: string[];
         children: TNode[];
     };
-    let { node, searchQuery, collapseAll, updateCollapsedCount, depth = 0 }: Props = $props();
+    let {
+        node,
+        searchQuery,
+        collapseAll,
+        updateCollapsedCount,
+        depth = 0,
+    }: Props = $props();
     let leaf: WorkspaceLeaf | null = $state(null);
     let childrenContainerEl: HTMLDivElement | null = $state(null);
-    let childrenContainerElHeight = tweened(0, {duration: 300, easing: cubicOut})
+    let childrenContainerElHeight = tweened(0, {
+        duration: 300,
+        easing: cubicOut,
+    });
 
     let markdownView: MarkdownView | null = $state(null);
     let collapsed = $state($collapseAll);
 
     const handleNodeClick = (ev: MouseEvent | KeyboardEvent) => {
-        ev.stopPropagation()
+        ev.stopPropagation();
 
-        if (leaf) {
-            goToNoteHeading({
-                leaf,
-                heading: `${'#'.repeat(node.level)} ${node.heading}`,
-                extra: () => {
-                    getPopoverInstance(BASE_POPOVER_ID)?.close()
-                }
-            })
-        }
-    }
+        goToNoteHeading({
+            heading: `${"#".repeat(node.level)} ${node.heading}`,
+            extra: () => {
+                getPopoverInstance(BASE_POPOVER_ID)?.close();
+            },
+        });
+    };
 
     const handleCollapseClick = (ev: MouseEvent | KeyboardEvent) => {
         ev.stopPropagation();
         collapsed = !collapsed;
         depth === 0 && updateCollapsedCount(collapsed);
-    }
+    };
 
     $effect(() => {
         if (childrenContainerEl) {
-            childrenContainerElHeight.set(collapsed ? 0 : childrenContainerEl.scrollHeight)
+            childrenContainerElHeight.set(
+                collapsed ? 0 : childrenContainerEl.scrollHeight,
+            );
         }
-    })
+    });
     $effect(() => {
         if (typeof $collapseAll === "boolean") {
-            collapsed = $collapseAll
+            collapsed = $collapseAll;
         }
-    })
+    });
     $effect.pre(() => {
         if ($previewLeafStore) {
             leaf = $previewLeafStore.leaf;
             if (leaf) {
-                markdownView = leaf.view as MarkdownView
+                markdownView = leaf.view as MarkdownView;
             }
         }
     });
@@ -84,37 +92,37 @@
     {/if}
 {/snippet}
 
-<div 
-    tabindex="0" 
-    role="button" 
-    class="tree-item" 
-    onclick={handleNodeClick} 
-    onkeydown={handleNodeClick} 
+<div
+    tabindex="0"
+    role="button"
+    class="tree-item"
+    onclick={handleNodeClick}
+    onkeydown={handleNodeClick}
 >
-    <div 
-      class={cn(
-        'tree-item-self is-clickable mod-collapsible cursor-pointer', 
-      )}
-      style={depth > 0 ? `margin-left: -${depth * 16}px; padding-left: calc(${(depth * 16) + 24}px);` : ''}
+    <div
+        class={cn("tree-item-self is-clickable mod-collapsible cursor-pointer")}
+        style={depth > 0
+            ? `margin-left: -${depth * 16}px; padding-left: calc(${depth * 16 + 24}px);`
+            : ""}
     >
-        <div 
-            tabindex="0" 
-            role="button" 
+        <div
+            tabindex="0"
+            role="button"
             class={cn(
                 "tree-item-icon collapse-icon",
                 collapsed && "is-collapsed",
-                (node.children && node.children.length > 0) ? "" : "!hidden"
+                node.children && node.children.length > 0 ? "" : "!hidden",
             )}
             onclick={handleCollapseClick}
             onkeydown={handleCollapseClick}
         >
-            <svg 
-                xmlns="http://www.w3.org/2000/svg" 
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
                 width="24"
                 height="24"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="currentColor" 
+                stroke="currentColor"
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -128,26 +136,28 @@
         </div>
     </div>
     {#if node.children && node.children.length > 0}
-        <div class={cn(
-            "grid overflow-hidden [transition:grid-template-rows_200ms]",
-            collapsed ? "grid-rows-[0fr]" : "grid-rows-[1fr]",
-        )}>
-            <div 
-              bind:this={childrenContainerEl} 
-              class={cn(
-                  "tree-item-children min-h-0  [transition:visibility_200ms]", 
-                  collapsed ? "[visibility:hidden]" : "visible"
-              )}
+        <div
+            class={cn(
+                "grid overflow-hidden [transition:grid-template-rows_200ms]",
+                collapsed ? "grid-rows-[0fr]" : "grid-rows-[1fr]",
+            )}
+        >
+            <div
+                bind:this={childrenContainerEl}
+                class={cn(
+                    "tree-item-children min-h-0  [transition:visibility_200ms]",
+                    collapsed ? "[visibility:hidden]" : "visible",
+                )}
             >
-            {#each node.children as child}
-                <Node
-                    node={child}
-                    {searchQuery}
-                    {collapseAll}
-                    {updateCollapsedCount}
-                    depth={depth + 1}
-                />
-            {/each}
+                {#each node.children as child}
+                    <Node
+                        node={child}
+                        {searchQuery}
+                        {collapseAll}
+                        {updateCollapsedCount}
+                        depth={depth + 1}
+                    />
+                {/each}
             </div>
         </div>
     {/if}

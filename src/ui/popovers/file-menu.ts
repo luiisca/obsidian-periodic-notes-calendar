@@ -107,7 +107,7 @@ export class FileMenuPopoverBehavior {
                     .setTitle("Open in preview window")
                     .setIcon("lucide-eye")
                     .onClick(() => {
-                        ViewManager.initPreview(file, true);
+                        ViewManager.tryInitPreview(file, true);
                     })
             );
             // Reveal on calendar

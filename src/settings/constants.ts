@@ -29,6 +29,7 @@ export interface ISettings {
     periods: Record<IGranularity, PeriodSettings>;
     preview: {
         enabled: boolean;
+        open: boolean;
         openNotesInPreview: boolean;
         zenMode: boolean;
         tabHeaderVisible: boolean;
@@ -142,6 +143,7 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
     )) as Record<IGranularity, PeriodSettings>,
     preview: {
         enabled: true,
+        open: false,
         openNotesInPreview: false,
         zenMode: false,
         tabHeaderVisible: false,

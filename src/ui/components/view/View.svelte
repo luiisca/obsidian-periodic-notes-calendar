@@ -7,6 +7,7 @@
         displayedDateStore,
         isOpenPreviewBttnVisibleStore,
         isPreviewMaximizedStore,
+        isPreviewVisibleStore,
         todayStore,
     } from "@/stores";
     import { CALENDAR_POPOVER_ID } from "@/constants";
@@ -99,7 +100,10 @@
                             "right-0",
                     )}
                     onclick={() => {
-                        ViewManager.initPreview();
+                        if (!$isPreviewVisibleStore) {
+                            ViewManager.revealView("preview");
+                        }
+                        ViewManager.tryInitPreview();
                     }}>Open preview</button
                 >
             </div>
