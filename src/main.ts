@@ -60,8 +60,8 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
 
         // Commands
         this.addCommand({
-            id: 'open-calendar-view',
-            name: 'Toggle calendar view',
+            id: 'toggle-calendar-view',
+            name: 'Toggle calendar Interface',
             callback: () => {
                 this.toggleView();
             }
@@ -218,25 +218,22 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         /**
          * HTMLElement where View is rendered at
          */
-        const leaf = this.app.workspace.getLeavesOfType(LEAF_TYPE)[0] as
-            | (WorkspaceLeaf & { containerEl: HTMLElement; tabHeaderEl: HTMLElement })
-            | undefined;
-
-        if (!leaf) {
-            await ViewManager.initView();
-
-            return;
-        }
-
-        /**
-         * The worskpace split where leaf is currently attached to
-         * based on closest workspace split className
-         */
+        let leaf = ViewManager.getMainLeaf() as WorkspaceLeaf & { containerEl: HTMLElement; tabHeaderEl: HTMLElement };
         const crrSplitPos = ViewManager.getLeafSplitPosition(leaf);
         /**
          * A split is a container for leaf nodes that slides in when clicking the collapse button, except for the root split (markdown editor). There are three types: left, root, and right.
          */
         const crrSplit = crrSplitPos && this.app.workspace[`${crrSplitPos}Split`];
+
+        if (!leaf) {
+            leaf = await ViewManager.initView() as WorkspaceLeaf & { containerEl: HTMLElement; tabHeaderEl: HTMLElement };
+            const leafActive = leaf.tabHeaderEl.className.includes('is-active');
+            if ((crrSplit as any)?.collapsed || !leafActive) {
+                ViewManager.revealView();
+            }
+
+            return;
+        }
 
         const leafActive = leaf.tabHeaderEl.className.includes('is-active');
 
@@ -247,11 +244,10 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
                 // 1. root split && leaf active
                 leaf.view.unload();
                 await ViewManager.initView({ active: false });
-
-                return;
+            } else {
+                // 2. root split && leaf NOT active
+                ViewManager.revealView();
             }
-            // 2. root split && leaf NOT active
-            ViewManager.revealView();
 
             return;
         }
