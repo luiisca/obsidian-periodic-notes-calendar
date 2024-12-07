@@ -7,7 +7,7 @@
         getEnabledPeriods,
         periodTabs,
     } from "@/stores/calendar";
-    import { getContext } from "svelte";
+    import { getContext, onMount } from "svelte";
     import {
         cn,
         getMonth,
@@ -33,6 +33,7 @@
     let enabledPeriods: Record<IGranularity, boolean> = $state(
         {} as Record<IGranularity, boolean>,
     );
+    let containerEl: HTMLDivElement | null = $state(null);
 
     $effect.pre(() => {
         const enabledPeriodsRes = getEnabledPeriods($settingsStore.periods);
@@ -48,9 +49,16 @@
             }
         }
     });
+
+    onMount(() => {
+        if (containerEl?.parentElement) {
+            containerEl.parentElement.style.scrollbarGutter = "stable";
+            containerEl.parentElement.style.paddingRight = "0px";
+        }
+    });
 </script>
 
-<div class="pnc-container px-4 !pt-2">
+<div class="pnc-container px-4 !pt-2" bind:this={containerEl}>
     {#if tabs.length > 1}
         <Tabs
             tabs={[...tabs]}
@@ -264,4 +272,3 @@
         text-transform: uppercase;
     }
 </style>
-
