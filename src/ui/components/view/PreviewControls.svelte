@@ -14,14 +14,15 @@
     import {
         isPreviewMaximizedStore,
         previewLeafStore,
-        previewSplitDirectionStore,
         previewSplitPositionStore,
         processingPreviewChangeStore,
         todayStore,
     } from "@/stores";
+    import { ViewManager } from "@/ui";
     import { Popover } from "@/ui/popovers";
-    import { cn, eventHandlers, getSticker } from "@/ui/utils";
+    import { cn, getSticker } from "@/ui/utils";
     import { capitalize } from "@/utils";
+    import { Moment } from "moment";
     import {
         MarkdownView,
         Menu,
@@ -32,8 +33,6 @@
     import { Dot } from "../core";
     import { Outline } from "./outline";
     import { goToNoteHeading } from "./utils";
-    import { ViewManager } from "@/ui";
-    import { Moment } from "moment";
 
     interface Props {
         date: Moment;
@@ -209,7 +208,7 @@
 
     $effect.pre(() => {
         if ($previewLeafStore) {
-            file = $previewLeafStore.file;
+            file = $previewLeafStore.file || null;
             leaf = $previewLeafStore.leaf;
             if (leaf) {
                 markdownView = leaf.view as MarkdownView;
@@ -273,7 +272,7 @@
         {/if}
         <div
             class={cn(
-                "absolute top-1/2 -translate-y-1/2 flex flex-col gap-y-1 opacity-80 items-center right-1",
+                "absolute top-1/2 [transform:translateY(-50%)] flex flex-col gap-y-1 opacity-80 items-center right-1",
             )}
         >
             {#if $settingsStore.timeline.enabled || $previewSplitPositionStore === "root"}

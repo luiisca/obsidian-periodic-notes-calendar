@@ -174,7 +174,9 @@ export class CalendarView extends ItemView {
         }
     }
     public onActiveLeafChange() {
-        ViewManager.toggleRevealInCalendarCommand()
+        if (this.app.workspace.layoutReady) {
+            ViewManager.toggleRevealInCalendarCommand()
+        }
     }
 
     // Utils

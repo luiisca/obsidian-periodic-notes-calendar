@@ -12,6 +12,7 @@ import { getNormalizedPeriodSettings } from "./settings";
 import { type IGranularity } from "./types";
 import { extractAndReplaceTODOItems } from "./utils";
 import { ensureFolderExists, getNotePath, getTemplateInfo } from "./vault";
+import { ViewManager } from "@/ui";
 
 export async function createOrOpenNote({
     leaf,
@@ -19,12 +20,14 @@ export async function createOrOpenNote({
     granularity,
     openState,
     confirmBeforeCreateOverride = get(settingsStore).shouldConfirmBeforeCreate,
+    openInPreview,
 }: {
     leaf: WorkspaceLeaf | null;
     date: Moment;
     openState?: Record<string, any>;
     granularity: IGranularity;
     confirmBeforeCreateOverride?: boolean;
+    openInPreview?: boolean;
 }) {
     const { settings: { selectedFormat } } = getNormalizedPeriodSettings(granularity);
 
@@ -37,7 +40,12 @@ export async function createOrOpenNote({
 
     async function openFile(file: TAbstractFile | null) {
         if (file) {
-            await leaf?.openFile(file as TFile, openState);
+            if (openInPreview) {
+                ViewManager.revealView();
+                ViewManager.tryInitPreview(file as TFile, true);
+            } else {
+                await leaf?.openFile(file as TFile, openState);
+            }
             activeFilepathStore.set(file.path);
         }
     }

@@ -1,17 +1,17 @@
 import { LEAF_TYPE, PREVIEW_CONTROLS_TYPE } from '@/constants';
 import { createNote, getFileData, IGranularity } from '@/io';
+import { isValidPeriodicNote } from '@/io/validation';
 import { PeriodSettings, settingsStore, type ISettings } from '@/settings';
 import { activeFilepathStore, displayedDateStore, ILastOpenedFileValidationData, isMainViewVisibleStore, isOpenPreviewBttnVisibleStore, isPreviewMaximizedStore, isPreviewVisibleStore, lastOpenedFileValidationDataStore, previewLeafStore, previewSplitDirectionStore, previewSplitPositionStore, processingPreviewChangeStore } from '@/stores';
+import { crrTabStore, getEnabledPeriods, periodTabs } from '@/stores/calendar';
 import { capitalize } from '@/utils';
 import moment, { Moment } from 'moment';
 import { TFile, WorkspaceLeaf } from 'obsidian';
 import { mount, unmount } from 'svelte';
 import { get } from 'svelte/store';
 import { PreviewControls } from '.';
-import { isValidPeriodicNote, isValidPeriodicNote } from '@/io/validation';
 import { goToNoteHeading } from './utils';
 import { preview } from 'vite';
-import { crrTabStore, getEnabledPeriods, periodTabs } from '@/stores/calendar';
 
 export class ViewManager {
     static mainLeaf: WorkspaceLeaf | null;
@@ -121,7 +121,7 @@ export class ViewManager {
             })
             // avoid toggling preview if it has transitioned to an expanded-like state (moved to another tab)
             if (isPreviewMaximized) {
-                // processingPreviewChangeStore.set(false);
+                processingPreviewChangeStore.set(false);
                 return;
             };
             // very especific check for when an expanded preview window is moved to a split window
@@ -137,9 +137,10 @@ export class ViewManager {
                 console.log("🙌 layout change, about to perform preview change checks")
 
                 // show preview when user moves back to calendar tab and preview is open
-                if (!previewLeaf && !prevMainViewVisible && mainLeafvisible && get(settingsStore).preview.enabled && get(settingsStore).preview.open) {
+                if (!prevPreviewLeaf && !previewLeaf && !prevMainViewVisible && mainLeafvisible && get(settingsStore).preview.enabled && get(settingsStore).preview.open) {
                     console.log("🌳 initPreview")
                     this.initPreview();
+                    processingPreviewChangeStore.set(true);
                     return;
                 }
                 if (!previewLeaf && prevPreviewLeaf) {
@@ -197,9 +198,8 @@ export class ViewManager {
     }
 
     static async tryInitPreview(defaultFile?: TFile, reveal?: boolean) {
-        // processingPreviewChangeStore.set(true);
-
-        const previewLeaf = get(previewLeafStore)?.leaf;
+        const previewLeaf = this.searchPreviewLeaf();
+        console.log("tryInitPreview > Preview leaf", previewLeaf)
         if (!previewLeaf) {
             this.initPreview(defaultFile, reveal)
         } else {
@@ -215,8 +215,6 @@ export class ViewManager {
             }
             reveal && this.revealView('preview', previewLeaf);
         }
-
-        // processingPreviewChangeStore.set(false);
     }
     static async initPreview(defaultFile?: TFile, reveal?: boolean) {
         const data = await this.getPreviewFileData();
@@ -280,7 +278,12 @@ export class ViewManager {
                 }
             }
         }
-        return (tabs.length > 0 && previewIsOnlyWorkspaceLeaf) || previewIsCalendarLeafSibling
+        // console.table({
+        //     tabHeaderLeaves,
+        //     leaf,
+        //     previewIsCalendarLeafSibling
+        // })
+        return ((tabs.length > 0 && previewIsOnlyWorkspaceLeaf) || previewIsCalendarLeafSibling)
     }
     static getPreviewSplitDirection(previewLeaf: WorkspaceLeaf | null) {
         return ((previewLeaf?.parent?.parent as any)?.direction || null) as 'vertical' | 'horizontal' | null;
@@ -321,6 +324,9 @@ export class ViewManager {
         window.app.workspace.iterateAllLeaves((leaf) => {
             // on first layout change, preview controls arent mounted so we need to check
             // for whether the leaf is in its default position
+            // console.log((leaf as any).containerEl, leaf, leaf.getViewState(), leaf.getViewState().type)
+            if (leaf.getViewState().type === 'markdown') {
+            }
             if (
                 !previewLeafFound
                 && leaf.getViewState().type === 'markdown'
@@ -330,6 +336,10 @@ export class ViewManager {
             ) {
                 const leafFile = file || (leaf.view as any).file as TFile | undefined;
                 const lastPreviewFilepath = get(settingsStore).preview.lastPreviewFilepath;
+                // console.table({
+                //     leafFile,
+                //     lastPreviewFilepath
+                // })
                 if (leafFile?.path === lastPreviewFilepath) {
                     previewLeaf = leaf
                     previewLeafFound = true;
@@ -339,7 +349,8 @@ export class ViewManager {
         return previewLeaf as WorkspaceLeaf | null;
     }
 
-    static togglePreviewTabHeader(previewLeaf: WorkspaceLeaf) {
+    static togglePreviewTabHeader(leaf?: WorkspaceLeaf) {
+        const previewLeaf = leaf || get(previewLeafStore)?.leaf
         this.previewTabHeaderEl = (previewLeaf?.parent as any)?.tabHeaderContainerEl as HTMLElement | null
 
         if (this.previewTabHeaderEl && !this.checkIfPreviewIsMaximized(previewLeaf) && this.getLeafSplitPosition(previewLeaf) !== 'root') {
@@ -428,10 +439,10 @@ export class ViewManager {
     }
 
     static toggleRevealInCalendarCommand() {
-        const REVEAL_COMMAND_ID = 'reveal-periodic-note-in-calendar';
+        const REVEAL_COMMAND_ID = 'reveal-periodic-note-on-calendar';
         let op: "add" | "remove" = "remove";
         const activeFile = window.app.workspace.getActiveFile();
-        console.log("toggleRevealInCalendarCommand > activeFile", activeFile, window.app.workspace, window.app.workspace.getActiveFile(), window.app.workspace.getActiveFile)
+        // console.log("toggleRevealInCalendarCommand > activeFile", activeFile, window.app.workspace, window.app.workspace.getActiveFile(), window.app.workspace.getActiveFile)
         const lastOpenedFileValidationData = get(lastOpenedFileValidationDataStore);
         let validatedFileRes: ILastOpenedFileValidationData;
 
@@ -453,7 +464,7 @@ export class ViewManager {
             case 'add':
                 window.plugin?.addCommand({
                     id: REVEAL_COMMAND_ID,
-                    name: "Reveal Periodic Note in Calendar",
+                    name: "Reveal Periodic Note on Calendar",
                     callback: () => {
                         ViewManager.revealView();
                         activeFilepathStore.set(activeFile!.path);

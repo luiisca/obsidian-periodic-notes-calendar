@@ -153,7 +153,8 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
                     leaf: this.app.workspace.getLeaf(),
                     date: window.moment(),
                     granularity: startupNoteGranularity,
-                    confirmBeforeCreateOverride: false
+                    confirmBeforeCreateOverride: false,
+                    openInPreview: get(settingsStore).preview.openNotesInPreview
                 });
             }
         });
@@ -235,7 +236,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         /**
          * A split is a container for leaf nodes that slides in when clicking the collapse button, except for the root split (markdown editor). There are three types: left, root, and right.
          */
-        const crrSplit = this.app.workspace[`${crrSplitPos}Split`];
+        const crrSplit = crrSplitPos && this.app.workspace[`${crrSplitPos}Split`];
 
         const leafActive = leaf.tabHeaderEl.className.includes('is-active');
 
@@ -257,10 +258,10 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
 
         // eval left or right split
         // only leftSplit and rightSplit can be collapsed
-        if (!crrSplit.collapsed) {
+        if (!crrSplit?.collapsed) {
             if (leafActive) {
                 // 3. crr split open and leaf active
-                crrSplit.collapse();
+                crrSplit?.collapse();
             } else {
                 // 4. crr split open and leaf NOT active
                 ViewManager.revealView();
