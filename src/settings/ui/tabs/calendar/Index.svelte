@@ -17,7 +17,7 @@
     import { selectedTabStore } from "../../stores";
     import TimelineManager from "@/ui/components/timeline/manager";
 
-    // Display
+    // Essential
     const handleViewLeafPositionChange = async (
         position: ISettings["viewLeafPosition"],
     ) => {
@@ -291,7 +291,7 @@
     };
 </script>
 
-<SettingItem isHeading={true} name="Display" />
+<SettingItem isHeading={true} name="Essential" />
 <SettingItem
     name="Calendar Panel Location"
     description="Choose where the calendar appears in your workspace (left or right sidebar)"
@@ -335,6 +335,17 @@
 </SettingItem>
 
 {#if $settingsStore.floatingMode}
+    <SettingItem
+        name="Quick Access"
+        description="Enable opening the calendar on ribbon hover instead of click."
+    >
+        {#snippet control()}
+            <Toggle
+                onChange={handleOpenPopoverOnRibbonHover}
+                isEnabled={$settingsStore.openPopoverOnRibbonHover}
+            />
+        {/snippet}
+    </SettingItem>
     <SettingItem
         name="Always Minimal"
         description="Keep floating view compact for quick reference"
@@ -494,43 +505,6 @@
     </SettingItem>
 {/if}
 
-<SettingItem isHeading={true} name="Interaction Behavior" />
-<SettingItem
-    name="Quick Access"
-    description="Show calendar when hovering over the ribbon icon for faster navigation"
->
-    {#snippet control()}
-        <Toggle
-            onChange={handleOpenPopoverOnRibbonHover}
-            isEnabled={$settingsStore.openPopoverOnRibbonHover}
-        />
-    {/snippet}
-</SettingItem>
-
-<SettingItem
-    name="Creation Confirmation"
-    description="Prompt before creating new periodic notes to prevent accidental entries"
->
-    {#snippet control()}
-        <Toggle
-            onChange={handleShouldConfirmBeforeCreate}
-            isEnabled={$settingsStore.shouldConfirmBeforeCreate}
-        />
-    {/snippet}
-</SettingItem>
-
-<SettingItem
-    name="Hover Preview"
-    description="Instantly preview notes by hovering over dates (no modifier key needed)"
->
-    {#snippet control()}
-        <Toggle
-            onChange={handleConfirmAutoHoverPreview}
-            isEnabled={$settingsStore.autoHoverPreview}
-        />
-    {/snippet}
-</SettingItem>
-
 <SettingItem isHeading={true} name="Timeline" className="pb-0" />
 <div class="flex justify-between">
     <p>
@@ -604,6 +578,32 @@
         </SettingItem>
     {/if}
 {/if}
+
+<SettingItem isHeading={true} name="Interaction Behavior" />
+
+<SettingItem
+    name="Creation Confirmation"
+    description="Prompt before creating new periodic notes to prevent accidental entries"
+>
+    {#snippet control()}
+        <Toggle
+            onChange={handleShouldConfirmBeforeCreate}
+            isEnabled={$settingsStore.shouldConfirmBeforeCreate}
+        />
+    {/snippet}
+</SettingItem>
+
+<SettingItem
+    name="Hover Preview"
+    description="Instantly preview notes by hovering over dates (no modifier key needed)"
+>
+    {#snippet control()}
+        <Toggle
+            onChange={handleConfirmAutoHoverPreview}
+            isEnabled={$settingsStore.autoHoverPreview}
+        />
+    {/snippet}
+</SettingItem>
 
 <SettingItem isHeading={true} name="Localization" />
 <SettingItem

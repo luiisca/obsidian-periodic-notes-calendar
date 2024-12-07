@@ -30,7 +30,7 @@
 </script>
 
 <div class="setting-item flex flex-col">
-    <div class="mb-4 w-full">
+    <div class="mb-4 w-full !mr-0">
         <div class="setting-item-info">
             <div
                 class="setting-item-name mb-2 flex items-center justify-between"

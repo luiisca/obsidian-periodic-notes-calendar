@@ -7,3 +7,4 @@ node_modules
 !.env.example
 data.json
 main.js
+main.js.map

@@ -18,13 +18,13 @@ stickers in calendar view. Streamline planning, reviewing, and reflection.
   yearly notes.
 - **Natural Language Commands**: Create notes for specific dates using intuitive
   language.
+- **Template Support**: Create dynamic notes using `{{}}` placeholders for dates and times with support for natural language inputs (e.g., "next friday"), time adjustments, and custom formatting.
 - **Customizable**: Tailor the plugin to your workflow with various
   configuration options.
   <!-- TODO: expand -->
-- Switch between formats with ease thanks to our automatic detection of valid
-  periodic notes
-  - new created notes will be checked against all valid formats to determine
-    their granularity and date object
+- **Bulk Management by Format**: Organize periodic notes by user-defined formats and perform bulk actions like renaming, deleting, or switching formats.
+  This feature allows for quick updates and ensures flexibility when experimenting with new formats while maintaining a sense of control.
+  _Note: The plugin recognizes files formatted according to the list you provide in settings._
 
 ## Usage
 
@@ -42,7 +42,7 @@ Access the Command Palette (Cmd/Ctrl + P) and type `Periodic Notes Calendar:`
 
 ![Calendar UI Demo](path_to_calendar_ui.gif)
 
-### Natural Language Date Creation
+### Create notes with Natural Language Dates
 
 You can create notes for specific dates using natural language:
 
@@ -52,6 +52,68 @@ You can create notes for specific dates using natural language:
 4. The plugin will create a note for the specified date
 
 ![NL date creation demo](path_to_calendar_ui.gif)
+
+### Template Support
+
+Templates use `{{}}` placeholders to dynamically insert dates and times. Each placeholder can include an identifier, optional adjustment, and optional format: `{{identifier[±adjustment][:format]}}`.
+
+#### Core Placeholders
+
+- `{{title}}` or `{{date}}`: Note's date
+- `{{time}}`: Current time
+- `{{currentdate}}`: Current date and time
+- `{{monday}}` through `{{sunday}}`: Days of week
+
+#### Natural Language Dates
+
+Supports any date expression [Chrono](https://github.com/wanasit/chrono) can parse:
+
+```
+{{tomorrow}}
+{{next friday}}
+{{2 weeks from now}}
+{{end of this month}}
+{{5 days ago}}
+{{last monday}}
+etc
+```
+
+#### Date Adjustments
+
+Add/subtract time using `±n[unit]`:
+
+```
+{{date+1d}}    // Add one day
+{{monday-1w}}  // Subtract one week
+```
+
+Units: y(ears), Q(uarters), M(onths), w(eeks), W(eeks ISO), d(ays), h(ours), m(inutes), s(econds)
+
+#### Custom Formatting
+
+Add Moment.js format after colon:
+
+```
+{{date:YYYY-MM-DD}}
+{{time:HH:mm}}
+{{next friday:dddd, MMMM Do}}
+```
+
+#### Example Template
+
+```markdown
+# {{title:dddd, MMMM Do YYYY}}
+
+Created: {{currentdate:HH:mm}}
+Week: {{date:w}}
+
+## Planning
+
+Previous: {{5 days ago}}
+Next: {{in 2 weeks}}
+```
+
+Invalid placeholders remain unchanged for easy debugging. All date expressions respect your locale settings and default formats.
 
 ### Emoji Summaries
 
@@ -100,6 +162,16 @@ body {
 }
 ```
 
+### Bulk Management by Format
+
+1. Go to Settings > Periodic Notes Calendar > Periods and add your desired formats to the list of recognized formats.
+2. Bulk operations are immediately available for all formats in the list. Select a format to access its tools:
+   - Left Button: Open a list of files using this format, where you can open, delete individually, or delete all files.
+   - First Right Button: Rename files in other formats to this one.
+   - Last Right Button: Remove this format from the list (existing files remain unchanged).
+
+These features ensure effortless organization and allow you to experiment with new formats without losing control, making it simple to manage and update your periodic notes.
+
 ## Installation
 
 1. Open Obsidian and go to Settings > Community Plugins
@@ -147,15 +219,38 @@ specific dates. Try commands like:
 This feature makes it easy to quickly access notes without needing to know the
 exact date.
 
+### Rename All Periodic Notes in One Click
+
+If your notes use different formats, like `YYYY-MM-DD` and `YYYY/MM/DD`, and you want to standardize them, follow these steps:
+
+1. Open Settings > Periodic Notes Calendar > Periods.
+2. Add all the formats you’ve used to the list of recognized formats so the plugin can detect them.
+3. Click the first button on the right under the format you want to use.
+
+This process works for all periodicities, allowing you to quickly standardize your notes regardless of their original format.
+
 ### Open notes in a new pane
 
 Ctrl/Cmd + Click on a date to open that note in a new pane.
 
 ### Reveal open note on calendar
 
+<!-- TODO: not implemented yet-->
+
 If you open a note from a different month, you might want to see it on the
 calendar view. To do so, you can run the command
-`Periodic Notes Calendar: Reveal open note` from the command palette.
+`Periodic Notes Calendar: Reveal open note on calendar` from the command palette.
+
+### Pin commands
+
+<!-- TODO: reword -->
+For easy access to common commands you can pin them, just do ([docs](https://help.obsidian.md/Plugins/Command+palette)):
+1. Open Settings.
+2. In the sidebar, click Command palette under Plugin options.
+3. Next to New pinned command, click Select a command.
+4. Type `Periodic Notes Calendar` to see all available commands.
+5. Select the command you want to pin from the list.
+6. Press Enter.
 
 ## FAQ
 
