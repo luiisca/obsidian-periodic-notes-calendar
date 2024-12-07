@@ -1,7 +1,12 @@
 <script lang="ts">
-    import { monthsIndexesInQuarters, periodTabs} from "@/constants";
-    import { settingsStore } from "@/settings";
+    import { monthsIndexesInQuarters } from "@/constants";
+    import { IGranularity } from "@/io";
     import { displayedDateStore, localeDataStore, yearsRanges } from "@/stores";
+    import {
+        crrTabStore,
+        getEnabledPeriods,
+        periodTabs,
+    } from "@/stores/calendar";
     import { getContext } from "svelte";
     import {
         cn,
@@ -15,38 +20,31 @@
     import YearsHeader from "./YearsHeader.svelte";
     import { Tabs } from "./core";
     import DateBttn from "./core/DateBttn.svelte";
-    import { IGranularity } from "@/io";
+    import { settingsStore } from "@/settings";
 
     let { weekdaysShort } = $derived($localeDataStore);
     let month = $derived(getMonth($displayedDateStore));
 
-    let crrTab: (typeof periodTabs)[number] = $state("day");
-    let tabs: (typeof periodTabs) = $state(periodTabs);
-    let minimalMode = getContext("minimalMode") as { value: boolean } | undefined;
-    let enabledPeriods: Record<IGranularity, boolean>= $state({} as Record<IGranularity, boolean>);
+    let crrTab = $derived($crrTabStore);
+    let tabs: typeof periodTabs = $state(periodTabs);
+    let minimalMode = getContext("minimalMode") as
+        | { value: boolean }
+        | undefined;
+    let enabledPeriods: Record<IGranularity, boolean> = $state(
+        {} as Record<IGranularity, boolean>,
+    );
 
     $effect.pre(() => {
-        let _tabs: string[] = []
-        enabledPeriods = Object.entries($settingsStore.periods).reduce((acc, [g, s]) => {
-            if (g === 'day' || g === 'month' || g === 'year') {
-                if (s.enabled) {
-                    _tabs.push(g)
-                }
-            }
-            return {
-                ...acc,
-                [g]: s.enabled,
-            }
-        }, {}) as Record<IGranularity, boolean>
-
-        tabs = _tabs as unknown as (typeof periodTabs)
-    })
+        const enabledPeriodsRes = getEnabledPeriods($settingsStore.periods);
+        enabledPeriods = enabledPeriodsRes.enabledPeriods;
+        tabs = enabledPeriodsRes.tabs;
+    });
 
     $effect.pre(() => {
         if (!tabs.includes(crrTab)) {
-            const newTab = tabs[0]
+            const newTab = tabs[0];
             if (newTab !== crrTab) {
-                crrTab = newTab
+                crrTabStore.set(newTab);
             }
         }
     });
@@ -57,7 +55,8 @@
         <Tabs
             tabs={[...tabs]}
             selectedTab={crrTab}
-            selectTab={(tab: typeof periodTabs[number]) => (crrTab = tab)}
+            selectTab={(tab: (typeof periodTabs)[number]) =>
+                crrTabStore.set(tab)}
             id="periods-container"
             tabId="period"
             className="mx-0 ml-auto"
@@ -103,7 +102,9 @@
                                     )}
                                     dotContainerClassName={"bottom-[calc(1rem/2)] translate-y-1/3"}
                                 >
-                                    {getStartOfWeek(week.days).week() < 10 ? "0" : ""}{getStartOfWeek(week.days).week()}
+                                    {getStartOfWeek(week.days).week() < 10
+                                        ? "0"
+                                        : ""}{getStartOfWeek(week.days).week()}
                                 </DateBttn>
                             </td>
                         {/if}
@@ -147,7 +148,7 @@
                                         .clone()
                                         .quarter(i + 1)
                                         .startOf("quarter")}
-                                    granularity='quarter'
+                                    granularity="quarter"
                                     className={cn(
                                         "px-1 pt-2.5 pb-4 opacity-85",
                                         minimalMode?.value
@@ -159,7 +160,8 @@
                                     Q{$displayedDateStore
                                         .clone()
                                         .quarter(i + 1)
-                                        .startOf("quarter").quarter()}
+                                        .startOf("quarter")
+                                        .quarter()}
                                 </DateBttn>
                             </td>
                         {/if}
@@ -179,18 +181,22 @@
                                     )}
                                     dotContainerClassName={cn(
                                         "translate-y-full",
-                                        minimalMode?.value ? "bottom-[calc(1rem/2)]" : "bottom-[calc(1.75rem/2)]"
+                                        minimalMode?.value
+                                            ? "bottom-[calc(1rem/2)]"
+                                            : "bottom-[calc(1.75rem/2)]",
                                     )}
                                 >
-                                        {#snippet text()}
-                                            {#if !minimalMode?.value}
-                                                <p
-                                                    class="text-5xl font-normal opacity-15 text-[--text-muted] absolute top-1/2 left-1/2 [transform:translate(-50%,-50%)] m-0"
-                                                >
-                                                    {monthIndex < 9 ? "0" : ""}{monthIndex + 1}
-                                                </p>
-                                            {/if}
-                                        {/snippet}
+                                    {#snippet text()}
+                                        {#if !minimalMode?.value}
+                                            <p
+                                                class="text-5xl font-normal opacity-15 text-[--text-muted] absolute top-1/2 left-1/2 [transform:translate(-50%,-50%)] m-0"
+                                            >
+                                                {monthIndex < 9
+                                                    ? "0"
+                                                    : ""}{monthIndex + 1}
+                                            </p>
+                                        {/if}
+                                    {/snippet}
                                     {$displayedDateStore
                                         .clone()
                                         .month(monthIndex)
@@ -226,9 +232,10 @@
                                     dotContainerClassName="bottom-[calc(1rem/2)] translate-y-[35%]"
                                 >
                                     {$displayedDateStore
-                                    .clone()
-                                    .year(year)
-                                    .startOf("year").year()}
+                                        .clone()
+                                        .year(year)
+                                        .startOf("year")
+                                        .year()}
                                 </DateBttn>
                             </td>
                         {/each}
@@ -257,3 +264,4 @@
         text-transform: uppercase;
     }
 </style>
+

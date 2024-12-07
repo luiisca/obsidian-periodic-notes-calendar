@@ -4,7 +4,6 @@ export const LEAF_TYPE = 'periodic-notes-calendar-view';
 export const PREVIEW_CONTROLS_TYPE = 'periodic-notes-calendar-preview-controls';
 export const granularities = ['day', 'week', 'month', 'quarter', 'year'] as const;
 export const granularitiesCapitalize = ['Day', 'Week', 'Month', 'Quarter', 'Year'] as const;
-export const periodTabs = ['day', 'month', 'year'] as const;
 
 export const monthsIndexesInQuarters = [
     [0, 1, 2],

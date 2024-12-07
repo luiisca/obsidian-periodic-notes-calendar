@@ -33,6 +33,8 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
     }
 
     async onload() {
+        window.plugin = this;
+
         await this.loadSettings();
 
         pluginClassStore.set(this);

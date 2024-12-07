@@ -119,7 +119,6 @@ export class FileMenuPopoverBehavior {
                         .setIcon("lucide-calendar")
                         .onClick(() => {
                             ViewManager.revealView();
-                            console.log("Revealing on calendar", file);
                             activeFilepathStore.set(file.path);
                             displayedDateStore.set(date)
                         })

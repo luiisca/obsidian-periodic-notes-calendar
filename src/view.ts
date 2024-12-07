@@ -15,9 +15,10 @@ import { basename, extractAndReplaceTODOItems, storeAllVaultPeriodicFilepaths } 
 import { isValidPeriodicNote } from './io/validation';
 import type PeriodicNotesCalendarPlugin from './main';
 import { settingsStore } from './settings';
-import { activeFilepathStore, processingPreviewChangeStore, themeStore } from './stores';
-import { internalFileModStore } from './stores/notes';
+import { activeFilepathStore, displayedDateStore, processingPreviewChangeStore, themeStore } from './stores';
+import { internalFileModStore, lastOpenedFileValidationDataStore } from './stores/notes';
 import TimelineManager from './ui/components/timeline/manager';
+import { crrTabStore, getEnabledPeriods, periodTabs } from './stores/calendar';
 
 export class CalendarView extends ItemView {
     private view: Record<string, any>;
@@ -51,6 +52,7 @@ export class CalendarView extends ItemView {
             this.app.metadataCache.on('changed', (file: TFile) => this.onMetadataChanged(file))
         )
         this.registerEvent(this.app.workspace.on('layout-change', () => this.onLayoutChange()))
+        this.registerEvent(this.app.workspace.on('active-leaf-change', () => this.onActiveLeafChange()))
     }
 
     getViewType() {
@@ -163,7 +165,7 @@ export class CalendarView extends ItemView {
 
     public onFileOpen(file: TFile | null) {
         if (this.app.workspace.layoutReady) {
-            this.updateActiveFile();
+            this.handleOpenFile();
         }
     }
     public onLayoutChange() {
@@ -171,9 +173,12 @@ export class CalendarView extends ItemView {
             TimelineManager.initTimeline()
         }
     }
+    public onActiveLeafChange() {
+        ViewManager.toggleRevealInCalendarCommand()
+    }
 
     // Utils
-    private updateActiveFile(): void {
+    private handleOpenFile(): void {
         const activeLeaf = this.app.workspace.activeLeaf;
 
         if (activeLeaf?.view && activeLeaf.view instanceof FileView) {
@@ -181,6 +186,12 @@ export class CalendarView extends ItemView {
             if (!file) return;
 
             const { isValid, granularity, date } = isValidPeriodicNote(file.basename);
+            lastOpenedFileValidationDataStore.set({
+                path: file.path,
+                isValid,
+                granularity,
+                date
+            })
             if (typeof isValid === 'boolean' && date && granularity) {
                 activeFilepathStore.set(file.path);
             }
@@ -191,5 +202,9 @@ export class CalendarView extends ItemView {
 
         previewLeaf && ViewManager.cleanupPreview({ leaf: previewLeaf });
         processingPreviewChangeStore.set(true)
+        settingsStore.update((s) => {
+            s.preview.open = false;
+            return s;
+        });
     }
 }

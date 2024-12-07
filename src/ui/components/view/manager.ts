@@ -1,16 +1,17 @@
 import { LEAF_TYPE, PREVIEW_CONTROLS_TYPE } from '@/constants';
 import { createNote, getFileData, IGranularity } from '@/io';
 import { PeriodSettings, settingsStore, type ISettings } from '@/settings';
-import { activeFilepathStore, isMainViewVisibleStore, isOpenPreviewBttnVisibleStore, isPreviewMaximizedStore, isPreviewVisibleStore, previewLeafStore, previewSplitDirectionStore, previewSplitPositionStore, processingPreviewChangeStore } from '@/stores';
+import { activeFilepathStore, displayedDateStore, ILastOpenedFileValidationData, isMainViewVisibleStore, isOpenPreviewBttnVisibleStore, isPreviewMaximizedStore, isPreviewVisibleStore, lastOpenedFileValidationDataStore, previewLeafStore, previewSplitDirectionStore, previewSplitPositionStore, processingPreviewChangeStore } from '@/stores';
 import { capitalize } from '@/utils';
 import moment, { Moment } from 'moment';
 import { TFile, WorkspaceLeaf } from 'obsidian';
 import { mount, unmount } from 'svelte';
 import { get } from 'svelte/store';
 import { PreviewControls } from '.';
-import { isValidPeriodicNote } from '@/io/validation';
+import { isValidPeriodicNote, isValidPeriodicNote } from '@/io/validation';
 import { goToNoteHeading } from './utils';
 import { preview } from 'vite';
+import { crrTabStore, getEnabledPeriods, periodTabs } from '@/stores/calendar';
 
 export class ViewManager {
     static mainLeaf: WorkspaceLeaf | null;
@@ -41,7 +42,7 @@ export class ViewManager {
             const cleanup = this.setupVisibilityTracking();
             this.previewLeafCleanups.push(cleanup);
         } else {
-            // this.cleanupPreview();
+            this.cleanupPreview();
         }
     }
 
@@ -302,8 +303,6 @@ export class ViewManager {
         return 'root';
     }
     static cleanupPreview({ leaf }: { leaf?: WorkspaceLeaf } = {}) {
-        // processingPreviewChangeStore.set(true);
-
         const previewLeaf = leaf || get(previewLeafStore)?.leaf
         previewLeaf?.detach();
         this.previewControlsComponent && unmount(this.previewControlsComponent)
@@ -315,8 +314,6 @@ export class ViewManager {
             s.preview.lastPreviewFilepath = ''
             return s
         })
-
-        // processingPreviewChangeStore.set(false);
     }
     static searchPreviewLeaf(file?: TFile) {
         let previewLeafFound = false;
@@ -427,6 +424,53 @@ export class ViewManager {
                     date: date || isValidPeriodicNote(file.basename, [granularity]).date,
                 }
             })
+        }
+    }
+
+    static toggleRevealInCalendarCommand() {
+        const REVEAL_COMMAND_ID = 'reveal-periodic-note-in-calendar';
+        let op: "add" | "remove" = "remove";
+        const activeFile = window.app.workspace.getActiveFile();
+        console.log("toggleRevealInCalendarCommand > activeFile", activeFile, window.app.workspace, window.app.workspace.getActiveFile(), window.app.workspace.getActiveFile)
+        const lastOpenedFileValidationData = get(lastOpenedFileValidationDataStore);
+        let validatedFileRes: ILastOpenedFileValidationData;
+
+        if (activeFile === null) {
+            op = "remove";
+        } else {
+            if (activeFile.path === lastOpenedFileValidationData?.path) {
+                validatedFileRes = lastOpenedFileValidationData
+            } else {
+                validatedFileRes = { ...isValidPeriodicNote(activeFile.basename), path: activeFile.path };
+            }
+            const { isValid, granularity, date } = validatedFileRes;
+            if (typeof isValid && date && granularity) {
+                op = 'add'
+            }
+        }
+
+        switch (op) {
+            case 'add':
+                window.plugin?.addCommand({
+                    id: REVEAL_COMMAND_ID,
+                    name: "Reveal Periodic Note in Calendar",
+                    callback: () => {
+                        ViewManager.revealView();
+                        activeFilepathStore.set(activeFile!.path);
+                        displayedDateStore.set(validatedFileRes.date!)
+                        const enabledPeriodsRes = getEnabledPeriods();
+                        if (enabledPeriodsRes.tabs.includes(validatedFileRes.granularity as typeof periodTabs[number])) {
+                            crrTabStore.set(validatedFileRes.granularity as typeof periodTabs[number])
+                        }
+                    }
+                })
+
+                break;
+
+            case 'remove':
+                window.plugin?.removeCommand(REVEAL_COMMAND_ID);
+
+                break;
         }
     }
 

@@ -83,6 +83,10 @@
 
                         leaf && ViewManager.cleanupPreview({ leaf });
                         processingPreviewChangeStore.set(true);
+                        settingsStore.update((s) => {
+                            s.preview.open = false;
+                            return s;
+                        });
                     }),
             );
 
