@@ -37,7 +37,7 @@ export class ViewManager {
             });
         }
 
-        if (this.getMainLeaf() && get(settingsStore).preview.enabled) {
+        if (mainLeaf && get(settingsStore).preview.enabled) {
             const cleanup = this.setupVisibilityTracking();
             this.previewLeafCleanups.push(cleanup);
         } else {
@@ -211,7 +211,6 @@ export class ViewManager {
 
     static async tryInitPreview(defaultFile?: TFile, reveal?: boolean) {
         const previewLeaf = this.searchPreviewLeaf();
-        console.log("tryInitPreview > Preview leaf", previewLeaf)
         if (!previewLeaf) {
             this.initPreview(defaultFile, reveal)
         } else {
@@ -231,8 +230,9 @@ export class ViewManager {
     static async initPreview(defaultFile?: TFile, reveal?: boolean) {
         const data = await this.getPreviewFileData();
         const file = defaultFile || data.file;
+        const mainLeaf = this.getMainLeaf();
 
-        if (file && this.getMainLeaf()) {
+        if (file && mainLeaf) {
             const viewLeafPosition = get(settingsStore).viewLeafPosition
             const splitMode = viewLeafPosition === 'root' ? get(settingsStore).preview.centerDefaultSplitMode : get(settingsStore).preview.defaultSplitMode
             const expandMode = get(settingsStore).preview.defaultExpansionMode;
@@ -245,7 +245,7 @@ export class ViewManager {
                     previewLeaf = window.app.workspace[`get${capitalize(viewLeafPosition) as "Left" | "Right"}Leaf`](false);
                 }
             } else {
-                previewLeaf = window.app.workspace.createLeafBySplit(this.getMainLeaf(), splitMode);
+                previewLeaf = window.app.workspace.createLeafBySplit(mainLeaf, splitMode);
             }
 
             if (previewLeaf) {
@@ -344,9 +344,13 @@ export class ViewManager {
         window.app.workspace.iterateAllLeaves((leaf) => {
             // on first layout change, preview controls arent mounted so we need to check
             // for whether the leaf is in its default position
-            // console.log((leaf as any).containerEl, leaf, leaf.getViewState(), leaf.getViewState().type)
-            if (leaf.getViewState().type === 'markdown') {
-            }
+            // console.log((leaf as any).containerEl)
+            // console.table({
+            //     isMarkdown: leaf.getViewState().type === 'markdown',
+            //     isCalendarLeaf: leaf.view?.containerEl?.dataset?.type === LEAF_TYPE,
+            //     hasPreviewControls: (this.firstLayoutChange || Array.from(leaf.view.containerEl.childNodes).find((el: HTMLElement) => el?.dataset?.type === PREVIEW_CONTROLS_TYPE)),
+            //     isDefaultPosition: (!this.firstLayoutChange || this.getLeafSplitPosition(leaf) === get(settingsStore).viewLeafPosition)
+            // })
             if (
                 !previewLeafFound
                 && leaf.getViewState().type === 'markdown'

@@ -6,6 +6,7 @@
     import { settingsStore } from "@/settings/store";
     import { Dropdown, SettingItem, Toggle } from "@/settings/ui";
     import {
+        isOpenPreviewBttnVisibleStore,
         isPreviewVisibleStore,
         updateLocale,
         updateWeekdays,
@@ -74,6 +75,19 @@
     };
 
     // Preview
+    const handleTogglePreview = (enabled: boolean) => {
+        settingsStore.update((s) => {
+            s.preview.enabled = enabled;
+            return s;
+        });
+        if (!enabled) {
+            ViewManager.cleanupPreview();
+            ViewManager.cleaunupPreviewEvHandlers();
+            isOpenPreviewBttnVisibleStore.set(false);
+        } else {
+            isOpenPreviewBttnVisibleStore.set(true);
+        }
+    };
     const handleToggleOpenNotesInPreview = (openNotesInPreview: boolean) => {
         settingsStore.update((s) => {
             s.preview.openNotesInPreview = openNotesInPreview;
@@ -372,9 +386,7 @@
         {#snippet control()}
             <Toggle
                 isEnabled={$settingsStore.preview.enabled}
-                onChange={(val) => {
-                    $settingsStore.preview.enabled = val;
-                }}
+                onChange={handleTogglePreview}
             />
         {/snippet}
     </SettingItem>

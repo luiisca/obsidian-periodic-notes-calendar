@@ -154,7 +154,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
                     date: window.moment(),
                     granularity: startupNoteGranularity,
                     confirmBeforeCreateOverride: false,
-                    openInPreview: get(settingsStore).preview.openNotesInPreview
+                    openInPreview: get(settingsStore).preview.enabled && get(settingsStore).preview.openNotesInPreview
                 });
             }
         });

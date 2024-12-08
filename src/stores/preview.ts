@@ -12,4 +12,4 @@ export const isPreviewVisibleStore = writable(false);
 export const isPreviewMaximizedStore = writable(false);
 export const previewSplitDirectionStore = writable<"vertical" | "horizontal" | null>(null);
 export const previewSplitPositionStore = writable<"left" | "root" | 'right' | null>(null);
-export const isOpenPreviewBttnVisibleStore = writable(false);
+export const isOpenPreviewBttnVisibleStore = writable<boolean | null>(null);
