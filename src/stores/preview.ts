@@ -7,6 +7,7 @@ import { writable } from "svelte/store";
 export const processingPreviewChangeStore = writable(false);
 export const mainViewLeafStore = writable<WorkspaceLeaf | null>(null);
 export const isMainViewVisibleStore = writable<boolean | null>(null);
+export const isMainLeafReopenedStore = writable<boolean | null>(null);
 export const previewLeafStore = writable<{ leaf: WorkspaceLeaf | null, file?: TFile | null } | null>(null)
 export const isPreviewVisibleStore = writable(false);
 export const isPreviewMaximizedStore = writable(false);

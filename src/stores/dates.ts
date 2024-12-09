@@ -46,13 +46,12 @@ function createYearsRangesStore() {
         const { ranges, crrRangeIndex } = get(store);
         const crrRange = ranges[crrRangeIndex];
         const [crrRangeStartYear, crrRangeEndYear] = crrRange.split('-');
-        const todayMoment = window.moment().clone();
 
         if (action === 'decrement') {
             const prevRange = ranges[crrRangeIndex - 1];
 
             displayedDateStore.set(
-                todayMoment.year(+crrRangeStartYear + (displayedDateModifier || -1)).startOf('year')
+                get(todayStore).year(+crrRangeStartYear + (displayedDateModifier || -1)).startOf('year')
             );
 
             !prevRange &&
@@ -69,7 +68,7 @@ function createYearsRangesStore() {
         if (action === 'increment') {
             const nextRange = ranges[crrRangeIndex + 1];
 
-            displayedDateStore.set(todayMoment.year(+crrRangeEndYear + 1).startOf('year'));
+            displayedDateStore.set(get(todayStore).year(+crrRangeEndYear + 1).startOf('year'));
 
             !nextRange && addNewRange({ startYear: +crrRangeEndYear + 1, action: 'increment' });
             updateCrrRangeIndex({ modifier: +1 });

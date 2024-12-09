@@ -2,7 +2,7 @@ import { LEAF_TYPE, PREVIEW_CONTROLS_TYPE } from '@/constants';
 import { createNote, getFileData, IGranularity } from '@/io';
 import { isValidPeriodicNote } from '@/io/validation';
 import { PeriodSettings, settingsStore, type ISettings } from '@/settings';
-import { activeFilepathStore, displayedDateStore, ILastOpenedFileValidationData, isMainViewVisibleStore, isOpenPreviewBttnVisibleStore, isPreviewMaximizedStore, isPreviewVisibleStore, lastOpenedFileValidationDataStore, mainViewLeafStore, previewLeafStore, previewSplitDirectionStore, previewSplitPositionStore, processingPreviewChangeStore } from '@/stores';
+import { activeFilepathStore, displayedDateStore, ILastOpenedFileValidationData, isMainLeafReopenedStore, isMainViewVisibleStore, isOpenPreviewBttnVisibleStore, isPreviewMaximizedStore, isPreviewVisibleStore, lastOpenedFileValidationDataStore, mainViewLeafStore, previewLeafStore, previewSplitDirectionStore, previewSplitPositionStore, processingPreviewChangeStore } from '@/stores';
 import { crrTabStore, getEnabledPeriods, periodTabs } from '@/stores/calendar';
 import { capitalize } from '@/utils';
 import moment, { Moment } from 'moment';
@@ -80,6 +80,10 @@ export class ViewManager {
             const mainLeafvisible = mainLeaf && this.isLeafVisible(mainLeaf)
             isMainViewVisibleStore.set(!!mainLeafvisible)
 
+            // check if main view is reopened
+            const isMainLeafReopened = !prevMainViewVisible && mainLeafvisible;
+            isMainLeafReopenedStore.set(isMainLeafReopened)
+
             // preview leaf
             const previewLeaf = this.searchPreviewLeaf()
             previewLeafStore.set({ leaf: previewLeaf, file: (previewLeaf?.view as any)?.file })
@@ -122,7 +126,8 @@ export class ViewManager {
                 defaultExpandMode: get(settingsStore).preview.defaultExpansionMode,
                 processingPreviewChange: get(processingPreviewChangeStore),
                 lastPreviewFilepath: get(settingsStore).preview.lastPreviewFilepath,
-                firstLayoutChange: this.firstLayoutChange
+                firstLayoutChange: this.firstLayoutChange,
+                isMainLeafReopened,
             })
             // avoid toggling preview if it has transitioned to an expanded-like state (moved to another tab)
             if (isPreviewMaximized) {
@@ -149,7 +154,7 @@ export class ViewManager {
                     return;
                 }
                 // show preview when user moves back to calendar tab and preview is open
-                if (!prevPreviewLeaf && !previewLeaf && !prevMainViewVisible && mainLeafvisible && get(settingsStore).preview.enabled && get(settingsStore).preview.open) {
+                if (!prevPreviewLeaf && !previewLeaf && isMainLeafReopened && get(settingsStore).preview.enabled && get(settingsStore).preview.open) {
                     console.log("🌳 initPreview")
                     this.initPreview();
                     processingPreviewChangeStore.set(true);
@@ -290,11 +295,6 @@ export class ViewManager {
                 }
             }
         }
-        // console.table({
-        //     tabHeaderLeaves,
-        //     leaf,
-        //     previewIsCalendarLeafSibling
-        // })
         return ((tabs.length > 0 && previewIsOnlyWorkspaceLeaf) || previewIsCalendarLeafSibling)
     }
     static getPreviewSplitDirection(previewLeaf: WorkspaceLeaf | null) {
@@ -344,37 +344,37 @@ export class ViewManager {
         window.app.workspace.iterateAllLeaves((leaf) => {
             // on first layout change, preview controls arent mounted so we need to check
             // for whether the leaf is in its default position
-            // console.log((leaf as any).containerEl)
-            // console.table({
-            //     isMarkdown: leaf.getViewState().type === 'markdown',
-            //     isCalendarLeaf: leaf.view?.containerEl?.dataset?.type === LEAF_TYPE,
-            //     hasPreviewControls: (this.firstLayoutChange || Array.from(leaf.view.containerEl.childNodes).find((el: HTMLElement) => el?.dataset?.type === PREVIEW_CONTROLS_TYPE)),
-            //     isDefaultPosition: (!this.firstLayoutChange || this.getLeafSplitPosition(leaf) === get(settingsStore).viewLeafPosition)
-            // })
-            if (
-                !previewLeafFound
-                && leaf.getViewState().type === 'markdown'
-                && leaf.view?.containerEl?.dataset?.type !== LEAF_TYPE
-                && (this.firstLayoutChange || Array.from(leaf.view.containerEl.childNodes).find((el: HTMLElement) => el?.dataset?.type === PREVIEW_CONTROLS_TYPE))
-                && (!this.firstLayoutChange || this.getLeafSplitPosition(leaf) === get(settingsStore).viewLeafPosition)
-            ) {
-                const leafFile = file || (leaf.view as any).file as TFile | undefined;
-                const lastPreviewFilepath = get(settingsStore).preview.lastPreviewFilepath;
-                // console.table({
-                //     leafFile,
-                //     lastPreviewFilepath
-                // })
-                if (leafFile?.path === lastPreviewFilepath) {
-                    previewLeaf = leaf
-                    previewLeafFound = true;
-                }
+            if (previewLeafFound) return;
+
+            const isPreview = this.isPreviewLeaf(leaf, file)
+            if (isPreview.leaf) {
+                previewLeaf = isPreview.leaf
+                previewLeafFound = true
             }
         })
         return previewLeaf as WorkspaceLeaf | null;
     }
+    static isPreviewLeaf(leaf: WorkspaceLeaf | null, file: TFile | null = null) {
+        let previewLeaf;
+        if (
+            leaf
+            && leaf.getViewState().type === 'markdown'
+            && leaf.view?.containerEl?.dataset?.type !== LEAF_TYPE
+            && (this.firstLayoutChange || Array.from(leaf.view.containerEl.childNodes).find((el: HTMLElement) => el?.dataset?.type === PREVIEW_CONTROLS_TYPE))
+            && (!this.firstLayoutChange || this.getLeafSplitPosition(leaf) === get(settingsStore).viewLeafPosition)
+        ) {
+            const leafFile = file || (leaf.view as any).file as TFile | undefined;
+            const lastPreviewFilepath = get(settingsStore).preview.lastPreviewFilepath;
+            if (leafFile?.path === lastPreviewFilepath) {
+                previewLeaf = leaf
+            }
+        }
+
+        return { leaf: previewLeaf }
+    }
 
     static togglePreviewTabHeader(leaf?: WorkspaceLeaf) {
-        const previewLeaf = leaf || get(previewLeafStore)?.leaf
+        const previewLeaf = leaf || get(previewLeafStore)?.leaf || null;
         this.previewTabHeaderEl = (previewLeaf?.parent as any)?.tabHeaderContainerEl as HTMLElement | null
 
         if (this.previewTabHeaderEl && !this.checkIfPreviewIsMaximized(previewLeaf) && this.getLeafSplitPosition(previewLeaf) !== 'root') {
@@ -462,50 +462,26 @@ export class ViewManager {
         }
     }
 
-    static toggleRevealInCalendarCommand() {
-        const REVEAL_COMMAND_ID = 'reveal-periodic-note-on-calendar';
-        let op: "add" | "remove" = "remove";
+    static updateCalendarDate() {
         const activeFile = window.app.workspace.getActiveFile();
-        // console.log("toggleRevealInCalendarCommand > activeFile", activeFile, window.app.workspace, window.app.workspace.getActiveFile(), window.app.workspace.getActiveFile)
         const lastOpenedFileValidationData = get(lastOpenedFileValidationDataStore);
         let validatedFileRes: ILastOpenedFileValidationData;
 
-        if (activeFile === null) {
-            op = "remove";
+        if (activeFile === null) return;
+
+        if (activeFile.path === lastOpenedFileValidationData?.path) {
+            validatedFileRes = lastOpenedFileValidationData
         } else {
-            if (activeFile.path === lastOpenedFileValidationData?.path) {
-                validatedFileRes = lastOpenedFileValidationData
-            } else {
-                validatedFileRes = { ...isValidPeriodicNote(activeFile.basename), path: activeFile.path };
-            }
-            const { isValid, granularity, date } = validatedFileRes;
-            if (typeof isValid && date && granularity) {
-                op = 'add'
-            }
+            validatedFileRes = { ...isValidPeriodicNote(activeFile.basename), path: activeFile.path };
         }
-
-        switch (op) {
-            case 'add':
-                window.plugin?.addCommand({
-                    id: REVEAL_COMMAND_ID,
-                    name: "Reveal Periodic Note on Calendar",
-                    callback: () => {
-                        ViewManager.revealView();
-                        activeFilepathStore.set(activeFile!.path);
-                        displayedDateStore.set(validatedFileRes.date!)
-                        const enabledPeriodsRes = getEnabledPeriods();
-                        if (enabledPeriodsRes.tabs.includes(validatedFileRes.granularity as typeof periodTabs[number])) {
-                            crrTabStore.set(validatedFileRes.granularity as typeof periodTabs[number])
-                        }
-                    }
-                })
-
-                break;
-
-            case 'remove':
-                window.plugin?.removeCommand(REVEAL_COMMAND_ID);
-
-                break;
+        const { isValid, granularity, date } = validatedFileRes;
+        if (typeof isValid && date && granularity) {
+            activeFilepathStore.set(activeFile!.path);
+            displayedDateStore.set(validatedFileRes.date!)
+            const enabledPeriodsRes = getEnabledPeriods();
+            if (enabledPeriodsRes.tabs.includes(validatedFileRes.granularity as typeof periodTabs[number])) {
+                crrTabStore.set(validatedFileRes.granularity as typeof periodTabs[number])
+            }
         }
     }
 

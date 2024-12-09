@@ -1,12 +1,10 @@
 <script lang="ts">
     import { YEARS_RANGE_SIZE } from "@/constants";
-    import { displayedDateStore, yearsRanges } from "@/stores";
+    import { displayedDateStore, todayStore, yearsRanges } from "@/stores";
     import DateNavigator from "./DateNavigator.svelte";
     import { Header } from "./core";
     import { getContext } from "svelte";
     import { cn } from "../utils";
-
-    const todayMoment = window.moment();
 
     let showingCurrentRange: boolean = $derived(
         $yearsRanges.todayRange ===
@@ -23,7 +21,9 @@
         }
     });
 
-    let minimalMode = getContext('minimalMode') as { value: boolean } | undefined;
+    let minimalMode = getContext("minimalMode") as
+        | { value: boolean }
+        | undefined;
 </script>
 
 <Header>
@@ -31,7 +31,7 @@
         <div
             class={cn(
                 "text-[--color-text-title] text-6xl font-semibold",
-                minimalMode?.value ? "text-xl" : "text-7xl"
+                minimalMode?.value ? "text-xl" : "text-7xl",
             )}
             id="years range"
         >
@@ -62,7 +62,7 @@
                     ),
                 }));
 
-                displayedDateStore.set(todayMoment.clone());
+                displayedDateStore.set($todayStore);
             }}
             incrementdisplayedDate={() => {
                 console.log(

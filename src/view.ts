@@ -52,7 +52,7 @@ export class CalendarView extends ItemView {
             this.app.metadataCache.on('changed', (file: TFile) => this.onMetadataChanged(file))
         )
         this.registerEvent(this.app.workspace.on('layout-change', () => this.onLayoutChange()))
-        this.registerEvent(this.app.workspace.on('active-leaf-change', () => this.onActiveLeafChange()))
+        this.registerEvent(this.app.workspace.on('active-leaf-change', (leaf) => this.onActiveLeafChange(leaf)))
     }
 
     getViewType() {
@@ -173,10 +173,12 @@ export class CalendarView extends ItemView {
             TimelineManager.initTimeline()
         }
     }
-    public onActiveLeafChange() {
-        if (this.app.workspace.layoutReady) {
-            ViewManager.toggleRevealInCalendarCommand()
+    public onActiveLeafChange(leaf: WorkspaceLeaf) {
+        if (!this.app.workspace.layoutReady || ViewManager.isPreviewLeaf(leaf).leaf) {
+            return
         }
+
+        ViewManager.updateCalendarDate()
     }
 
     // Utils
