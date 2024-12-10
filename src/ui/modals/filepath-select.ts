@@ -26,6 +26,11 @@ export class FilepathModal extends FuzzySuggestModal<string> {
 
         // Set modal properties
         this.setPlaceholder("Type to search files...");
+        this.setInstructions([
+            { command: "↑↓", purpose: "to navigate" },
+            { command: "↵", purpose: "to use" },
+            { command: "esc", purpose: "to dismiss" },
+        ]);
     }
 
     getItems(): string[] {
@@ -44,15 +49,15 @@ export class FilepathModal extends FuzzySuggestModal<string> {
         const filepath = result.item;
 
         mount(Suggestion, {
-                    target: el,
-                    props: {
-                        filepath,
-                        onDelete: async () => {
-                            await this.handleDeleteFile(filepath);
-                        },
-                        deletingAllStore: this.deletingAllStore
-                    }
-                })
+            target: el,
+            props: {
+                filepath,
+                onDelete: async () => {
+                    await this.handleDeleteFile(filepath);
+                },
+                deletingAllStore: this.deletingAllStore
+            }
+        })
     }
 
     private async handleDeleteFile(filePath: string) {
@@ -198,12 +203,12 @@ export class FilepathModal extends FuzzySuggestModal<string> {
 
         this.topBarContainer = createDiv();
         mount(TopBar, {
-                    target: this.topBarContainer,
-                    props: {
-                        onDelete: this.handleDeleteAllFiles.bind(this),
-                        deletingAllStore: this.deletingAllStore,
-                    },
-                })
+            target: this.topBarContainer,
+            props: {
+                onDelete: this.handleDeleteAllFiles.bind(this),
+                deletingAllStore: this.deletingAllStore,
+            },
+        })
 
         inputContainer?.insertAdjacentElement('afterend', this.topBarContainer);
     }

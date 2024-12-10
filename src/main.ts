@@ -6,19 +6,15 @@ import { CALENDAR_POPOVER_ID, CALENDAR_RIBBON_ID, granularities, LEAF_TYPE } fro
 import { createOrOpenNote, getStartupNoteGranularity } from './io';
 import { getPeriodicityFromGranularity } from './io/parse';
 import type { IPeriodicity } from './io/types';
-import locales from './locales';
 import {
     pluginClassStore,
-    themeStore,
-    updateLocale,
-    updateWeekdays,
-    updateWeekStart
+    themeStore
 } from './stores';
 import { View, ViewManager } from './ui';
 import TimelineManager from './ui/components/timeline/manager';
 import { createNldatePickerDialog } from './ui/modals/nldate-picker';
 import { getBehaviorInstance, getPopoverInstance, Popover } from './ui/popovers';
-import { getDailyNotesPlugin } from './utils';
+import { getDailyNotesPlugin, handleLocaleCommands } from './utils';
 import { CalendarView } from './view';
 
 export default class PeriodicNotesCalendarPlugin extends Plugin {
@@ -113,20 +109,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         });
 
         // add quick locales switch commands
-        if (get(settingsStore).allowLocalesSwitchFromCommandPalette) {
-            window.moment.locales().forEach((momentLocale) => {
-                this.addCommand({
-                    id: `switch-to - ${momentLocale
-                        } -locale`,
-                    name: `Switch to ${locales.get(momentLocale) || momentLocale} locale`,
-                    callback: () => {
-                        updateLocale(momentLocale);
-                        updateWeekStart();
-                        updateWeekdays();
-                    }
-                });
-            });
-        }
+        handleLocaleCommands()
 
         this.app.workspace.onLayoutReady(() => {
             ViewManager.initView({ active: false });

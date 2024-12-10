@@ -17,6 +17,7 @@
     import { derived as derivedStore } from "svelte/store";
     import { selectedTabStore } from "../../stores";
     import TimelineManager from "@/ui/components/timeline/manager";
+    import { handleLocaleCommands } from "@/utils";
 
     // Essential
     const handleViewLeafPositionChange = async (
@@ -302,6 +303,8 @@
             ...settings,
             allowLocalesSwitchFromCommandPalette,
         }));
+
+        handleLocaleCommands();
     };
 </script>
 
@@ -646,7 +649,7 @@
 
 <SettingItem
     name="Quick Language Switching"
-    description="Enable language switching through the command palette (requires restart)"
+    description="Enable language switching through the command palette (command: Switch locale)"
 >
     {#snippet control()}
         <Toggle
@@ -655,3 +658,4 @@
         />
     {/snippet}
 </SettingItem>
+

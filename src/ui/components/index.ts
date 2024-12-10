@@ -3,6 +3,7 @@ export * from './core';
 export { default as DateNavigator } from './DateNavigator.svelte';
 export { default as MonthHeader } from './MonthHeader.svelte';
 export { default as NldDatePicker } from './Nldatepicker.svelte';
+export { default as LocalesPicker } from './LocalesPicker.svelte';
 export { default as Sticker } from './Sticker.svelte';
 export { default as StickerPopover } from './StickerPopover.svelte';
 export * from './view';

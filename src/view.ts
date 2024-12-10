@@ -15,10 +15,9 @@ import { basename, extractAndReplaceTODOItems, storeAllVaultPeriodicFilepaths } 
 import { isValidPeriodicNote } from './io/validation';
 import type PeriodicNotesCalendarPlugin from './main';
 import { settingsStore } from './settings';
-import { activeFilepathStore, displayedDateStore, processingPreviewChangeStore, themeStore } from './stores';
+import { activeFilepathStore, processingPreviewChangeStore, themeStore } from './stores';
 import { internalFileModStore, lastOpenedFileValidationDataStore } from './stores/notes';
 import TimelineManager from './ui/components/timeline/manager';
-import { crrTabStore, getEnabledPeriods, periodTabs } from './stores/calendar';
 
 export class CalendarView extends ItemView {
     private view: Record<string, any>;
