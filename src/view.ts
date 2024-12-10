@@ -15,8 +15,8 @@ import { basename, extractAndReplaceTODOItems, storeAllVaultPeriodicFilepaths } 
 import { isValidPeriodicNote } from './io/validation';
 import type PeriodicNotesCalendarPlugin from './main';
 import { settingsStore } from './settings';
-import { activeFilepathStore, processingPreviewChangeStore, themeStore } from './stores';
-import { internalFileModStore, lastOpenedFileValidationDataStore } from './stores/notes';
+import { processingPreviewChangeStore, themeStore } from './stores';
+import { activeFilepathStore, internalFileModStore } from './stores/notes';
 import TimelineManager from './ui/components/timeline/manager';
 
 export class CalendarView extends ItemView {
@@ -46,7 +46,6 @@ export class CalendarView extends ItemView {
                 this.onFileRenamed(file as TFile, oldPath)
             )
         );
-        this.registerEvent(this.app.workspace.on('file-open', (file) => this.onFileOpen(file)));
         this.registerEvent(
             this.app.metadataCache.on('changed', (file: TFile) => this.onMetadataChanged(file))
         )
@@ -162,18 +161,20 @@ export class CalendarView extends ItemView {
         })
     }
 
-    public onFileOpen(file: TFile | null) {
-        if (this.app.workspace.layoutReady) {
-            this.handleOpenFile();
-        }
-    }
     public onLayoutChange() {
         if (this.app.workspace.layoutReady) {
             TimelineManager.initTimeline()
         }
     }
     public onActiveLeafChange(leaf: WorkspaceLeaf) {
-        if (!this.app.workspace.layoutReady || ViewManager.isPreviewLeaf(leaf).leaf) {
+        const activeFile = window.app.workspace.getActiveFile();
+        if (
+            !this.app.workspace.layoutReady
+            || ViewManager.isPreviewLeaf(leaf).leaf
+            || ViewManager.isMainLeaf(leaf)
+            || (!leaf.view || !(leaf.view instanceof FileView))
+            || activeFile?.path === get(activeFilepathStore)
+        ) {
             return
         }
 
@@ -181,25 +182,6 @@ export class CalendarView extends ItemView {
     }
 
     // Utils
-    private handleOpenFile(): void {
-        const activeLeaf = this.app.workspace.activeLeaf;
-
-        if (activeLeaf?.view && activeLeaf.view instanceof FileView) {
-            const file = activeLeaf.view.file;
-            if (!file) return;
-
-            const { isValid, granularity, date } = isValidPeriodicNote(file.basename);
-            lastOpenedFileValidationDataStore.set({
-                path: file.path,
-                isValid,
-                granularity,
-                date
-            })
-            if (typeof isValid === 'boolean' && date && granularity) {
-                activeFilepathStore.set(file.path);
-            }
-        }
-    }
     private closePreviewOnFileDeleted(file: TFile) {
         const previewLeaf = ViewManager.searchPreviewLeaf(file)
 

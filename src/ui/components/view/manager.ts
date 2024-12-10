@@ -2,7 +2,7 @@ import { LEAF_TYPE, PREVIEW_CONTROLS_TYPE } from '@/constants';
 import { createNote, getFileData, IGranularity } from '@/io';
 import { isValidPeriodicNote } from '@/io/validation';
 import { PeriodSettings, settingsStore, type ISettings } from '@/settings';
-import { activeFilepathStore, displayedDateStore, ILastOpenedFileValidationData, isMainLeafReopenedStore, isMainViewVisibleStore, isOpenPreviewBttnVisibleStore, isPreviewMaximizedStore, isPreviewVisibleStore, lastOpenedFileValidationDataStore, mainViewLeafStore, previewLeafStore, previewSplitDirectionStore, previewSplitPositionStore, processingPreviewChangeStore } from '@/stores';
+import { activeFilepathStore, displayedDateStore, isMainLeafReopenedStore, isMainViewVisibleStore, isOpenPreviewBttnVisibleStore, isPreviewMaximizedStore, isPreviewVisibleStore, mainViewLeafStore, previewLeafStore, previewSplitDirectionStore, previewSplitPositionStore, processingPreviewChangeStore } from '@/stores';
 import { crrTabStore, getEnabledPeriods, periodTabs } from '@/stores/calendar';
 import { capitalize } from '@/utils';
 import moment, { Moment } from 'moment';
@@ -338,6 +338,9 @@ export class ViewManager {
     static getMainLeaf() {
         return window.app.workspace.getLeavesOfType(LEAF_TYPE)[0] as WorkspaceLeaf | null
     }
+    static isMainLeaf(leaf: WorkspaceLeaf | null) {
+        return leaf === this.getMainLeaf()
+    }
     static searchPreviewLeaf(file?: TFile) {
         let previewLeafFound = false;
         let previewLeaf: WorkspaceLeaf | null = null;
@@ -464,23 +467,16 @@ export class ViewManager {
 
     static updateCalendarDate() {
         const activeFile = window.app.workspace.getActiveFile();
-        const lastOpenedFileValidationData = get(lastOpenedFileValidationDataStore);
-        let validatedFileRes: ILastOpenedFileValidationData;
 
-        if (activeFile === null) return;
+        if (!activeFile) return;
 
-        if (activeFile.path === lastOpenedFileValidationData?.path) {
-            validatedFileRes = lastOpenedFileValidationData
-        } else {
-            validatedFileRes = { ...isValidPeriodicNote(activeFile.basename), path: activeFile.path };
-        }
-        const { isValid, granularity, date } = validatedFileRes;
+        const { isValid, granularity, date } = isValidPeriodicNote(activeFile.basename);
         if (typeof isValid && date && granularity) {
             activeFilepathStore.set(activeFile!.path);
-            displayedDateStore.set(validatedFileRes.date!)
+            displayedDateStore.set(date!)
             const enabledPeriodsRes = getEnabledPeriods();
-            if (enabledPeriodsRes.tabs.includes(validatedFileRes.granularity as typeof periodTabs[number])) {
-                crrTabStore.set(validatedFileRes.granularity as typeof periodTabs[number])
+            if (enabledPeriodsRes.tabs.includes(granularity as typeof periodTabs[number])) {
+                crrTabStore.set(granularity as typeof periodTabs[number])
             }
         }
     }
