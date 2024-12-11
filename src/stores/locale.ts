@@ -1,21 +1,27 @@
 import { defaultWeekdays, defaultWeekdaysShort } from '@/localization';
 import { get, writable } from 'svelte/store';
-import { displayedDateStore, pluginClassStore } from '.';
 import { settingsStore } from '@/settings';
+import { displayedDateStore } from './dates';
 
 type TLocaleData = {
     weekdays: string[];
     weekdaysShort: string[];
 };
-const localeDataStore = writable<TLocaleData>({
+
+/**
+    * used in <Calendar />'s header
+*/
+export const localeDataStore = writable<TLocaleData>({
     weekdays: defaultWeekdays,
     weekdaysShort: defaultWeekdaysShort
 });
+export const localeSwitched = writable({ modified: Math.random() })
 
-function updateLocale(localeKey: string) {
+function setMomentLocale(localeKey: string) {
     window.moment.locale(localeKey);
+}
 
-    // update settings
+function updateLocaleKeySetting(localeKey: string) {
     settingsStore.update((settings) => ({
         ...settings,
         localeSettings: {
@@ -23,12 +29,8 @@ function updateLocale(localeKey: string) {
             localeOverride: localeKey
         }
     }))
-
-    // update UI
-    displayedDateStore.set(window.moment());
 }
-function updateWeekStart(weekStartId: number = window.moment.localeData().firstDayOfWeek()) {
-    // update settings
+export function updateWeekStartSetting(weekStartId: number = window.moment.localeData().firstDayOfWeek()) {
     settingsStore.update((settings) => ({
         ...settings,
         localeSettings: {
@@ -37,10 +39,10 @@ function updateWeekStart(weekStartId: number = window.moment.localeData().firstD
         }
     }))
 
-    // update UI
-    displayedDateStore.set(window.moment());
+    updateWeekdays()
 }
-function updateWeekdays() {
+
+export function updateWeekdays() {
     const weekStartId = get(settingsStore).localeSettings.weekStartId;
 
     const localizedWeekdays = window.moment.localeData().weekdays();
@@ -54,17 +56,24 @@ function updateWeekdays() {
         ...localizedWeekdaysShort.slice(0, weekStartId)
     ];
 
-    // update UI
-    localeDataStore.update((data) => ({
-        ...data,
+    localeDataStore.set({
         weekdays,
         weekdaysShort
-    }));
-    displayedDateStore.set(window.moment());
-}
-function setupLocale() {
-    window.moment.locale(get(settingsStore).localeSettings.localeOverride);
-    updateWeekdays();
+    });
 }
 
-export { localeDataStore, updateLocale, updateWeekStart, updateWeekdays, setupLocale };
+export function switchLocale(localeKey: string) {
+    setMomentLocale(localeKey);
+    updateLocaleKeySetting(localeKey);
+    updateWeekStartSetting();
+
+    // trigger <Calendar /> rerender to use new locale
+    displayedDateStore.set(get(displayedDateStore).locale(localeKey));
+    // force rerender on <Timeline />, same as displayedDateStore.set but avoids unnecessary <Timeline /> rerenders
+    localeSwitched.set({ modified: Math.random() });
+}
+
+export function setupLocale() {
+    setMomentLocale(get(settingsStore).localeSettings.localeOverride);
+    updateWeekdays();
+}

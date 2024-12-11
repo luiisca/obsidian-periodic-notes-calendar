@@ -8,6 +8,7 @@ import { getPeriodicityFromGranularity } from './io/parse';
 import type { IPeriodicity } from './io/types';
 import {
     pluginClassStore,
+    setupLocale,
     themeStore
 } from './stores';
 import { View, ViewManager } from './ui';
@@ -48,6 +49,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
 
         this.addSettingTab(new SettingsTab(this.app, this));
 
+        setupLocale()
         this.handleRibbon();
 
         // register view and preview

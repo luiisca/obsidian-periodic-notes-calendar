@@ -82,7 +82,7 @@ export function getYears({ startRangeYear }: { startRangeYear: number }): IYears
 export function getRelativeDate(granularity: IGranularity, date: Moment) {
     if (granularity == "week") {
         const startOfThisWeek = window.moment().startOf(granularity);
-        const fromNow = window.moment(date).diff(startOfThisWeek, "week");
+        const fromNow = date.diff(startOfThisWeek, "week");
         if (fromNow === 0) {
             return "This week";
         } else if (fromNow === -1) {
@@ -93,8 +93,8 @@ export function getRelativeDate(granularity: IGranularity, date: Moment) {
         return window.moment.duration(fromNow, granularity).humanize(true);
     } else if (granularity === "day") {
         const today = window.moment().startOf("day");
-        const fromNow = window.moment(date).from(today);
-        return window.moment(date).calendar(null, {
+        const fromNow = date.from(today);
+        return date.calendar(null, {
             lastWeek: "[Last] dddd",
             lastDay: "[Yesterday]",
             sameDay: "[Today]",

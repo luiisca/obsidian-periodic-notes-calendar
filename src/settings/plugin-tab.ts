@@ -2,7 +2,6 @@ import { DEFAULT_FORMATS_PER_GRANULARITY } from "@/constants";
 import { getPeriodicityFromGranularity, IGranularity } from "@/io";
 import PeriodicNotesCalendarPlugin from "@/main";
 import Settings from "@/settings/ui/Index.svelte";
-import { setupLocale } from "@/stores";
 import { genNoticeFragment } from "@/ui/utils";
 import { capitalize } from "@/utils";
 import { App, Notice, PluginSettingTab } from 'obsidian';
@@ -17,8 +16,6 @@ export class SettingsTab extends PluginSettingTab {
     constructor(app: App, plugin: PeriodicNotesCalendarPlugin) {
         super(app, plugin);
         this.plugin = plugin;
-
-        setupLocale();
     }
 
     display() {

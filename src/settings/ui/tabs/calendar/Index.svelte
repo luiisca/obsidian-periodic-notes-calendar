@@ -8,9 +8,9 @@
     import {
         isOpenPreviewBttnVisibleStore,
         isPreviewVisibleStore,
-        updateLocale,
+        switchLocale,
         updateWeekdays,
-        updateWeekStart,
+        updateWeekStartSetting,
     } from "@/stores";
     import { View, ViewManager } from "@/ui";
     import { Popover } from "@/ui/popovers";
@@ -239,9 +239,7 @@
 
     // Localization
     const handleSetLanguage = (localeKey: string) => {
-        updateLocale(localeKey);
-        updateWeekStart();
-        updateWeekdays();
+        switchLocale(localeKey);
     };
     const getLanguageOptions = () => {
         let options = [
@@ -267,8 +265,7 @@
     const handleFirstWeekdayChange = (weekday: string) => {
         const newWeekStartId = defaultWeekdays.indexOf(weekday);
 
-        updateWeekStart(newWeekStartId);
-        updateWeekdays();
+        updateWeekStartSetting(newWeekStartId);
     };
     const weekdayOptionsStore = derivedStore(settingsStore, () => {
         let options = [
@@ -658,4 +655,3 @@
         />
     {/snippet}
 </SettingItem>
-

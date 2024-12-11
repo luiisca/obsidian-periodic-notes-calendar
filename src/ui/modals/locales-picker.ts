@@ -1,7 +1,5 @@
 import {
-    updateLocale,
-    updateWeekdays,
-    updateWeekStart
+    switchLocale,
 } from '@/stores';
 import { FuzzySuggestModal } from 'obsidian';
 import { ModalManager } from './modals-manager';
@@ -40,9 +38,7 @@ export class LocalesPickerModal extends FuzzySuggestModal<ILocaleItem> {
     onChooseItem(item: ILocaleItem): void {
         ModalManager.closeAll();
 
-        updateLocale(item.momentLocale);
-        updateWeekStart();
-        updateWeekdays();
+        switchLocale(item.momentLocale);
         this.close();
     }
 }

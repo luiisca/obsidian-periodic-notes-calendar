@@ -3,9 +3,7 @@ import { writable } from 'svelte/store';
 import type PeriodicNotesCalendarPlugin from '../main';
 
 export * from './dates';
-export {
-    localeDataStore, setupLocale, updateLocale, updateWeekdays, updateWeekStart
-} from './locale';
+export * from './locale';
 export * from './notes';
 export * from './popovers';
 export * from './preview';

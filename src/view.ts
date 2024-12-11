@@ -166,13 +166,13 @@ export class CalendarView extends ItemView {
             TimelineManager.initTimeline()
         }
     }
-    public onActiveLeafChange(leaf: WorkspaceLeaf) {
+    public onActiveLeafChange(leaf: WorkspaceLeaf | null) {
         const activeFile = window.app.workspace.getActiveFile();
         if (
             !this.app.workspace.layoutReady
             || ViewManager.isPreviewLeaf(leaf).leaf
             || ViewManager.isMainLeaf(leaf)
-            || (!leaf.view || !(leaf.view instanceof FileView))
+            || (!leaf?.view || !(leaf?.view instanceof FileView))
             || activeFile?.path === get(activeFilepathStore)
         ) {
             return
