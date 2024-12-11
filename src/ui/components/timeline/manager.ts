@@ -28,12 +28,8 @@ export default class TimelineManager {
                         // mount timeline to any markdown view without one
                         const mounted = Array.from(leaf.view.containerEl.children).find(el => {
                             if (el.id.includes(`timeline-container`)) {
-                                if (granularity && el.id.includes(granularity)) {
-                                    return true
-                                } else {
-                                    el.remove();
-                                    return false;
-                                }
+                                el.remove();
+                                return false;
                             }
                             return false;
                         });

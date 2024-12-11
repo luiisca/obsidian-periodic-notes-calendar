@@ -1,6 +1,6 @@
 import { DEFAULT_FORMATS_PER_GRANULARITY, HUMAN_FORMATS_PER_GRANULARITY } from '@/constants';
 import { IGranularity } from '@/io';
-import { localeDataStore } from '@/stores';
+import { localeDataStore, todayStore } from '@/stores';
 import type { Moment } from 'moment';
 import { get } from 'svelte/store';
 
@@ -80,33 +80,30 @@ export function getYears({ startRangeYear }: { startRangeYear: number }): IYears
 }
 
 export function getRelativeDate(granularity: IGranularity, date: Moment) {
-    if (granularity == "week") {
-        const startOfThisWeek = window.moment().startOf(granularity);
-        const fromNow = date.diff(startOfThisWeek, "week");
-        if (fromNow === 0) {
-            return "This week";
-        } else if (fromNow === -1) {
-            return "Last week";
-        } else if (fromNow === 1) {
-            return "Next week";
+    const startOfDate = date.clone().startOf(granularity);
+    const startOfToday = get(todayStore).clone().startOf(granularity);
+    const diff = startOfDate.diff(startOfToday, granularity);
+    const absDiff = Math.abs(diff);
+    const humanizedDiff = window.moment.duration(diff, granularity).humanize(true, { d: 7, w: 4 });
+
+    console.table({
+        granularity,
+        relativeDate: startOfDate.calendar(),
+        absDiff,
+        humanizedDiff
+    })
+    if (absDiff <= 1) {
+        if (granularity === 'day') {
+            return startOfDate.calendar().split(' ')[0];
         }
-        return window.moment.duration(fromNow, granularity).humanize(true);
-    } else if (granularity === "day") {
-        const today = window.moment().startOf("day");
-        const fromNow = date.from(today);
-        return date.calendar(null, {
-            lastWeek: "[Last] dddd",
-            lastDay: "[Yesterday]",
-            sameDay: "[Today]",
-            nextDay: "[Tomorrow]",
-            nextWeek: "dddd",
-            sameElse: function() {
-                return "[" + fromNow + "]";
-            },
-        });
-    } else {
-        return date.format(HUMAN_FORMATS_PER_GRANULARITY[granularity]);
     }
+    if (absDiff === 0) {
+        if (granularity === "week" || granularity === 'month' || granularity === 'quarter' || granularity === 'year') {
+            return startOfDate.format(HUMAN_FORMATS_PER_GRANULARITY[granularity]);
+        }
+    }
+
+    return humanizedDiff
 }
 
 /**

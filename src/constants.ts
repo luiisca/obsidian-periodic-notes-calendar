@@ -45,6 +45,7 @@ export const DEFAULT_FORMATS_PER_GRANULARITY: Record<IGranularity, string> = {
     year: DEFAULT_YEARLY_NOTE_FORMAT,
 };
 export const HUMAN_FORMATS_PER_GRANULARITY = Object.freeze({
+    week: "MMMM",
     month: "MMMM YYYY",
     quarter: "YYYY",
     year: "YYYY",

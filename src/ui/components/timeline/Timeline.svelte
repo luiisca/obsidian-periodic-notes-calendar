@@ -39,6 +39,7 @@
     const derivedG = $derived(
         $settingsStore.timeline.granularityBased ? granularity : "day",
     );
+
     let crrDisplayedDate = $state(date);
     $effect.pre(() => {
         $localeSwitched;
@@ -50,7 +51,6 @@
         $localeSwitched;
         return getRelativeDate(derivedG, crrDisplayedDate);
     });
-    let isInitial = $derived(date.isSame(crrDisplayedDate, derivedG));
     let dates: Moment[] = $derived.by(() => {
         $localeSwitched;
 
@@ -73,6 +73,8 @@
     });
     let startOfDate = $derived(dates[0]);
     let endOfDate = $derived(dates[dates.length - 1]);
+
+    let isInitial = $derived(date.isSame(crrDisplayedDate, derivedG));
     let observer: ResizeObserver | null = $state(null);
     let prevParentWidth: number | null = $state(null);
 
@@ -279,9 +281,8 @@
                     )}
                     id="reset-button"
                     onclick={handleResetDate}
-                    aria-label={!isInitial
-                        ? `Go to Current ${capitalize(G_MAP[derivedG].group)}`
-                        : null}
+                    aria-label={`Go to note's ${G_MAP[derivedG].group}`}
+                    data-tooltip-delay="200"
                 >
                     <Dot
                         className="h-[0.3rem] w-[0.3rem]"
