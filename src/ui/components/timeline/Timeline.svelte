@@ -4,6 +4,7 @@
 
     import { IGranularity } from "@/io";
     import { settingsStore, TimelineViewMode } from "@/settings";
+    import { localeSwitched, previewSplitPositionStore } from "@/stores";
     import { Arrow, Dot } from "@/ui";
     import {
         cn,
@@ -11,12 +12,10 @@
         getRelativeDate,
         isControlPressed,
     } from "@/ui/utils";
-    import { capitalize } from "@/utils";
     import { setIcon } from "obsidian";
+    import { onDestroy, onMount } from "svelte";
     import DateBttn from "../core/DateBttn.svelte";
     import { G_MAP, VIEW_MODES } from "./constants";
-    import { onDestroy, onMount } from "svelte";
-    import { localeSwitched, previewSplitPositionStore } from "@/stores";
 
     interface Props {
         granularity: IGranularity;
@@ -55,6 +54,30 @@
         $localeSwitched;
 
         let dates: Moment[] = [];
+
+        if (derivedG === "week") {
+            function getWeeksInMonth() {
+                const weeks = [];
+                const date = window.moment([
+                    crrDisplayedDate.year(),
+                    crrDisplayedDate.month(),
+                    1,
+                ]);
+                let startOfWeek = date.clone().startOf("week");
+                const endOfMonth = date.clone().endOf("month");
+
+                while (startOfWeek.isBefore(endOfMonth)) {
+                    weeks.push(startOfWeek.clone());
+                    startOfWeek = startOfWeek.add(1, "week");
+                }
+
+                return weeks;
+            }
+
+            dates = getWeeksInMonth();
+            return dates;
+        }
+
         let startOfDate: Moment = crrDisplayedDate;
         if (derivedG === "year") {
             startOfDate = crrDisplayedDate.clone().subtract(2, "year");
@@ -82,6 +105,7 @@
         ev.stopPropagation();
         crrDisplayedDate = crrDisplayedDate
             .clone()
+            .startOf(derivedG)
             [type](G_MAP[derivedG].mod, G_MAP[derivedG].group);
     }
     function handleResetDate(event: MouseEvent) {

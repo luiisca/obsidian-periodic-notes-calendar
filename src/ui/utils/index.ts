@@ -1,4 +1,4 @@
-import { DEFAULT_FORMATS_PER_GRANULARITY, HUMAN_FORMATS_PER_GRANULARITY } from '@/constants';
+import { HUMAN_FORMATS_PER_GRANULARITY } from '@/constants';
 import { IGranularity } from '@/io';
 import { localeDataStore, todayStore } from '@/stores';
 import type { Moment } from 'moment';
@@ -86,12 +86,6 @@ export function getRelativeDate(granularity: IGranularity, date: Moment) {
     const absDiff = Math.abs(diff);
     const humanizedDiff = window.moment.duration(diff, granularity).humanize(true, { d: 7, w: 4 });
 
-    console.table({
-        granularity,
-        relativeDate: startOfDate.calendar(),
-        absDiff,
-        humanizedDiff
-    })
     if (absDiff <= 1) {
         if (granularity === 'day') {
             return startOfDate.calendar().split(' ')[0];
@@ -121,6 +115,7 @@ export function genNoticeFragment(mssgFragments: ([string] | [string, string])[]
     return fragment;
 }
 
-export * from './picker';
+export * from './cn';
 export * from './event-handlers';
-export * from './cn'
+export * from './picker';
+

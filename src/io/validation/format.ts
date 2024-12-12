@@ -20,6 +20,60 @@ function validateFilename(filename: string): boolean {
     );
 }
 
+export const isTokenEffective = (value: string, token: string) => {
+    const isEffective = (startIndex: number, foundOpeningBracket: boolean) => {
+        let _foundOpeningBracket = foundOpeningBracket;
+        let tokenFound = false;
+        let tokenFoundIndex = -1;
+
+        for (let i = startIndex; i < value.length; i++) {
+            if (value[i] === "[") {
+                if (!_foundOpeningBracket && !tokenFound) {
+                    _foundOpeningBracket = true;
+                    continue;
+                }
+                if (_foundOpeningBracket && tokenFound) {
+                    return {
+                        isEffective: true,
+                        effectiveTokenIndex: tokenFoundIndex,
+                    };
+                }
+            }
+
+            if (value[i] === token) {
+                tokenFound = true;
+                tokenFoundIndex = i
+
+                if (
+                    !value.slice(i + 1).includes("]") &&
+                    !value.slice(i + 1).includes("[")
+                ) {
+                    return {
+                        isEffective: true,
+                        effectiveTokenIndex: tokenFoundIndex
+                    };
+                }
+
+
+                if (!_foundOpeningBracket) {
+                    return {
+                        isEffective: true,
+                        effectiveTokenIndex: tokenFoundIndex
+                    };
+                } else {
+                    continue;
+                }
+            }
+
+            if (value[i] === "]" && _foundOpeningBracket && tokenFound) {
+                return isEffective(i + 1, true);
+            }
+        }
+    };
+
+    return isEffective(0, false);
+}
+
 function isAmbiguousFormat(
     value: string,
     currentDate: moment.Moment,
@@ -28,58 +82,16 @@ function isAmbiguousFormat(
 ): string | null {
     const errorMessage = "Ambiguous format.";
 
-    const isTokenEffective = (token: string) => {
-        const isEffective = (startIndex: number, foundOpeningBracket: boolean) => {
-            let _foundOpeningBracket = foundOpeningBracket;
-            let tokenFound = false;
-
-            for (let i = startIndex; i < value.length; i++) {
-                if (value[i] === "[") {
-                    if (!_foundOpeningBracket && !tokenFound) {
-                        _foundOpeningBracket = true;
-                        continue;
-                    }
-                    if (_foundOpeningBracket && tokenFound) {
-                        return true;
-                    }
-                }
-
-                if (value[i] === token) {
-                    tokenFound = true;
-
-                    if (
-                        !value.slice(i + 1).includes("]") &&
-                        !value.slice(i + 1).includes("[")
-                    ) {
-                        return true;
-                    }
-
-
-                    if (!_foundOpeningBracket) {
-                        return true;
-                    } else {
-                        continue;
-                    }
-                }
-
-                if (value[i] === "]" && _foundOpeningBracket && tokenFound) {
-                    return isEffective(i + 1, true);
-                }
-            }
-        };
-
-        return isEffective(0, false);
-    }
-
     const containsValidToken = (tokens: string[]) => {
-        return tokens.some((token) => isTokenEffective(token));
+        return tokens.some((token) => isTokenEffective(value, token)?.isEffective);
     }
 
     // Check for missing essential information based on granularity
     const missingInfo = (() => {
         if (containsValidToken(["x", "X"])) return null;
         if (containsValidToken(["l", "L"]) && value !== "LT" && value !== "LTS") return null;
-        if (!containsValidToken(["Y", "y", "g", "G"])) return "year (Y, y, gg, or GG)";
+        // dropped support for GG, it is ambiguous for some dates (e.g. 2020, 2030), dont know why
+        if (!containsValidToken(["Y", "y", "g"])) return "year (Y, y, or gg)";
 
         switch (granularity) {
             case "quarter":

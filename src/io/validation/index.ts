@@ -4,6 +4,7 @@ import { type Moment } from 'moment';
 import { get } from 'svelte/store';
 import { type IGranularity } from '../types';
 import { normalizePath } from 'obsidian';
+import { isTokenEffective } from './format';
 
 export function removeEscapedCharacters(format: string): string {
     const withoutBrackets = format.replace(/\[[^\]]*\]/g, ''); // remove everything within brackets
@@ -40,14 +41,33 @@ export function isValidPeriodicNote(fileName: string, customGranularities = gran
                 }
 
                 if (granularity === 'week') {
-                    console.log("week, format: ", format.value);
-                    if (isWeekFormatAmbiguous(format.value)) {
-                        parsedDate = window.moment(
-                            fileName,
-                            format.value.replace(/M{1,4}/g, '').replace(/D{1,4}/g, ''),
-                            false
-                        );
-                    }
+                    const disambiguatedFormatValue = isWeekFormatAmbiguous(format.value)
+                        ? format.value.replace(/M{1,4}/g, "").replace(/D{1,4}/g, "")
+                        : format.value;
+                    const TOKENS = ["Y", "y", "g"];
+                    const getEffectiveTokenIndex = (tokens: string[]) => {
+                        let effectiveTokenIndex = -1;
+                        tokens.find((token) => {
+                            const res = isTokenEffective(format.value, token);
+                            if (res?.isEffective) {
+                                effectiveTokenIndex = res.effectiveTokenIndex;
+
+                                return true;
+                            }
+                        });
+
+                        return effectiveTokenIndex;
+                    };
+
+                    const foundIndex = getEffectiveTokenIndex(TOKENS);
+                    const slicedFormattedDate = fileName.slice(foundIndex, foundIndex + 4);
+                    const slicedFormat = format.value.slice(foundIndex, foundIndex + 4);
+                    const parsedYear = window.moment(slicedFormattedDate, slicedFormat).year();
+                    const parsedWeek = window.moment(fileName, disambiguatedFormatValue).week();
+
+                    const newDate = window.moment().clone().year(parsedYear).week(parsedWeek);
+
+                    parsedDate = newDate;
                 }
 
                 return { isValid: true, granularity, date: parsedDate, format };
