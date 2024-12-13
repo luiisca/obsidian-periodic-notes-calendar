@@ -1,12 +1,14 @@
 import { FILE_MENU_POPOVER_ID, STICKER_POPOVER_ID } from "@/constants";
 import { TFileData, type IGranularity } from "@/io";
-import { activeFilepathStore, displayedDateStore, spFileDataStore } from "@/stores";
+import { activeFilepathStore, displayedDateStore, isMainViewVisibleStore, isPreviewVisibleStore, spFileDataStore } from "@/stores";
 import { type Moment } from "moment";
 import { Menu } from "obsidian";
 import StickerPopoverComponent from "../components/StickerPopover.svelte";
 import { eventHandlers, isControlPressed } from "../utils";
 import { Popover } from "./base";
 import { ViewManager } from "../components";
+import { get } from "svelte/store";
+import { settingsStore } from "@/settings";
 
 export type TFileMenuPopoverParams = {
     id: typeof FILE_MENU_POPOVER_ID,
@@ -102,14 +104,25 @@ export class FileMenuPopoverBehavior {
                     })
             );
             // Open preview
-            menu.addItem((item) =>
-                item.setSection("open")
-                    .setTitle("Open in preview window")
-                    .setIcon("lucide-eye")
-                    .onClick(() => {
-                        ViewManager.tryInitPreview(file, true);
-                    })
-            );
+            if (get(settingsStore).preview.enabled) {
+                menu.addItem((item) =>
+                    item.setSection("open")
+                        .setTitle("Open in preview window")
+                        .setIcon("lucide-eye")
+                        .onClick(() => {
+                            if (!get(isMainViewVisibleStore)) {
+                                ViewManager.revealView();
+                            }
+                            // check needed to avoid initiating 2 previews since revealView would trigger an initPreview already
+                            if (
+                                (!get(isMainViewVisibleStore) && !get(settingsStore).preview.open)
+                                || get(isMainViewVisibleStore)
+                            ) {
+                                ViewManager.tryInitPreview(file, true);
+                            }
+                        })
+                );
+            }
             // Reveal on calendar
             // TODO: replace activeLeaf() with recommended Workspace.getActiveViewOfType() method 
             if (window.app.workspace.activeLeaf?.getViewState()?.type === 'markdown') {

@@ -47,7 +47,7 @@ export class ViewManager {
         return mainLeaf;
     }
 
-    static revealView(type: 'view' | 'preview' = 'view', workspaceLeaf?: WorkspaceLeaf) {
+    static async revealView(type: 'view' | 'preview' = 'view', workspaceLeaf?: WorkspaceLeaf) {
         let leaf: WorkspaceLeaf | undefined | null = null;
         if (type === 'preview') {
             leaf = workspaceLeaf || get(previewLeafStore)?.leaf;
@@ -57,11 +57,17 @@ export class ViewManager {
         }
         if (type === 'view') {
             leaf = window.app.workspace.getLeavesOfType(LEAF_TYPE)[0];
-            window.app.workspace.revealLeaf(leaf);
-            leaf.setViewState({
-                type: LEAF_TYPE,
-                active: true
-            });
+            if (!leaf) {
+                leaf = await this.initView()
+            }
+
+            if (leaf) {
+                window.app.workspace.revealLeaf(leaf);
+                leaf.setViewState({
+                    type: LEAF_TYPE,
+                    active: true
+                });
+            }
         }
     }
 
@@ -148,7 +154,7 @@ export class ViewManager {
 
                 // cleanup preview when user closes calendar tab
                 if (prevMainLeaf && !mainLeaf) {
-                    this.cleanupPreview()
+                    this.cleanupPreviews()
                     processingPreviewChangeStore.set(true);
                     console.log("❌ mainLeaf not found and removed preview")
                     return;
@@ -332,6 +338,14 @@ export class ViewManager {
         settingsStore.update(s => {
             s.preview.lastPreviewFilepath = ''
             return s
+        })
+    }
+    static cleanupPreviews() {
+        window.app.workspace.iterateAllLeaves((leaf) => {
+            const isPreview = this.isPreviewLeaf(leaf)
+            if (isPreview.leaf) {
+                this.cleanupPreview({ leaf: isPreview.leaf })
+            }
         })
     }
 
