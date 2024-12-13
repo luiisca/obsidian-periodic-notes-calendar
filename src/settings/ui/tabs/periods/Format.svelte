@@ -21,6 +21,7 @@
     import ReplaceAllTitle from "./ReplaceAllTitle.svelte";
     import ReplaceAllText from "./ReplaceAllText.svelte";
     import ReplaceAllNote from "./ReplaceAllNote.svelte";
+    import { v4 as uuidv4 } from "uuid";
 
     interface Props {
         settings: Writable<PeriodSettings>;
@@ -105,7 +106,7 @@
     function handleSelect() {
         settings.update((s) => {
             if (type === "skeleton") {
-                const id = window.crypto.randomUUID();
+                const id = uuidv4();
                 s.formats[id] = {
                     id,
                     value: "",
@@ -305,7 +306,7 @@
                     Object.keys(s.formats).length === 1 &&
                     Object.values(s.formats)[0].value.trim() === "";
                 if (Object.keys(s.formats).length === 0 || lastFormatEmpty) {
-                    const id = window.crypto.randomUUID();
+                    const id = uuidv4();
                     const newSelectedFormat = {
                         id,
                         value: defaultFormat,

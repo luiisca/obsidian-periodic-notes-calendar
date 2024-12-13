@@ -50,12 +50,6 @@ export function getNormalizedPeriodSettings(granularity: IGranularity): TNormali
             type: "default",
             settings: {
                 ...getDefaultPeriodicNotesConfig(granularity),
-                selectedFormat: {
-                    id: window.crypto.randomUUID(),
-                    value: DEFAULT_FORMATS_PER_GRANULARITY[granularity],
-                    error: "",
-                    loading: false,
-                },
             }
         }
     }

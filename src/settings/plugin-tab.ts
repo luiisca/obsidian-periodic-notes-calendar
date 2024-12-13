@@ -8,6 +8,7 @@ import { App, Notice, PluginSettingTab } from 'obsidian';
 import { mount, unmount } from "svelte";
 import { get } from "svelte/store";
 import { settingsStore } from "./store";
+import { v4 as uuidv4 } from "uuid";
 
 export class SettingsTab extends PluginSettingTab {
     public plugin: PeriodicNotesCalendarPlugin;
@@ -64,7 +65,7 @@ export class SettingsTab extends PluginSettingTab {
             invalidValue = periodSettings.selectedFormat.value;
 
             const foundValidFormat = Object.values(periodSettings.formats).find(format => !format.error.trim());
-            const id = window.crypto.randomUUID();
+            const id = uuidv4();
             const defaultFormat = {
                 id,
                 value: DEFAULT_FORMATS_PER_GRANULARITY[granularity],

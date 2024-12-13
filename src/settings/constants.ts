@@ -1,6 +1,7 @@
 import { DEFAULT_FORMATS_PER_GRANULARITY, granularities } from "@/constants";
 import { type IGranularity } from "@/io";
 import { sysLocaleKey, sysWeekStartId } from "../localization";
+import { v4 as uuidv4 } from "uuid";
 
 export type TFormat = {
     id: string;
@@ -112,7 +113,7 @@ export interface ISettings {
 export function getDefaultPeriodicNotesConfig(
     granularity: IGranularity,
 ): PeriodSettings {
-    const id = window.crypto.randomUUID();
+    const id = uuidv4();
     const selectedFormat = {
         id,
         value: DEFAULT_FORMATS_PER_GRANULARITY[granularity],
