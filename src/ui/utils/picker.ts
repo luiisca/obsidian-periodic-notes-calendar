@@ -7,6 +7,7 @@ import { get } from "svelte/store";
 import { getBehaviorInstance, getPopoverInstance, Popover } from "../popovers";
 import { TFileData } from "@/io";
 import { internalFileModStore } from "@/stores/notes";
+import emojiRegex from "emoji-regex";
 
 type TEmoji = {
     aliases?: string[],
@@ -165,8 +166,8 @@ export function getSticker(tags: TagCache[] | null | undefined): TSticker | null
     let sticker: { emoji: string, startOffset: number, endOffset: number } | null = null;
     for (let index = 0; index < tags.length; index++) {
         const tagObj = tags[index];
-
-        if (/\p{RGI_Emoji}/v.test(tagObj.tag)) {
+        const match = tagObj.tag.match(emojiRegex())
+        if (match?.[0].length === tagObj.tag.length - 1) {
             sticker = {
                 emoji: tagObj.tag.slice(1),
                 startOffset: tagObj.position.start.offset,
