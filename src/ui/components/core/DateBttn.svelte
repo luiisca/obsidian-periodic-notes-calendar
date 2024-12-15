@@ -65,6 +65,7 @@
     let minimalMode = getContext("minimalMode") as
         | { value: boolean }
         | undefined;
+    let isMobile = (window.app as any).isMobile;
 </script>
 
 <button
@@ -116,7 +117,7 @@
     {#if displayDot}
         <div class={cn("absolute leading-[0]", dotContainerClassName)}>
             <Dot
-                className={cn(minimalMode?.value && "w-1")}
+                className={cn((minimalMode?.value || isMobile) && "w-1")}
                 isVisible={!!file}
                 isFilled={!!file}
                 {isActive}

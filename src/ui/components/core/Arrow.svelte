@@ -16,7 +16,7 @@
 
 <button
     class={cn(
-        "flex items-center px-1.5",
+        "flex items-center !px-1.5",
         direction === "right" && "[transform:rotate(180deg)]",
         isMobile ? "[&>svg]:w-3.5" : "[&>svg]:w-2.5",
         className,

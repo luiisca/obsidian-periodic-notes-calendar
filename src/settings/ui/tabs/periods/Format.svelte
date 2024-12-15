@@ -548,7 +548,7 @@
             stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
-            class="svg-icon lucide-plus absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+            class="svg-icon lucide-plus absolute top-1/2 left-1/2 [transform:translate(-50%,-50%)]"
             ><path d="M5 12h14" /><path d="M12 5v14" /></svg
         >
     {/if}

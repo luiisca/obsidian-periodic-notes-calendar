@@ -19,7 +19,7 @@
 {#if isVisible}
     <svg
         class={cn(
-            "inline-block h-[6px] w-[6px] mx-0 my-[1px]",
+            "inline-block h-[6px] w-[6px] mx-0 my-[1px] fill-transparent",
             "stroke-[--color-dot]",
             isActive && "stroke-[--text-on-accent]",
             isFilled && "fill-[--color-dot]",

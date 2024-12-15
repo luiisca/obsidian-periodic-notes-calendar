@@ -20,7 +20,7 @@
     class={cn(
         "absolute opacity-0 -z-10",
         loading &&
-            "opacity-100 z-10 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 leading-[0]",
+            "opacity-100 z-10 left-1/2 top-1/2 [transform:translate(-50%,-50%)] leading-[0]",
     )}
 >
     <div bind:this={loadingIcon} class="animate-spin"></div>

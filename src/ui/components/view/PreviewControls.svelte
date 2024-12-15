@@ -208,7 +208,12 @@
 
     $effect.pre(() => {
         if ($previewLeafStore) {
-            file = $previewLeafStore.file || null;
+            const filepath = $previewLeafStore.filepath;
+            if (filepath) {
+                file = window.app.vault.getAbstractFileByPath(
+                    filepath,
+                ) as TFile | null;
+            }
             leaf = $previewLeafStore.leaf;
             if (leaf) {
                 markdownView = leaf.view as MarkdownView;

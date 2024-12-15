@@ -19,6 +19,7 @@
 
     let { popover = false }: Props = $props();
     let minimalMode = $state({ value: false });
+    let isMobile = (window.app as any).isMobile as boolean;
 
     $effect.pre(() => {
         if (popover) {
@@ -92,18 +93,25 @@
             >
                 <button
                     class={cn(
-                        "clickable-icon view-action italic absolute [transform:translateY(-50%)] bg-[var(--background-secondary)] hover:!bg-[var(--background-secondary)] w-fit cursor-pointer",
+                        "clickable-icon view-action italic absolute [transform:translateY(-50%)] w-fit cursor-pointer pl-4 py-3",
                         $settingsStore.viewLeafPosition === "left" && "left-0",
                         $settingsStore.viewLeafPosition === "root" &&
                             "left-1/2 [transform:translate(-50%,-50%)] bg-[var(--background-primary)] hover:!bg-[var(--background-primary)]",
                         $settingsStore.viewLeafPosition === "right" &&
                             "right-0",
+                        isMobile
+                            ? "bg-[var(--mobile-sidebar-background)] hover:!bg-[var(--mobile-sidebar-background)]"
+                            : "bg-[var(--background-secondary)] hover:!bg-[var(--background-secondary)]",
                     )}
                     onclick={() => {
+                        console.log("😺😺😺😺 Open preview cliecked 😺😺😺😺");
+                        console.table({
+                            isPreviewVisibleStore: $isPreviewVisibleStore,
+                        });
                         if (!$isPreviewVisibleStore) {
                             ViewManager.revealView("preview");
                         }
-                        ViewManager.tryInitPreview();
+                        ViewManager.tryInitPreview(undefined, isMobile);
                     }}>Open preview</button
                 >
             </div>

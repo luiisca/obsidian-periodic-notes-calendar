@@ -24,6 +24,7 @@
     let minimalMode = getContext("minimalMode") as
         | { value: boolean }
         | undefined;
+    let isMobile = (window.app as any).isMobile;
 </script>
 
 <Header>
@@ -31,7 +32,7 @@
         <div
             class={cn(
                 "text-[--color-text-title] text-6xl font-semibold",
-                minimalMode?.value ? "text-xl" : "text-7xl",
+                minimalMode?.value || isMobile ? "text-xl" : "text-7xl",
             )}
             id="years range"
         >

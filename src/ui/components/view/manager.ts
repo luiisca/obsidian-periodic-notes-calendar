@@ -50,7 +50,7 @@ export class ViewManager {
     static async revealView(type: 'view' | 'preview' = 'view', workspaceLeaf?: WorkspaceLeaf) {
         let leaf: WorkspaceLeaf | undefined | null = null;
         if (type === 'preview') {
-            leaf = workspaceLeaf || get(previewLeafStore)?.leaf;
+            leaf = workspaceLeaf || get(previewLeafStore)?.leaf || this.searchPreviewLeaf();
             if (leaf) {
                 window.app.workspace.revealLeaf(leaf);
             }
@@ -92,22 +92,27 @@ export class ViewManager {
 
             // preview leaf
             const previewLeaf = this.searchPreviewLeaf()
-            previewLeafStore.set({ leaf: previewLeaf, file: (previewLeaf?.view as any)?.file })
+            if (previewLeaf) {
+                // leaf.view.state.file will be used when markdown view is not visible and leaf.view.file.path would return undefined
+                // this value is undefined when markdown view is visible
+                const filepath = (previewLeaf.view as any)?.state?.file as string | undefined || (previewLeaf.view as any).file?.path as string | null
+                filepath && previewLeafStore.set({ leaf: previewLeaf, filepath })
+            }
 
             // check if preview is visible
             const previewLeafVisible = previewLeaf && this.isLeafVisible(previewLeaf)
             isPreviewVisibleStore.set(!!previewLeafVisible)
 
             // check if preview is maximized
-            const isPreviewMaximized = this.checkIfPreviewIsMaximized(previewLeaf);
+            const isPreviewMaximized = (previewLeaf && this.checkIfPreviewIsMaximized(previewLeaf)) || null;
             isPreviewMaximizedStore.set(isPreviewMaximized)
 
             // check preview's split direction
-            const previewSplitDirection = this.getPreviewSplitDirection(previewLeaf);
+            const previewSplitDirection = previewLeaf && this.getPreviewSplitDirection(previewLeaf);
             previewSplitDirection && previewSplitDirectionStore.set(previewSplitDirection);
 
             // check preview's leaf position
-            const previewSplitPosition = this.getLeafSplitPosition(previewLeaf);
+            const previewSplitPosition = previewLeaf && this.getLeafSplitPosition(previewLeaf);
             previewSplitPosition && previewSplitPositionStore.set(previewSplitPosition)
 
             // check if 'open preview' bttn should be visible
@@ -135,23 +140,31 @@ export class ViewManager {
                 firstLayoutChange: this.firstLayoutChange,
                 isMainLeafReopened,
             })
-            // avoid toggling preview if it has transitioned to an expanded-like state (moved to another tab)
-            if (isPreviewMaximized) {
-                processingPreviewChangeStore.set(false);
-                return;
-            };
-            // very especific check for when an expanded preview window is moved to a split window
-            if (previewLeafVisible && (get(settingsStore).preview.defaultExpansionMode === "maximized" && !isPreviewMaximized)) {
-                settingsStore.update(s => {
-                    s.preview.tabHeaderVisible = true;
-                    return s;
-                })
-                return;
+
+            if (this.firstLayoutChange) {
+                this.firstLayoutChange = false;
             }
+
+            // avoid toggling preview if it has transitioned to an expanded-like state (moved to another tab)
+            // if (isPreviewMaximized) {
+            //     processingPreviewChangeStore.set(false);
+            // };
 
             if (!get(processingPreviewChangeStore)) {
                 console.log("🙌 layout change, about to perform preview change checks")
 
+                const previewMaximized =
+                    get(settingsStore).preview.defaultExpansionMode === "maximized"
+                    || get(isPreviewMaximizedStore)
+
+                // very especific check for when an expanded preview window is moved to a split window
+                if (previewLeafVisible && (get(settingsStore).preview.defaultExpansionMode === "maximized" && !isPreviewMaximized)) {
+                    settingsStore.update(s => {
+                        s.preview.tabHeaderVisible = true;
+                        return s;
+                    })
+                    return;
+                }
                 // cleanup preview when user closes calendar tab
                 if (prevMainLeaf && !mainLeaf) {
                     this.cleanupPreviews()
@@ -160,7 +173,7 @@ export class ViewManager {
                     return;
                 }
                 // show preview when user moves back to calendar tab and preview is open
-                if (!prevPreviewLeaf && !previewLeaf && isMainLeafReopened && get(settingsStore).preview.enabled && get(settingsStore).preview.open) {
+                if (!prevPreviewLeaf && !previewLeaf && isMainLeafReopened && get(settingsStore).preview.enabled && get(settingsStore).preview.open && !previewMaximized) {
                     console.log("🌳 initPreview")
                     this.initPreview();
                     processingPreviewChangeStore.set(true);
@@ -177,7 +190,7 @@ export class ViewManager {
                     return;
                 }
                 // moved out of calendar view to a different tab
-                if (previewLeaf && previewLeafVisible && !mainLeafvisible && previewSplitPosition === get(settingsStore).viewLeafPosition) {
+                if (previewLeaf && previewLeafVisible && !mainLeafvisible && previewSplitPosition === get(settingsStore).viewLeafPosition && !previewMaximized) {
                     this.cleanupPreview({ leaf: previewLeaf });
                     processingPreviewChangeStore.set(true);
                     console.log("❌ moved out of calendar view to a different tab, removed preview")
@@ -185,10 +198,6 @@ export class ViewManager {
                 }
             } else {
                 processingPreviewChangeStore.set(false);
-            }
-
-            if (this.firstLayoutChange) {
-                this.firstLayoutChange = false;
             }
         };
 
@@ -221,7 +230,8 @@ export class ViewManager {
     }
 
     static async tryInitPreview(defaultFile?: TFile, reveal?: boolean) {
-        const previewLeaf = this.searchPreviewLeaf();
+        const previewLeaf = get(previewLeafStore)?.leaf || this.searchPreviewLeaf();
+        console.log("🌿🌿🌿🌿 tryInitPreview() 🌿🌿🌿🌿", previewLeaf)
         if (!previewLeaf) {
             this.initPreview(defaultFile, reveal)
         } else {
@@ -277,7 +287,9 @@ export class ViewManager {
         let previewIsOnlyWorkspaceLeaf = true;
         let previewIsCalendarLeafSibling = false;
 
-        const children = leaf?.containerEl?.closest('.workspace-split')?.children || null
+        let isMobile = (window.app as any).isMobile;
+        const closestWorkspaceClassname = isMobile ? ".workspace-drawer" : ".workspace-split"
+        const children = leaf?.containerEl?.closest(closestWorkspaceClassname)?.children || null
         const tabs = Array.from(children || []).filter((el: HTMLElement) => {
             if (el.className.includes('workspace-tabs')) {
                 return el
@@ -314,8 +326,10 @@ export class ViewManager {
         const leaf = workspaceLeaf as WorkspaceLeaf & { containerEl: HTMLElement; tabHeaderEl: HTMLElement } | null
         if (!leaf) return null;
 
+        let isMobile = (window.app as any).isMobile;
+        const closestWorkspaceClassname = isMobile ? ".workspace-drawer" : ".workspace-split"
         const closestWorkspaceSplitClassName =
-            leaf?.containerEl.closest('.workspace-split')?.className;
+            leaf?.containerEl.closest(closestWorkspaceClassname)?.className;
 
         if (closestWorkspaceSplitClassName?.includes('left')) {
             return 'left';
@@ -328,7 +342,8 @@ export class ViewManager {
         return 'root';
     }
     static cleanupPreview({ leaf }: { leaf?: WorkspaceLeaf } = {}) {
-        const previewLeaf = leaf || get(previewLeafStore)?.leaf
+        const previewLeaf = leaf || this.searchPreviewLeaf() || get(previewLeafStore)?.leaf
+        console.log("🧹🧹🧹🧹 cleanupPreview() 🧹🧹🧹🧹", previewLeaf)
         previewLeaf?.detach();
         this.previewControlsComponent && unmount(this.previewControlsComponent)
         this.previewControlsComponent = null;
@@ -355,6 +370,10 @@ export class ViewManager {
     static isMainLeaf(leaf: WorkspaceLeaf | null) {
         return leaf === this.getMainLeaf()
     }
+    /**
+        * It should always traverse the entire workspace to find the most up-to-date preview leaf.
+        * Accessing previewLeafStore.leaf should be done before calling this method if needed
+    */
     static searchPreviewLeaf(file?: TFile) {
         let previewLeafFound = false;
         let previewLeaf: WorkspaceLeaf | null = null;
@@ -363,8 +382,16 @@ export class ViewManager {
             // for whether the leaf is in its default position
             if (previewLeafFound) return;
 
+            if (get(previewLeafStore)?.leaf === leaf) {
+                console.log("👑🌿🌿🌿 searchPreviewLeaf() 🌿🌿🌿🌿", leaf, "preview found is the same as the one in store!")
+                previewLeaf = leaf
+                previewLeafFound = true
+
+                return;
+            }
             const isPreview = this.isPreviewLeaf(leaf, file)
             if (isPreview.leaf) {
+                console.log("💰🌿🌿🌿 searchPreviewLeaf() 🌿🌿🌿🌿", isPreview.leaf, "preview found!")
                 previewLeaf = isPreview.leaf
                 previewLeafFound = true
             }
@@ -373,16 +400,27 @@ export class ViewManager {
     }
     static isPreviewLeaf(leaf: WorkspaceLeaf | null, file: TFile | null = null) {
         let previewLeaf;
+        // console.log("🌿🌿🌿🌿 isPreviewLeaf() 🌿🌿🌿🌿")
+        // console.table({
+        //     leaf,
+        //     firstLayoutChange: this.firstLayoutChange,
+        //     containsPreviewControls: leaf && Array.from(leaf.view.containerEl.childNodes).find((el: HTMLElement) => el?.dataset?.type === PREVIEW_CONTROLS_TYPE),
+        //     leafFilepath: file?.path || (leaf && (file?.path || (leaf.view as any)?.state?.file as string | undefined || (leaf.view as any).file?.path as string | undefined)),
+        //     lastPreviewFilepath: get(settingsStore).preview.lastPreviewFilepath
+        // })
+
         if (
             leaf
             && leaf.getViewState().type === 'markdown'
             && leaf.view?.containerEl?.dataset?.type !== LEAF_TYPE
             && (this.firstLayoutChange || Array.from(leaf.view.containerEl.childNodes).find((el: HTMLElement) => el?.dataset?.type === PREVIEW_CONTROLS_TYPE))
-            && (!this.firstLayoutChange || this.getLeafSplitPosition(leaf) === get(settingsStore).viewLeafPosition)
         ) {
-            const leafFile = file || (leaf.view as any).file as TFile | undefined;
+            // leaf.view.state.file will be used when markdown view is not visible and leaf.view.file.path would return undefined
+            // this value is undefined when markdown view is visible
+            const leafFilepath = file?.path || (leaf.view as any)?.state?.file as string | undefined || (leaf.view as any).file?.path as string | undefined;
             const lastPreviewFilepath = get(settingsStore).preview.lastPreviewFilepath;
-            if (leafFile?.path === lastPreviewFilepath) {
+            console.log("🌿🌿🌿🌿 isPreviewLeaf() > found 🌿🌿🌿🌿", leaf, leafFilepath, lastPreviewFilepath)
+            if (leafFilepath === lastPreviewFilepath) {
                 previewLeaf = leaf
             }
         }
@@ -391,7 +429,7 @@ export class ViewManager {
     }
 
     static togglePreviewTabHeader(leaf?: WorkspaceLeaf) {
-        const previewLeaf = leaf || get(previewLeafStore)?.leaf || null;
+        const previewLeaf = leaf || get(previewLeafStore)?.leaf || this.searchPreviewLeaf();
         this.previewTabHeaderEl = (previewLeaf?.parent as any)?.tabHeaderContainerEl as HTMLElement | null
 
         if (this.previewTabHeaderEl && !this.checkIfPreviewIsMaximized(previewLeaf) && this.getLeafSplitPosition(previewLeaf) !== 'root') {
@@ -453,7 +491,7 @@ export class ViewManager {
         previewLeaf: WorkspaceLeaf
     }) {
         await previewLeaf.openFile(file);
-        previewLeafStore.set({ leaf: previewLeaf, file });
+        previewLeafStore.set({ leaf: previewLeaf, filepath: file.path });
         settingsStore.update(s => {
             s.preview.open = true
             s.preview.lastPreviewFilepath = file!.path

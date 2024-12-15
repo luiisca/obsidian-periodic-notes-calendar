@@ -4,7 +4,7 @@
 
     import { IGranularity } from "@/io";
     import { settingsStore, TimelineViewMode } from "@/settings";
-    import { localeSwitched, previewSplitPositionStore } from "@/stores";
+    import { localeSwitched } from "@/stores";
     import { Arrow, Dot } from "@/ui";
     import {
         cn,
@@ -21,7 +21,7 @@
         granularity: IGranularity;
         date: Moment;
         isPeriodic?: boolean | null;
-        isPreview?: boolean | null;
+        isSide?: boolean | null;
         viewModeOverride?: TimelineViewMode | null;
     }
     const {
@@ -29,7 +29,7 @@
         date,
         viewModeOverride = "collapsed",
         isPeriodic = null,
-        isPreview = null,
+        isSide = null,
     }: Props = $props();
     let timelineEl: HTMLDivElement | null = $state(null);
     let arrowEl: HTMLDivElement | null = $state(null);
@@ -100,6 +100,7 @@
     let isInitial = $derived(date.isSame(crrDisplayedDate, derivedG));
     let observer: ResizeObserver | null = $state(null);
     let prevParentWidth: number | null = $state(null);
+    let isMobile = (window.app as any).isMobile;
 
     function modDisplayedDate(ev: MouseEvent, type: "subtract" | "add") {
         ev.stopPropagation();
@@ -179,10 +180,10 @@
 <div
     class={cn(
         "pnc-container absolute right-[26px] z-10 flex gap-[0.15rem] flex-col",
-        isPreview &&
-            ($previewSplitPositionStore === "right" ||
-                $previewSplitPositionStore === "left")
-            ? "top-[26px] bg-[var(--background-secondary)]"
+        isSide
+            ? isMobile
+                ? "top-[26px] bg-[var(--mobile-sidebar-background)]"
+                : "top-[26px] bg-[var(--background-secondary)]"
             : "top-[56px] bg-[var(--background-primary)]",
     )}
     bind:this={timelineEl}
@@ -244,7 +245,7 @@
                                 )}
                                 displaySticker={false}
                                 displayDot={false}
-                                className="p-1.5 text-xs"
+                                className="!p-1.5 text-xs"
                                 ignoreAdjacentMonth={true}
                             >
                                 {d.format(G_MAP[derivedG].format)}
@@ -267,10 +268,10 @@
             viewMode === "expanded" &&
                 (derivedG === "day" || derivedG === "year") &&
                 "w-full",
-            isPreview &&
-                ($previewSplitPositionStore === "right" ||
-                    $previewSplitPositionStore === "left")
-                ? "bg-[var(--background-secondary)] hover:bg-[var(--color-base-25)]"
+            isSide
+                ? isMobile
+                    ? "bg-[var(--mobile-sidebar-background)] hover:bg-[var(--background-secondary)]"
+                    : "bg-[var(--background-secondary)] hover:bg-[var(--color-base-25)]"
                 : "bg-[var(--background-primary)] hover:bg-[var(--color-base-10)]",
         )}
         onclick={handleToggleViewMode}
@@ -300,7 +301,7 @@
                 />
                 <button
                     class={cn(
-                        "text-[--color-arrow] flex items-center p-1.5",
+                        "text-[--color-arrow] flex items-center !p-1.5",
                         isInitial ? "opacity-100" : "opacity-60",
                     )}
                     id="reset-button"

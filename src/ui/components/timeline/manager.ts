@@ -1,7 +1,7 @@
-import { MarkdownView, TFile, WorkspaceLeaf } from "obsidian";
+import { MarkdownView, WorkspaceLeaf } from "obsidian";
 import { mount, unmount } from "svelte";
 
-import { LEAF_TYPE, PREVIEW_CONTROLS_TYPE } from "@/constants";
+import { LEAF_TYPE } from "@/constants";
 import { isValidPeriodicNote } from "@/io/validation";
 import { settingsStore } from "@/settings";
 import moment from "moment";
@@ -14,7 +14,12 @@ export default class TimelineManager {
     static initTimeline(): void {
         if (get(settingsStore).timeline.enabled) {
             window.app.workspace.iterateAllLeaves((leaf) => {
-                const leafContainerClassname = (leaf as WorkspaceLeaf & { containerEl: HTMLElement })?.containerEl?.closest(".workspace-split")?.className;
+                let isMobile = (window.app as any).isMobile;
+                const closestWorkspaceClassname = isMobile ? ".workspace-drawer" : ".workspace-split"
+                const leafContainerClassname =
+                    (leaf as WorkspaceLeaf & { containerEl: HTMLElement })?.containerEl?.closest(closestWorkspaceClassname)?.className;
+
+
                 if (
                     leaf.view instanceof MarkdownView
                     && leaf.getViewState().type === 'markdown'
@@ -43,7 +48,7 @@ export default class TimelineManager {
                                     granularity: granularity || "day",
                                     date: date || moment(),
                                     isPeriodic,
-                                    isPreview: leafContainerClassname?.includes(`mod-left`) || leafContainerClassname?.includes(`mod-right`),
+                                    isSide: leafContainerClassname?.includes(`mod-left`) || leafContainerClassname?.includes(`mod-right`),
                                     viewModeOverride: enoughRoom ? (isPeriodic ? get(settingsStore).timeline.viewMode : get(settingsStore).timeline.restViewMode) : 'collapsed'
                                 },
                             })

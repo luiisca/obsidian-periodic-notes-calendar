@@ -24,6 +24,7 @@
 
     let { weekdaysShort } = $derived($localeDataStore);
     let month = $derived(getMonth($displayedDateStore));
+    let isMobile = (window.app as any).isMobile;
 
     let crrTab = $derived($crrTabStore);
     let tabs: typeof periodTabs = $state(periodTabs);
@@ -103,12 +104,12 @@
                                     date={getStartOfWeek(week.days)}
                                     granularity="week"
                                     className={cn(
-                                        "px-1 pt-2.5 pb-4 opacity-85 mx-auto",
-                                        minimalMode?.value
+                                        "px-1 !pt-2.5 !pb-4 opacity-85 mx-auto",
+                                        minimalMode?.value || isMobile
                                             ? "[font-size:var(--font-ui-smaller)] "
                                             : "[font-size:var(--font-ui-small)] ",
                                     )}
-                                    dotContainerClassName={"bottom-[calc(1rem/2)] translate-y-1/3"}
+                                    dotContainerClassName={"bottom-[.3rem]"}
                                 >
                                     {getStartOfWeek(week.days).week() < 10
                                         ? "0"
@@ -127,12 +128,12 @@
                                     date={day}
                                     granularity="day"
                                     className={cn(
-                                        "px-1 pt-2.5 pb-4",
-                                        minimalMode?.value
+                                        "px-1 !pt-2.5 !pb-4",
+                                        minimalMode?.value || isMobile
                                             ? "text-xs"
                                             : "text-sm",
                                     )}
-                                    dotContainerClassName={"bottom-[calc(1rem/2)] translate-y-1/3"}
+                                    dotContainerClassName={"bottom-[.3rem]"}
                                 >
                                     {day.format("D")}
                                 </DateBttn>
@@ -158,12 +159,12 @@
                                         .startOf("quarter")}
                                     granularity="quarter"
                                     className={cn(
-                                        "px-1 pt-2.5 pb-4 opacity-85",
-                                        minimalMode?.value
+                                        "px-1 !pt-2.5 !pb-4 opacity-85",
+                                        minimalMode?.value || isMobile
                                             ? "[font-size:var(--font-ui-smaller)]"
                                             : "[font-size:var(--font-ui-small)] ",
                                     )}
-                                    dotContainerClassName="bottom-[calc(1rem/2)] translate-y-1/3"
+                                    dotContainerClassName={"bottom-[.3rem]"}
                                 >
                                     Q{$displayedDateStore
                                         .clone()
@@ -183,19 +184,19 @@
                                     granularity="month"
                                     className={cn(
                                         "px-1 mb-3 items-center justify-center",
-                                        minimalMode?.value
-                                            ? "text-sm pt-2.5 pb-4"
+                                        minimalMode?.value || isMobile
+                                            ? "text-sm !pt-2.5 !pb-4"
                                             : "text-base py-8",
                                     )}
                                     dotContainerClassName={cn(
-                                        "translate-y-full",
-                                        minimalMode?.value
+                                        "[transform:translateY(100%)]",
+                                        minimalMode?.value || isMobile
                                             ? "bottom-[calc(1rem/2)]"
                                             : "bottom-[calc(1.75rem/2)]",
                                     )}
                                 >
                                     {#snippet text()}
-                                        {#if !minimalMode?.value}
+                                        {#if !minimalMode?.value || isMobile}
                                             <p
                                                 class="text-5xl font-normal opacity-15 text-[--text-muted] absolute top-1/2 left-1/2 [transform:translate(-50%,-50%)] m-0"
                                             >
@@ -232,12 +233,12 @@
                                         .startOf("year")}
                                     granularity="year"
                                     className={cn(
-                                        "tracking-wide px-1 pt-2.5 pb-4",
-                                        minimalMode?.value
+                                        "tracking-wide px-1 !pt-2.5 !pb-4",
+                                        minimalMode?.value || isMobile
                                             ? "text-base"
                                             : "text-xl",
                                     )}
-                                    dotContainerClassName="bottom-[calc(1rem/2)] translate-y-[35%]"
+                                    dotContainerClassName={"bottom-[.3rem]"}
                                 >
                                     {$displayedDateStore
                                         .clone()

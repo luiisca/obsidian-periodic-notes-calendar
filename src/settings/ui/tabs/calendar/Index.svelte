@@ -19,6 +19,8 @@
     import TimelineManager from "@/ui/components/timeline/manager";
     import { handleLocaleCommands } from "@/utils";
 
+    let isMobile = (window.app as any).isMobile;
+
     // Essential
     const handleViewLeafPositionChange = async (
         position: ISettings["viewLeafPosition"],
@@ -324,17 +326,19 @@
     {/snippet}
 </SettingItem>
 
-<SettingItem
-    name="Minimal Mode"
-    description="Use compact layout with simplified visuals"
->
-    {#snippet control()}
-        <Toggle
-            onChange={handleMinimalModeToggle}
-            isEnabled={$settingsStore.minimalMode}
-        />
-    {/snippet}
-</SettingItem>
+{#if !isMobile}
+    <SettingItem
+        name="Minimal Mode"
+        description="Use compact layout with simplified visuals"
+    >
+        {#snippet control()}
+            <Toggle
+                onChange={handleMinimalModeToggle}
+                isEnabled={$settingsStore.minimalMode}
+            />
+        {/snippet}
+    </SettingItem>
+{/if}
 
 <SettingItem
     name="Floating Mode"

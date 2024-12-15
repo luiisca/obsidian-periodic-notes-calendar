@@ -36,6 +36,7 @@
     let minimalMode = getContext("minimalMode") as
         | { value: boolean }
         | undefined;
+    let isMobile = (window.app as any).isMobile;
 </script>
 
 <div class="flex flex-col mt-4 mb-[1.1rem]" id="header">
@@ -48,8 +49,8 @@
         {#if leftTitle && leftDate}
             <button
                 class={cn(
-                    "h-auto font-semibold hover:!shadow-[3px_0px_0_7px_var(--interactive-hover)] rounded-[2px] p-0",
-                    minimalMode?.value ? "text-xl" : "text-7xl",
+                    "h-auto font-semibold hover:!shadow-[3px_0px_0_7px_var(--interactive-hover)] rounded-[2px] !p-0",
+                    minimalMode?.value || isMobile ? "text-xl" : "text-7xl",
                 )}
                 id={leftTitle.granularity}
                 onclick={(event) =>
@@ -81,8 +82,8 @@
         {#if rightTitle && rightDate}
             <button
                 class={cn(
-                    "text-[--interactive-accent] font-medium hover:!shadow-[0px_0px_0px_6px_var(--interactive-hover)] rounded-[2px] p-0",
-                    minimalMode?.value ? "text-sm" : "text-lg",
+                    "text-[--interactive-accent] font-medium hover:!shadow-[0px_0px_0px_6px_var(--interactive-hover)] rounded-[2px] !p-0",
+                    minimalMode?.value || isMobile ? "text-sm" : "text-lg",
                 )}
                 id={rightTitle.granularity}
                 onclick={(event) =>

@@ -24,6 +24,7 @@
     let minimalMode = getContext("minimalMode") as
         | { value: boolean }
         | undefined;
+    let isMobile = (window.app as any).isMobile;
 </script>
 
 <div
@@ -40,11 +41,12 @@
                 selectedTab === tab
                     ? "!text-[--text-on-accent] !bg-[--interactive-accent] hover:!bg-[--interactive-accent-hover]"
                     : "!text-[--icon-color] opacity-[--icon-opacity] hover:opacity-[--icon-opacity-hover] hover:!text-[--icon-color-hover] hover:!bg-[--background-modifier-hover]",
-                minimalMode?.value ? "py-1 h-fit" : "py-2 [font-size:100%]",
+                minimalMode?.value || isMobile
+                    ? "py-1 h-fit"
+                    : "py-2 [font-size:100%]",
             )}
             id={tabId}
             onclick={() => selectTab(tab)}>{capitalize(tab)}</button
         >
     {/each}
 </div>
-

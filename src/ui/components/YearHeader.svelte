@@ -24,6 +24,7 @@
     let minimalMode = getContext("minimalMode") as
         | { value: boolean }
         | undefined;
+    let isMobile = (window.app as any).isMobile;
 </script>
 
 <Header
@@ -38,7 +39,7 @@
         <button
             class={cn(
                 "text-[--interactive-accent] font-medium hover:!shadow-[0px_0px_0px_6px_var(--interactive-hover)] rounded-[2px]",
-                minimalMode?.value ? "text-sm" : "text-lg",
+                minimalMode?.value || isMobile ? "text-sm" : "text-lg",
             )}
             id="years-range"
         >

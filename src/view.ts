@@ -49,7 +49,8 @@ export class CalendarView extends ItemView {
         this.registerEvent(
             this.app.metadataCache.on('changed', (file: TFile) => this.onMetadataChanged(file))
         )
-        this.registerEvent(this.app.workspace.on('layout-change', () => this.onLayoutChange()))
+        this.registerEvent(this.app.workspace.on('layout-change', () => this.handleLayoutChange()))
+        this.registerEvent(this.app.workspace.on('resize', () => this.handleLayoutChange()))
         this.registerEvent(this.app.workspace.on('active-leaf-change', (leaf) => this.onActiveLeafChange(leaf)))
     }
 
@@ -161,7 +162,8 @@ export class CalendarView extends ItemView {
         })
     }
 
-    public onLayoutChange() {
+    public handleLayoutChange() {
+        console.log("🪴🪴🪴🪴🪴🪴 onLayoutChange 🪴🪴🪴🪴🪴🪴")
         if (this.app.workspace.layoutReady) {
             TimelineManager.initTimeline()
         }
