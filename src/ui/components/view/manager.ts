@@ -6,7 +6,7 @@ import { activeFilepathStore, displayedDateStore, isMainLeafReopenedStore, isMai
 import { crrTabStore, getEnabledPeriods, periodTabs } from '@/stores/calendar';
 import { capitalize } from '@/utils';
 import moment, { Moment } from 'moment';
-import { TFile, WorkspaceLeaf } from 'obsidian';
+import { MarkdownView, TFile, WorkspaceLeaf } from 'obsidian';
 import { mount, unmount } from 'svelte';
 import { get } from 'svelte/store';
 import { PreviewControls } from '.';
@@ -142,6 +142,7 @@ export class ViewManager {
                 firstLayoutChange: this.firstLayoutChange,
                 isMainLeafReopened,
                 isOpenPreviewBttnVisible,
+                activeLeaf: window.app.workspace.getActiveViewOfType(MarkdownView)
             })
 
             if (this.firstLayoutChange) {
@@ -168,18 +169,23 @@ export class ViewManager {
                     })
                     return;
                 }
-                // cleanup preview when user closes calendar tab
-                if (prevMainLeaf && !mainLeaf) {
-                    this.cleanupPreviews()
-                    processingPreviewChangeStore.set(true);
-                    console.log("❌ mainLeaf not found and removed preview")
-                    return;
-                }
                 // show preview when user moves back to calendar tab and preview is open
                 if (!prevPreviewLeaf && !previewLeaf && isMainLeafReopened && get(settingsStore).preview.enabled && get(settingsStore).preview.open && !previewMaximized) {
                     console.log("🌳 initPreview")
                     this.initPreview();
                     processingPreviewChangeStore.set(true);
+                    return;
+                }
+                // cleanup
+                if (!this.firstLayoutChange && (window.app.workspace.getActiveViewOfType(MarkdownView)?.leaf as any)?.id === (prevPreviewLeaf as any)?.id) {
+                    return
+                }
+
+                // cleanup preview when user closes calendar tab
+                if (prevMainLeaf && !mainLeaf) {
+                    this.cleanupPreviews()
+                    processingPreviewChangeStore.set(true);
+                    console.log("❌ mainLeaf not found and removed preview")
                     return;
                 }
                 if (prevPreviewLeaf && !previewLeaf) {
