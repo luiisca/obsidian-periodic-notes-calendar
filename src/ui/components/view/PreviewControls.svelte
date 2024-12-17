@@ -246,10 +246,10 @@
             onclick={handleOutlineClick}
             onkeydown={handleOutlineClick}
         >
-            <div class="workspace-tab-header-inner !p-0">
+            <div class="workspace-tab-header-inner !p-0 after:!hidden">
                 <div
                     bind:this={outlineBttn}
-                    class="workspace-tab-header-inner-icon"
+                    class="workspace-tab-header-inner-icon !p-0"
                 ></div>
             </div>
         </div>

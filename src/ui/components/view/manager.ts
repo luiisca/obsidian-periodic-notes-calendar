@@ -77,6 +77,7 @@ export class ViewManager {
             const prevMainLeaf = get(mainViewLeafStore)
             const prevMainViewVisible = get(isMainViewVisibleStore);
             const prevPreviewLeaf = get(previewLeafStore)?.leaf;
+            // const prevPreviewLeafVisible = get(isPreviewVisibleStore);
 
             // main leaf
             const mainLeaf = this.getMainLeaf() as WorkspaceLeaf & { containerEl: HTMLElement, width: number, height: number } | null;
@@ -116,10 +117,10 @@ export class ViewManager {
             previewSplitPosition && previewSplitPositionStore.set(previewSplitPosition)
 
             // check if 'open preview' bttn should be visible
-            isOpenPreviewBttnVisibleStore.set(
+            const isOpenPreviewBttnVisible =
                 get(settingsStore).preview.enabled
                 && (isPreviewMaximized || previewSplitPosition === 'root' || !previewLeafVisible)
-            )
+            isOpenPreviewBttnVisibleStore.set(isOpenPreviewBttnVisible)
 
             console.log("💖💖💖💖💖💖💖 layout change 💖💖💖💖💖💖💖 ")
             console.table({
@@ -128,6 +129,7 @@ export class ViewManager {
                 prevPreviewLeaf,
                 previewLeaf,
                 previewLeafFile: (previewLeaf?.view as any)?.file,
+                // prevPreviewLeafVisible,
                 previewLeafVisible,
                 previewEnabled: get(settingsStore).preview.enabled,
                 previewOpen: get(settingsStore).preview.open,
@@ -139,6 +141,7 @@ export class ViewManager {
                 lastPreviewFilepath: get(settingsStore).preview.lastPreviewFilepath,
                 firstLayoutChange: this.firstLayoutChange,
                 isMainLeafReopened,
+                isOpenPreviewBttnVisible,
             })
 
             if (this.firstLayoutChange) {
@@ -345,8 +348,7 @@ export class ViewManager {
         const previewLeaf = leaf || this.searchPreviewLeaf() || get(previewLeafStore)?.leaf
         console.log("🧹🧹🧹🧹 cleanupPreview() 🧹🧹🧹🧹", previewLeaf)
         previewLeaf?.detach();
-        this.previewControlsComponent && unmount(this.previewControlsComponent)
-        this.previewControlsComponent = null;
+        this.cleanupPreviewControls()
         previewLeafStore.set(null);
         this.previewTabHeaderEl = null
 
@@ -354,6 +356,10 @@ export class ViewManager {
             s.preview.lastPreviewFilepath = ''
             return s
         })
+    }
+    static cleanupPreviewControls() {
+        this.previewControlsComponent && unmount(this.previewControlsComponent)
+        this.previewControlsComponent = null;
     }
     static cleanupPreviews() {
         window.app.workspace.iterateAllLeaves((leaf) => {
@@ -382,7 +388,7 @@ export class ViewManager {
             // for whether the leaf is in its default position
             if (previewLeafFound) return;
 
-            if (get(previewLeafStore)?.leaf === leaf) {
+            if (get(previewLeafStore)?.leaf === leaf && (get(previewLeafStore) as any)?.view?.file === (leaf?.view as any)?.file) {
                 console.log("👑🌿🌿🌿 searchPreviewLeaf() 🌿🌿🌿🌿", leaf, "preview found is the same as the one in store!")
                 previewLeaf = leaf
                 previewLeafFound = true
