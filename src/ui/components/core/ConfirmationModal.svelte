@@ -26,14 +26,16 @@
     };
 </script>
 
-<div class="confirmation-modal">
-    <h2>
-        {#if typeof title === "string"}
-            {title}
-        {:else if title}
-            <title.Component {...title.props} />
-        {/if}
-    </h2>
+<div class="confirmation-modal flex flex-col">
+    <div class="modal-header -mt-[0.75em]">
+        <div class="modal-title">
+            {#if typeof title === "string"}
+                {title}
+            {:else if title}
+                <title.Component {...title.props} />
+            {/if}
+        </div>
+    </div>
     <p class="!mb-1.5">
         {#if typeof text === "string"}
             {text}
@@ -42,9 +44,7 @@
         {/if}
     </p>
     {#if note}
-        <p
-            class="m-0 !mt-1.5 [font-size:var(--font-ui-small)] text-[--text-muted]"
-        >
+        <p class="!mt-1.5 [font-size:var(--font-ui-small)] text-[--text-muted]">
             {#if typeof note === "string"}
                 {note}
             {:else if note}
@@ -52,14 +52,14 @@
             {/if}
         </p>
     {/if}
-    <label class="flex items-center hover:cursor-pointer mt-3.5">
-        <input
-            type="checkbox"
-            class="hover:cursor-pointer text-[14px]"
-            bind:checked={dontAskAgain}
-        /> Don't ask again
-    </label>
-    <div class="modal-button-container mt-3">
+    <div class="modal-button-container">
+        <label class="mod-checkbox hover:cursor-pointer">
+            <input
+                type="checkbox"
+                class="hover:cursor-pointer text-[14px]"
+                bind:checked={dontAskAgain}
+            /> Don't ask again
+        </label>
         <button onclick={handleCancel}>Never mind</button>
         <button class="mod-cta" onclick={handleAccept}>{cta}</button>
     </div>
