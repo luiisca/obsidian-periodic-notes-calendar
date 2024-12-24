@@ -6,30 +6,30 @@
     import { settingsStore } from "@/settings/store";
     import { Dropdown, SettingItem, Toggle } from "@/settings/ui";
     import {
-        isOpenPreviewBttnVisibleStore,
-        isPreviewVisibleStore,
+        previewLeafStore,
         switchLocale,
-        updateWeekdays,
         updateWeekStartSetting,
     } from "@/stores";
     import { View, ViewManager } from "@/ui";
+    import TimelineManager from "@/ui/components/timeline/manager";
     import { Popover } from "@/ui/popovers";
+    import { handleLocaleCommands, isMobile, isTablet } from "@/utils";
     import { derived as derivedStore } from "svelte/store";
     import { selectedTabStore } from "../../stores";
-    import TimelineManager from "@/ui/components/timeline/manager";
-    import { handleLocaleCommands } from "@/utils";
-
-    let isMobile = (window.app as any).isMobile;
 
     // Essential
     const handleViewLeafPositionChange = async (
         position: ISettings["viewLeafPosition"],
     ) => {
-        settingsStore.update((settings) => ({
-            ...settings,
-            viewLeafPosition: position as ISettings["viewLeafPosition"],
-        }));
+        settingsStore.update((s) => {
+            s.viewLeafPosition = position as ISettings["viewLeafPosition"];
+            if (position !== "root" && isMobile()) {
+                s.preview.defaultExpansionMode = "maximized";
+            }
+            return s;
+        });
 
+        ViewManager.cleanupPreview();
         ViewManager.initView({ active: false });
     };
     const handleFloatingModeToggle = (floatingMode: boolean) => {
@@ -86,9 +86,16 @@
         if (!enabled) {
             ViewManager.cleanupPreview();
             ViewManager.cleaunupPreviewEvHandlers();
-            isOpenPreviewBttnVisibleStore.set(false);
+            previewLeafStore.update((s) => ({
+                ...s,
+                isOpenBttnVisible: false,
+            }));
         } else {
-            isOpenPreviewBttnVisibleStore.set(true);
+            ViewManager.setupPreviewEvHandlers();
+            previewLeafStore.update((s) => ({
+                ...s,
+                isOpenBttnVisible: true,
+            }));
         }
     };
     const handleToggleOpenNotesInPreview = (openNotesInPreview: boolean) => {
@@ -102,7 +109,7 @@
             s.preview.tabHeaderVisible = tabHeaderVisible;
             return s;
         });
-        if ($isPreviewVisibleStore) {
+        if ($previewLeafStore?.visible) {
             ViewManager.restartPreview();
         }
     };
@@ -118,7 +125,7 @@
             }
             return s;
         });
-        if ($isPreviewVisibleStore) {
+        if ($previewLeafStore?.visible) {
             ViewManager.restartPreview();
         }
     };
@@ -207,7 +214,11 @@
             s.timeline.enabled = enabled;
             return s;
         });
-        TimelineManager.restart();
+        if (enabled) {
+            TimelineManager.restart();
+        } else {
+            TimelineManager.unmountAll();
+        }
     };
 
     const handleToggleGranularityBased = (granularityBased: boolean) => {
@@ -326,7 +337,7 @@
     {/snippet}
 </SettingItem>
 
-{#if !isMobile}
+{#if !isMobile()}
     <SettingItem
         name="Minimal Mode"
         description="Use compact layout with simplified visuals"
@@ -338,43 +349,43 @@
             />
         {/snippet}
     </SettingItem>
-{/if}
 
-<SettingItem
-    name="Floating Mode"
-    description="Show calendar on ribbon click or hover (always available in panel or through command palette)"
->
-    {#snippet control()}
-        <Toggle
-            onChange={handleFloatingModeToggle}
-            isEnabled={$settingsStore.floatingMode}
-        />
-    {/snippet}
-</SettingItem>
-
-{#if $settingsStore.floatingMode}
     <SettingItem
-        name="Quick Access"
-        description="Enable opening the calendar on ribbon hover instead of click."
+        name="Floating Mode"
+        description="Show calendar on ribbon click or hover (always available in panel or through command palette)"
     >
         {#snippet control()}
             <Toggle
-                onChange={handleOpenPopoverOnRibbonHover}
-                isEnabled={$settingsStore.openPopoverOnRibbonHover}
+                onChange={handleFloatingModeToggle}
+                isEnabled={$settingsStore.floatingMode}
             />
         {/snippet}
     </SettingItem>
-    <SettingItem
-        name="Always Minimal"
-        description="Keep floating view compact for quick reference"
-    >
-        {#snippet control()}
-            <Toggle
-                onChange={handleFloatingAlwaysMinimalToggle}
-                isEnabled={$settingsStore.floatingViewAlwaysMinimal}
-            />
-        {/snippet}
-    </SettingItem>
+
+    {#if $settingsStore.floatingMode}
+        <SettingItem
+            name="Quick Access"
+            description="Enable opening the calendar on ribbon hover instead of click."
+        >
+            {#snippet control()}
+                <Toggle
+                    onChange={handleOpenPopoverOnRibbonHover}
+                    isEnabled={$settingsStore.openPopoverOnRibbonHover}
+                />
+            {/snippet}
+        </SettingItem>
+        <SettingItem
+            name="Always Minimal"
+            description="Keep floating view compact for quick reference"
+        >
+            {#snippet control()}
+                <Toggle
+                    onChange={handleFloatingAlwaysMinimalToggle}
+                    isEnabled={$settingsStore.floatingViewAlwaysMinimal}
+                />
+            {/snippet}
+        </SettingItem>
+    {/if}
 {/if}
 
 <SettingItem isHeading={true} name="Preview" className="pb-0" />
@@ -409,75 +420,79 @@
         {/snippet}
     </SettingItem>
 
-    <SettingItem
-        name="Display Tab Header"
-        description="By default, the tab header (showing the note's icon) is hidden. Toggle this option to make it visible."
-    >
-        {#snippet control()}
-            <Toggle
-                onChange={handlePreviewTabHeaderToggle}
-                isEnabled={$settingsStore.preview.tabHeaderVisible}
-            />
-        {/snippet}
-    </SettingItem>
+    {#if !isMobile()}
+        <SettingItem
+            name="Display Tab Header"
+            description="By default, the tab header (showing the note's icon) is hidden. Toggle this option to make it visible."
+        >
+            {#snippet control()}
+                <Toggle
+                    onChange={handlePreviewTabHeaderToggle}
+                    isEnabled={$settingsStore.preview.tabHeaderVisible}
+                />
+            {/snippet}
+        </SettingItem>
 
-    <SettingItem
-        name="Split Mode for Side Panels"
-        description="Select how the preview window will be split in the left and right panels."
-    >
-        {#snippet control()}
-            <Dropdown
-                options={[
-                    { label: "Horizontal", value: "horizontal" },
-                    { label: "Vertical", value: "vertical" },
-                ]}
-                onChange={(
-                    splitMode: ISettings["preview"]["defaultSplitMode"],
-                ) =>
-                    splitMode
-                        ? handleSelectDefaultSplitMode(splitMode, "left")
-                        : null}
-                value={$settingsStore.preview.defaultSplitMode}
-            />
-        {/snippet}
-    </SettingItem>
+        <SettingItem
+            name="Split Mode for Side Panels"
+            description="Select how the preview window will be split in the left and right panels."
+        >
+            {#snippet control()}
+                <Dropdown
+                    options={[
+                        { label: "Horizontal", value: "horizontal" },
+                        { label: "Vertical", value: "vertical" },
+                    ]}
+                    onChange={(
+                        splitMode: ISettings["preview"]["defaultSplitMode"],
+                    ) =>
+                        splitMode
+                            ? handleSelectDefaultSplitMode(splitMode, "left")
+                            : null}
+                    value={$settingsStore.preview.defaultSplitMode}
+                />
+            {/snippet}
+        </SettingItem>
+    {/if}
 
-    <SettingItem
-        name="Split Mode for Main Panel"
-        description="Select how the preview window will be split in the main panel."
-    >
-        {#snippet control()}
-            <Dropdown
-                options={[
-                    { label: "Horizontal", value: "horizontal" },
-                    { label: "Vertical", value: "vertical" },
-                ]}
-                onChange={(
-                    splitMode: ISettings["preview"]["defaultSplitMode"],
-                ) =>
-                    splitMode
-                        ? handleSelectDefaultSplitMode(splitMode, "root")
-                        : null}
-                value={$settingsStore.preview.centerDefaultSplitMode}
-            />
-        {/snippet}
-    </SettingItem>
+    {#if ($settingsStore.viewLeafPosition === "root" && isTablet()) || !isMobile()}
+        <SettingItem
+            name="Split Mode for Main Panel"
+            description="Select how the preview window will be split in the main panel."
+        >
+            {#snippet control()}
+                <Dropdown
+                    options={[
+                        { label: "Horizontal", value: "horizontal" },
+                        { label: "Vertical", value: "vertical" },
+                    ]}
+                    onChange={(
+                        splitMode: ISettings["preview"]["defaultSplitMode"],
+                    ) =>
+                        splitMode
+                            ? handleSelectDefaultSplitMode(splitMode, "root")
+                            : null}
+                    value={$settingsStore.preview.centerDefaultSplitMode}
+                />
+            {/snippet}
+        </SettingItem>
 
-    <SettingItem
-        name="Expansion Mode"
-        description="Choose whether the preview window fills the entire panel (maximized) or appears as a split view."
-    >
-        {#snippet control()}
-            <Dropdown
-                options={[
-                    { label: "Maximized", value: "maximized" },
-                    { label: "Split", value: "split" },
-                ]}
-                onChange={handleSelectDefaultExpansionMode}
-                value={$settingsStore.preview.defaultExpansionMode}
-            />
-        {/snippet}
-    </SettingItem>
+        <SettingItem
+            name="Expansion Mode"
+            description="Choose whether the preview window fills the entire panel (maximized) or appears as a split view."
+        >
+            {#snippet control()}
+                <Dropdown
+                    options={[
+                        { label: "Maximized", value: "maximized" },
+                        { label: "Split", value: "split" },
+                    ]}
+                    onChange={handleSelectDefaultExpansionMode}
+                    value={$settingsStore.preview.defaultExpansionMode}
+                />
+            {/snippet}
+        </SettingItem>
+    {/if}
 
     <SettingItem
         name="Zen mode"
@@ -492,7 +507,7 @@
     </SettingItem>
 {/if}
 
-{#if $settingsStore.floatingMode}
+{#if $settingsStore.floatingMode && !isMobile()}
     <SettingItem isHeading={true} name="Popover Windows" />
     <SettingItem
         name="Sequential Dismissal (Click)"
@@ -609,17 +624,19 @@
     {/snippet}
 </SettingItem>
 
-<SettingItem
-    name="Hover Preview"
-    description="Instantly preview notes by hovering over dates (no modifier key needed)"
->
-    {#snippet control()}
-        <Toggle
-            onChange={handleConfirmAutoHoverPreview}
-            isEnabled={$settingsStore.autoHoverPreview}
-        />
-    {/snippet}
-</SettingItem>
+{#if !isMobile()}
+    <SettingItem
+        name="Hover Preview"
+        description="Instantly preview notes by hovering over dates (no modifier key needed)"
+    >
+        {#snippet control()}
+            <Toggle
+                onChange={handleConfirmAutoHoverPreview}
+                isEnabled={$settingsStore.autoHoverPreview}
+            />
+        {/snippet}
+    </SettingItem>
+{/if}
 
 <SettingItem isHeading={true} name="Localization" />
 <SettingItem

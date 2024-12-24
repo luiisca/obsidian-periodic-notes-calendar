@@ -2,15 +2,15 @@ import { LEAF_TYPE, PREVIEW_CONTROLS_TYPE } from '@/constants';
 import { createNote, getFileData, IGranularity } from '@/io';
 import { isValidPeriodicNote } from '@/io/validation';
 import { PeriodSettings, settingsStore, type ISettings } from '@/settings';
-import { activeFilepathStore, displayedDateStore, isMainLeafReopenedStore, isMainViewVisibleStore, isOpenPreviewBttnVisibleStore, isPreviewMaximizedStore, isPreviewVisibleStore, mainViewLeafStore, previewLeafStore, previewSplitDirectionStore, previewSplitPositionStore, processingPreviewChangeStore } from '@/stores';
-import { crrTabStore, getEnabledPeriods, periodTabs } from '@/stores/calendar';
-import { capitalize } from '@/utils';
+import { activeFileStore, mainLeafStore, previewLeafStore, processingPreviewChangeStore } from '@/stores';
+import { capitalize, isMobile, isPhone, isTablet } from '@/utils';
 import moment, { Moment } from 'moment';
-import { MarkdownView, TFile, WorkspaceLeaf } from 'obsidian';
+import { MarkdownView, TFile, View, WorkspaceLeaf } from 'obsidian';
 import { mount, unmount } from 'svelte';
 import { get } from 'svelte/store';
 import { PreviewControls } from '.';
 import { goToNoteHeading } from './utils';
+import TimelineManager from '../timeline/manager';
 
 export class ViewManager {
     static previewControlsComponent: Record<string, any> | null;
@@ -38,8 +38,7 @@ export class ViewManager {
         }
 
         if (mainLeaf && get(settingsStore).preview.enabled) {
-            const cleanup = this.setupVisibilityTracking();
-            this.previewLeafCleanups.push(cleanup);
+            this.setupPreviewEvHandlers()
         } else {
             this.cleanupPreview();
         }
@@ -47,12 +46,16 @@ export class ViewManager {
         return mainLeaf;
     }
 
-    static async revealView(type: 'view' | 'preview' = 'view', workspaceLeaf?: WorkspaceLeaf) {
+    static async revealView(type: 'view' | 'preview' = 'view', workspaceLeaf?: WorkspaceLeaf, file?: TFile) {
         let leaf: WorkspaceLeaf | undefined | null = null;
         if (type === 'preview') {
             leaf = workspaceLeaf || get(previewLeafStore)?.leaf || this.searchPreviewLeaf();
+            if (!leaf) {
+                leaf = await this.initPreview(file)
+            }
+
             if (leaf) {
-                window.app.workspace.revealLeaf(leaf);
+                await window.app.workspace.revealLeaf(leaf);
             }
         }
         if (type === 'view') {
@@ -62,8 +65,8 @@ export class ViewManager {
             }
 
             if (leaf) {
-                window.app.workspace.revealLeaf(leaf);
-                leaf.setViewState({
+                await window.app.workspace.revealLeaf(leaf);
+                await leaf.setViewState({
                     type: LEAF_TYPE,
                     active: true
                 });
@@ -74,76 +77,111 @@ export class ViewManager {
     private static setupVisibilityTracking(): () => void {
         // Handler for layout changes
         const handleLayoutChange = async () => {
-            const prevMainLeaf = get(mainViewLeafStore)
-            const prevMainViewVisible = get(isMainViewVisibleStore);
-            const prevPreviewLeaf = get(previewLeafStore)?.leaf;
-            // const prevPreviewLeafVisible = get(isPreviewVisibleStore);
+            const prevMainLeaf = get(mainLeafStore)
+            const prevPreviewLeaf = get(previewLeafStore);
+
+            // crr active leaf
+            const crrActiveLeaf = window.app.workspace.getActiveViewOfType(MarkdownView)?.leaf;
 
             // main leaf
             const mainLeaf = this.getMainLeaf() as WorkspaceLeaf & { containerEl: HTMLElement, width: number, height: number } | null;
-            mainViewLeafStore.set(mainLeaf);
-
-            // check if main view is visible
             const mainLeafvisible = mainLeaf && this.isLeafVisible(mainLeaf)
-            isMainViewVisibleStore.set(!!mainLeafvisible)
+            const isMainLeafReopened = !prevMainLeaf?.visible && mainLeafvisible;
+            const mainLeafSplitPos = mainLeaf && this.getLeafSplitPosition(mainLeaf);
 
-            // check if main view is reopened
-            const isMainLeafReopened = !prevMainViewVisible && mainLeafvisible;
-            isMainLeafReopenedStore.set(isMainLeafReopened)
+            mainLeafStore.update(s => ({
+                ...s,
+                leaf: mainLeaf,
+                visible: mainLeafvisible,
+                reopened: isMainLeafReopened,
+                splitPos: mainLeafSplitPos ?? s?.splitPos ?? null,
+            }))
 
             // preview leaf
             const previewLeaf = this.searchPreviewLeaf()
-            if (previewLeaf) {
-                // leaf.view.state.file will be used when markdown view is not visible and leaf.view.file.path would return undefined
-                // this value is undefined when markdown view is visible
-                const filepath = (previewLeaf.view as any)?.state?.file as string | undefined || (previewLeaf.view as any).file?.path as string | null
-                filepath && previewLeafStore.set({ leaf: previewLeaf, filepath })
+            const previewLeafVisible = previewLeaf && this.isLeafVisible(previewLeaf)
+            const isPreviewMaximized = (previewLeaf && this.checkIfPreviewIsMaximized(previewLeaf)) || null;
+            const previewSplitPosition = previewLeaf && this.getLeafSplitPosition(previewLeaf);
+            const previewSplitDirection = previewLeaf && this.getPreviewSplitDirection(previewLeaf);
+            let isOpenPreviewBttnVisible =
+                get(settingsStore).preview.enabled
+                && (
+                    !previewLeafVisible
+                    || isPreviewMaximized
+                    || (mainLeafSplitPos !== previewSplitPosition)
+                    || ((previewLeaf as any)?.id !== (prevPreviewLeaf?.leaf as any)?.id)
+                )
+            const mainLeafView = (mainLeaf?.view as View & { contentEl: { children: HTMLElement[] } } | null);
+            const mainLeafHeight = Array.from(mainLeafView?.contentEl.children || []).find(c => c.id.includes('pnc-container'))?.clientHeight ?? 0;
+            const mainLeafParentHeight = ((mainLeaf?.parent as any)?.containerEl?.clientHeight as number | undefined) ?? 0;
+
+            // hide open preview button when there is not enough room for it, should only work on desktop and tablets, phones do not have enough space
+            const isMoreThanOneSplitleaf = Array.from((mainLeaf?.parent?.parent as any)?.children || [])?.length > 1
+            if (!isPhone() && !previewLeafVisible && isMoreThanOneSplitleaf && (mainLeafHeight + 100 >= mainLeafParentHeight)) {
+                isOpenPreviewBttnVisible = false
             }
 
-            // check if preview is visible
-            const previewLeafVisible = previewLeaf && this.isLeafVisible(previewLeaf)
-            isPreviewVisibleStore.set(!!previewLeafVisible)
+            // leaf.view.state.file will be used when markdown view is not visible and leaf.view.file.path would return undefined
+            // this value is undefined when markdown view is visible
+            const previewFilepath = (previewLeaf?.view as any)?.state?.file as string | undefined || (previewLeaf?.view as any)?.file?.path as string | null
+            const previewFile = previewFilepath ? window.app.vault.getAbstractFileByPath(previewFilepath) : null
+            previewLeafStore.update(s => ({
+                ...s,
+                leaf: previewLeaf,
+                filepath: previewFilepath,
+                visible: previewLeafVisible,
+                maximized: isPreviewMaximized,
+                splitPos: previewSplitPosition ?? s?.splitPos ?? null,
+                splitDir: previewSplitDirection ?? s?.splitDir ?? null,
+                isOpenBttnVisible: isOpenPreviewBttnVisible
+            }))
+            // update lastPreview to ensure next check in cleanup will correctly recognize the new file preview that leaf is showing
+            // console.log("💖💖💖💖💖💖💖 lastPreview update 💖💖💖💖💖💖💖 ")
+            // console.table({
+            //     previewLeaf,
+            //     previewFilepath,
+            //     lastPreview: get(settingsStore).preview.lastPreview,
+            //     check: (previewFilepath !== get(settingsStore).preview.lastPreview?.filepath)
+            // })
+            if (
+                previewLeaf
+                && previewFilepath
+                && (
+                    previewFilepath !== get(settingsStore).preview.lastPreview?.filepath
+                    || previewSplitPosition !== get(settingsStore).preview.lastPreview?.splitPos
+                )
+            ) {
+                settingsStore.update(s => ({
+                    ...s,
+                    preview: {
+                        ...s.preview,
+                        lastPreview: {
+                            filepath: previewFilepath,
+                            splitPos: previewSplitPosition,
+                        }
+                    }
+                }))
+            }
 
-            // check if preview is maximized
-            const isPreviewMaximized = (previewLeaf && this.checkIfPreviewIsMaximized(previewLeaf)) || null;
-            isPreviewMaximizedStore.set(isPreviewMaximized)
-
-            // check preview's split direction
-            const previewSplitDirection = previewLeaf && this.getPreviewSplitDirection(previewLeaf);
-            previewSplitDirection && previewSplitDirectionStore.set(previewSplitDirection);
-
-            // check preview's leaf position
-            const previewSplitPosition = previewLeaf && this.getLeafSplitPosition(previewLeaf);
-            previewSplitPosition && previewSplitPositionStore.set(previewSplitPosition)
-
-            // check if 'open preview' bttn should be visible
-            const isOpenPreviewBttnVisible =
-                get(settingsStore).preview.enabled
-                && (isPreviewMaximized || previewSplitPosition === 'root' || !previewLeafVisible)
-            isOpenPreviewBttnVisibleStore.set(isOpenPreviewBttnVisible)
-
-            console.log("💖💖💖💖💖💖💖 layout change 💖💖💖💖💖💖💖 ")
-            console.table({
-                mainLeaf,
-                mainLeafvisible,
-                prevPreviewLeaf,
-                previewLeaf,
-                previewLeafFile: (previewLeaf?.view as any)?.file,
-                // prevPreviewLeafVisible,
-                previewLeafVisible,
-                previewEnabled: get(settingsStore).preview.enabled,
-                previewOpen: get(settingsStore).preview.open,
-                isPreviewMaximized,
-                previewSplitDirection,
-                previewSplitPosition,
-                defaultExpandMode: get(settingsStore).preview.defaultExpansionMode,
-                processingPreviewChange: get(processingPreviewChangeStore),
-                lastPreviewFilepath: get(settingsStore).preview.lastPreviewFilepath,
-                firstLayoutChange: this.firstLayoutChange,
-                isMainLeafReopened,
-                isOpenPreviewBttnVisible,
-                activeLeaf: window.app.workspace.getActiveViewOfType(MarkdownView)
-            })
+            // console.log("💖💖💖💖💖💖💖 layout change 💖💖💖💖💖💖💖 ");
+            // console.table({
+            //     // active leaf
+            //     crrActiveLeaf,
+            //     crrActiveLeafId: (crrActiveLeaf as any)?.id,
+            //     // main leaf
+            //     mainLeafStore: get(mainLeafStore),
+            //     mainLeafHeight,
+            //     mainLeafParentHeight,
+            //     mainLeafHeightComparison: mainLeafHeight > mainLeafParentHeight,
+            //     // preview leaf
+            //     previewLeafStore: get(previewLeafStore),
+            //     previewSettings: get(settingsStore).preview,
+            //     previewFile,
+            //     prevPreviewLeaf: prevPreviewLeaf?.leaf,
+            //     prevPreviewLeafId: ((prevPreviewLeaf)?.leaf as any)?.id,
+            //     processingPreviewChange: get(processingPreviewChangeStore),
+            //     firstLayoutChange: this.firstLayoutChange,
+            // })
 
             if (this.firstLayoutChange) {
                 this.firstLayoutChange = false;
@@ -159,7 +197,11 @@ export class ViewManager {
 
                 const previewMaximized =
                     get(settingsStore).preview.defaultExpansionMode === "maximized"
-                    || get(isPreviewMaximizedStore)
+                    || get(previewLeafStore)?.maximized
+
+
+                // add or remove timeline
+                this.addOrRemoveTimeline()
 
                 // very especific check for when an expanded preview window is moved to a split window
                 if (previewLeafVisible && (get(settingsStore).preview.defaultExpansionMode === "maximized" && !isPreviewMaximized)) {
@@ -170,25 +212,28 @@ export class ViewManager {
                     return;
                 }
                 // show preview when user moves back to calendar tab and preview is open
-                if (!prevPreviewLeaf && !previewLeaf && isMainLeafReopened && get(settingsStore).preview.enabled && get(settingsStore).preview.open && !previewMaximized) {
+                if (!prevPreviewLeaf?.leaf && !previewLeaf && isMainLeafReopened && get(settingsStore).preview.enabled && get(settingsStore).preview.open && !previewMaximized) {
                     console.log("🌳 initPreview")
                     this.initPreview();
                     processingPreviewChangeStore.set(true);
                     return;
                 }
-                // cleanup
-                if (!this.firstLayoutChange && (window.app.workspace.getActiveViewOfType(MarkdownView)?.leaf as any)?.id === (prevPreviewLeaf as any)?.id) {
+
+                // CLEANUPS
+
+                // avoids closing preview when preview leaf shows a different file
+                if (!this.firstLayoutChange && ((crrActiveLeaf as any)?.id === ((prevPreviewLeaf)?.leaf as any)?.id)) {
                     return
                 }
 
                 // cleanup preview when user closes calendar tab
-                if (prevMainLeaf && !mainLeaf) {
+                if (prevMainLeaf?.leaf && !mainLeaf) {
                     this.cleanupPreviews()
                     processingPreviewChangeStore.set(true);
                     console.log("❌ mainLeaf not found and removed preview")
                     return;
                 }
-                if (prevPreviewLeaf && !previewLeaf) {
+                if (prevPreviewLeaf?.leaf && !previewLeaf) {
                     this.cleanupPreview();
                     processingPreviewChangeStore.set(true);
                     console.log("❌ previewLeaf not found, removed and set open to false")
@@ -233,14 +278,13 @@ export class ViewManager {
             _leaf.height > 0
         );
     }
-    static restartPreview() {
+    static restartPreview(defaultFile?: TFile, reveal?: boolean) {
         this.cleanupPreview();
-        this.initPreview();
+        this.initPreview(defaultFile, reveal);
     }
 
     static async tryInitPreview(defaultFile?: TFile, reveal?: boolean) {
         const previewLeaf = get(previewLeafStore)?.leaf || this.searchPreviewLeaf();
-        console.log("🌿🌿🌿🌿 tryInitPreview() 🌿🌿🌿🌿", previewLeaf)
         if (!previewLeaf) {
             this.initPreview(defaultFile, reveal)
         } else {
@@ -261,13 +305,13 @@ export class ViewManager {
         const data = await this.getPreviewFileData();
         const file = defaultFile || data.file;
         const mainLeaf = this.getMainLeaf();
+        let previewLeaf: WorkspaceLeaf | null = null;
 
         if (file && mainLeaf) {
             const viewLeafPosition = get(settingsStore).viewLeafPosition
             const splitMode = viewLeafPosition === 'root' ? get(settingsStore).preview.centerDefaultSplitMode : get(settingsStore).preview.defaultSplitMode
             const expandMode = get(settingsStore).preview.defaultExpansionMode;
 
-            let previewLeaf: WorkspaceLeaf | null = null;
             if (expandMode === 'maximized') {
                 if (viewLeafPosition === 'root') {
                     previewLeaf = window.app.workspace.getLeaf('tab')
@@ -275,7 +319,17 @@ export class ViewManager {
                     previewLeaf = window.app.workspace[`get${capitalize(viewLeafPosition) as "Left" | "Right"}Leaf`](false);
                 }
             } else {
-                previewLeaf = window.app.workspace.createLeafBySplit(mainLeaf, splitMode);
+                const mainLeafParent = mainLeaf?.parent?.parent;
+                const mainLeafSplitParentChildren = Array.from((mainLeafParent as any)?.children || []) as WorkspaceLeaf[]
+                if (mainLeafSplitParentChildren.length > 1) {
+                    // there is a split leaf sibling, use it
+                    const previewLeafParent = mainLeafSplitParentChildren.find((leaf) => (leaf as any).containerEl !== (mainLeaf as any).containerEl.closest(".workspace-tabs"))
+                    let previewLeafParentChildren = Array.from((previewLeafParent as any)?.children || []) as WorkspaceLeaf[]
+
+                    previewLeaf = window.app.workspace.createLeafInParent(previewLeafParent as WorkspaceLeaf, previewLeafParentChildren.length)
+                } else {
+                    previewLeaf = window.app.workspace.createLeafBySplit(mainLeaf, splitMode);
+                }
             }
 
             if (previewLeaf) {
@@ -288,6 +342,8 @@ export class ViewManager {
                 })
             }
         }
+
+        return previewLeaf;
     }
 
     static checkIfPreviewIsMaximized(previewLeaf: WorkspaceLeaf | null) {
@@ -296,8 +352,7 @@ export class ViewManager {
         let previewIsOnlyWorkspaceLeaf = true;
         let previewIsCalendarLeafSibling = false;
 
-        let isMobile = (window.app as any).isMobile;
-        const closestWorkspaceClassname = isMobile ? ".workspace-drawer" : ".workspace-split"
+        const closestWorkspaceClassname = isMobile() ? ".workspace-drawer" : ".workspace-split"
         const children = leaf?.containerEl?.closest(closestWorkspaceClassname)?.children || null
         const tabs = Array.from(children || []).filter((el: HTMLElement) => {
             if (el.className.includes('workspace-tabs')) {
@@ -335,8 +390,7 @@ export class ViewManager {
         const leaf = workspaceLeaf as WorkspaceLeaf & { containerEl: HTMLElement; tabHeaderEl: HTMLElement } | null
         if (!leaf) return null;
 
-        let isMobile = (window.app as any).isMobile;
-        const closestWorkspaceClassname = isMobile ? ".workspace-drawer" : ".workspace-split"
+        const closestWorkspaceClassname = isMobile() ? ".workspace-drawer" : ".workspace-split"
         const closestWorkspaceSplitClassName =
             leaf?.containerEl.closest(closestWorkspaceClassname)?.className;
 
@@ -352,14 +406,18 @@ export class ViewManager {
     }
     static cleanupPreview({ leaf }: { leaf?: WorkspaceLeaf } = {}) {
         const previewLeaf = leaf || this.searchPreviewLeaf() || get(previewLeafStore)?.leaf
-        console.log("🧹🧹🧹🧹 cleanupPreview() 🧹🧹🧹🧹", previewLeaf)
         previewLeaf?.detach();
         this.cleanupPreviewControls()
+        const isOpenBttnVisible = get(previewLeafStore)?.isOpenBttnVisible
         previewLeafStore.set(null);
+        previewLeafStore.set({
+            leaf: null,
+            isOpenBttnVisible
+        })
         this.previewTabHeaderEl = null
 
         settingsStore.update(s => {
-            s.preview.lastPreviewFilepath = ''
+            s.preview.lastPreview = null
             return s
         })
     }
@@ -370,7 +428,7 @@ export class ViewManager {
     static cleanupPreviews() {
         window.app.workspace.iterateAllLeaves((leaf) => {
             const isPreview = this.isPreviewLeaf(leaf)
-            if (isPreview.leaf) {
+            if (isPreview?.leaf) {
                 this.cleanupPreview({ leaf: isPreview.leaf })
             }
         })
@@ -395,15 +453,15 @@ export class ViewManager {
             if (previewLeafFound) return;
 
             if (get(previewLeafStore)?.leaf === leaf && (get(previewLeafStore) as any)?.view?.file === (leaf?.view as any)?.file) {
-                console.log("👑🌿🌿🌿 searchPreviewLeaf() 🌿🌿🌿🌿", leaf, "preview found is the same as the one in store!")
+                // console.log("👑🌿🌿🌿 searchPreviewLeaf() 🌿🌿🌿🌿", leaf, "preview found is the same as the one in store!")
                 previewLeaf = leaf
                 previewLeafFound = true
 
                 return;
             }
             const isPreview = this.isPreviewLeaf(leaf, file)
-            if (isPreview.leaf) {
-                console.log("💰🌿🌿🌿 searchPreviewLeaf() 🌿🌿🌿🌿", isPreview.leaf, "preview found!")
+            if (isPreview?.leaf) {
+                // console.log("💰🌿🌿🌿 searchPreviewLeaf() 🌿🌿🌿🌿", isPreview.leaf, "preview found!")
                 previewLeaf = isPreview.leaf
                 previewLeafFound = true
             }
@@ -411,33 +469,39 @@ export class ViewManager {
         return previewLeaf as WorkspaceLeaf | null;
     }
     static isPreviewLeaf(leaf: WorkspaceLeaf | null, file: TFile | null = null) {
-        let previewLeaf;
         // console.log("🌿🌿🌿🌿 isPreviewLeaf() 🌿🌿🌿🌿")
         // console.table({
         //     leaf,
+        //     leafSplitPos: this.getLeafSplitPosition(leaf),
         //     firstLayoutChange: this.firstLayoutChange,
         //     containsPreviewControls: leaf && Array.from(leaf.view.containerEl.childNodes).find((el: HTMLElement) => el?.dataset?.type === PREVIEW_CONTROLS_TYPE),
         //     leafFilepath: file?.path || (leaf && (file?.path || (leaf.view as any)?.state?.file as string | undefined || (leaf.view as any).file?.path as string | undefined)),
-        //     lastPreviewFilepath: get(settingsStore).preview.lastPreviewFilepath
+        //     lastPreview: get(settingsStore).preview.lastPreview,
         // })
 
-        if (
-            leaf
-            && leaf.getViewState().type === 'markdown'
-            && leaf.view?.containerEl?.dataset?.type !== LEAF_TYPE
-            && (this.firstLayoutChange || Array.from(leaf.view.containerEl.childNodes).find((el: HTMLElement) => el?.dataset?.type === PREVIEW_CONTROLS_TYPE))
-        ) {
-            // leaf.view.state.file will be used when markdown view is not visible and leaf.view.file.path would return undefined
-            // this value is undefined when markdown view is visible
-            const leafFilepath = file?.path || (leaf.view as any)?.state?.file as string | undefined || (leaf.view as any).file?.path as string | undefined;
-            const lastPreviewFilepath = get(settingsStore).preview.lastPreviewFilepath;
-            console.log("🌿🌿🌿🌿 isPreviewLeaf() > found 🌿🌿🌿🌿", leaf, leafFilepath, lastPreviewFilepath)
-            if (leafFilepath === lastPreviewFilepath) {
-                previewLeaf = leaf
-            }
+        if (get(previewLeafStore)?.leaf === leaf) {
+            return { leaf }
         }
 
-        return { leaf: previewLeaf }
+        const lastPreview = get(settingsStore).preview.lastPreview;
+        const leafSplitPos = this.getLeafSplitPosition(leaf);
+        const leafView = leaf?.view as MarkdownView & { state: { file: string } };
+        const isLeafViewMarkdown = leaf?.getViewState().type === 'markdown'
+        const isLeafCalendar = leafView?.containerEl?.dataset?.type === LEAF_TYPE
+        const hasPreviewControls = (
+            this.firstLayoutChange
+            || Array.from(leafView?.containerEl.childNodes)
+                .find((el: HTMLElement) => el?.dataset?.type === PREVIEW_CONTROLS_TYPE))
+        /** leaf.view.state.file will be used when markdown view is not visible and leaf.view.file.path would return undefined
+        * this value is undefined when markdown view is visible
+        */
+        const leafFilepath = file?.path || leafView?.state?.file as string | undefined || (leaf?.view as any).file?.path as string | undefined;
+
+        if (!leaf || !isLeafViewMarkdown || isLeafCalendar || !hasPreviewControls) return;
+        if (leafFilepath !== lastPreview?.filepath || leafSplitPos !== lastPreview?.splitPos) return;
+
+        // console.log("🌿🌿🌿🌿 isPreviewLeaf() > found 🌿🌿🌿🌿", leaf, leafFilepath, lastPreview)
+        return { leaf }
     }
 
     static togglePreviewTabHeader(leaf?: WorkspaceLeaf) {
@@ -456,7 +520,7 @@ export class ViewManager {
     static async getPreviewFileData() {
         let file: TFile | null = null;
         let granularity: IGranularity | null = null;
-        let date: Moment | null = null;
+        let date: Moment = moment();
         let createNewFile = false;
         Object.entries(get(settingsStore).periods).forEach(async (entry) => {
             const [g, s] = entry as [IGranularity, PeriodSettings];
@@ -469,7 +533,7 @@ export class ViewManager {
                             return s
                         })
                     }
-                    const foundFile = getFileData(g, moment()).file;
+                    const foundFile = getFileData(g, date).file;
                     if (!foundFile) {
                         createNewFile = true
                     } else {
@@ -481,7 +545,6 @@ export class ViewManager {
         })
 
         if (createNewFile && granularity) {
-            date = moment()
             file = await createNote(granularity, date);
         }
 
@@ -503,13 +566,25 @@ export class ViewManager {
         previewLeaf: WorkspaceLeaf
     }) {
         await previewLeaf.openFile(file);
-        previewLeafStore.set({ leaf: previewLeaf, filepath: file.path });
+        previewLeafStore.update((s) => ({
+            ...s,
+            leaf: previewLeaf,
+            filepath: file.path
+        }));
         settingsStore.update(s => {
             s.preview.open = true
-            s.preview.lastPreviewFilepath = file!.path
+            s.preview.lastPreview = {
+                ...s.preview.lastPreview,
+                filepath: file.path
+            }
             return s
         });
-        activeFilepathStore.set(file.path);
+        activeFileStore.update(d => {
+            if (d) {
+                d.file = file
+            }
+            return d
+        })
 
         this.togglePreviewTabHeader(previewLeaf)
 
@@ -529,25 +604,43 @@ export class ViewManager {
         }
     }
 
-    static updateCalendarDate() {
-        const activeFile = window.app.workspace.getActiveFile();
+    static setupPreviewEvHandlers() {
+        const cleanup = this.setupVisibilityTracking();
+        this.previewLeafCleanups.push(cleanup);
+    }
+    static cleaunupPreviewEvHandlers() {
+        this.previewLeafCleanups.length > 0 && this.previewLeafCleanups.forEach((cleanup) => cleanup());
+        this.previewLeafCleanups = [];
+    }
 
-        if (!activeFile) return;
+    static addOrRemoveTimeline() {
+        const crrActiveLeaf = window.app.workspace.getActiveViewOfType(MarkdownView)?.leaf;
+        if (!crrActiveLeaf) return;
 
-        const { isValid, granularity, date } = isValidPeriodicNote(activeFile.basename);
-        if (typeof isValid && date && granularity) {
-            activeFilepathStore.set(activeFile!.path);
-            displayedDateStore.set(date!)
-            const enabledPeriodsRes = getEnabledPeriods();
-            if (enabledPeriodsRes.tabs.includes(granularity as typeof periodTabs[number])) {
-                crrTabStore.set(granularity as typeof periodTabs[number])
+        if (get(settingsStore).timeline.enabled) {
+            if (!TimelineManager.isMounted(crrActiveLeaf)) {
+                // mount timeline
+                TimelineManager.tryMountTimeline(crrActiveLeaf);
+            }
+        } else {
+            if (TimelineManager.isMounted(crrActiveLeaf)) {
+                // unmount timeline
+                TimelineManager.cleanup(crrActiveLeaf);
             }
         }
     }
 
-    static cleaunupPreviewEvHandlers() {
-        this.previewLeafCleanups.length > 0 && this.previewLeafCleanups.forEach((cleanup) => cleanup());
-        this.previewLeafCleanups = [];
+    static getFileFromLeaf(leaf?: WorkspaceLeaf | null, _file?: TFile) {
+        if (!leaf) return;
+
+        const leafView = leaf.view as MarkdownView & { state: { file: string } };
+        const leafFilepath = _file?.path || leafView?.state?.file as string | undefined || (leaf?.view as any).file?.path as string | undefined;
+        if (!leafFilepath) return;
+
+        const file = window.app.vault.getAbstractFileByPath(leafFilepath) as TFile | null;
+        if (!file) return;
+
+        return file
     }
 
     static unload() {

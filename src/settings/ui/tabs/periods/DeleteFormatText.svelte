@@ -9,7 +9,7 @@
     let { format }: Props = $props();
 </script>
 
-Are you sure you want to delete this format? There are <FilepathsCount
+Are you sure you want to delete this format? <FilepathsCount
     {format}
     separator=""
 /> using it.

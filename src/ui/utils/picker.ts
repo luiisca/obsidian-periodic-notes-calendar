@@ -1,13 +1,12 @@
 import { STICKER_POPOVER_ID } from "@/constants";
+import { TFileData } from "@/io";
 import { settingsStore } from "@/settings";
 import data from "@emoji-mart/data";
 import { Picker } from "emoji-mart";
-import { TFile, type TagCache } from "obsidian";
+import emojiRegex from "emoji-regex";
+import { type TagCache } from "obsidian";
 import { get } from "svelte/store";
 import { getBehaviorInstance, getPopoverInstance, Popover } from "../popovers";
-import { TFileData } from "@/io";
-import { internalFileModStore } from "@/stores/notes";
-import emojiRegex from "emoji-regex";
 
 type TEmoji = {
     aliases?: string[],

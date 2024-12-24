@@ -88,3 +88,19 @@ export function handleLocaleCommands() {
         });
     }
 }
+
+export function isMobile() {
+    return (window.app as any).isMobile as boolean | undefined
+}
+
+// https://stackoverflow.com/questions/50195475/detect-if-device-is-tablet
+export function isTablet() {
+    if (!isMobile()) return false; // Only check for mobile devices
+
+    const userAgent = navigator.userAgent.toLowerCase();
+    return /(ipad|tablet|(android(?!.*mobile))|(windows(?!.*phone)(.*touch))|kindle|playbook|silk|(puffin(?!.*(IP|AP|WP))))/.test(userAgent);
+}
+
+export function isPhone() {
+    return isMobile() && !isTablet();
+}

@@ -1,7 +1,8 @@
 <script lang="ts">
     import { STICKER_POPOVER_ID } from "@/constants";
-    import { initializePicker } from "../utils";
+    import { cn, initializePicker } from "../utils";
     import { themeStore, spFileDataStore } from "@/stores";
+    import { isMobile } from "@/utils";
 
     let pickerContainerEl: HTMLDivElement | null = $state(null);
     $effect(() => {
@@ -12,7 +13,12 @@
 </script>
 
 <div
-    class="bg-transparent z-20 w-max opacity-0 pointer-events-none absolute top-0 left-0"
+    class={cn(
+        "bg-transparent w-max opacity-0 pointer-events-none absolute",
+        isMobile()
+            ? "!top-0 !left-1/2 [transform:translate(-50%,3%)_!important]"
+            : " top-0 left-0",
+    )}
     data-popover={true}
     id={STICKER_POPOVER_ID}
     bind:this={pickerContainerEl}

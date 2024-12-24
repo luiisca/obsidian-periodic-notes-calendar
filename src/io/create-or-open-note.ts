@@ -1,6 +1,5 @@
 import { settingsStore } from "@/settings";
-import { activeFilepathStore } from "@/stores";
-import { internalFileModStore } from "@/stores/notes";
+import { activeFileStore, internalFileModStore } from "@/stores/notes";
 import { createConfirmationDialog } from "@/ui/modals/confirmation";
 import { capitalize } from "@/utils";
 import { type Moment } from "moment";
@@ -34,9 +33,9 @@ export async function createOrOpenNote({
     const filename = date.format(selectedFormat.value);
     const normalizedPath = getNotePath(granularity, date);
 
-    console.log("[createOrOpenNote()] > normalizedPath: ", normalizedPath);
+    // console.log("[createOrOpenNote()] > normalizedPath: ", normalizedPath);
     let file = window.app.vault.getAbstractFileByPath(normalizedPath)
-    console.log("[createOrOpenNote()] > file: ", file);
+    // console.log("[createOrOpenNote()] > file: ", file);
 
     async function openFile(file: TAbstractFile | null) {
         if (file) {
@@ -46,7 +45,12 @@ export async function createOrOpenNote({
             } else {
                 await leaf?.openFile(file as TFile, openState);
             }
-            activeFilepathStore.set(file.path);
+            activeFileStore.update(d => {
+                if (d) {
+                    d.file = file as TFile;
+                }
+                return d
+            })
         }
     }
 
@@ -54,7 +58,7 @@ export async function createOrOpenNote({
         await openFile(file);
     } else {
         const periodicity = capitalize(getPeriodicityFromGranularity(granularity));
-        console.log("[io-create-or-open-note]", granularity, selectedFormat.value, date, filename);
+        // console.log("[io-create-or-open-note]", granularity, selectedFormat.value, date, filename);
 
         if (confirmBeforeCreateOverride) {
             createConfirmationDialog({
@@ -69,7 +73,7 @@ export async function createOrOpenNote({
                 cta: 'Create',
                 onAccept: async (dontAskAgain) => {
                     file = await createNote(granularity, date);
-                    console.log('createOrOpenNote() > onAccept() > file: ', file);
+                    // console.log('createOrOpenNote() > onAccept() > file: ', file);
                     await openFile(file);
 
                     if (dontAskAgain) {
@@ -82,7 +86,7 @@ export async function createOrOpenNote({
             });
         } else {
             file = await createNote(granularity, date);
-            console.log('🤯🔥🤯 createOrOpenNote() > file: 🤯🔥🤯', file);
+            // console.log('🤯🔥🤯 createOrOpenNote() > file: 🤯🔥🤯', file);
             await openFile(file);
         }
     }
@@ -112,7 +116,7 @@ export async function createNote(granularity: IGranularity, date: Moment) {
 
         return file;
     } catch (err) {
-        console.error(`Failed to create file: '${normalizedPath}'`, err);
+        // console.error(`Failed to create file: '${normalizedPath}'`, err);
         new Notice(`Failed to create file: '${normalizedPath}'`);
 
         return null

@@ -37,7 +37,10 @@ export interface ISettings {
         defaultSplitMode: "vertical" | "horizontal";
         centerDefaultSplitMode: "vertical" | "horizontal";
         defaultExpansionMode: 'maximized' | 'split';
-        lastPreviewFilepath: string;
+        lastPreview: {
+            filepath: string;
+            splitPos?: "left" | "root" | "right" | null;
+        } | null;
         enabledGranularities: IGranularity[] | null;
         crrGranularity: IGranularity | null;
     };
@@ -151,7 +154,10 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
         defaultSplitMode: "horizontal" as const,
         centerDefaultSplitMode: "vertical" as const,
         defaultExpansionMode: "split" as const,
-        lastPreviewFilepath: "",
+        lastPreview: {
+            filepath: "",
+            splitPos: null,
+        },
         enabledGranularities: null,
         crrGranularity: null,
     },

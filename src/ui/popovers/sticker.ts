@@ -3,8 +3,9 @@ import { settingsStore } from '@/settings';
 import { Component, unmount } from 'svelte';
 import { get } from 'svelte/store';
 import { type TWindowEvents } from '../types';
-import { getPopoverInstance, Popover } from './base';
+import { Popover } from './base';
 import { BaseComponentBehavior } from './base-component-behavior';
+import { isMobile } from '@/utils';
 
 export type TStickerPopoverParams = {
     id: typeof STICKER_POPOVER_ID,
@@ -23,7 +24,7 @@ export class StickerPopoverBehavior extends BaseComponentBehavior {
 
     public open(refHtmlEl: HTMLElement) {
         this.refHtmlEl = refHtmlEl;
-        super.open(refHtmlEl, false);
+        super.open(refHtmlEl, false, !isMobile());
 
         this.getSearchInput()?.focus();
         this.addWindowListeners(this.getWindowEvents(), this, this.boundCallbacks);

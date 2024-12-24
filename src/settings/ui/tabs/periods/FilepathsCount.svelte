@@ -45,7 +45,7 @@
                       : "u-pop",
                 format.loading && "opacity-60",
             )}
-            href={"#"}
+            href={null}
             onclick={() => handleShowFiles(Object.keys(filepaths))}
             >{filesCount || "-"} {filesCount === 1 ? "File" : "Files"}</a
         >

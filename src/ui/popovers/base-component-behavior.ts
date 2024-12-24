@@ -55,7 +55,7 @@ export class BaseComponentBehavior {
         }
     }
 
-    public open(refHtmlEl: Element, addDefaultEvListners = true) {
+    public open(refHtmlEl: Element, addDefaultEvListners = true, positionFloatingUI = true) {
         this.opened = true;
 
         // close all popovers when a new modal is displayed to prevent overlapping
@@ -85,10 +85,13 @@ export class BaseComponentBehavior {
 
         this.show()
         this.setInteractivity(true);
-        this.positionComponent({ refHtmlEl });
-        this.autoUpdateCleanup = autoUpdate(refHtmlEl, this.componentHtmlEl, () => {
+
+        if (positionFloatingUI) {
             this.positionComponent({ refHtmlEl });
-        })
+            this.autoUpdateCleanup = autoUpdate(refHtmlEl, this.componentHtmlEl, () => {
+                this.positionComponent({ refHtmlEl });
+            })
+        }
 
         addDefaultEvListners && this.addWindowListeners(this.getWindowEvents(), this, this.boundCallbacks);
         this.cbs?.onOpen?.();
@@ -198,10 +201,13 @@ export class BaseComponentBehavior {
     private show() {
         this.componentHtmlEl.style.display = 'block';
         this.componentHtmlEl.style.opacity = '1';
+        this.componentHtmlEl.style.zIndex = '999';
         this.componentHtmlEl.style.pointerEvents = 'auto';
     }
     private hide() {
+        this.componentHtmlEl.style.display = 'none';
         this.componentHtmlEl.style.opacity = '0';
+        this.componentHtmlEl.style.zIndex = '-999';
     }
     private setInteractivity(enabled = true) {
         if (enabled) {

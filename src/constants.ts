@@ -2,6 +2,7 @@ import { type IGranularity } from "./io";
 
 export const LEAF_TYPE = 'periodic-notes-calendar-view';
 export const PREVIEW_CONTROLS_TYPE = 'periodic-notes-calendar-preview-controls';
+export const TIMELINE_TYPE = 'periodic-notes-calendar-timeline';
 export const granularities = ['day', 'week', 'month', 'quarter', 'year'] as const;
 export const granularitiesCapitalize = ['Day', 'Week', 'Month', 'Quarter', 'Year'] as const;
 

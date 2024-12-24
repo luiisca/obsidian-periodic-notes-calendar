@@ -21,10 +21,10 @@
     import { Tabs } from "./core";
     import DateBttn from "./core/DateBttn.svelte";
     import { settingsStore } from "@/settings";
+    import { isMobile } from "@/utils";
 
     let { weekdaysShort } = $derived($localeDataStore);
     let month = $derived(getMonth($displayedDateStore));
-    let isMobile = (window.app as any).isMobile;
 
     let crrTab = $derived($crrTabStore);
     let tabs: typeof periodTabs = $state(periodTabs);
@@ -59,7 +59,7 @@
     });
 </script>
 
-<div class="pnc-container px-4 !pt-2" bind:this={containerEl}>
+<div id="pnc-container" class="px-4 !pt-2" bind:this={containerEl}>
     {#if tabs.length > 1}
         <Tabs
             tabs={[...tabs]}
@@ -105,7 +105,7 @@
                                     granularity="week"
                                     className={cn(
                                         "px-1 !pt-2.5 !pb-4 opacity-85 mx-auto",
-                                        minimalMode?.value || isMobile
+                                        minimalMode?.value || isMobile()
                                             ? "[font-size:var(--font-ui-smaller)] "
                                             : "[font-size:var(--font-ui-small)] ",
                                     )}
@@ -129,7 +129,7 @@
                                     granularity="day"
                                     className={cn(
                                         "px-1 !pt-2.5 !pb-4",
-                                        minimalMode?.value || isMobile
+                                        minimalMode?.value || isMobile()
                                             ? "text-xs"
                                             : "text-sm",
                                     )}
@@ -160,7 +160,7 @@
                                     granularity="quarter"
                                     className={cn(
                                         "px-1 !pt-2.5 !pb-4 opacity-85",
-                                        minimalMode?.value || isMobile
+                                        minimalMode?.value || isMobile()
                                             ? "[font-size:var(--font-ui-smaller)]"
                                             : "[font-size:var(--font-ui-small)] ",
                                     )}
@@ -184,20 +184,21 @@
                                     granularity="month"
                                     className={cn(
                                         "px-1 mb-3 items-center justify-center",
-                                        minimalMode?.value || isMobile
+                                        minimalMode?.value || isMobile()
                                             ? "text-sm !pt-2.5 !pb-4"
                                             : "text-base py-8",
                                     )}
                                     dotContainerClassName={cn(
                                         "[transform:translateY(100%)]",
-                                        minimalMode?.value || isMobile
+                                        minimalMode?.value || isMobile()
                                             ? "bottom-[calc(1rem/2)]"
                                             : "bottom-[calc(1.75rem/2)]",
                                     )}
                                 >
                                     {#snippet text()}
-                                        {#if !minimalMode?.value || isMobile}
+                                        {#if !minimalMode?.value || isMobile()}
                                             <p
+                                                id="month-index"
                                                 class="text-5xl font-normal opacity-15 text-[--text-muted] absolute top-1/2 left-1/2 [transform:translate(-50%,-50%)] m-0"
                                             >
                                                 {monthIndex < 9
@@ -234,7 +235,7 @@
                                     granularity="year"
                                     className={cn(
                                         "tracking-wide px-1 !pt-2.5 !pb-4",
-                                        minimalMode?.value || isMobile
+                                        minimalMode?.value || isMobile()
                                             ? "text-base"
                                             : "text-xl",
                                     )}
@@ -264,12 +265,16 @@
     }
 
     th {
-        background-color: var(--color-background-heading);
-        color: var(--color-text-heading);
+        background-color: var(--color-background-table-header);
+        color: var(--color-text-table-header);
         font-size: 0.6em;
         letter-spacing: 1px;
         padding: 4px;
         text-align: center;
         text-transform: uppercase;
+    }
+
+    .weekend {
+        background-color: var(--color-background-weekend);
     }
 </style>

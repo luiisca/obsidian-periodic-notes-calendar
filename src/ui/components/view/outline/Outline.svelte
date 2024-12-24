@@ -16,7 +16,7 @@
     };
 
     let file: TFile | null = $state(null);
-    let leaf: WorkspaceLeaf | null = $state(null);
+    let leaf: WorkspaceLeaf | undefined | null = $state(null);
 
     let headings: HeadingCache[] | undefined = $derived.by(() => {
         $settingsStore;

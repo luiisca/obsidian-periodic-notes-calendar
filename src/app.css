@@ -1,18 +1,23 @@
-.pnc-container {
-    --color-background-heading: transparent;
-    --color-background-day: transparent;
-    --color-background-weeknum: transparent;
-    --color-background-weekend: transparent;
+#pnc-container {
+    --color-background-table-header: transparent;
+    --color-background-day-bttn: transparent;
+    --color-background-week-bttn: transparent;
+    --color-background-month-bttn: transparent;
+    --color-background-quarter-bttn: transparent;
+    --color-background-year-bttn: transparent;
+    --color-background-weekend: transparent; /* weekend column */
 
     --color-dot: var(--text-muted);
     --color-arrow: var(--text-muted);
-    --color-button: var(--text-muted);
 
-    --color-text-title: var(--text-normal);
-    --color-text-heading: var(--text-muted);
-    --color-text-day: var(--text-normal);
+    --color-text-header-title: var(--text-normal);
+    --color-text-table-header: var(--text-muted);
     --color-text-today: var(--interactive-accent);
-    --color-text-weeknum: var(--text-muted);
+    --color-text-day-bttn: var(--text-normal);
+    --color-text-week-bttn: var(--text-muted);
+    --color-text-month-bttn: var(--text-normal);
+    --color-text-quarter-bttn: var(--text-normal);
+    --color-text-year-bttn: var(--text-normal);
 }
 
 .weekend {
@@ -20,7 +25,7 @@
 }
 
 
-.pnc-container button {
+#pnc-container button {
     @apply bg-transparent hover:bg-[var(--interactive-hover)] [&:not(:focus-visible)]:shadow-none cursor-pointer;
 }
 

@@ -23,7 +23,7 @@ export const G_MAP: Record<
         qtt: 4,
         mod: 1,
         titleFormat: "MMM",
-        format: "W",
+        format: "w",
     },
     month: {
         group: "quarter",

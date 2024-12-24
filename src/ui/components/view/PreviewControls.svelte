@@ -11,28 +11,16 @@
         IGranularity,
     } from "@/io";
     import { settingsStore } from "@/settings";
-    import {
-        isPreviewMaximizedStore,
-        previewLeafStore,
-        previewSplitPositionStore,
-        processingPreviewChangeStore,
-        todayStore,
-    } from "@/stores";
+    import { previewLeafStore, todayStore } from "@/stores";
     import { ViewManager } from "@/ui";
     import { Popover } from "@/ui/popovers";
     import { cn, getSticker } from "@/ui/utils";
     import { capitalize } from "@/utils";
     import { Moment } from "moment";
-    import {
-        MarkdownView,
-        Menu,
-        setIcon,
-        TFile,
-        WorkspaceLeaf,
-    } from "obsidian";
+    import { MarkdownView, setIcon, TFile, WorkspaceLeaf } from "obsidian";
     import { Dot } from "../core";
     import { Outline } from "./outline";
-    import { goToNoteHeading } from "./utils";
+    import { isValidPeriodicNote } from "@/io/validation";
 
     interface Props {
         date: Moment;
@@ -40,7 +28,7 @@
     const { date }: Props = $props();
 
     let file: TFile | null = $state(null);
-    let leaf: WorkspaceLeaf | null = $state(null);
+    let leaf: WorkspaceLeaf | undefined | null = $state(null);
     let markdownView: MarkdownView | null = $state(null);
     let outlineBttn: HTMLElement | null = $state(null);
     let moreEl: HTMLElement | null = $state(null);
@@ -68,121 +56,18 @@
             : null;
         const sticker = getSticker(tags);
 
-        const addExtraItems = (menu: Menu) => {
-            // close preview
-            menu.addItem((item) =>
-                item
-                    .setSection("preview")
-                    .setTitle("Close preview")
-                    .setIcon("lucide-x-circle")
-                    .onClick((ev) => {
-                        ev.stopPropagation();
-
-                        menu.close();
-
-                        leaf && ViewManager.cleanupPreview({ leaf });
-                        processingPreviewChangeStore.set(true);
-                        settingsStore.update((s) => {
-                            s.preview.open = false;
-                            return s;
-                        });
-                    }),
-            );
-
-            // Go to main section
-            menu.addItem((item) =>
-                item
-                    .setSection("preview")
-                    .setTitle("Go to main section")
-                    .setIcon("lucide-compass")
-                    .onClick((ev) => {
-                        ev.stopPropagation();
-
-                        const settings =
-                            crrGranularity &&
-                            $settingsStore.periods[crrGranularity];
-                        const mainSection = settings?.preview.mainSection;
-
-                        goToNoteHeading({
-                            heading: mainSection,
-                            extra: () => menu.close(),
-                        });
-                    }),
-            );
-
-            // Go to todo section
-            menu.addItem((item) =>
-                item
-                    .setSection("preview")
-                    .setTitle("Go to todo section")
-                    .setIcon("lucide-list-todo")
-                    .onClick((ev) => {
-                        ev.stopPropagation();
-
-                        const settings =
-                            crrGranularity &&
-                            $settingsStore.periods[crrGranularity];
-                        const todoSection = settings?.preview.todoSection;
-
-                        goToNoteHeading({
-                            heading: todoSection,
-                            extra: () => menu.close(),
-                        });
-                    }),
-            );
-
-            // Toggle tab header visibility
-            if (
-                !$isPreviewMaximizedStore &&
-                $previewSplitPositionStore !== "root"
-            ) {
-                menu.addItem((item) => {
-                    return item
-                        .setSection("preview")
-                        .setTitle("Display Tab Header")
-                        .setChecked($settingsStore.preview.tabHeaderVisible)
-                        .setIcon("lucide-layout-panel-top")
-                        .onClick(() => {
-                            settingsStore.update((s) => {
-                                s.preview.tabHeaderVisible =
-                                    !s.preview.tabHeaderVisible;
-                                return s;
-                            });
-                            ViewManager.togglePreviewTabHeader();
-                        });
-                });
-            }
-
-            // Toggle Zen mode
-            menu.addItem((item) => {
-                return item
-                    .setSection("preview")
-                    .setTitle("Zen mode")
-                    .setChecked($settingsStore.preview.zenMode)
-                    .setIcon("lucide-flower")
-                    .onClick(() => {
-                        settingsStore.update((s) => {
-                            s.preview.zenMode = !s.preview.zenMode;
-                            return s;
-                        });
-                    });
-            });
-        };
-
         Popover.create({
             id: FILE_MENU_POPOVER_ID,
         }).open({
             event,
             date,
             fileData: { file, sticker },
-            extraItems: {
-                newSections: ["preview"],
-                add: addExtraItems,
-            },
         });
     };
 
     const handleDotClick = async (granularity: IGranularity) => {
+        if (granularity === $settingsStore.preview.crrGranularity) return;
+
         settingsStore.update((s) => {
             s.preview.crrGranularity = granularity;
             return s;
@@ -218,6 +103,17 @@
             if (leaf) {
                 markdownView = leaf.view as MarkdownView;
             }
+
+            // set granularity to null in case a non-periodic file is opened in preview leaf
+            if (file) {
+                const { granularity } = isValidPeriodicNote(file.basename);
+                if (!granularity) {
+                    settingsStore.update((s) => {
+                        s.preview.crrGranularity = null;
+                        return s;
+                    });
+                }
+            }
         }
     });
     $effect.pre(() => {
@@ -236,13 +132,14 @@
             tabindex="0"
             role="button"
             class={cn(
+                "preview-controls-button",
                 "clickable-icon view-action cursor-pointer !transition-none",
                 outlineOpen && "is-active",
             )}
             aria-label={`Outline of ${file.basename}`}
             data-tooltip-delay="200"
             data-type="outline"
-            id={`${BASE_POPOVER_ID}-outline-ref-el`}
+            id="preview-controls-outline-bttn"
             onclick={handleOutlineClick}
             onkeydown={handleOutlineClick}
         >
@@ -256,19 +153,26 @@
     {/if}
 {/snippet}
 {#snippet MoreBttn()}
-    <button
-        class={cn("clickable-icon view-action ml-0 cursor-pointer")}
-        bind:this={moreEl}
-        aria-label="More options"
-        data-tooltip-delay="200"
-        onclick={handleMoreClick}
-    ></button>
+    {#if $previewLeafStore?.splitPos !== "root"}
+        <button
+            id="preview-controls-more-bttn"
+            class={cn(
+                "preview-controls-button",
+                "clickable-icon view-action ml-0 cursor-pointer",
+            )}
+            bind:this={moreEl}
+            aria-label="More options"
+            data-tooltip-delay="200"
+            onclick={handleMoreClick}
+        ></button>
+    {/if}
 {/snippet}
 
-<div data-type={PREVIEW_CONTROLS_TYPE}>
+<div id="pnc-container" data-type={PREVIEW_CONTROLS_TYPE}>
     {#if file && leaf}
-        {#if !$settingsStore.timeline.enabled && $previewSplitPositionStore !== "root"}
+        {#if !$settingsStore.timeline.enabled && $previewLeafStore?.splitPos !== "root"}
             <div
+                id="preview-controls-container-up"
                 class="absolute right-0 top-0 flex space-x-1 pb-1.5 mt-1.5 px-3 h-[var(--header-height)]"
             >
                 {@render OutlineBttn()}
@@ -276,32 +180,35 @@
             </div>
         {/if}
         <div
+            id="preview-controls-container-side"
             class={cn(
                 "absolute top-1/2 [transform:translateY(-50%)] flex flex-col gap-y-1 opacity-80 items-center right-1",
             )}
         >
-            {#if $settingsStore.timeline.enabled || $previewSplitPositionStore === "root"}
+            {#if $settingsStore.timeline.enabled || $previewLeafStore?.splitPos === "root"}
                 {@render OutlineBttn()}
             {/if}
             {#if !$settingsStore.preview.zenMode && enabledGranularities}
-                {#each enabledGranularities as g}
-                    <div
-                        tabindex="0"
-                        role="button"
-                        class="cursor-pointer"
-                        onclick={() => handleDotClick(g)}
-                        onkeydown={() => handleDotClick(g)}
-                        aria-label={`${capitalize(getPeriodicityFromGranularity(g))} preview`}
-                    >
-                        <Dot
-                            isActive={g === crrGranularity}
-                            isFilled={g === crrGranularity}
-                            className="w-2 h-2 m-0"
-                        />
-                    </div>
-                {/each}
+                <div id="preview-controls-granularities">
+                    {#each enabledGranularities as g}
+                        <div
+                            id="preview-controls-granularity"
+                            tabindex="0"
+                            role="button"
+                            class="cursor-pointer px-1.5"
+                            onclick={() => handleDotClick(g)}
+                            onkeydown={() => handleDotClick(g)}
+                            aria-label={`${capitalize(getPeriodicityFromGranularity(g))} preview`}
+                        >
+                            <Dot
+                                isFilled={g === crrGranularity}
+                                className="w-1.5 h-1.5 m-0"
+                            />
+                        </div>
+                    {/each}
+                </div>
             {/if}
-            {#if $settingsStore.timeline.enabled || $previewSplitPositionStore === "root"}
+            {#if $settingsStore.timeline.enabled || $previewLeafStore?.splitPos === "root"}
                 {@render MoreBttn()}
             {/if}
         </div>

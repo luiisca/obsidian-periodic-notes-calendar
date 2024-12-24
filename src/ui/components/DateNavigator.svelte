@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { capitalize } from "@/utils";
+    import { capitalize, isMobile } from "@/utils";
     import { getContext } from "svelte";
     import { cn } from "../utils";
     import { Arrow, Dot } from "./core";
@@ -23,13 +23,12 @@
     let minimalMode = getContext("minimalMode") as
         | { value: boolean }
         | undefined;
-    let isMobile = (window.app as any).isMobile;
 </script>
 
 <div
     class={cn(
         "flex items-center",
-        minimalMode?.value || isMobile ? "-ml-2" : "-ml-1",
+        minimalMode?.value || isMobile() ? "-ml-2" : "-ml-1",
     )}
     id="bottom-nav"
 >
@@ -37,11 +36,11 @@
         direction="left"
         onClick={decrementdisplayedDate}
         tooltip={`Previous ${capitalize(type)}`}
-        className={cn((minimalMode?.value || isMobile) && "[&>svg]:w-1.5")}
+        className={cn((minimalMode?.value || isMobile()) && "[&>svg]:w-1.5")}
     />
     <button
         class={cn(
-            "text-[--color-arrow] flex items-center p-2",
+            "flex items-center p-2",
             showingCrrDate ? "opacity-100" : "opacity-60",
         )}
         id="reset-button"
@@ -53,7 +52,7 @@
         <Dot
             className={cn(
                 "h-[8px] w-[8px]",
-                (minimalMode?.value || isMobile) && "w-[0.3rem]",
+                (minimalMode?.value || isMobile()) && "w-[0.3rem]",
             )}
             isFilled={showingCrrDate}
         />
@@ -62,6 +61,6 @@
         direction="right"
         onClick={incrementdisplayedDate}
         tooltip={`Next ${capitalize(type)}`}
-        className={cn((minimalMode?.value || isMobile) && "[&>svg]:w-1.5")}
+        className={cn((minimalMode?.value || isMobile()) && "[&>svg]:w-1.5")}
     />
 </div>

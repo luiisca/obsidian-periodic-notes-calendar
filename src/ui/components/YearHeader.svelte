@@ -7,6 +7,7 @@
     import { Header } from "./core";
     import DateNavigator from "./DateNavigator.svelte";
     import { cn } from "../utils";
+    import { isMobile } from "@/utils";
 
     let fileData = $derived.by(() => {
         $settingsStore.filepaths; // trigger reactivity
@@ -24,7 +25,6 @@
     let minimalMode = getContext("minimalMode") as
         | { value: boolean }
         | undefined;
-    let isMobile = (window.app as any).isMobile;
 </script>
 
 <Header
@@ -36,15 +36,15 @@
     }}
 >
     {#snippet rightTitleSnippet()}
-        <button
-            class={cn(
-                "text-[--interactive-accent] font-medium hover:!shadow-[0px_0px_0px_6px_var(--interactive-hover)] rounded-[2px]",
-                minimalMode?.value || isMobile ? "text-sm" : "text-lg",
-            )}
+        <div
             id="years-range"
+            class={cn(
+                "font-medium rounded-[2px]",
+                minimalMode?.value || isMobile() ? "text-sm" : "text-lg",
+            )}
         >
             {$yearsRanges.ranges[$yearsRanges.crrRangeIndex]}
-        </button>
+        </div>
     {/snippet}
 
     {#snippet bottomNavSnippet()}

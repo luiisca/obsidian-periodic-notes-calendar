@@ -4,14 +4,15 @@
     import { settingsStore } from "@/settings";
     import {
         displayedDateStore,
-        isOpenPreviewBttnVisibleStore,
-        isPreviewVisibleStore,
+        mainLeafStore,
+        previewLeafStore,
         todayStore,
     } from "@/stores";
     import { ViewManager } from "@/ui";
     import { cn } from "@/ui/utils";
     import { onDestroy, setContext } from "svelte";
     import Calendar from "../Calendar.svelte";
+    import { isMobile } from "@/utils";
 
     interface Props {
         popover?: boolean;
@@ -19,7 +20,6 @@
 
     let { popover = false }: Props = $props();
     let minimalMode = $state({ value: false });
-    let isMobile = (window.app as any).isMobile as boolean;
 
     $effect.pre(() => {
         if (popover) {
@@ -79,8 +79,9 @@
 {/if}
 {#if !popover}
     <Calendar />
-    {#if $isOpenPreviewBttnVisibleStore}
+    {#if $previewLeafStore?.isOpenBttnVisible}
         <div
+            id="pnc-container"
             class={cn(
                 "absolute left-0 w-full",
                 $settingsStore.viewLeafPosition === "right"
@@ -89,29 +90,23 @@
             )}
         >
             <div
+                id="preview-open-bttn-container"
                 class="[border-top:var(--tab-outline-width)_solid_var(--tab-outline-color)] relative mx-3"
             >
                 <button
+                    id="preview-open-bttn"
                     class={cn(
-                        "clickable-icon view-action italic absolute [transform:translateY(-50%)] w-fit cursor-pointer pl-4 py-3",
-                        $settingsStore.viewLeafPosition === "left" && "left-0",
-                        $settingsStore.viewLeafPosition === "root" &&
-                            "left-1/2 [transform:translate(-50%,-50%)] bg-[var(--background-primary)] hover:!bg-[var(--background-primary)]",
-                        $settingsStore.viewLeafPosition === "right" &&
-                            "right-0",
-                        isMobile
-                            ? "bg-[var(--mobile-sidebar-background)] hover:!bg-[var(--mobile-sidebar-background)]"
-                            : "bg-[var(--background-secondary)] hover:!bg-[var(--background-secondary)]",
+                        "clickable-icon view-action italic absolute [transform:translateY(-50%)] w-fit cursor-pointer py-3 hover:!bg-transparent",
+                        isMobile()
+                            ? "!bg-[var(--mobile-sidebar-background)] hover:!bg-[var(--mobile-sidebar-background)]"
+                            : "!bg-[var(--background-secondary)] hover:!bg-[var(--background-secondary)]",
+                        $mainLeafStore?.splitPos === "left" && "left-0 pr-3",
+                        $mainLeafStore?.splitPos === "root" &&
+                            "left-1/2 [transform:translate(-50%,-50%)] px-3 !bg-[var(--background-primary)] hover:!bg-[var(--background-primary)]",
+                        $mainLeafStore?.splitPos === "right" && "right-0 pl-3",
                     )}
-                    onclick={() => {
-                        console.log("😺😺😺😺 Open preview cliecked 😺😺😺😺");
-                        console.table({
-                            isPreviewVisibleStore: $isPreviewVisibleStore,
-                        });
-                        if (!$isPreviewVisibleStore) {
-                            ViewManager.revealView("preview");
-                        }
-                        ViewManager.tryInitPreview(undefined, isMobile);
+                    onclick={async () => {
+                        ViewManager.tryInitPreview(undefined, true);
                     }}>Open preview</button
                 >
             </div>

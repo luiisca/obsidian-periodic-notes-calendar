@@ -41,6 +41,7 @@
     );
 
     function toggleExpand(event: MouseEvent | KeyboardEvent) {
+        console.log("toggleExpand", event);
         if ((event.target as HTMLElement)?.matches("input, label")) return;
 
         isExpanded = !isExpanded;
@@ -160,7 +161,7 @@
     )}
 >
     <a
-        href="./"
+        href={null}
         class="setting-item setting-item-heading text-transparent !p-6 cursor-pointer flex items-center justify-between focus-visible:shadow-[0_0_0_3px_var(--background-modifier-border-focus)] outline-none hover:text-transparent"
         onclick={toggleExpand}
     >

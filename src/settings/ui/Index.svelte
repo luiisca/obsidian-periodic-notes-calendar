@@ -15,7 +15,7 @@
     });
 </script>
 
-<div class="pnc-container" bind:this={containerEl}>
+<div id="pnc-container" bind:this={containerEl}>
     <Tabs
         tabs={[...tabs]}
         selectedTab={$selectedTabStore}

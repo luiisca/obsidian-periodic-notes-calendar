@@ -1,14 +1,15 @@
 import { FILE_MENU_POPOVER_ID, STICKER_POPOVER_ID } from "@/constants";
 import { TFileData, type IGranularity } from "@/io";
-import { activeFilepathStore, displayedDateStore, isMainViewVisibleStore, isPreviewVisibleStore, spFileDataStore } from "@/stores";
+import { settingsStore } from "@/settings";
+import { activeFileStore, displayedDateStore, mainLeafStore, previewLeafStore, spFileDataStore } from "@/stores";
 import { type Moment } from "moment";
-import { Menu } from "obsidian";
+import { MarkdownView, Menu } from "obsidian";
+import { get } from "svelte/store";
+import { ViewManager } from "../components";
 import StickerPopoverComponent from "../components/StickerPopover.svelte";
 import { eventHandlers, isControlPressed } from "../utils";
 import { Popover } from "./base";
-import { ViewManager } from "../components";
-import { get } from "svelte/store";
-import { settingsStore } from "@/settings";
+import { isMobile } from "@/utils";
 
 export type TFileMenuPopoverParams = {
     id: typeof FILE_MENU_POPOVER_ID,
@@ -85,7 +86,7 @@ export class FileMenuPopoverBehavior {
             (menu as any).addSections([...(extraItems?.newSections || []), "title", "open", "action-primary", "action", "info", "view", "system", "", "danger"]);
 
             // Add title (for mobile)
-            if ((window.app as any).isMobile) {
+            if (isMobile()) {
                 menu.addItem((item) =>
                     item.setSection("title")
                         .setIcon("lucide-file")
@@ -103,26 +104,6 @@ export class FileMenuPopoverBehavior {
                         window.app.workspace.openLinkText(file.path, "", "tab");
                     })
             );
-            // Open preview
-            if (get(settingsStore).preview.enabled) {
-                menu.addItem((item) =>
-                    item.setSection("open")
-                        .setTitle("Open in preview window")
-                        .setIcon("lucide-eye")
-                        .onClick(() => {
-                            if (!get(isMainViewVisibleStore)) {
-                                ViewManager.revealView();
-                            }
-                            // check needed to avoid initiating 2 previews since revealView would trigger an initPreview already
-                            if (
-                                (!get(isMainViewVisibleStore) && !get(settingsStore).preview.open)
-                                || get(isMainViewVisibleStore)
-                            ) {
-                                ViewManager.tryInitPreview(file, true);
-                            }
-                        })
-                );
-            }
             // Reveal on calendar
             // TODO: replace activeLeaf() with recommended Workspace.getActiveViewOfType() method 
             if (window.app.workspace.activeLeaf?.getViewState()?.type === 'markdown') {
@@ -132,7 +113,12 @@ export class FileMenuPopoverBehavior {
                         .setIcon("lucide-calendar")
                         .onClick(() => {
                             ViewManager.revealView();
-                            activeFilepathStore.set(file.path);
+                            activeFileStore.update((d) => {
+                                if (d) {
+                                    d.file = file;
+                                }
+                                return d
+                            })
                             displayedDateStore.set(date)
                         })
                 )

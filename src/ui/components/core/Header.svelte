@@ -1,6 +1,7 @@
 <script lang="ts">
     import { IGranularity, TFileData } from "@/io";
     import { cn, eventHandlers, isControlPressed } from "@/ui/utils";
+    import { isMobile } from "@/utils";
     import { getContext, Snippet } from "svelte";
 
     interface Props {
@@ -36,21 +37,17 @@
     let minimalMode = getContext("minimalMode") as
         | { value: boolean }
         | undefined;
-    let isMobile = (window.app as any).isMobile;
 </script>
 
-<div class="flex flex-col mt-4 mb-[1.1rem]" id="header">
-    <div
-        class="flex justify-between mb-1.5 items-baseline text-[--color-text-title]"
-        id="title"
-    >
+<div id="header" class="flex flex-col mt-4 mb-[1.1rem]">
+    <div id="header-title" class="flex justify-between mb-1.5 items-baseline">
         <!-- left title -->
         {@render leftTitleSnippet?.()}
         {#if leftTitle && leftDate}
             <button
                 class={cn(
-                    "h-auto font-semibold hover:!shadow-[3px_0px_0_7px_var(--interactive-hover)] rounded-[2px] !p-0",
-                    minimalMode?.value || isMobile ? "text-xl" : "text-7xl",
+                    "h-auto font-semibold !text-[--color-text-header-title] hover:!shadow-[3px_0px_0_7px_var(--interactive-hover)] rounded-[2px] !p-0",
+                    minimalMode?.value || isMobile() ? "text-xl" : "text-7xl",
                 )}
                 id={leftTitle.granularity}
                 onclick={(event) =>
@@ -82,8 +79,8 @@
         {#if rightTitle && rightDate}
             <button
                 class={cn(
-                    "text-[--interactive-accent] font-medium hover:!shadow-[0px_0px_0px_6px_var(--interactive-hover)] rounded-[2px] !p-0",
-                    minimalMode?.value || isMobile ? "text-sm" : "text-lg",
+                    "!text-[--interactive-accent] font-medium hover:!shadow-[0px_0px_0px_6px_var(--interactive-hover)] rounded-[2px] !p-0",
+                    minimalMode?.value || isMobile() ? "text-sm" : "text-lg",
                 )}
                 id={rightTitle.granularity}
                 onclick={(event) =>

@@ -6,7 +6,7 @@
     import { getFileData } from "@/io";
     import { settingsStore } from "@/settings";
     import {
-        activeFilepathStore,
+        activeFileStore,
         displayedDateStore,
         todayStore,
         internalFileModStore,
@@ -15,6 +15,7 @@
     import Dot from "./Dot.svelte";
     import { getContext, Snippet } from "svelte";
     import { Sticker } from "..";
+    import { isMobile } from "@/utils";
 
     interface Props {
         // Properties
@@ -48,9 +49,14 @@
         $internalFileModStore; // update on file rename or sticker update
         return getFileData(granularity, date);
     });
-    let isActive = $derived(
-        isActiveOverride ?? $activeFilepathStore === file?.path,
-    );
+    let isActive = $derived.by(() => {
+        if (!$activeFileStore?.file?.path || !file?.path) {
+            return false;
+        }
+
+        return isActiveOverride ?? $activeFileStore.file.path === file.path;
+    });
+
     let isToday = $derived(date.isSame($todayStore, granularity));
     let isAdjacentMonth = $state(false);
 
@@ -65,14 +71,15 @@
     let minimalMode = getContext("minimalMode") as
         | { value: boolean }
         | undefined;
-    let isMobile = (window.app as any).isMobile;
 </script>
 
 <button
+    id={`${granularity}-bttn`}
     class={cn(
+        "date-bttn",
         "relative !h-auto w-full flex flex-col font-medium rounded-[--radius-s] tabular-nums transition-colors text-center",
         isActive
-            ? "!text-[--text-on-accent] !bg-[--interactive-accent] hover:!bg-[--interactive-accent-hover]"
+            ? "!text-[--text-on-accent]"
             : isToday
               ? "!text-[--color-text-today]"
               : isAdjacentMonth
@@ -81,8 +88,12 @@
         isActive && isToday && "!text-[--text-on-accent]",
         className,
     )}
+    class:isActive
+    style={`
+        background-color: var(--color-background-${granularity}-bttn);
+        color: var(--color-text-${granularity}-bttn);
+    `}
     onclick={(event) => {
-        console.log("🎉 onClick");
         eventHandlers.onClick({
             date,
             createNewSplitLeaf: isControlPressed(event),
@@ -108,7 +119,7 @@
     }}
 >
     {@render text?.()}
-    <span class="relative">
+    <span id="date-text" class="relative">
         {#if displaySticker}
             <Sticker sticker={sticker?.emoji} />
         {/if}
@@ -117,7 +128,7 @@
     {#if displayDot}
         <div class={cn("absolute leading-[0]", dotContainerClassName)}>
             <Dot
-                className={cn((minimalMode?.value || isMobile) && "w-1")}
+                className={cn((minimalMode?.value || isMobile()) && "w-1")}
                 isVisible={!!file}
                 isFilled={!!file}
                 {isActive}
@@ -125,3 +136,15 @@
         </div>
     {/if}
 </button>
+
+<style lang="postcss">
+    button:hover {
+        @apply hover:!bg-[var(--interactive-hover)];
+    }
+    button.isActive {
+        @apply !bg-[--interactive-accent];
+    }
+    button.isActive:hover {
+        @apply hover:!bg-[--interactive-accent-hover];
+    }
+</style>

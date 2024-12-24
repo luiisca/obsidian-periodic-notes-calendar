@@ -5,6 +5,7 @@
     import { Header } from "./core";
     import { getContext } from "svelte";
     import { cn } from "../utils";
+    import { isMobile } from "@/utils";
 
     let showingCurrentRange: boolean = $derived(
         $yearsRanges.todayRange ===
@@ -24,17 +25,16 @@
     let minimalMode = getContext("minimalMode") as
         | { value: boolean }
         | undefined;
-    let isMobile = (window.app as any).isMobile;
 </script>
 
 <Header>
     {#snippet leftTitleSnippet()}
         <div
+            id="years-range"
             class={cn(
-                "text-[--color-text-title] text-6xl font-semibold",
-                minimalMode?.value || isMobile ? "text-xl" : "text-7xl",
+                "!text-[--color-text-header-title] text-6xl font-semibold",
+                minimalMode?.value || isMobile() ? "text-xl" : "text-7xl",
             )}
-            id="years range"
         >
             {crrRange[0]} - {crrRange[1].slice(2)}
         </div>

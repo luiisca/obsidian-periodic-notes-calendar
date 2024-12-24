@@ -1,5 +1,6 @@
 <script lang="ts">
     import { cn } from "@/ui/utils";
+    import { isMobile } from "@/utils";
 
     interface Props {
         onClick: (ev: MouseEvent) => void;
@@ -11,14 +12,13 @@
     let { onClick, tooltip, direction, className = "" }: Props = $props();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let isMobile = (window.app as any).isMobile;
 </script>
 
 <button
     class={cn(
         "flex items-center !px-1.5",
         direction === "right" && "[transform:rotate(180deg)]",
-        isMobile ? "[&>svg]:w-3.5" : "[&>svg]:w-2.5",
+        isMobile() ? "[&>svg]:w-3.5" : "[&>svg]:w-2.5",
         className,
     )}
     id="arrow"

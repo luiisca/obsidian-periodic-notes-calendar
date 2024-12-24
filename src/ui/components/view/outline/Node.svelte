@@ -29,7 +29,7 @@
         updateCollapsedCount,
         depth = 0,
     }: Props = $props();
-    let leaf: WorkspaceLeaf | null = $state(null);
+    let leaf: WorkspaceLeaf | undefined | null = $state(null);
     let childrenContainerEl: HTMLDivElement | null = $state(null);
     let childrenContainerElHeight = tweened(0, {
         duration: 300,
