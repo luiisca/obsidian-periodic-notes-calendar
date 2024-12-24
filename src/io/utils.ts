@@ -7,7 +7,7 @@ import { getNormalizedPeriodSettings } from "./settings";
 import { type IGranularity } from "./types";
 import { isValidPeriodicNote } from "./validation";
 import { Moment } from "moment";
-import { getFileData, getNotePath } from "./vault";
+import { getFileData } from "./vault";
 
 export function storeAllVaultPeriodicFilepaths(
     firstRun = false,
@@ -68,6 +68,7 @@ export function storeAllVaultPeriodicFilepaths(
 
         return s
     })
+    // console.log("📂 settingsStore", get(settingsStore))
 }
 
 export function getStartupNoteGranularity() {

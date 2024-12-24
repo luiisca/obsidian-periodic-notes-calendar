@@ -6,7 +6,7 @@ import { get } from 'svelte/store';
 import { CALENDAR_POPOVER_ID, CALENDAR_RIBBON_ID, granularities, LEAF_TYPE, STICKER_POPOVER_ID } from './constants';
 import { basename, createOrOpenNote, extractAndReplaceTODOItems, getFileData, getStartupNoteGranularity, storeAllVaultPeriodicFilepaths } from './io';
 import { getPeriodicityFromGranularity } from './io/parse';
-import type { IPeriodicity } from './io/types';
+import type { IGranularity, IPeriodicity } from './io/types';
 import { isValidPeriodicNote } from './io/validation';
 import {
     activeFileStore,
@@ -168,12 +168,20 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
 
         settingsStore.update((old) => {
             const newSettings = { ...old, ...(loadedSettings || {}) };
+            const periods = newSettings.periods
+            Object.entries(periods).forEach(([granularity, periodSettings]) => {
+                Object.values(periodSettings.formats).forEach((format) => {
+                    periods[granularity as IGranularity].formats[format.id].loading = false
+                })
+            })
             return {
                 ...newSettings,
                 preview: {
                     ...newSettings.preview,
                     defaultExpansionMode: isPhone() ? "maximized" : newSettings.preview.defaultExpansionMode
                 },
+                // reset formats loading state
+                periods
             }
         });
     }
