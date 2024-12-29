@@ -26,7 +26,7 @@ export const FILE_MENU_POPOVER_ID = 'file-menu-popover';
 export const MODAL_CLASS = 'modal';
 
 export const DEFAULT_DAILY_NOTE_FORMAT = "YYYY-MM-DD";
-export const DEFAULT_WEEKLY_NOTE_FORMAT = "YYYY-[W]WW";
+export const DEFAULT_WEEKLY_NOTE_FORMAT = "YYYY-[W]ww";
 export const DEFAULT_MONTHLY_NOTE_FORMAT = "YYYY-MM";
 export const DEFAULT_QUARTERLY_NOTE_FORMAT = "YYYY-[Q]Q";
 export const DEFAULT_YEARLY_NOTE_FORMAT = "YYYY";

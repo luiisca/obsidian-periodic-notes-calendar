@@ -20,7 +20,7 @@ export class CalendarView extends ItemView {
     }
 
     getDisplayText() {
-        return 'Example view';
+        return 'Calendar';
     }
 
     async onOpen() {

@@ -5,6 +5,7 @@
     import type { Readable } from "svelte/store";
     import { cn } from "@/ui/utils";
     import { FileSuggest } from "../../suggest";
+    import { normalizePath } from "obsidian";
 
     interface Props {
         settings: Readable<PeriodSettings>;
@@ -52,11 +53,19 @@
             spellcheck={false}
             placeholder="e.g. templates/template-file"
             oninput={() => {
-                error = validateTemplate(value);
+                if (value.trim() === "") {
+                    error = "";
+                    $settings.templatePath = "";
+
+                    return;
+                }
+
+                const normalizedTemplate = normalizePath(
+                    !value.trim().endsWith(".md") ? `${value}.md` : value,
+                );
+                error = validateTemplate(normalizedTemplate);
                 if (error.trim() === "") {
-                    $settings.templatePath =
-                        value.trim() +
-                        (!value.trim().endsWith(".md") ? ".md" : "");
+                    $settings.templatePath = normalizedTemplate;
                 }
             }}
         />

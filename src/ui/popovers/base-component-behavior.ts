@@ -89,7 +89,24 @@ export class BaseComponentBehavior {
         if (positionFloatingUI) {
             this.positionComponent({ refHtmlEl });
             this.autoUpdateCleanup = autoUpdate(refHtmlEl, this.componentHtmlEl, () => {
-                this.positionComponent({ refHtmlEl });
+                // Check if element is still connected to the DOM
+                if (!refHtmlEl.isConnected) {
+                    // Clean up the autoUpdate
+                    this.autoUpdateCleanup?.();
+                    return;
+                }
+
+                try {
+                    // Additional safety check
+                    if (document.contains(refHtmlEl)) {
+                        this.positionComponent({ refHtmlEl });
+                    } else {
+                        this.autoUpdateCleanup?.();
+                    }
+                } catch (error) {
+                    console.warn('Reference element no longer valid:', error);
+                    this.autoUpdateCleanup?.();
+                }
             })
         }
 
@@ -97,6 +114,7 @@ export class BaseComponentBehavior {
         this.cbs?.onOpen?.();
     }
     public close() {
+        console.log("🔥 closing base popover")
         this.opened = false;
 
         this.hide();
@@ -201,13 +219,13 @@ export class BaseComponentBehavior {
     private show() {
         this.componentHtmlEl.style.display = 'block';
         this.componentHtmlEl.style.opacity = '1';
-        this.componentHtmlEl.style.zIndex = '999';
+        this.componentHtmlEl.style.zIndex = '9999';
         this.componentHtmlEl.style.pointerEvents = 'auto';
     }
     private hide() {
         this.componentHtmlEl.style.display = 'none';
         this.componentHtmlEl.style.opacity = '0';
-        this.componentHtmlEl.style.zIndex = '-999';
+        this.componentHtmlEl.style.zIndex = '-9999';
     }
     private setInteractivity(enabled = true) {
         if (enabled) {

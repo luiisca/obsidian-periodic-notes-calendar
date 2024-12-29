@@ -46,7 +46,7 @@
         {#if leftTitle && leftDate}
             <button
                 class={cn(
-                    "h-auto font-semibold !text-[--color-text-header-title] hover:!shadow-[3px_0px_0_7px_var(--interactive-hover)] rounded-[2px] !p-0",
+                    "h-auto font-semibold !text-[--color-text-header-title] hover:!shadow-[0px_0px_0_7px_var(--interactive-hover)] rounded-[2px] !p-0",
                     minimalMode?.value || isMobile() ? "text-xl" : "text-7xl",
                 )}
                 id={leftTitle.granularity}

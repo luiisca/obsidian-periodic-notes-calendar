@@ -50,6 +50,11 @@ export function initializePicker(
         data,
         onEmojiSelect: async (emoji: TEmoji) => {
             const stickerInstance = getPopoverInstance(STICKER_POPOVER_ID);
+            const stickerBehaviorInstance = getBehaviorInstance(STICKER_POPOVER_ID);
+            console.log("🌿🌿🌿🌿 onEmojiSelect() 🌿🌿🌿🌿")
+            console.log("sticker instance", stickerInstance)
+            console.log("stickerBehaviorInstance", stickerBehaviorInstance)
+            console.log("stickerBehaviorInstance opene", stickerBehaviorInstance?.opened)
             stickerInstance?.close()
 
             const { file, sticker } = fileData;

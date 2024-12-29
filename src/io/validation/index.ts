@@ -94,7 +94,10 @@ export function validateTemplate(template: string): string {
         return "";
     }
 
-    if (!window.app.vault.getAbstractFileByPath(template)) {
+    const normalizedTemplate = normalizePath(
+        !template.trim().endsWith(".md") ? `${template}.md` : template
+    )
+    if (!window.app.vault.getAbstractFileByPath(normalizedTemplate)) {
         return "Template file not found";
     }
 

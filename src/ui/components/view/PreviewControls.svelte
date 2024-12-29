@@ -21,6 +21,7 @@
     import { Dot } from "../core";
     import { Outline } from "./outline";
     import { isValidPeriodicNote } from "@/io/validation";
+    import { addExtraItems } from "./utils";
 
     interface Props {
         date: Moment;
@@ -39,6 +40,9 @@
     let crrGranularity = $derived($settingsStore.preview.crrGranularity);
 
     const handleOutlineClick = (event: MouseEvent | KeyboardEvent) => {
+        // avoid this click triggering click listener added by popover
+        event.stopPropagation();
+
         Popover.create({
             id: BASE_POPOVER_ID,
             view: {
@@ -56,12 +60,30 @@
             : null;
         const sticker = getSticker(tags);
 
+        const crrActiveLeaf =
+            window.app.workspace.getActiveViewOfType(MarkdownView)?.leaf;
+        const crrActiveLeafId = (crrActiveLeaf as any)?.id as string | null;
+        const previewLeafId = ($previewLeafStore?.leaf as any)?.id as
+            | string
+            | null;
+        const crrActiveLeafIsPreview =
+            crrActiveLeafId &&
+            previewLeafId &&
+            crrActiveLeafId === previewLeafId;
         Popover.create({
             id: FILE_MENU_POPOVER_ID,
         }).open({
             event,
             date,
             fileData: { file, sticker },
+            extraItems:
+                crrActiveLeafIsPreview &&
+                $previewLeafStore?.filepath === file?.path
+                    ? {
+                          add: addExtraItems,
+                          newSections: ["preview"],
+                      }
+                    : undefined,
         });
     };
 
@@ -134,7 +156,6 @@
             class={cn(
                 "preview-controls-button",
                 "clickable-icon view-action cursor-pointer !transition-none",
-                outlineOpen && "is-active",
             )}
             aria-label={`Outline of ${file.basename}`}
             data-tooltip-delay="200"

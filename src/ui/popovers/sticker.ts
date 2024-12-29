@@ -51,15 +51,24 @@ export class StickerPopoverBehavior extends BaseComponentBehavior {
     public handleWindowClick(event: MouseEvent) {
         const ev = event as MouseEvent & { target: HTMLElement | null };
 
-        const menuEl = document.querySelector('.menu');
-
+        console.log("✅ clicked")
         const stickerElTouched =
             this.componentHtmlEl?.contains(ev.target) ||
             ev.target?.closest(`[id*=${STICKER_POPOVER_ID}]`);
-        const menuElTouched = menuEl?.contains(ev.target) || ev.target?.className.includes('menu');
+
+        console.table({
+            ev,
+            taget: ev.target,
+            component: this.componentHtmlEl,
+            componentContainsTarget: this.componentHtmlEl?.contains(ev.target),
+            targetCloseToSticker: ev.target?.closest(`[id*=${STICKER_POPOVER_ID}]`),
+            opened: this.opened,
+            stickerElTouched,
+        })
 
         // close SP if user clicks anywhere but SP
-        if (this.opened && !stickerElTouched && !menuElTouched) {
+        if (this.opened && !stickerElTouched) {
+            console.log("❌ about to close SP")
             this.close();
 
             return;

@@ -59,12 +59,27 @@
     let { triggerRerender } = getContext<INotesContext>("notesContext");
     let formatId = format.id;
 
-    // Mock data
     let filepaths = $derived(
         $settingsStore.filepathsByFormatValue[format.value] || {},
     );
     let filesCount = $derived(Object.keys(filepaths).length);
 
+    function setLoading(loading: boolean, all: boolean = false) {
+        if (all) {
+            settings.update((s) => {
+                for (const f of Object.values(s.formats)) {
+                    s.formats[f.id].loading = loading;
+                }
+                return s;
+            });
+        } else {
+            settings.update((s) => {
+                s.formats[format.id].loading = loading;
+
+                return s;
+            });
+        }
+    }
     function handleUpdate() {
         debounce(() => {
             error = validateFormat(value, granularity, format.id);
@@ -86,20 +101,12 @@
             });
         }, 500)();
 
-        settings.update((s) => {
-            s.formats[format.id].loading = true;
-
-            return s;
-        });
+        setLoading(true);
         debounce(() => {
             storeAllVaultPeriodicFilepaths(false, [granularity], {
                 [format.id]: format,
             });
-            settings.update((s) => {
-                s.formats[format.id].loading = false;
-
-                return s;
-            });
+            setLoading(false);
         }, 800)();
     }
 
@@ -153,103 +160,84 @@
                     $settingsStore.filepathsByFormatValue[oldFormat.value] ||
                     {};
                 const oldFilesCount = Object.keys(oldFilepaths).length;
-                if (oldFilesCount) {
-                    settings.update((s) => {
-                        for (const f of Object.values(s.formats)) {
-                            s.formats[f.id].loading = true;
-                        }
-                        return s;
-                    });
 
-                    Object.keys(oldFilepaths).forEach(
-                        async (oldFilepath, oldFilepathIndex) => {
-                            const oldFile =
-                                window.app.vault.getAbstractFileByPath(
-                                    oldFilepath,
-                                ) as TFile | null;
-                            const date = window.moment(
-                                oldFile?.basename,
-                                oldFormat.value,
-                                true,
+                if (!oldFilesCount) return;
+
+                setLoading(true, true);
+
+                Object.keys(oldFilepaths).forEach(
+                    async (oldFilepath, oldFilepathIndex) => {
+                        const oldFile = window.app.vault.getAbstractFileByPath(
+                            oldFilepath,
+                        ) as TFile | null;
+                        const date = window.moment(
+                            oldFile?.basename,
+                            oldFormat.value,
+                            true,
+                        );
+                        const newNormalizedPath = getNotePath(
+                            granularity,
+                            date,
+                            format,
+                            oldFile?.parent?.path,
+                        );
+
+                        await ensureFolderExists(newNormalizedPath);
+                        if (!oldFile) return;
+
+                        try {
+                            await window.app.vault.rename(
+                                oldFile,
+                                newNormalizedPath,
                             );
-                            const newNormalizedPath = getNotePath(
-                                granularity,
-                                date,
-                                format,
-                                oldFile?.parent?.path,
-                            );
 
-                            await ensureFolderExists(newNormalizedPath);
-                            if (oldFile) {
-                                try {
-                                    await window.app.vault.rename(
-                                        oldFile,
-                                        newNormalizedPath,
-                                    );
+                            settingsStore.renameFilepath({
+                                oldData: {
+                                    path: oldFilepath,
+                                    formatValue: oldFormat.value,
+                                    toBeDeleted: true,
+                                },
+                                newData: {
+                                    path: newNormalizedPath,
+                                    formatValue: format.value,
+                                    toBeAdded: true,
+                                },
+                            });
 
-                                    settingsStore.renameFilepath({
-                                        oldData: {
-                                            path: oldFilepath,
-                                            formatValue: oldFormat.value,
-                                            toBeDeleted: true,
-                                        },
-                                        newData: {
-                                            path: newNormalizedPath,
-                                            formatValue: format.value,
-                                            toBeAdded: true,
-                                        },
-                                    });
-
-                                    // one format is always omitted as its the target format and we avoid renaming it's filepaths unnecessarily
-                                    if (
-                                        oldFormatsParsedCount ===
-                                            Object.keys(oldFormats).length -
-                                                1 &&
-                                        oldFilepathIndex === oldFilesCount - 1
-                                    ) {
-                                        settings.update((s) => {
-                                            for (const f of Object.values(
-                                                s.formats,
-                                            )) {
-                                                s.formats[f.id].loading = false;
-                                            }
-                                            return s;
-                                        });
-                                        internalFileModStore.set(null);
-                                    }
-                                } catch (error) {
-                                    new Notice(
-                                        genNoticeFragment([
-                                            [
-                                                `Failed to rename ${oldFilepath} to ${newNormalizedPath}: `,
-                                            ],
-                                            [error.message, "u-pop"],
-                                        ]),
-                                        8000,
-                                    );
-
-                                    // one oldFormat is always omitted as its the target format
-                                    if (
-                                        oldFormatsParsedCount ===
-                                            Object.keys(oldFormats).length -
-                                                1 &&
-                                        oldFilepathIndex === oldFilesCount - 1
-                                    ) {
-                                        settings.update((s) => {
-                                            for (const f of Object.values(
-                                                s.formats,
-                                            )) {
-                                                s.formats[f.id].loading = false;
-                                            }
-                                            return s;
-                                        });
-                                        internalFileModStore.set(null);
-                                    }
-                                }
+                            // set loading to false when reaching the last filepath of the last parsable format,
+                            // call here and not after the loop to ensure loading is updated after the last rename op is completed
+                            if (
+                                oldFormatsParsedCount ===
+                                    Object.keys(oldFormats).length - 1 &&
+                                oldFilepathIndex === oldFilesCount - 1
+                            ) {
+                                setLoading(false, true);
+                                internalFileModStore.set(null);
                             }
-                        },
-                    );
-                }
+                        } catch (error) {
+                            new Notice(
+                                genNoticeFragment([
+                                    [
+                                        `Failed to rename ${oldFilepath} to ${newNormalizedPath}: `,
+                                    ],
+                                    [error.message, "u-pop"],
+                                ]),
+                                8000,
+                            );
+
+                            // set loading to false when reaching the last filepath of the last parsable format,
+                            // call here and not after the loop to ensure loading is updated after the last rename op is completed
+                            if (
+                                oldFormatsParsedCount ===
+                                    Object.keys(oldFormats).length - 1 &&
+                                oldFilepathIndex === oldFilesCount - 1
+                            ) {
+                                setLoading(false, true);
+                                internalFileModStore.set(null);
+                            }
+                        }
+                    },
+                );
             });
         };
 

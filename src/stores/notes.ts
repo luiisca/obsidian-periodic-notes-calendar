@@ -9,7 +9,7 @@ type TActiveFile = {
     granularity: IGranularity | null;
 }
 const activeFileStore = writable<TActiveFile | null>({ file: null, date: null, granularity: null });
+const timelineParentFileStore = writable<TFile | null>(null);
 const internalFileModStore = writable<"created" | "renamed" | { modified: number } | "deleted" | null>(null);
 
-export { activeFileStore, internalFileModStore };
-
+export { activeFileStore, timelineParentFileStore, internalFileModStore };

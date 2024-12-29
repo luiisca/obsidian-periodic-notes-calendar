@@ -16,10 +16,12 @@
 </script>
 
 <div class="py-1 px-0 flex justify-between items-center">
-    <div class="flex items-end">
+    <div class="flex items-baseline">
         <span class="font-medium">{basename}</span>
-        {#if path.includes("/")}
-            <span class="opacity-70 text-sm h-4 ml-1">in {path}</span>
+        {#if path}
+            <span class="opacity-70 [font-size:var(--font-ui-smaller)] h-4 ml-2"
+                >in {path}</span
+            >
         {/if}
     </div>
     <DeleteBttn

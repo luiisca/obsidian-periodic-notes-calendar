@@ -65,6 +65,7 @@
         if (derivedG === "week") {
             function getWeeksInMonth() {
                 const weeks = [];
+                // little hack to avoid moment's weirdness
                 const date = window.moment([
                     crrDisplayedDate.year(),
                     crrDisplayedDate.month(),
@@ -114,7 +115,6 @@
         ev.stopPropagation();
         crrDisplayedDate = crrDisplayedDate
             .clone()
-            .startOf(derivedG)
             [type](G_MAP[derivedG].mod, G_MAP[derivedG].group);
     }
     function handleResetDate(event: MouseEvent) {
@@ -177,31 +177,6 @@
         };
         observer = new ResizeObserver(cb);
         timelineEl?.parentElement && observer.observe(timelineEl.parentElement);
-
-        // check for granularity change
-        const handleLayoutChange = () => {
-            const crrActiveLeaf = window.app.workspace.getActiveViewOfType(
-                MarkdownView,
-            )?.leaf as (WorkspaceLeaf & { containerEl: HTMLElement }) | null;
-            const file = ViewManager.getFileFromLeaf(crrActiveLeaf);
-            if (!file) return;
-
-            const isPeriodic = isValidPeriodicNote(file.basename);
-            // update derivedG if crr timeline instance's parent is the activeLeaf
-            if (
-                crrActiveLeaf?.containerEl?.contains(timelineEl) &&
-                isPeriodic.granularity &&
-                isPeriodic.granularity !== derivedG
-            ) {
-                derivedG = isPeriodic.granularity;
-                derivedInitialDate = isPeriodic.date.clone();
-                crrDisplayedDate = isPeriodic.date.clone();
-                crrSelectedDate = isPeriodic.date.clone();
-            }
-        };
-        window.plugin?.registerEvent(
-            window.app.workspace.on("resize", handleLayoutChange),
-        );
     });
 
     onDestroy(() => {
@@ -216,7 +191,9 @@
         id="timeline-container"
         class={cn(
             `timeline-container-${granularity}`,
-            "absolute right-[26px] z-10 flex gap-[0.15rem] flex-col p-1 [border-bottom:1px_solid_var(--divider-color)] rounded-[var(--radius-s)]",
+            "absolute right-[26px] z-10 flex gap-[0.15rem] flex-col p-1 rounded-[var(--radius-s)]",
+            viewMode === "expanded" &&
+                "[border-bottom:1px_solid_var(--divider-color)]",
             isSide
                 ? isMobile()
                     ? "top-[26px] bg-[var(--mobile-sidebar-background)]"
@@ -281,7 +258,8 @@
                                         crrSelectedDate,
                                         derivedG,
                                     )}
-                                    displaySticker={false}
+                                    displaySticker={$settingsStore.timeline
+                                        .displayStickers}
                                     displayDot={false}
                                     className="!p-1.5 text-xs"
                                     ignoreAdjacentMonth={true}
@@ -299,14 +277,12 @@
             role="button"
             id="timeline-toggle-button"
             class={cn(
-                "absolute cursor-pointer flex justify-end items-center pl-1 transition-all duration-400 ease-out right-0 w-auto",
+                "absolute cursor-pointer flex justify-end items-center pl-1 transition-all duration-400 ease-out right-0",
                 "rounded-[var(--radius-s)]",
                 viewMode === "collapsed"
                     ? "top-0 px-1.5 pl-1 py-[0.3rem]"
                     : "top-[calc(100%+0.15rem)]",
-                viewMode === "expanded" &&
-                    (derivedG === "day" || derivedG === "year") &&
-                    "w-full",
+                viewMode === "expanded" && "w-auto min-w-full",
                 isSide
                     ? isMobile()
                         ? "bg-[var(--mobile-sidebar-background)] hover:bg-[var(--background-secondary)]"

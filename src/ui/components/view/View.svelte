@@ -68,7 +68,7 @@
         data-popover={popover}
         id={CALENDAR_POPOVER_ID}
     >
-        <div class="ml-[5px] p-2 pr-0 w-[clamp(320px,_35vw,_500px)]">
+        <div class="ml-[5px] p-2 pr-0 w-[clamp(320px,_35vw,_350px)]">
             <div
                 class="[border:1px_solid_var(--background-modifier-border-hover)] bg-[var(--background-secondary)] rounded-[var(--radius-m)] [box-shadow:var(--shadow-s)] p-[var(--size-2-3)]"
             >
@@ -84,9 +84,7 @@
             id="pnc-container"
             class={cn(
                 "absolute left-0 w-full",
-                $settingsStore.viewLeafPosition === "right"
-                    ? "bottom-11"
-                    : "bottom-8",
+                $mainLeafStore?.splitPos === "right" ? "bottom-11" : "bottom-8",
             )}
         >
             <div

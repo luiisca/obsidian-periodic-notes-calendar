@@ -196,11 +196,11 @@
 
 <div
     class="bg-transparent z-[var(--layer-menu)] w-max opacity-0 pointer-events-none absolute top-0 left-0"
-    data-popover={true}
     id={BASE_POPOVER_ID}
+    data-popover={true}
 >
     <div
-        class="w-[clamp(320px,_35vw,_500px)] [border:1px_solid_var(--background-modifier-border-hover)] bg-[var(--background-secondary)] rounded-[var(--radius-m)] [box-shadow:var(--shadow-s)] p-[var(--size-2-3)]"
+        class="w-[clamp(320px,_35vw,_400px)] [border:1px_solid_var(--background-modifier-border-hover)] bg-[var(--background-secondary)] rounded-[var(--radius-m)] [box-shadow:var(--shadow-s)] p-[var(--size-2-3)]"
     >
         <div class="nav-header">
             <div class="nav-buttons-container">

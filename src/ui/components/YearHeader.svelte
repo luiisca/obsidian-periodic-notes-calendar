@@ -32,7 +32,7 @@
     leftTitle={{
         granularity: "year",
         fileData,
-        formatValue: "YYYY",
+        formatValue: "YY",
     }}
 >
     {#snippet rightTitleSnippet()}

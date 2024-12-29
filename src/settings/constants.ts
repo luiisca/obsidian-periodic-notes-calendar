@@ -49,6 +49,7 @@ export interface ISettings {
         /** Whether the adjacent dates will be based in the crr file granularity or if they'll always be adjacent days. */
         granularityBased: boolean;
         displayOnRestNotes: boolean;
+        displayStickers: boolean;
         viewMode: TimelineViewMode;
         restViewMode: TimelineViewMode;
     };
@@ -58,6 +59,7 @@ export interface ISettings {
     viewLeafPosition: "left" | "root" | "right";
 
     floatingMode: boolean;
+    syncCalendar: boolean;
 
     /** Whether to show a minimal view of the calendar */
     minimalMode: boolean;
@@ -165,6 +167,7 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
         enabled: true,
         granularityBased: true,
         displayOnRestNotes: false,
+        displayStickers: true,
         viewMode: 'expanded' as const,
         restViewMode: 'collapsed' as const,
     },
@@ -172,6 +175,7 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
     filepathsByFormatValue: {},
     viewLeafPosition: "right",
     floatingMode: false,
+    syncCalendar: true,
     minimalMode: false,
     floatingViewAlwaysMinimal: true,
     shouldConfirmBeforeCreate: true,

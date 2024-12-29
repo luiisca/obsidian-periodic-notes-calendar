@@ -33,7 +33,15 @@ export async function createOrOpenNote({
     const filename = date.format(selectedFormat.value);
     const normalizedPath = getNotePath(granularity, date);
 
-    // console.log("[createOrOpenNote()] > normalizedPath: ", normalizedPath);
+    console.log("🎉🎉🎉 [createOrOpenNote()] 🎉🎉🎉");
+    console.table({
+        granularity,
+        selectedFormat,
+        filename,
+        normalizedPath,
+        date,
+        formattedDate: date.format("YYYY-MM-DD, [W]W, [w]w")
+    })
     let file = window.app.vault.getAbstractFileByPath(normalizedPath)
     // console.log("[createOrOpenNote()] > file: ", file);
 

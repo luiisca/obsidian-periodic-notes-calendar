@@ -24,11 +24,14 @@
     let filepaths = $derived(
         $settingsStore.filepathsByFormatValue[format.value] || {},
     );
-    let filesCount = $derived(Object.keys(filepaths).length);
+    let filesCount = $derived(
+        Object.keys($settingsStore.filepathsByFormatValue[format.value] || {})
+            .length,
+    );
     let _selected = $derived(selected);
 
-    function handleShowFiles(filepaths: string[]) {
-        new FilepathModal(filepaths, format.value).open();
+    function handleClick() {
+        new FilepathModal(Object.keys(filepaths), format.value).open();
     }
 </script>
 
@@ -46,9 +49,11 @@
                 format.loading && "opacity-60",
             )}
             href={null}
-            onclick={() => handleShowFiles(Object.keys(filepaths))}
-            >{filesCount || "-"} {filesCount === 1 ? "File" : "Files"}</a
+            onclick={handleClick}
         >
+            {filesCount || "-"}
+            {filesCount === 1 ? "File" : "Files"}
+        </a>
     </div>
     {separator}
 {/if}

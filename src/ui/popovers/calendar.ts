@@ -106,7 +106,6 @@ export class CalendarPopoverBehavior extends BaseComponentBehavior {
         const referenceElFocused: boolean =
             (this.opened && document.activeElement === this.refHtmlEl) || false;
         // When the user focuses on 'referenceEl' and then presses the Tab or ArrowDown key, the first element inside the view should receive focus.
-        // TODO: make it work!
         if (
             referenceElFocused &&
             (event.key === 'ArrowDown' || event.key === 'Tab') &&

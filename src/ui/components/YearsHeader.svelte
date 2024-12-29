@@ -36,7 +36,7 @@
                 minimalMode?.value || isMobile() ? "text-xl" : "text-7xl",
             )}
         >
-            {crrRange[0]} - {crrRange[1].slice(2)}
+            {crrRange[0].slice(2)} - {crrRange[1].slice(2)}
         </div>
     {/snippet}
 

@@ -18,19 +18,26 @@ export class ViewManager {
     static previewLeafCleanups: (() => void)[] = [];
     private static firstLayoutChange = true;
 
-    static async initView({ active }: { active: boolean } = { active: true }) {
+    static async restartView({ active }: { active: boolean } = { active: true }) {
         window.app.workspace.detachLeavesOfType(LEAF_TYPE);
-        let mainLeaf;
+        this.initView({ active })
+    }
+    static async initView({ active }: { active: boolean } = { active: true }) {
+        let mainLeaf = this.getMainLeaf();
 
         const leafPosition = get(settingsStore).viewLeafPosition as ISettings["viewLeafPosition"];
         if (leafPosition === 'root') {
-            mainLeaf = window.app.workspace.getLeaf('tab')
+            if (!mainLeaf) {
+                mainLeaf = window.app.workspace.getLeaf('tab')
+            }
             mainLeaf?.setViewState({
                 type: LEAF_TYPE,
                 active
             })
         } else {
-            mainLeaf = window.app.workspace[`get${capitalize(leafPosition) as "Left" | "Right"}Leaf`](false);
+            if (!mainLeaf) {
+                mainLeaf = window.app.workspace[`get${capitalize(leafPosition) as "Left" | "Right"}Leaf`](false);
+            }
             mainLeaf?.setViewState({
                 type: LEAF_TYPE,
                 active
@@ -75,199 +82,219 @@ export class ViewManager {
     }
 
     private static setupVisibilityTracking(): () => void {
-        // Handler for layout changes
-        const handleLayoutChange = async () => {
-            const prevMainLeaf = get(mainLeafStore)
-            const prevPreviewLeaf = get(previewLeafStore);
-
-            // crr active leaf
-            const crrActiveLeaf = window.app.workspace.getActiveViewOfType(MarkdownView)?.leaf;
-
-            // main leaf
-            const mainLeaf = this.getMainLeaf() as WorkspaceLeaf & { containerEl: HTMLElement, width: number, height: number } | null;
-            const mainLeafvisible = mainLeaf && this.isLeafVisible(mainLeaf)
-            const isMainLeafReopened = !prevMainLeaf?.visible && mainLeafvisible;
-            const mainLeafSplitPos = mainLeaf && this.getLeafSplitPosition(mainLeaf);
-
-            mainLeafStore.update(s => ({
-                ...s,
-                leaf: mainLeaf,
-                visible: mainLeafvisible,
-                reopened: isMainLeafReopened,
-                splitPos: mainLeafSplitPos ?? s?.splitPos ?? null,
-            }))
-
-            // preview leaf
-            const previewLeaf = this.searchPreviewLeaf()
-            const previewLeafVisible = previewLeaf && this.isLeafVisible(previewLeaf)
-            const isPreviewMaximized = (previewLeaf && this.checkIfPreviewIsMaximized(previewLeaf)) || null;
-            const previewSplitPosition = previewLeaf && this.getLeafSplitPosition(previewLeaf);
-            const previewSplitDirection = previewLeaf && this.getPreviewSplitDirection(previewLeaf);
-            let isOpenPreviewBttnVisible =
-                get(settingsStore).preview.enabled
-                && (
-                    !previewLeafVisible
-                    || isPreviewMaximized
-                    || (mainLeafSplitPos !== previewSplitPosition)
-                    || ((previewLeaf as any)?.id !== (prevPreviewLeaf?.leaf as any)?.id)
-                )
-            const mainLeafView = (mainLeaf?.view as View & { contentEl: { children: HTMLElement[] } } | null);
-            const mainLeafHeight = Array.from(mainLeafView?.contentEl.children || []).find(c => c.id.includes('pnc-container'))?.clientHeight ?? 0;
-            const mainLeafParentHeight = ((mainLeaf?.parent as any)?.containerEl?.clientHeight as number | undefined) ?? 0;
-
-            // hide open preview button when there is not enough room for it, should only work on desktop and tablets, phones do not have enough space
-            const isMoreThanOneSplitleaf = Array.from((mainLeaf?.parent?.parent as any)?.children || [])?.length > 1
-            if (!isPhone() && !previewLeafVisible && isMoreThanOneSplitleaf && (mainLeafHeight + 100 >= mainLeafParentHeight)) {
-                isOpenPreviewBttnVisible = false
-            }
-
-            // leaf.view.state.file will be used when markdown view is not visible and leaf.view.file.path would return undefined
-            // this value is undefined when markdown view is visible
-            const previewFilepath = (previewLeaf?.view as any)?.state?.file as string | undefined || (previewLeaf?.view as any)?.file?.path as string | null
-            const previewFile = previewFilepath ? window.app.vault.getAbstractFileByPath(previewFilepath) : null
-            previewLeafStore.update(s => ({
-                ...s,
-                leaf: previewLeaf,
-                filepath: previewFilepath,
-                visible: previewLeafVisible,
-                maximized: isPreviewMaximized,
-                splitPos: previewSplitPosition ?? s?.splitPos ?? null,
-                splitDir: previewSplitDirection ?? s?.splitDir ?? null,
-                isOpenBttnVisible: isOpenPreviewBttnVisible
-            }))
-            // update lastPreview to ensure next check in cleanup will correctly recognize the new file preview that leaf is showing
-            // console.log("💖💖💖💖💖💖💖 lastPreview update 💖💖💖💖💖💖💖 ")
-            // console.table({
-            //     previewLeaf,
-            //     previewFilepath,
-            //     lastPreview: get(settingsStore).preview.lastPreview,
-            //     check: (previewFilepath !== get(settingsStore).preview.lastPreview?.filepath)
-            // })
-            if (
-                previewLeaf
-                && previewFilepath
-                && (
-                    previewFilepath !== get(settingsStore).preview.lastPreview?.filepath
-                    || previewSplitPosition !== get(settingsStore).preview.lastPreview?.splitPos
-                )
-            ) {
-                settingsStore.update(s => ({
-                    ...s,
-                    preview: {
-                        ...s.preview,
-                        lastPreview: {
-                            filepath: previewFilepath,
-                            splitPos: previewSplitPosition,
-                        }
-                    }
-                }))
-            }
-
-            // console.log("💖💖💖💖💖💖💖 layout change 💖💖💖💖💖💖💖 ");
-            // console.table({
-            //     // active leaf
-            //     crrActiveLeaf,
-            //     crrActiveLeafId: (crrActiveLeaf as any)?.id,
-            //     // main leaf
-            //     mainLeafStore: get(mainLeafStore),
-            //     mainLeafHeight,
-            //     mainLeafParentHeight,
-            //     mainLeafHeightComparison: mainLeafHeight > mainLeafParentHeight,
-            //     // preview leaf
-            //     previewLeafStore: get(previewLeafStore),
-            //     previewSettings: get(settingsStore).preview,
-            //     previewFile,
-            //     prevPreviewLeaf: prevPreviewLeaf?.leaf,
-            //     prevPreviewLeafId: ((prevPreviewLeaf)?.leaf as any)?.id,
-            //     processingPreviewChange: get(processingPreviewChangeStore),
-            //     firstLayoutChange: this.firstLayoutChange,
-            // })
-
-            if (this.firstLayoutChange) {
-                this.firstLayoutChange = false;
-            }
-
-            // avoid toggling preview if it has transitioned to an expanded-like state (moved to another tab)
-            // if (isPreviewMaximized) {
-            //     processingPreviewChangeStore.set(false);
-            // };
-
-            if (!get(processingPreviewChangeStore)) {
-                console.log("🙌 layout change, about to perform preview change checks")
-
-                const previewMaximized =
-                    get(settingsStore).preview.defaultExpansionMode === "maximized"
-                    || get(previewLeafStore)?.maximized
-
-
-                // add or remove timeline
-                this.addOrRemoveTimeline()
-
-                // very especific check for when an expanded preview window is moved to a split window
-                if (previewLeafVisible && (get(settingsStore).preview.defaultExpansionMode === "maximized" && !isPreviewMaximized)) {
-                    settingsStore.update(s => {
-                        s.preview.tabHeaderVisible = true;
-                        return s;
-                    })
-                    return;
-                }
-                // show preview when user moves back to calendar tab and preview is open
-                if (!prevPreviewLeaf?.leaf && !previewLeaf && isMainLeafReopened && get(settingsStore).preview.enabled && get(settingsStore).preview.open && !previewMaximized) {
-                    console.log("🌳 initPreview")
-                    this.initPreview();
-                    processingPreviewChangeStore.set(true);
-                    return;
-                }
-
-                // CLEANUPS
-
-                // avoids closing preview when preview leaf shows a different file
-                if (!this.firstLayoutChange && ((crrActiveLeaf as any)?.id === ((prevPreviewLeaf)?.leaf as any)?.id)) {
-                    return
-                }
-
-                // cleanup preview when user closes calendar tab
-                if (prevMainLeaf?.leaf && !mainLeaf) {
-                    this.cleanupPreviews()
-                    processingPreviewChangeStore.set(true);
-                    console.log("❌ mainLeaf not found and removed preview")
-                    return;
-                }
-                if (prevPreviewLeaf?.leaf && !previewLeaf) {
-                    this.cleanupPreview();
-                    processingPreviewChangeStore.set(true);
-                    console.log("❌ previewLeaf not found, removed and set open to false")
-                    !this.firstLayoutChange && settingsStore.update(s => {
-                        s.preview.open = false
-                        return s
-                    })
-                    return;
-                }
-                // moved out of calendar view to a different tab
-                if (previewLeaf && previewLeafVisible && !mainLeafvisible && previewSplitPosition === get(settingsStore).viewLeafPosition && !previewMaximized) {
-                    this.cleanupPreview({ leaf: previewLeaf });
-                    processingPreviewChangeStore.set(true);
-                    console.log("❌ moved out of calendar view to a different tab, removed preview")
-                    return;
-                }
-            } else {
-                processingPreviewChangeStore.set(false);
-            }
-        };
-
         // Register event handlers
-        // window.app.workspace.on('layout-change', handleLayoutChange);
-        window.app.workspace.on('resize', handleLayoutChange);
-
-        // Initial check
-        // handleLayoutChange();
+        const boundCb = this.handleLayoutChange.bind(this);
+        window.app.workspace.on('resize', boundCb);
 
         // Return cleanup function
         return () => {
-            window.app.workspace.off('layout-change', handleLayoutChange);
-            window.app.workspace.off('resize', handleLayoutChange);
+            window.app.workspace.off('resize', boundCb);
         };
     }
+
+    /**
+        * map layout changes and react to changes in the workspace
+    */
+    static async handleLayoutChange() {
+        const prevMainLeaf = get(mainLeafStore)
+        const prevPreviewLeaf = get(previewLeafStore);
+
+        // crr active leaf
+        const crrActiveLeaf = window.app.workspace.getActiveViewOfType(MarkdownView)?.leaf;
+
+        // main leaf
+        const mainLeaf = this.getMainLeaf() as WorkspaceLeaf & { containerEl: HTMLElement, width: number, height: number } | null;
+        const mainLeafvisible = mainLeaf && this.isLeafVisible(mainLeaf)
+        const isMainLeafReopened = !prevMainLeaf?.visible && mainLeafvisible;
+        const mainLeafSplitPos = mainLeaf && this.getLeafSplitPosition(mainLeaf);
+        const mainLeafView = (mainLeaf?.view as View & { contentEl: { children: HTMLElement[] } | null } | null);
+        const mainLeafHeight = Array.from(mainLeafView?.contentEl?.children || []).find(c => c.id.includes('pnc-container'))?.clientHeight ?? 0;
+        const mainLeafParentHeight = ((mainLeaf?.parent as any)?.containerEl?.clientHeight as number | undefined) ?? 0;
+
+        mainLeafStore.update(s => ({
+            ...s,
+            leaf: mainLeaf,
+            visible: mainLeafvisible,
+            reopened: isMainLeafReopened,
+            splitPos: mainLeafSplitPos ?? s?.splitPos ?? null,
+        }))
+
+        // preview leaf
+        const previewLeaf = this.searchPreviewLeaf()
+        const previewLeafVisible = previewLeaf && this.isLeafVisible(previewLeaf)
+        const isPreviewMaximized = (previewLeaf && this.checkIfPreviewIsMaximized(previewLeaf)) || null;
+        const previewSplitPosition = previewLeaf && this.getLeafSplitPosition(previewLeaf);
+        const previewSplitDirection = previewLeaf && this.getPreviewSplitDirection(previewLeaf);
+        // leaf.view.state.file will be used when markdown view is not visible and leaf.view.file.path would return undefined
+        // this value is undefined when markdown view is visible
+        const previewFilepath = (previewLeaf?.view as any)?.state?.file as string | undefined || (previewLeaf?.view as any)?.file?.path as string | null
+        const previewFile = (previewFilepath ? window.app.vault.getAbstractFileByPath(previewFilepath) : null) as TFile | null
+        let isOpenPreviewBttnVisible =
+            get(settingsStore).preview.enabled
+            && (
+                !previewLeafVisible
+                || isPreviewMaximized
+                || (mainLeafSplitPos !== previewSplitPosition)
+                || (this.firstLayoutChange ? false : ((previewLeaf as any)?.id !== (prevPreviewLeaf?.leaf as any)?.id))
+            )
+
+        // hide open preview button when there is not enough room for it, should only work on desktop and tablets, phones do not have enough space
+        const isMoreThanOneSplitleaf = Array.from((mainLeaf?.parent?.parent as any)?.children || [])?.length > 1
+        if (!isPhone() && !previewLeafVisible && isMoreThanOneSplitleaf && (mainLeafHeight + 100 >= mainLeafParentHeight)) {
+            isOpenPreviewBttnVisible = false
+        }
+
+        if (this.firstLayoutChange && previewLeaf && previewFile) {
+            const { granularity } = await this.getPreviewFileData();
+            // setup existing preview leaf with preview controls and all stuff required to make a preview leaf
+            this.setupOpenPreviewLeaf({
+                file: previewFile,
+                granularity,
+                previewLeaf,
+                openFile: false,
+            })
+        }
+
+        previewLeafStore.update(s => ({
+            ...s,
+            leaf: previewLeaf,
+            filepath: previewFilepath,
+            visible: previewLeafVisible,
+            maximized: isPreviewMaximized,
+            splitPos: previewSplitPosition ?? s?.splitPos ?? null,
+            splitDir: previewSplitDirection ?? s?.splitDir ?? null,
+            isOpenBttnVisible: isOpenPreviewBttnVisible
+        }))
+        // update lastPreview to ensure next check in cleanup will correctly recognize the new file preview that leaf is showing
+        console.log("💖💖💖💖💖💖💖 lastPreview update 💖💖💖💖💖💖💖 ")
+        console.table({
+            previewLeaf,
+            previewFilepath,
+            lastPreview: get(settingsStore).preview.lastPreview,
+            check: (previewFilepath !== get(settingsStore).preview.lastPreview?.filepath)
+        })
+        if (
+            previewLeaf
+            && previewFilepath
+            && (
+                previewFilepath !== get(settingsStore).preview.lastPreview?.filepath
+                || previewSplitPosition !== get(settingsStore).preview.lastPreview?.splitPos
+            )
+        ) {
+            settingsStore.update(s => ({
+                ...s,
+                preview: {
+                    ...s.preview,
+                    lastPreview: {
+                        filepath: previewFilepath,
+                        splitPos: previewSplitPosition,
+                    }
+                }
+            }))
+        }
+
+        console.log("💖💖💖💖💖💖💖 layout change 💖💖💖💖💖💖💖 ");
+        console.table({
+            // active leaf
+            crrActiveLeaf,
+            crrActiveLeafId: (crrActiveLeaf as any)?.id,
+            // main leaf
+            mainLeafStore: get(mainLeafStore),
+            mainLeafHeight,
+            mainLeafParentHeight,
+            mainLeafHeightComparison: mainLeafHeight > mainLeafParentHeight,
+            // preview leaf
+            previewLeafStore: get(previewLeafStore),
+            previewSettings: get(settingsStore).preview,
+            previewFile,
+            prevPreviewLeaf: prevPreviewLeaf?.leaf,
+            prevPreviewLeafId: ((prevPreviewLeaf)?.leaf as any)?.id,
+            processingPreviewChange: get(processingPreviewChangeStore),
+            firstLayoutChange: this.firstLayoutChange,
+        })
+
+        if (this.firstLayoutChange) {
+            this.firstLayoutChange = false;
+        }
+
+        // avoid toggling preview if it has transitioned to an expanded-like state (moved to another tab)
+        // if (isPreviewMaximized) {
+        //     processingPreviewChangeStore.set(false);
+        // };
+
+        if (!get(processingPreviewChangeStore)) {
+            console.log("🙌 layout change, about to perform preview change checks")
+
+            const previewMaximized =
+                get(settingsStore).preview.defaultExpansionMode === "maximized"
+                || get(previewLeafStore)?.maximized
+
+
+            // TIMELINE
+            // remount preview's timeline when no longer in left or right side
+            const prevPreviewIsSide = prevPreviewLeaf?.splitPos === 'left' || prevPreviewLeaf?.splitPos === 'right'
+            const crrPrevIsSide = previewSplitPosition === 'left' || previewSplitPosition === 'right'
+            const previewMovedFromSideToRoot = prevPreviewLeaf && previewLeaf && prevPreviewIsSide && !crrPrevIsSide
+            const previewMovedFromRootToSide = prevPreviewLeaf && previewLeaf && !prevPreviewIsSide && crrPrevIsSide
+            if (previewMovedFromSideToRoot || previewMovedFromRootToSide) {
+                TimelineManager.cleanup(previewLeaf)
+                TimelineManager.tryMount(previewLeaf)
+            }
+            TimelineManager.handleLayoutChange()
+
+            // PREVIEWLEAF
+            // very especific check for when an expanded preview panel is moved to a split window
+            if (previewLeafVisible && (get(settingsStore).preview.defaultExpansionMode === "maximized" && !isPreviewMaximized)) {
+                settingsStore.update(s => {
+                    s.preview.tabHeaderVisible = true;
+                    return s;
+                })
+                return;
+            }
+            // show preview when user moves back to calendar tab and preview is open
+            if (!prevPreviewLeaf?.leaf && !previewLeaf && isMainLeafReopened && get(settingsStore).preview.enabled && get(settingsStore).preview.open && !previewMaximized) {
+                console.log("🌳 initPreview")
+                this.initPreview();
+                processingPreviewChangeStore.set(true);
+                return;
+            }
+
+            // CLEANUPS
+
+            // avoids closing preview when preview leaf shows a different file
+            if (!this.firstLayoutChange && ((crrActiveLeaf as any)?.id === ((prevPreviewLeaf)?.leaf as any)?.id)) {
+                return
+            }
+
+            // cleanup preview when user closes calendar tab
+            if (prevMainLeaf?.leaf && !mainLeaf) {
+                this.cleanupPreviews()
+                processingPreviewChangeStore.set(true);
+                console.log("❌ mainLeaf not found and removed preview")
+                return;
+            }
+            if (prevPreviewLeaf?.leaf && !previewLeaf) {
+                this.cleanupPreview();
+                processingPreviewChangeStore.set(true);
+                console.log("❌ previewLeaf not found, removed and set open to false")
+                !this.firstLayoutChange && settingsStore.update(s => {
+                    s.preview.open = false
+                    return s
+                })
+                return;
+            }
+            // moved out of calendar view to a different tab
+            if (previewLeaf && previewLeafVisible && !mainLeafvisible && previewSplitPosition === get(settingsStore).viewLeafPosition && !previewMaximized) {
+                this.cleanupPreview({ leaf: previewLeaf });
+                processingPreviewChangeStore.set(true);
+                console.log("❌ moved out of calendar view to a different tab, removed preview")
+                return;
+            }
+        } else {
+            processingPreviewChangeStore.set(false);
+        }
+    }
+
 
     private static isLeafVisible(leaf: WorkspaceLeaf): boolean {
         const _leaf = leaf as WorkspaceLeaf & { containerEl: HTMLElement, width: number, height: number };
@@ -558,14 +585,16 @@ export class ViewManager {
         file,
         granularity,
         date,
-        previewLeaf
+        previewLeaf,
+        openFile = true,
     }: {
         file: TFile;
         granularity: IGranularity;
-        date: Moment | null;
-        previewLeaf: WorkspaceLeaf
+        date?: Moment | null;
+        previewLeaf: WorkspaceLeaf;
+        openFile?: boolean;
     }) {
-        await previewLeaf.openFile(file);
+        openFile && await previewLeaf.openFile(file);
         previewLeafStore.update((s) => ({
             ...s,
             leaf: previewLeaf,
@@ -613,23 +642,6 @@ export class ViewManager {
         this.previewLeafCleanups = [];
     }
 
-    static addOrRemoveTimeline() {
-        const crrActiveLeaf = window.app.workspace.getActiveViewOfType(MarkdownView)?.leaf;
-        if (!crrActiveLeaf) return;
-
-        if (get(settingsStore).timeline.enabled) {
-            if (!TimelineManager.isMounted(crrActiveLeaf)) {
-                // mount timeline
-                TimelineManager.tryMountTimeline(crrActiveLeaf);
-            }
-        } else {
-            if (TimelineManager.isMounted(crrActiveLeaf)) {
-                // unmount timeline
-                TimelineManager.cleanup(crrActiveLeaf);
-            }
-        }
-    }
-
     static getFileFromLeaf(leaf?: WorkspaceLeaf | null, _file?: TFile) {
         if (!leaf) return;
 
@@ -644,8 +656,8 @@ export class ViewManager {
     }
 
     static unload() {
-        window.app.workspace.detachLeavesOfType(LEAF_TYPE);
-        this.cleanupPreview();
+        // window.app.workspace.detachLeavesOfType(LEAF_TYPE);
+        // this.cleanupPreview();
         this.cleaunupPreviewEvHandlers()
     }
 }

@@ -104,25 +104,6 @@ export class FileMenuPopoverBehavior {
                         window.app.workspace.openLinkText(file.path, "", "tab");
                     })
             );
-            // Reveal on calendar
-            // TODO: replace activeLeaf() with recommended Workspace.getActiveViewOfType() method 
-            if (window.app.workspace.activeLeaf?.getViewState()?.type === 'markdown') {
-                menu.addItem((item) =>
-                    item.setSection("open")
-                        .setTitle("Reveal on calendar")
-                        .setIcon("lucide-calendar")
-                        .onClick(() => {
-                            ViewManager.revealView();
-                            activeFileStore.update((d) => {
-                                if (d) {
-                                    d.file = file;
-                                }
-                                return d
-                            })
-                            displayedDateStore.set(date)
-                        })
-                )
-            }
 
             // Open to the right
             menu.addItem((item) =>
@@ -158,23 +139,6 @@ export class FileMenuPopoverBehavior {
                     .setWarning(true)
             );
 
-            // Add custom "Add Sticker" option
-            menu.addItem((item) =>
-                item.setSection("action")
-                    .setTitle("Add Sticker")
-                    .setIcon("lucide-smile-plus")
-                    .onClick(() => {
-                        if (this.refHtmlEl) {
-                            spFileDataStore.set(fileData);
-                            Popover.create({
-                                id: STICKER_POPOVER_ID,
-                                view: {
-                                    Component: StickerPopoverComponent,
-                                },
-                            }).open(this.refHtmlEl)
-                        }
-                    })
-            );
             extraItems?.add?.(menu)
 
             window.app.workspace.trigger("file-menu", menu, file, "custom-file-menu");

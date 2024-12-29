@@ -30,7 +30,7 @@
         });
 
         ViewManager.cleanupPreview();
-        ViewManager.initView({ active: false });
+        ViewManager.restartView({ active: false });
     };
     const handleFloatingModeToggle = (floatingMode: boolean) => {
         Popover.cleanup();
@@ -75,6 +75,13 @@
             ...settings,
             floatingViewAlwaysMinimal: alwaysMinimal,
         }));
+    };
+
+    const handleToggleSyncCalendar = (syncCalendar: boolean) => {
+        settingsStore.update((s) => {
+            s.syncCalendar = syncCalendar;
+            return s;
+        });
     };
 
     // Preview
@@ -215,7 +222,7 @@
             return s;
         });
         if (enabled) {
-            TimelineManager.restart();
+            TimelineManager.restartAll();
         } else {
             TimelineManager.unmountAll();
         }
@@ -226,28 +233,35 @@
             s.timeline.granularityBased = granularityBased;
             return s;
         });
-        TimelineManager.restart();
+        TimelineManager.restartAll();
     };
     const handleSetViewMode = (viewMode: TimelineViewMode) => {
         settingsStore.update((s) => {
             s.timeline.viewMode = viewMode;
             return s;
         });
-        TimelineManager.restart();
+        TimelineManager.restartAll();
     };
     const handleToggleDisplayOnRestNotes = (displayOnRestNotes: boolean) => {
         settingsStore.update((s) => {
             s.timeline.displayOnRestNotes = displayOnRestNotes;
             return s;
         });
-        TimelineManager.restart();
+        TimelineManager.restartAll();
+    };
+    const handleToggleDisplayStickers = (displayStickers: boolean) => {
+        settingsStore.update((s) => {
+            s.timeline.displayStickers = displayStickers;
+            return s;
+        });
+        TimelineManager.restartAll();
     };
     const handleSetRestViewMode = (restViewMode: TimelineViewMode) => {
         settingsStore.update((s) => {
             s.timeline.restViewMode = restViewMode;
             return s;
         });
-        TimelineManager.restart();
+        TimelineManager.restartAll();
     };
 
     // Localization
@@ -388,10 +402,22 @@
     {/if}
 {/if}
 
+<SettingItem
+    name="Auto-sync Calendar Date"
+    description="Automatically update calendar to display date of current periodic note"
+>
+    {#snippet control()}
+        <Toggle
+            onChange={handleToggleSyncCalendar}
+            isEnabled={$settingsStore.syncCalendar}
+        />
+    {/snippet}
+</SettingItem>
+
 <SettingItem isHeading={true} name="Preview" className="pb-0" />
 <div class="flex justify-between">
     <p>
-        Configure default settings for the preview window. For period-specific
+        Configure default settings for the preview panel. For period-specific
         options, visit
         <a href={null} onclick={() => selectedTabStore.set("periods")}
             >Periods</a
@@ -435,7 +461,7 @@
 
         <SettingItem
             name="Split Mode for Side Panels"
-            description="Select how the preview window will be split in the left and right panels."
+            description="Select how the preview panel will be split in the left and right panels."
         >
             {#snippet control()}
                 <Dropdown
@@ -458,7 +484,7 @@
     {#if ($settingsStore.viewLeafPosition === "root" && isTablet()) || !isMobile()}
         <SettingItem
             name="Split Mode for Main Panel"
-            description="Select how the preview window will be split in the main panel."
+            description="Select how the preview panel will be split in the main panel."
         >
             {#snippet control()}
                 <Dropdown
@@ -479,7 +505,7 @@
 
         <SettingItem
             name="Expansion Mode"
-            description="Choose whether the preview window fills the entire panel (maximized) or appears as a split view."
+            description="Choose whether the preview panel fills the entire panel (maximized) or appears as a split view."
         >
             {#snippet control()}
                 <Dropdown
@@ -587,6 +613,18 @@
             <Toggle
                 onChange={handleToggleDisplayOnRestNotes}
                 isEnabled={$settingsStore.timeline.displayOnRestNotes}
+            />
+        {/snippet}
+    </SettingItem>
+
+    <SettingItem
+        name="Show Timeline Stickers"
+        description="Show emoji stickers in the timeline view"
+    >
+        {#snippet control()}
+            <Toggle
+                onChange={handleToggleDisplayStickers}
+                isEnabled={$settingsStore.timeline.displayStickers}
             />
         {/snippet}
     </SettingItem>

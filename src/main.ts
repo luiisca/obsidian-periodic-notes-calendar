@@ -1,9 +1,10 @@
 import { DEFAULT_SETTINGS, settingsStore, SettingsTab, type ISettings } from '@/settings';
+import { InvalidFormat, View, ViewManager } from '@/ui';
 import moment from 'moment';
-import { FileView, MarkdownView, Menu, Notice, Plugin, TAbstractFile, TFile, WorkspaceLeaf, WorkspaceRoot } from 'obsidian';
+import { MarkdownView, Menu, Notice, Plugin, TAbstractFile, TFile, WorkspaceLeaf, WorkspaceRoot } from 'obsidian';
 import { mount, type SvelteComponent } from 'svelte';
 import { get } from 'svelte/store';
-import { CALENDAR_POPOVER_ID, CALENDAR_RIBBON_ID, granularities, LEAF_TYPE, STICKER_POPOVER_ID } from './constants';
+import { CALENDAR_POPOVER_ID, CALENDAR_RIBBON_ID, FILE_MENU_POPOVER_ID, granularities, LEAF_TYPE, STICKER_POPOVER_ID } from './constants';
 import { basename, createOrOpenNote, extractAndReplaceTODOItems, getFileData, getStartupNoteGranularity, storeAllVaultPeriodicFilepaths } from './io';
 import { getPeriodicityFromGranularity } from './io/parse';
 import type { IGranularity, IPeriodicity } from './io/types';
@@ -18,17 +19,16 @@ import {
     processingPreviewChangeStore,
     setupLocale,
     spFileDataStore,
-    themeStore
+    themeStore,
+    timelineParentFileStore
 } from './stores';
-import { InvalidFormat, View, ViewManager } from '@/ui';
 import StickerPopoverComponent from './ui/components/StickerPopover.svelte';
 import TimelineManager from './ui/components/timeline/manager';
+import { addExtraItems } from './ui/components/view/utils';
 import { createNldatePickerDialog } from './ui/modals/nldate-picker';
 import { getBehaviorInstance, getPopoverInstance, Popover } from './ui/popovers';
 import { getDailyNotesPlugin, handleLocaleCommands, isPhone } from './utils';
 import { CalendarView } from './view';
-import { addExtraItems } from './ui/components/view/utils';
-import { crrTabStore, getEnabledPeriods, periodTabs } from './stores/calendar';
 
 export default class PeriodicNotesCalendarPlugin extends Plugin {
     popovers: Record<string, SvelteComponent | null> = {};
@@ -127,12 +127,12 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         handleLocaleCommands()
 
         this.app.workspace.onLayoutReady(() => {
-            ViewManager.initView({ active: false });
-            ViewManager.cleanupPreview();
-            TimelineManager.initAll();
-
             // index existing notes
             storeAllVaultPeriodicFilepaths(true)
+
+            ViewManager.initView({ active: false });
+            ViewManager.handleLayoutChange();
+            TimelineManager.initAll();
 
             if (get(settingsStore).openPopoverOnRibbonHover) {
                 Popover.create({
@@ -149,8 +149,6 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
             // open note at startup
             const startupNoteGranularity = getStartupNoteGranularity();
             if (startupNoteGranularity) {
-                // TODO: modify to open in preview if 
-                // get(settingsStore).preview.openNotesInPreview enabled
                 createOrOpenNote({
                     leaf: this.app.workspace.getLeaf(),
                     date: window.moment(),
@@ -191,7 +189,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
     }
 
     handleRibbon() {
-        const ribbonEl = this.addRibbonIcon('dice', 'Open calendar', (ev) => {
+        const ribbonEl = this.addRibbonIcon('calendar-days', 'Open calendar', (ev) => {
             const calendarPopover = getPopoverInstance(CALENDAR_POPOVER_ID);
             const calendarBehavior = getBehaviorInstance(CALENDAR_POPOVER_ID);
 
@@ -290,7 +288,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
 
     // registered events
     registerEvents() {
-        this.registerEvent(this.app.workspace.on('file-menu', (menu, file) => this.onFileMenu(menu, file as TFile)))
+        this.registerEvent(this.app.workspace.on('file-menu', (menu, file, source, leaf) => this.onFileMenu(menu, file as TFile, source, leaf)))
 
         this.registerEvent(
             this.app.workspace.on('css-change', () => {
@@ -313,18 +311,17 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         this.registerEvent(
             this.app.metadataCache.on('changed', (file: TFile) => this.onMetadataChanged(file))
         )
-        this.registerEvent(this.app.workspace.on('active-leaf-change', (leaf) => this.onActiveLeafChange(leaf)))
     }
 
-    private async onFileMenu(menu: Menu, file: TFile) {
-        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-        if (!view || file.extension !== 'md') return;
+    private async onFileMenu(_menu: Menu, file: TFile, source: string, leaf?: WorkspaceLeaf) {
+        if (!(file instanceof TFile)) return;
+        const menu = _menu as Menu & { dom: Element; bgEl: Element }
 
         const { isValid, granularity, date } = isValidPeriodicNote(file.basename);
+        const activeCalendarView = window.app.workspace.getActiveViewOfType(CalendarView)
         if (typeof isValid === 'boolean' && date && granularity) {
             // Reveal on calendar
-            // TODO: replace activeLeaf() with recommended Workspace.getActiveViewOfType() method 
-            if (window.app.workspace.activeLeaf?.getViewState()?.type === 'markdown') {
+            if (!activeCalendarView) {
                 menu.addItem((item) =>
                     item.setSection("open")
                         .setTitle("Reveal on calendar")
@@ -346,17 +343,20 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
                 item.setSection("action")
                     .setTitle("Add Sticker")
                     .setIcon("lucide-smile-plus")
-                    .onClick(() => {
-                        if ((menu as any).parentEl) {
-                            const fileData = getFileData(granularity, date);
-                            spFileDataStore.set(fileData);
+                    .onClick((evt) => {
+                        evt.preventDefault()
+                        evt.stopPropagation()
 
+                        const fileData = getFileData(granularity, date);
+                        spFileDataStore.set(fileData);
+
+                        if (menu.dom || menu.bgEl) {
                             Popover.create({
                                 id: STICKER_POPOVER_ID,
                                 view: {
                                     Component: StickerPopoverComponent,
                                 },
-                            }).open((menu as any).parentEl)
+                            }).open(menu.dom || menu.bgEl)
                         }
                     })
             );
@@ -366,10 +366,13 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
 
         // Open on preview
         const crrActiveLeaf = window.app.workspace.getActiveViewOfType(MarkdownView)?.leaf;
-        if (get(settingsStore).preview.enabled && ((crrActiveLeaf as any)?.id !== (get(previewLeafStore)?.leaf as any)?.id)) {
+        const crrActiveLeafId = (crrActiveLeaf as any)?.id as string | null;
+        const previewLeafId = (get(previewLeafStore)?.leaf as any)?.id as string | null;
+        const crrActiveLeafIsPreview = crrActiveLeafId && previewLeafId && (crrActiveLeafId === previewLeafId)
+        if (get(settingsStore).preview.enabled && !crrActiveLeafIsPreview) {
             menu.addItem((item) =>
                 item.setSection("open")
-                    .setTitle("Open in preview window")
+                    .setTitle("Open in preview panel")
                     .setIcon("lucide-eye")
                     .onClick(async () => {
                         if (!get(mainLeafStore)?.visible) {
@@ -378,11 +381,6 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
                         ViewManager.restartPreview(file, true)
                     })
             );
-        }
-
-        if (get(previewLeafStore)?.filepath === file.path) {
-            (menu as any).addSections(["preview", ...(menu as any).sections]);
-            addExtraItems(menu)
         }
     }
 
@@ -428,6 +426,11 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
                 settingsStore.deleteFilepath(file.path, format.value)
             }
             this.closePreviewOnFileDeleted(file)
+
+            // reset file state
+            // this will add some cognitive load for sure
+            activeFileStore.set({ file: null, date: null, granularity: null })
+            timelineParentFileStore.set(null)
         }
     }
 
@@ -467,42 +470,6 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
 
     private onMetadataChanged(file: TFile) {
         internalFileModStore.set({ modified: Math.random() })
-    }
-
-    private onActiveLeafChange(leaf: WorkspaceLeaf | null = null) {
-        const activeFile = window.app.workspace.getActiveFile();
-
-        if (!activeFile) return;
-
-        const { isValid, granularity, date } = isValidPeriodicNote(activeFile.basename);
-
-        if (typeof isValid === "boolean" && date && granularity) {
-            activeFileStore.update((d) => {
-                if (d) {
-                    d.file = activeFile;
-                    d.date = date;
-                    d.granularity = granularity
-                }
-                return d
-            })
-
-            if (
-                !window.app.workspace.layoutReady
-                || ViewManager.isMainLeaf(leaf)
-                || (!leaf?.view || !(leaf?.view instanceof FileView))
-                || activeFile?.path === get(activeFileStore)?.file?.path
-            ) {
-                return
-            }
-
-            if (!ViewManager.isPreviewLeaf(leaf)?.leaf) {
-                displayedDateStore.set(date!)
-                const enabledPeriodsRes = getEnabledPeriods();
-                if (enabledPeriodsRes.tabs.includes(granularity as typeof periodTabs[number])) {
-                    crrTabStore.set(granularity as typeof periodTabs[number])
-                }
-            }
-        }
     }
 
     private closePreviewOnFileDeleted(file: TFile) {
