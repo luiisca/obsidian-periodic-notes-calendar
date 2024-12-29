@@ -45,11 +45,6 @@
             showingCrrDate={showingCurrentRange}
             type="range"
             decrementdisplayedDate={() => {
-                console.log(
-                    "decrementdisplayedYearRange() > yearsRanges store: ",
-                    $yearsRanges,
-                );
-
                 yearsRanges.updateRanges({
                     action: "decrement",
                     displayedDateModifier: -YEARS_RANGE_SIZE,
@@ -66,11 +61,6 @@
                 displayedDateStore.set($todayStore);
             }}
             incrementdisplayedDate={() => {
-                console.log(
-                    "incrementedisplayedDate() > yearsRanges store: ",
-                    $yearsRanges,
-                );
-
                 yearsRanges.updateRanges({ action: "increment" });
             }}
         />

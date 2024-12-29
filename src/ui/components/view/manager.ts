@@ -166,13 +166,13 @@ export class ViewManager {
             isOpenBttnVisible: isOpenPreviewBttnVisible
         }))
         // update lastPreview to ensure next check in cleanup will correctly recognize the new file preview that leaf is showing
-        console.log("💖💖💖💖💖💖💖 lastPreview update 💖💖💖💖💖💖💖 ")
-        console.table({
-            previewLeaf,
-            previewFilepath,
-            lastPreview: get(settingsStore).preview.lastPreview,
-            check: (previewFilepath !== get(settingsStore).preview.lastPreview?.filepath)
-        })
+        // console.log("💖💖💖💖💖💖💖 lastPreview update 💖💖💖💖💖💖💖 ")
+        // console.table({
+        //     previewLeaf,
+        //     previewFilepath,
+        //     lastPreview: get(settingsStore).preview.lastPreview,
+        //     check: (previewFilepath !== get(settingsStore).preview.lastPreview?.filepath)
+        // })
         if (
             previewLeaf
             && previewFilepath
@@ -193,25 +193,25 @@ export class ViewManager {
             }))
         }
 
-        console.log("💖💖💖💖💖💖💖 layout change 💖💖💖💖💖💖💖 ");
-        console.table({
-            // active leaf
-            crrActiveLeaf,
-            crrActiveLeafId: (crrActiveLeaf as any)?.id,
-            // main leaf
-            mainLeafStore: get(mainLeafStore),
-            mainLeafHeight,
-            mainLeafParentHeight,
-            mainLeafHeightComparison: mainLeafHeight > mainLeafParentHeight,
-            // preview leaf
-            previewLeafStore: get(previewLeafStore),
-            previewSettings: get(settingsStore).preview,
-            previewFile,
-            prevPreviewLeaf: prevPreviewLeaf?.leaf,
-            prevPreviewLeafId: ((prevPreviewLeaf)?.leaf as any)?.id,
-            processingPreviewChange: get(processingPreviewChangeStore),
-            firstLayoutChange: this.firstLayoutChange,
-        })
+        // console.log("💖💖💖💖💖💖💖 layout change 💖💖💖💖💖💖💖 ");
+        // console.table({
+        //     // active leaf
+        //     crrActiveLeaf,
+        //     crrActiveLeafId: (crrActiveLeaf as any)?.id,
+        //     // main leaf
+        //     mainLeafStore: get(mainLeafStore),
+        //     mainLeafHeight,
+        //     mainLeafParentHeight,
+        //     mainLeafHeightComparison: mainLeafHeight > mainLeafParentHeight,
+        //     // preview leaf
+        //     previewLeafStore: get(previewLeafStore),
+        //     previewSettings: get(settingsStore).preview,
+        //     previewFile,
+        //     prevPreviewLeaf: prevPreviewLeaf?.leaf,
+        //     prevPreviewLeafId: ((prevPreviewLeaf)?.leaf as any)?.id,
+        //     processingPreviewChange: get(processingPreviewChangeStore),
+        //     firstLayoutChange: this.firstLayoutChange,
+        // })
 
         if (this.firstLayoutChange) {
             this.firstLayoutChange = false;
@@ -223,8 +223,6 @@ export class ViewManager {
         // };
 
         if (!get(processingPreviewChangeStore)) {
-            console.log("🙌 layout change, about to perform preview change checks")
-
             const previewMaximized =
                 get(settingsStore).preview.defaultExpansionMode === "maximized"
                 || get(previewLeafStore)?.maximized
@@ -253,7 +251,7 @@ export class ViewManager {
             }
             // show preview when user moves back to calendar tab and preview is open
             if (!prevPreviewLeaf?.leaf && !previewLeaf && isMainLeafReopened && get(settingsStore).preview.enabled && get(settingsStore).preview.open && !previewMaximized) {
-                console.log("🌳 initPreview")
+                // console.log("🌳 initPreview")
                 this.initPreview();
                 processingPreviewChangeStore.set(true);
                 return;
@@ -270,13 +268,13 @@ export class ViewManager {
             if (prevMainLeaf?.leaf && !mainLeaf) {
                 this.cleanupPreviews()
                 processingPreviewChangeStore.set(true);
-                console.log("❌ mainLeaf not found and removed preview")
+                // console.log("❌ mainLeaf not found and removed preview")
                 return;
             }
             if (prevPreviewLeaf?.leaf && !previewLeaf) {
                 this.cleanupPreview();
                 processingPreviewChangeStore.set(true);
-                console.log("❌ previewLeaf not found, removed and set open to false")
+                // console.log("❌ previewLeaf not found, removed and set open to false")
                 !this.firstLayoutChange && settingsStore.update(s => {
                     s.preview.open = false
                     return s
@@ -287,7 +285,7 @@ export class ViewManager {
             if (previewLeaf && previewLeafVisible && !mainLeafvisible && previewSplitPosition === get(settingsStore).viewLeafPosition && !previewMaximized) {
                 this.cleanupPreview({ leaf: previewLeaf });
                 processingPreviewChangeStore.set(true);
-                console.log("❌ moved out of calendar view to a different tab, removed preview")
+                // console.log("❌ moved out of calendar view to a different tab, removed preview")
                 return;
             }
         } else {
@@ -480,7 +478,6 @@ export class ViewManager {
             if (previewLeafFound) return;
 
             if (get(previewLeafStore)?.leaf === leaf && (get(previewLeafStore) as any)?.view?.file === (leaf?.view as any)?.file) {
-                // console.log("👑🌿🌿🌿 searchPreviewLeaf() 🌿🌿🌿🌿", leaf, "preview found is the same as the one in store!")
                 previewLeaf = leaf
                 previewLeafFound = true
 
@@ -488,7 +485,6 @@ export class ViewManager {
             }
             const isPreview = this.isPreviewLeaf(leaf, file)
             if (isPreview?.leaf) {
-                // console.log("💰🌿🌿🌿 searchPreviewLeaf() 🌿🌿🌿🌿", isPreview.leaf, "preview found!")
                 previewLeaf = isPreview.leaf
                 previewLeafFound = true
             }
@@ -496,16 +492,6 @@ export class ViewManager {
         return previewLeaf as WorkspaceLeaf | null;
     }
     static isPreviewLeaf(leaf: WorkspaceLeaf | null, file: TFile | null = null) {
-        // console.log("🌿🌿🌿🌿 isPreviewLeaf() 🌿🌿🌿🌿")
-        // console.table({
-        //     leaf,
-        //     leafSplitPos: this.getLeafSplitPosition(leaf),
-        //     firstLayoutChange: this.firstLayoutChange,
-        //     containsPreviewControls: leaf && Array.from(leaf.view.containerEl.childNodes).find((el: HTMLElement) => el?.dataset?.type === PREVIEW_CONTROLS_TYPE),
-        //     leafFilepath: file?.path || (leaf && (file?.path || (leaf.view as any)?.state?.file as string | undefined || (leaf.view as any).file?.path as string | undefined)),
-        //     lastPreview: get(settingsStore).preview.lastPreview,
-        // })
-
         if (get(previewLeafStore)?.leaf === leaf) {
             return { leaf }
         }
@@ -527,7 +513,6 @@ export class ViewManager {
         if (!leaf || !isLeafViewMarkdown || isLeafCalendar || !hasPreviewControls) return;
         if (leafFilepath !== lastPreview?.filepath || leafSplitPos !== lastPreview?.splitPos) return;
 
-        // console.log("🌿🌿🌿🌿 isPreviewLeaf() > found 🌿🌿🌿🌿", leaf, leafFilepath, lastPreview)
         return { leaf }
     }
 

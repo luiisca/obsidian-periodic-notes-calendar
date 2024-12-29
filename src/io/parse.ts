@@ -151,25 +151,25 @@ export function parseNlDate(text: string, refMomentDate: Moment = moment()) {
 }
 
 // Example usage
-const exampleTemplate = `
-    Title: {{title}}
-    Date: {{date}}
-    Current time: {{time}}
-    Current date: {{currentDAte:LLLL}}
-    Sunday: {{sunday}}
-    Tomorrow: {{tomorrow:dddd, MMMM Do YYYY}}
-    Crr Week: {{date:w}}
-    Next Week: {{next week:[locale week]-w, [ISO Week]-W}}
-    Prev Monday: {{monday-1w:LLLL}}
-    Next Quarter: {{next quarter:}}
-    In 3 days: {{in 3 days}}
-    1 week ago: {{1 week ago}}
-    1 week ago + 1d: {{1 week ago+1d}}
-    2 years from now - 1y: {{2 years from now-1y}}
-    2 years from now - 1y: {{2 years from now +- 1y}}
-    2 years from now - 1y: {{  2 years from now   +  - 1y  : YYYY}}
+// const exampleTemplate = `
+//     Title: {{title}}
+//     Date: {{date}}
+//     Current time: {{time}}
+//     Current date: {{currentDAte:LLLL}}
+//     Sunday: {{sunday}}
+//     Tomorrow: {{tomorrow:dddd, MMMM Do YYYY}}
+//     Crr Week: {{date:w}}
+//     Next Week: {{next week:[locale week]-w, [ISO Week]-W}}
+//     Prev Monday: {{monday-1w:LLLL}}
+//     Next Quarter: {{next quarter:}}
+//     In 3 days: {{in 3 days}}
+//     1 week ago: {{1 week ago}}
+//     1 week ago + 1d: {{1 week ago+1d}}
+//     2 years from now - 1y: {{2 years from now-1y}}
+//     2 years from now - 1y: {{2 years from now +- 1y}}
+//     2 years from now - 1y: {{  2 years from now   +  - 1y  : YYYY}}
+//
+//     Wrong: {{wrong:W}}
+// `;
 
-    Wrong: {{wrong:W}}
-`;
-
-console.log(replaceTemplateContents(moment(), 'YYYY-MM-DD', exampleTemplate));
+// console.log(replaceTemplateContents(moment(), 'YYYY-MM-DD', exampleTemplate));

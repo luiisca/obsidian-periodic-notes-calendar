@@ -23,7 +23,6 @@
         fileSuggestInstance = new FileSuggest(inputEl);
     });
     onDestroy(() => {
-        console.log("onDestroy");
         fileSuggestInstance?.destroy();
     });
 </script>

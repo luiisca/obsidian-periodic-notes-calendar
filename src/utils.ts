@@ -31,15 +31,6 @@ export function capitalize(string: string) {
     return string[0].toUpperCase() + string.slice(1).toLowerCase();
 }
 
-export function logger(module: string, ...messages: unknown[]) {
-    const prefix = `[${module}]`;
-
-    messages.forEach((message) => {
-        console.log(prefix, " ", message);
-        console.log("-".repeat(20))
-    })
-}
-
 export async function getPlugin(pluginId: string): Promise<any | null> {
     const plugins = (window.app as any).plugins;
     const enabledPlugins = plugins?.enabledPlugins as Set<string>

@@ -41,7 +41,6 @@
     );
 
     function toggleExpand(event: MouseEvent | KeyboardEvent) {
-        console.log("toggleExpand", event);
         if ((event.target as HTMLElement)?.matches("input, label")) return;
 
         isExpanded = !isExpanded;

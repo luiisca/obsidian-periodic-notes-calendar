@@ -33,17 +33,16 @@ export async function createOrOpenNote({
     const filename = date.format(selectedFormat.value);
     const normalizedPath = getNotePath(granularity, date);
 
-    console.log("🎉🎉🎉 [createOrOpenNote()] 🎉🎉🎉");
-    console.table({
-        granularity,
-        selectedFormat,
-        filename,
-        normalizedPath,
-        date,
-        formattedDate: date.format("YYYY-MM-DD, [W]W, [w]w")
-    })
+    // console.log("🎉🎉🎉 [createOrOpenNote()] 🎉🎉🎉");
+    // console.table({
+    //     granularity,
+    //     selectedFormat,
+    //     filename,
+    //     normalizedPath,
+    //     date,
+    //     formattedDate: date.format("YYYY-MM-DD, [W]W, [w]w")
+    // })
     let file = window.app.vault.getAbstractFileByPath(normalizedPath)
-    // console.log("[createOrOpenNote()] > file: ", file);
 
     async function openFile(file: TAbstractFile | null) {
         if (file) {
@@ -66,7 +65,6 @@ export async function createOrOpenNote({
         await openFile(file);
     } else {
         const periodicity = capitalize(getPeriodicityFromGranularity(granularity));
-        // console.log("[io-create-or-open-note]", granularity, selectedFormat.value, date, filename);
 
         if (confirmBeforeCreateOverride) {
             createConfirmationDialog({
@@ -81,7 +79,6 @@ export async function createOrOpenNote({
                 cta: 'Create',
                 onAccept: async (dontAskAgain) => {
                     file = await createNote(granularity, date);
-                    // console.log('createOrOpenNote() > onAccept() > file: ', file);
                     await openFile(file);
 
                     if (dontAskAgain) {
@@ -94,7 +91,6 @@ export async function createOrOpenNote({
             });
         } else {
             file = await createNote(granularity, date);
-            // console.log('🤯🔥🤯 createOrOpenNote() > file: 🤯🔥🤯', file);
             await openFile(file);
         }
     }
@@ -124,7 +120,7 @@ export async function createNote(granularity: IGranularity, date: Moment) {
 
         return file;
     } catch (err) {
-        // console.error(`Failed to create file: '${normalizedPath}'`, err);
+        console.error(`Failed to create file: '${normalizedPath}'`, err);
         new Notice(`Failed to create file: '${normalizedPath}'`);
 
         return null

@@ -84,7 +84,6 @@ function createYearsRangesStore() {
         const { ranges, crrRangeIndex, todayRange } = get(store);
         const crrDisplayedYear = get(displayedDateStore).year();
         const todayYear = window.moment().clone().year();
-        console.log('selectOrCreateRnages(), todayRange: ', todayRange);
 
         const firstRange = ranges[0];
         const lastRange = ranges[ranges.length - 1];

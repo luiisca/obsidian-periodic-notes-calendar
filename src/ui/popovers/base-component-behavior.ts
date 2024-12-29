@@ -114,7 +114,6 @@ export class BaseComponentBehavior {
         this.cbs?.onOpen?.();
     }
     public close() {
-        console.log("🔥 closing base popover")
         this.opened = false;
 
         this.hide();

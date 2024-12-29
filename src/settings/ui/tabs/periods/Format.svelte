@@ -91,7 +91,6 @@
                     value,
                     error,
                 };
-                console.log(updatedFormat);
                 s.formats[format.id] = updatedFormat;
                 if (selected) {
                     s.selectedFormat = updatedFormat;
@@ -369,7 +368,6 @@
 
     $effect(() => {
         if ($triggerRerender) {
-            console.log("🔁 rerendering", granularity, value, format.id);
             error = validateFormat(value, granularity, format.id);
         }
     });

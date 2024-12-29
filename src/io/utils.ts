@@ -26,8 +26,6 @@ export function storeAllVaultPeriodicFilepaths(
         uniqueFolders[periodFolder].push(g)
     })
 
-    // console.log("📂 uniqueFolders", uniqueFolders)
-
     settingsStore.update((s) => {
         if (firstRun) {
             s.filepaths = {};
@@ -68,7 +66,6 @@ export function storeAllVaultPeriodicFilepaths(
 
         return s
     })
-    // console.log("📂 settingsStore", get(settingsStore))
 }
 
 export function getStartupNoteGranularity() {
@@ -85,12 +82,9 @@ export async function extractAndReplaceTODOItems(date: Moment, granularity: IGra
     if (previewSettings.todoSection.trim() !== "") {
         const prevPeriodDate = date.clone().subtract(1, granularity);
         const { file: prevPeriodFile } = getFileData(granularity, prevPeriodDate);
-        // console.log("prevPeriodFile: ", prevPeriodFile);
         if (prevPeriodFile) {
             const content = await window.app.vault.read(prevPeriodFile)
             const todos = extractTODOs(content, granularity);
-
-            // console.log(todos);
 
             if (todos.length > 0) {
                 const currentFileContent = await window.app.vault.read(file);
@@ -138,13 +132,11 @@ function appendTODOs(content: string, todos: string[], granularity: IGranularity
     let inTODOSection = false;
     let appended = false;
 
-    // console.log("APPENDTODOS: content: ", content);
     if (content.trim() !== "") {
         lines.forEach((line, index) => {
             const nextLine = lines[index + 1] || "";
             updatedLines.push(line);
 
-            // console.log("APPENDTODOS: line: ", line);
             if (line.trim().startsWith(todoSection)) {
                 inTODOSection = true;
             }
@@ -172,8 +164,6 @@ function appendTODOs(content: string, todos: string[], granularity: IGranularity
         updatedLines.push(todoSection);
         updatedLines.push(...todos);
     }
-
-    // console.log("APPENDTODOS: updatedLines: ", updatedLines);
 
     return updatedLines.join('\n');
 }
