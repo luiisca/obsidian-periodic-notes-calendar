@@ -1,0 +1,55 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - action-test # or your default branch
+
+env:
+  PLUGIN_ID: periodic-notes-calendar
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.actions }}
+          release-type: node
+          target-branch: action-test
+          package-name: ${{ env.PLUGIN_ID }}
+  echo:
+    runs-on: ubuntu-latest
+    needs: release-please
+    steps:
+      - name: release-please
+        run: |
+          echo "Release created: ${{ needs.release-please.outputs.release_created }}"
+          echo "Tag name: ${{ needs.release-please.outputs.tag_name }}"
+          echo "${{ needs.release-please.outputs }}"
+  build:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+      - name: Build
+        id: build
+        run: |
+          npm install
+          npx vite build --mode production
+          mkdir ${{ env.PLUGIN_ID}}
+          cp manifest.json main.js styles.css ${{ env.PLUGIN_ID }}
+          zip -r ${{ env.PLUGIN_ID }}.zip ${{ env.PLUGIN_ID }}
+      - name: Upload release artifacts
+        env:
+          GITHUB_TOKEN: ${{ secrets.actions }}
+        run: gh release upload ${{ needs.release-please.outputs.tag_name }} manifest.json main.js styles.css ${{ env.PLUGIN_ID }}.zip
