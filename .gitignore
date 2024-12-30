@@ -1,10 +1,10 @@
 .DS_Store
 node_modules
-/build
-/package
+/video-demos
 .env
 .env.*
 !.env.example
 data.json
 main.js
 main.js.map
+styles.css
