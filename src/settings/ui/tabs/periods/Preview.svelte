@@ -1,55 +1,71 @@
 <script lang="ts">
-	import { type IGranularity } from '@/io';
-	import type { Readable } from 'svelte/store';
+    import { type IGranularity } from "@/io";
+    import type { Readable } from "svelte/store";
 
-    import { settingsStore, type PeriodSettings } from '@/settings';
-    import { Dropdown, HeadingsSuggest, SettingItem } from '@/settings/ui';
-    import { TFile } from 'obsidian';
-    import { onDestroy } from 'svelte';
+    import { settingsStore, type PeriodSettings } from "@/settings";
+    import { Dropdown, HeadingsSuggest, SettingItem } from "@/settings/ui";
+    import { TFile } from "obsidian";
+    import { onDestroy } from "svelte";
+    import { PluginService } from "@/app-service";
 
-	interface Props {
-		settings: Readable<PeriodSettings>;
-		granularity: IGranularity;
-	}
+    interface Props {
+        settings: Readable<PeriodSettings>;
+        granularity: IGranularity;
+    }
 
-	let { settings }: Props = $props();
+    let { settings }: Props = $props();
     let mainSectionInputEl: HTMLInputElement | null = $state(null);
     let todoSectionInputEl: HTMLInputElement | null = $state(null);
     let mainHeadingSuggestInstance: HeadingsSuggest;
     let todoHeadingSuggestInstance: HeadingsSuggest;
 
     let headings = $derived.by(() => {
-        $settings.preview.mainSection // force update
-        $settings.preview.todoSection // force update
-        const file = $settings.templatePath ? (window.app.vault.getAbstractFileByPath($settings.templatePath ) as TFile) : null;
-        let h: string[] = []
+        $settings.preview.mainSection; // force update
+        $settings.preview.todoSection; // force update
+        const file = $settings.templatePath
+            ? (PluginService.getPlugin()?.app.vault.getAbstractFileByPath(
+                  $settings.templatePath,
+              ) as TFile)
+            : null;
+        let h: string[] = [];
         if (file) {
-            h = window.app.metadataCache.getFileCache(file)?.headings?.map(h => (`${'#'.repeat(h.level)} ${h.heading}`)) || []
+            h =
+                PluginService.getPlugin()
+                    ?.app.metadataCache.getFileCache(file)
+                    ?.headings?.map(
+                        (h) => `${"#".repeat(h.level)} ${h.heading}`,
+                    ) || [];
         }
-        return h
-    })
+        return h;
+    });
     $effect(() => {
         if (mainSectionInputEl) {
             if (!mainHeadingSuggestInstance) {
-                mainHeadingSuggestInstance = new HeadingsSuggest(mainSectionInputEl)
+                mainHeadingSuggestInstance = new HeadingsSuggest(
+                    mainSectionInputEl,
+                );
             }
-            $settings.preview.mainSection // force update
-            mainHeadingSuggestInstance.update(headings, $settings.templatePath)
+            $settings.preview.mainSection; // force update
+            mainHeadingSuggestInstance.update(headings, $settings.templatePath);
         }
         if (todoSectionInputEl) {
             if (!todoHeadingSuggestInstance) {
-                todoHeadingSuggestInstance = new HeadingsSuggest(todoSectionInputEl)
+                todoHeadingSuggestInstance = new HeadingsSuggest(
+                    todoSectionInputEl,
+                );
             }
-            $settings.preview.todoSection // force update
-            todoHeadingSuggestInstance.update(headings, $settings.templatePath)
+            $settings.preview.todoSection; // force update
+            todoHeadingSuggestInstance.update(headings, $settings.templatePath);
         }
-    })
+    });
 
-    const handleOpenDestinationChange = (position: 'default' | 'below' | undefined) => {
+    const handleOpenDestinationChange = (
+        position: "default" | "below" | undefined,
+    ) => {
         if (position) {
-            $settings.preview.destination = position
+            $settings.preview.destination = position;
         }
-    }
+    };
 
     onDestroy(() => {
         mainHeadingSuggestInstance?.destroy();
@@ -101,8 +117,8 @@
         {#snippet control()}
             <Dropdown
                 options={[
-                    { label: 'Default', value: 'default' },
-                    { label: 'Below', value: 'below' }
+                    { label: "Default", value: "default" },
+                    { label: "Below", value: "below" },
                 ]}
                 onChange={handleOpenDestinationChange}
                 value={$settings.preview.destination}

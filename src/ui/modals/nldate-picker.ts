@@ -3,6 +3,7 @@ import NldatepickerComponent from '../components/Nldatepicker.svelte';
 import { ModalManager } from './modals-manager';
 import { mount } from "svelte";
 import { Moment } from 'moment';
+import { PluginService } from '@/app-service';
 
 export interface NldPlugin {
     parseDate: (dateString: string) => NldResult;
@@ -14,7 +15,10 @@ interface NldResult {
 }
 export default class NldatePickerModal extends Modal {
     constructor() {
-        super(window.app);
+        const app = PluginService.getPlugin()?.app
+        if (!app) return;
+
+        super(app);
         ModalManager.register(this);
 
         const { contentEl } = this;

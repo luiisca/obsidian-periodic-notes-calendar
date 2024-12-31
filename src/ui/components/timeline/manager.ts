@@ -12,13 +12,14 @@ import moment, { Moment } from "moment";
 import { get } from "svelte/store";
 import { ViewManager } from "../view";
 import Timeline from "./Timeline.svelte";
+import { PluginService } from "@/app-service";
 
 export default class TimelineManager {
     static timelineComponents: Record<string, Record<string, any>> = {}
 
     static initAll(): void {
         if (get(settingsStore).timeline.enabled) {
-            window.app.workspace.iterateAllLeaves((leaf) => {
+            PluginService.getPlugin()?.app.workspace.iterateAllLeaves((leaf) => {
                 const leafView = leaf.view as MarkdownView;
                 const isLeafViewMarkdown = leaf.getViewState().type === 'markdown'
                 const isLeafCalendar = leafView?.containerEl?.dataset?.type === LEAF_TYPE
@@ -107,8 +108,8 @@ export default class TimelineManager {
 
     static handleLayoutChange() {
         const prevTimelineParentFile = get(timelineParentFileStore);
-        const activeFile = window.app.workspace.getActiveFile();
-        const crrActiveLeaf = window.app.workspace.getActiveViewOfType(MarkdownView)?.leaf;
+        const activeFile = PluginService.getPlugin()?.app.workspace.getActiveFile();
+        const crrActiveLeaf = PluginService.getPlugin()?.app.workspace.getActiveViewOfType(MarkdownView)?.leaf;
         const leafFile = ViewManager.getFileFromLeaf(crrActiveLeaf)
         const activeLeafContainsActiveFile = activeFile?.path === leafFile?.path
 
@@ -131,7 +132,7 @@ export default class TimelineManager {
             timelineParentFileStore.set(activeFile)
 
             if (
-                !window.app.workspace.layoutReady
+                !PluginService.getPlugin()?.app.workspace.layoutReady
                 || ViewManager.isMainLeaf(crrActiveLeaf)
                 || (!crrActiveLeaf?.view || !(crrActiveLeaf?.view instanceof FileView))
                 || ViewManager.isPreviewLeaf(crrActiveLeaf)?.leaf

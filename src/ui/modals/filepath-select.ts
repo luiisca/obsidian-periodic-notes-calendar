@@ -10,6 +10,7 @@ import { settingsStore } from '@/settings';
 import { get, writable, Writable } from 'svelte/store';
 import { internalFileModStore } from '@/stores/notes';
 import { mount } from "svelte";
+import { PluginService } from '@/app-service';
 
 export class FilepathModal extends FuzzySuggestModal<string> {
     private filePaths: string[];
@@ -18,7 +19,10 @@ export class FilepathModal extends FuzzySuggestModal<string> {
     private deletingAllStore: Writable<boolean> = writable(false);
 
     constructor(filePaths: string[], formatValue: string) {
-        super(window.app);
+        const app = PluginService.getPlugin()?.app
+        if (!app) return;
+
+        super(app);
         ModalManager.register(this);
 
         this.filePaths = filePaths;
@@ -177,8 +181,8 @@ export class FilepathModal extends FuzzySuggestModal<string> {
         ModalManager.closeAll();
 
         // close settings tab
-        if ((window.app as any).setting.activeTab) {
-            (window.app as any).setting.close();
+        if ((PluginService.getPlugin()?.app as any).setting.activeTab) {
+            (PluginService.getPlugin()?.app as any).setting.close();
         }
 
         const file = this.app.vault.getAbstractFileByPath(filePath);

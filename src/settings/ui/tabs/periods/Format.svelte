@@ -22,6 +22,7 @@
     import ReplaceAllText from "./ReplaceAllText.svelte";
     import ReplaceAllNote from "./ReplaceAllNote.svelte";
     import { v4 as uuidv4 } from "uuid";
+    import { PluginService } from "@/app-service";
 
     interface Props {
         settings: Writable<PeriodSettings>;
@@ -166,9 +167,10 @@
 
                 Object.keys(oldFilepaths).forEach(
                     async (oldFilepath, oldFilepathIndex) => {
-                        const oldFile = window.app.vault.getAbstractFileByPath(
-                            oldFilepath,
-                        ) as TFile | null;
+                        const oldFile =
+                            PluginService.getPlugin()?.app.vault.getAbstractFileByPath(
+                                oldFilepath,
+                            ) as TFile | null;
                         const date = window.moment(
                             oldFile?.basename,
                             oldFormat.value,
@@ -185,7 +187,7 @@
                         if (!oldFile) return;
 
                         try {
-                            await window.app.vault.rename(
+                            await PluginService.getPlugin()?.app.vault.rename(
                                 oldFile,
                                 newNormalizedPath,
                             );

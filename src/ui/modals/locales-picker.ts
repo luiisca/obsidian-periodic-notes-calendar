@@ -3,6 +3,7 @@ import {
 } from '@/stores';
 import { FuzzySuggestModal } from 'obsidian';
 import { ModalManager } from './modals-manager';
+import { PluginService } from '@/app-service';
 
 export interface ILocaleItem {
     momentLocale: string;
@@ -13,7 +14,10 @@ export class LocalesPickerModal extends FuzzySuggestModal<ILocaleItem> {
     private locales: ILocaleItem[];
 
     constructor(locales: ILocaleItem[]) {
-        super(window.app);
+        const app = PluginService.getPlugin()?.app
+        if (!app) return;
+
+        super(app);
         ModalManager.register(this);
 
         this.locales = locales;

@@ -5,6 +5,7 @@ import { DnPluginSettings } from './io/settings';
 import locales from './locales';
 import { settingsStore } from './settings';
 import { createLocalesPickerDialog, ILocaleItem } from './ui/modals/locales-picker';
+import { PluginService } from './app-service';
 
 export async function fetchWithRetry<T>(url: string, retries = 0): Promise<T | null> {
     try {
@@ -32,7 +33,7 @@ export function capitalize(string: string) {
 }
 
 export async function getPlugin(pluginId: string): Promise<any | null> {
-    const plugins = (window.app as any).plugins;
+    const plugins = (PluginService.getPlugin()?.app as any).plugins;
     const enabledPlugins = plugins?.enabledPlugins as Set<string>
 
     if (!enabledPlugins.has(pluginId)) {
@@ -42,7 +43,7 @@ export async function getPlugin(pluginId: string): Promise<any | null> {
     return plugins?.getPlugin(pluginId)
 }
 export async function getDailyNotesPlugin() {
-    const dailyNotesPlugin = (<any>window.app).internalPlugins?.getPluginById(DAILY_NOTES_PLUGIN_ID) as DnPluginSettings | undefined;
+    const dailyNotesPlugin = (<any>PluginService.getPlugin()?.app).internalPlugins?.getPluginById(DAILY_NOTES_PLUGIN_ID) as DnPluginSettings | undefined;
 
     if (!dailyNotesPlugin?.enabled) {
         await (dailyNotesPlugin as any).enable()
@@ -59,7 +60,7 @@ export function handleLocaleCommands() {
     let localeItems: ILocaleItem[] = []
     const COMMAND = 'switch-locale'
     const allowLocalesSwitchFromCommandPalette = get(settingsStore).allowLocalesSwitchFromCommandPalette
-    if (!window.plugin) return;
+    if (!PluginService.getPlugin()) return;
 
     window.moment.locales().forEach((momentLocale) => {
         localeItems.push({
@@ -68,9 +69,9 @@ export function handleLocaleCommands() {
         })
     });
 
-    window.plugin?.removeCommand(COMMAND)
+    PluginService.getPlugin()?.removeCommand(COMMAND)
     if (allowLocalesSwitchFromCommandPalette) {
-        window.plugin?.addCommand({
+        PluginService.getPlugin()?.addCommand({
             id: COMMAND,
             name: 'Switch locale',
             callback: () => {
@@ -81,7 +82,7 @@ export function handleLocaleCommands() {
 }
 
 export function isMobile() {
-    return (window.app as any).isMobile as boolean | undefined
+    return PluginService.getPlugin()?.app.isMobile as boolean | undefined
 }
 
 // https://stackoverflow.com/questions/50195475/detect-if-device-is-tablet

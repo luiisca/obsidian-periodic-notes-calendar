@@ -12,6 +12,7 @@ import { type IGranularity } from "./types";
 import { extractAndReplaceTODOItems } from "./utils";
 import { ensureFolderExists, getNotePath, getTemplateInfo } from "./vault";
 import { ViewManager } from "@/ui";
+import { PluginService } from "@/app-service";
 
 export async function createOrOpenNote({
     leaf,
@@ -42,9 +43,9 @@ export async function createOrOpenNote({
     //     date,
     //     formattedDate: date.format("YYYY-MM-DD, [W]W, [w]w")
     // })
-    let file = window.app.vault.getAbstractFileByPath(normalizedPath)
+    let file = PluginService.getPlugin()?.app.vault.getAbstractFileByPath(normalizedPath)
 
-    async function openFile(file: TAbstractFile | null) {
+    async function openFile(file: TAbstractFile | undefined | null) {
         if (file) {
             if (openInPreview) {
                 ViewManager.revealView();
@@ -106,14 +107,16 @@ export async function createNote(granularity: IGranularity, date: Moment) {
     try {
         internalFileModStore.set("created");
 
-        const file = await window.app.vault.create(
+        const file = await PluginService.getPlugin()?.app.vault.create(
             normalizedPath,
             replaceTemplateContents(date, selectedFormat.value, templateContents)
         );
+        if (!file) return;
+
         await extractAndReplaceTODOItems(date, granularity, file);
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (window.app as any).foldManager.save(file, IFoldInfo);
+        (PluginService.getPlugin()?.app as any).foldManager.save(file, IFoldInfo);
 
         settingsStore.addFilepath(normalizedPath, selectedFormat.value)
         internalFileModStore.set(null)

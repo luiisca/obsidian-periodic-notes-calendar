@@ -3,7 +3,7 @@ import { createNote, getFileData, IGranularity } from '@/io';
 import { isValidPeriodicNote } from '@/io/validation';
 import { PeriodSettings, settingsStore, type ISettings } from '@/settings';
 import { activeFileStore, mainLeafStore, previewLeafStore, processingPreviewChangeStore } from '@/stores';
-import { capitalize, isMobile, isPhone, isTablet } from '@/utils';
+import { capitalize, isMobile, isPhone } from '@/utils';
 import moment, { Moment } from 'moment';
 import { MarkdownView, TFile, View, WorkspaceLeaf } from 'obsidian';
 import { mount, unmount } from 'svelte';
@@ -11,6 +11,7 @@ import { get } from 'svelte/store';
 import { PreviewControls } from '.';
 import { goToNoteHeading } from './utils';
 import TimelineManager from '../timeline/manager';
+import { PluginService } from '@/app-service';
 
 export class ViewManager {
     static previewControlsComponent: Record<string, any> | null;
@@ -19,7 +20,7 @@ export class ViewManager {
     private static firstLayoutChange = true;
 
     static async restartView({ active }: { active: boolean } = { active: true }) {
-        window.app.workspace.detachLeavesOfType(LEAF_TYPE);
+        PluginService.getPlugin()?.app.workspace.detachLeavesOfType(LEAF_TYPE);
         this.initView({ active })
     }
     static async initView({ active }: { active: boolean } = { active: true }) {
@@ -28,7 +29,7 @@ export class ViewManager {
         const leafPosition = get(settingsStore).viewLeafPosition as ISettings["viewLeafPosition"];
         if (leafPosition === 'root') {
             if (!mainLeaf) {
-                mainLeaf = window.app.workspace.getLeaf('tab')
+                mainLeaf = PluginService.getPlugin()?.app.workspace.getLeaf('tab') ?? null
             }
             mainLeaf?.setViewState({
                 type: LEAF_TYPE,
@@ -36,7 +37,7 @@ export class ViewManager {
             })
         } else {
             if (!mainLeaf) {
-                mainLeaf = window.app.workspace[`get${capitalize(leafPosition) as "Left" | "Right"}Leaf`](false);
+                mainLeaf = PluginService.getPlugin()?.app.workspace[`get${capitalize(leafPosition) as "Left" | "Right"}Leaf`](false) ?? null;
             }
             mainLeaf?.setViewState({
                 type: LEAF_TYPE,
@@ -62,17 +63,17 @@ export class ViewManager {
             }
 
             if (leaf) {
-                await window.app.workspace.revealLeaf(leaf);
+                await PluginService.getPlugin()?.app.workspace.revealLeaf(leaf);
             }
         }
         if (type === 'view') {
-            leaf = window.app.workspace.getLeavesOfType(LEAF_TYPE)[0];
+            leaf = PluginService.getPlugin()?.app.workspace.getLeavesOfType(LEAF_TYPE)[0];
             if (!leaf) {
                 leaf = await this.initView()
             }
 
             if (leaf) {
-                await window.app.workspace.revealLeaf(leaf);
+                await PluginService.getPlugin()?.app.workspace.revealLeaf(leaf);
                 await leaf.setViewState({
                     type: LEAF_TYPE,
                     active: true
@@ -84,11 +85,11 @@ export class ViewManager {
     private static setupVisibilityTracking(): () => void {
         // Register event handlers
         const boundCb = this.handleLayoutChange.bind(this);
-        window.app.workspace.on('resize', boundCb);
+        PluginService.getPlugin()?.app.workspace.on('resize', boundCb);
 
         // Return cleanup function
         return () => {
-            window.app.workspace.off('resize', boundCb);
+            PluginService.getPlugin()?.app.workspace.off('resize', boundCb);
         };
     }
 
@@ -100,7 +101,7 @@ export class ViewManager {
         const prevPreviewLeaf = get(previewLeafStore);
 
         // crr active leaf
-        const crrActiveLeaf = window.app.workspace.getActiveViewOfType(MarkdownView)?.leaf;
+        const crrActiveLeaf = PluginService.getPlugin()?.app.workspace.getActiveViewOfType(MarkdownView)?.leaf;
 
         // main leaf
         const mainLeaf = this.getMainLeaf() as WorkspaceLeaf & { containerEl: HTMLElement, width: number, height: number } | null;
@@ -128,7 +129,7 @@ export class ViewManager {
         // leaf.view.state.file will be used when markdown view is not visible and leaf.view.file.path would return undefined
         // this value is undefined when markdown view is visible
         const previewFilepath = (previewLeaf?.view as any)?.state?.file as string | undefined || (previewLeaf?.view as any)?.file?.path as string | null
-        const previewFile = (previewFilepath ? window.app.vault.getAbstractFileByPath(previewFilepath) : null) as TFile | null
+        const previewFile = (previewFilepath ? PluginService.getPlugin()?.app.vault.getAbstractFileByPath(previewFilepath) : null) as TFile | null
         let isOpenPreviewBttnVisible =
             get(settingsStore).preview.enabled
             && (
@@ -339,9 +340,9 @@ export class ViewManager {
 
             if (expandMode === 'maximized') {
                 if (viewLeafPosition === 'root') {
-                    previewLeaf = window.app.workspace.getLeaf('tab')
+                    previewLeaf = PluginService.getPlugin()?.app.workspace.getLeaf('tab') ?? null
                 } else {
-                    previewLeaf = window.app.workspace[`get${capitalize(viewLeafPosition) as "Left" | "Right"}Leaf`](false);
+                    previewLeaf = PluginService.getPlugin()?.app.workspace[`get${capitalize(viewLeafPosition) as "Left" | "Right"}Leaf`](false) ?? null;
                 }
             } else {
                 const mainLeafParent = mainLeaf?.parent?.parent;
@@ -351,9 +352,9 @@ export class ViewManager {
                     const previewLeafParent = mainLeafSplitParentChildren.find((leaf) => (leaf as any).containerEl !== (mainLeaf as any).containerEl.closest(".workspace-tabs"))
                     let previewLeafParentChildren = Array.from((previewLeafParent as any)?.children || []) as WorkspaceLeaf[]
 
-                    previewLeaf = window.app.workspace.createLeafInParent(previewLeafParent as WorkspaceLeaf, previewLeafParentChildren.length)
+                    previewLeaf = PluginService.getPlugin()?.app.workspace.createLeafInParent(previewLeafParent as WorkspaceLeaf, previewLeafParentChildren.length) ?? null
                 } else {
-                    previewLeaf = window.app.workspace.createLeafBySplit(mainLeaf, splitMode);
+                    previewLeaf = PluginService.getPlugin()?.app.workspace.createLeafBySplit(mainLeaf, splitMode) ?? null;
                 }
             }
 
@@ -451,7 +452,7 @@ export class ViewManager {
         this.previewControlsComponent = null;
     }
     static cleanupPreviews() {
-        window.app.workspace.iterateAllLeaves((leaf) => {
+        PluginService.getPlugin()?.app.workspace.iterateAllLeaves((leaf) => {
             const isPreview = this.isPreviewLeaf(leaf)
             if (isPreview?.leaf) {
                 this.cleanupPreview({ leaf: isPreview.leaf })
@@ -460,7 +461,7 @@ export class ViewManager {
     }
 
     static getMainLeaf() {
-        return window.app.workspace.getLeavesOfType(LEAF_TYPE)[0] as WorkspaceLeaf | null
+        return PluginService.getPlugin()?.app.workspace.getLeavesOfType(LEAF_TYPE)[0] as WorkspaceLeaf | null
     }
     static isMainLeaf(leaf: WorkspaceLeaf | null) {
         return leaf === this.getMainLeaf()
@@ -472,7 +473,7 @@ export class ViewManager {
     static searchPreviewLeaf(file?: TFile) {
         let previewLeafFound = false;
         let previewLeaf: WorkspaceLeaf | null = null;
-        window.app.workspace.iterateAllLeaves((leaf) => {
+        PluginService.getPlugin()?.app.workspace.iterateAllLeaves((leaf) => {
             // on first layout change, preview controls arent mounted so we need to check
             // for whether the leaf is in its default position
             if (previewLeafFound) return;
@@ -557,7 +558,7 @@ export class ViewManager {
         })
 
         if (createNewFile && granularity) {
-            file = await createNote(granularity, date);
+            file = await createNote(granularity, date) ?? null;
         }
 
         return {
@@ -634,14 +635,14 @@ export class ViewManager {
         const leafFilepath = _file?.path || leafView?.state?.file as string | undefined || (leaf?.view as any).file?.path as string | undefined;
         if (!leafFilepath) return;
 
-        const file = window.app.vault.getAbstractFileByPath(leafFilepath) as TFile | null;
+        const file = PluginService.getPlugin()?.app.vault.getAbstractFileByPath(leafFilepath) as TFile | null;
         if (!file) return;
 
         return file
     }
 
     static unload() {
-        // window.app.workspace.detachLeavesOfType(LEAF_TYPE);
+        // PluginService.getPlugin()?.app.workspace.detachLeavesOfType(LEAF_TYPE);
         // this.cleanupPreview();
         this.cleaunupPreviewEvHandlers()
     }

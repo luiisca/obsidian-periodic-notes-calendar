@@ -4,6 +4,7 @@ import { Moment } from "moment";
 import { getNormalizedPeriodSettings } from "./settings";
 import { getSticker, TSticker } from "@/ui/utils";
 import { PeriodSettings } from "@/settings";
+import { PluginService } from "@/app-service";
 
 interface IFold {
     from: number;
@@ -54,8 +55,8 @@ export async function ensureFolderExists(path: string): Promise<void> {
 
     if (dirs.length) {
         const dir = join(...dirs);
-        if (!window.app.vault.getAbstractFileByPath(dir)) {
-            await window.app.vault.createFolder(dir);
+        if (!PluginService.getPlugin()?.app.vault.getAbstractFileByPath(dir)) {
+            await PluginService.getPlugin()?.app.vault.createFolder(dir);
         }
     }
 }
@@ -65,8 +66,8 @@ async function ensureTemplateExists(path: string) {
     await ensureFolderExists(path);
 
     // create file if it doesnt exist
-    if (!window.app.vault.getAbstractFileByPath(path)) {
-        await window.app.vault.create(path, "");
+    if (!PluginService.getPlugin()?.app.vault.getAbstractFileByPath(path)) {
+        await PluginService.getPlugin()?.app.vault.create(path, "");
     }
 }
 
@@ -91,8 +92,8 @@ export function getFileData(
     date: Moment | null,
 ): TFileData {
     const filePath = granularity && date && getNotePath(granularity, date);
-    const file = filePath ? (window.app.vault.getAbstractFileByPath(filePath) as TFile) : null;
-    const tags = file ? window.app.metadataCache.getFileCache(file)?.tags : null;
+    const file = filePath ? (PluginService.getPlugin()?.app.vault.getAbstractFileByPath(filePath) as TFile) : null;
+    const tags = file ? PluginService.getPlugin()?.app.metadataCache.getFileCache(file)?.tags : null;
     const sticker = getSticker(tags)
 
     return {
@@ -104,7 +105,7 @@ export function getFileData(
 export async function getTemplateInfo(
     template: string
 ): Promise<[string, IFoldInfo | null]> {
-    const { metadataCache, vault } = window.app;
+    const app = PluginService.getPlugin()?.app;
 
     const normalizedPath = normalizePath(template);
     if (normalizedPath === "/") {
@@ -114,11 +115,11 @@ export async function getTemplateInfo(
 
     try {
         // get First file matching given normalizedPath
-        const templateFile = vault.getAbstractFileByPath(normalizedPath);
-        const contents = await vault.cachedRead(templateFile as TFile);
+        const templateFile = app?.vault.getAbstractFileByPath(normalizedPath);
+        const contents = await app?.vault.cachedRead(templateFile as TFile) ?? "";
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const IFoldInfo = (window.app as any).foldManager.load(templateFile);
+        const IFoldInfo = (PluginService.getPlugin()?.app as any).foldManager.load(templateFile);
         return [contents, IFoldInfo];
     } catch (err) {
         console.error(

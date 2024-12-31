@@ -88,8 +88,6 @@ export class StickerPopoverBehavior extends BaseComponentBehavior {
         }
 
         if (event.key === 'Escape') {
-            const searchInput = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
-
             if (settings.popoversClosing.closePopoversOneByOneOnEscKeydown) {
                 this.close();
             } else {

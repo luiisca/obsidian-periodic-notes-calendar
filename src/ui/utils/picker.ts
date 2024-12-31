@@ -7,6 +7,7 @@ import emojiRegex from "emoji-regex";
 import { type TagCache } from "obsidian";
 import { get } from "svelte/store";
 import { getBehaviorInstance, getPopoverInstance, Popover } from "../popovers";
+import { PluginService } from "@/app-service";
 
 type TEmoji = {
     aliases?: string[],
@@ -56,7 +57,7 @@ export function initializePicker(
 
             if (file) {
                 // update note with new emoji tag
-                const content = await window.app.vault.read(file)
+                const content = await PluginService.getPlugin()?.app.vault.read(file) ?? ""
                 let updatedContent = content
 
                 if (sticker) {
@@ -64,10 +65,10 @@ export function initializePicker(
                     const aft = updatedContent.slice(sticker.endOffset)
                     updatedContent = `${bef}#${emoji.native}${aft}`;
 
-                    window.app.vault.modify(file, updatedContent)
+                    PluginService.getPlugin()?.app.vault.modify(file, updatedContent)
                 } else {
                     const firstLine = updatedContent.split('\n')[0].trim();
-                    window.app.vault.modify(file, `#${emoji.native}${firstLine !== "" ? " \n" : ""}${updatedContent} `)
+                    PluginService.getPlugin()?.app.vault.modify(file, `#${emoji.native}${firstLine !== "" ? " \n" : ""}${updatedContent} `)
                 }
             };
         },

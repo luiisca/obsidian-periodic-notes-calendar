@@ -6,12 +6,11 @@ import {
 import { View } from '@/ui';
 import { mount, unmount } from "svelte";
 import { LEAF_TYPE } from './constants';
-import type PeriodicNotesCalendarPlugin from './main';
 
 export class CalendarView extends ItemView {
     private view: Record<string, any>;
 
-    constructor(leaf: WorkspaceLeaf, plugin: PeriodicNotesCalendarPlugin) {
+    constructor(leaf: WorkspaceLeaf) {
         super(leaf);
     }
 

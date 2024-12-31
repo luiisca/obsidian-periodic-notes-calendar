@@ -7,6 +7,7 @@ import { TFile, WorkspaceLeaf } from 'obsidian';
 import { get } from 'svelte/store';
 import { Popover } from '../popovers';
 import { TFileMenuOpenParams } from '../popovers/file-menu';
+import { PluginService } from '@/app-service';
 
 type TOnClickParams = {
     date: Moment;
@@ -31,7 +32,7 @@ const onClick = async ({
     if (get(settingsStore).preview.openNotesInPreview && !createNewSplitLeaf) {
         leaf = null;
     } else {
-        leaf = window.app.workspace.getLeaf(createNewSplitLeaf);
+        leaf = PluginService.getPlugin()?.app.workspace.getLeaf(createNewSplitLeaf) ?? null;
     }
     createOrOpenNote({
         leaf,
@@ -48,7 +49,7 @@ const onHover = ({
 }: TOnHoverParams): void => {
     if (event && file && (isControlPressed || get(settingsStore).autoHoverPreview)) {
         // https://forum.obsidian.md/t/internal-links-dont-work-in-custom-view/90169/2
-        window.app.workspace.trigger("hover-link", {
+        PluginService.getPlugin()?.app.workspace.trigger("hover-link", {
             event,
             source: "preview",
             hoverParent: { hoverPopover: null },

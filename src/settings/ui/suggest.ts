@@ -1,3 +1,4 @@
+import { PluginService } from "@/app-service";
 import { type TWindowEvents, type WindowEventHandler } from "@/ui/types";
 import { autoUpdate, computePosition, flip } from "@floating-ui/dom";
 import { debounce, PopoverSuggest, Scope, TAbstractFile, TFile, TFolder } from "obsidian";
@@ -26,7 +27,10 @@ abstract class BaseSuggest<T> extends PopoverSuggest<T> {
     private autoUpdateCleanup: (() => void) | null = null;
 
     constructor(inputEl: HTMLInputElement) {
-        super(window.app);
+        const app = PluginService.getPlugin()?.app
+        if (!app) return;
+
+        super(app);
         this.inputEl = inputEl;
         this.selectedSuggestionIdx = 0
         this.scope = new Scope();
@@ -50,9 +54,9 @@ abstract class BaseSuggest<T> extends PopoverSuggest<T> {
         if (suggestionValues.length > 0) {
             this.clear()
             // add global event handlers, cleaned in `this.close()`
-            window.app.keymap.pushScope(this.scope);
+            PluginService.getPlugin()?.app.keymap.pushScope(this.scope);
             // attached to the DOM, detached in `this.close()`
-            window.app.workspace.containerEl.appendChild(this.suggestionContainerEl);
+            PluginService.getPlugin()?.app.workspace.containerEl.appendChild(this.suggestionContainerEl);
 
             const position = () => computePosition(this.inputEl, this.suggestionContainerEl, {
                 placement: "bottom-start",
@@ -72,7 +76,7 @@ abstract class BaseSuggest<T> extends PopoverSuggest<T> {
     }
     close() {
         // remove global event handlers, added in `this.render()`
-        window.app.keymap.popScope(this.scope);
+        PluginService.getPlugin()?.app.keymap.popScope(this.scope);
 
         this.clear()
         this.suggestionContainerEl.detach();
@@ -191,10 +195,10 @@ abstract class BaseSuggest<T> extends PopoverSuggest<T> {
 
 export class FolderSuggest extends BaseSuggest<TFolder> {
     getSuggestions(inputVal: string): TFolder[] {
-        const allVaultFiles = window.app.vault.getAllLoadedFiles();
+        const allVaultFiles = PluginService.getPlugin()?.app.vault.getAllLoadedFiles();
         const folders: TFolder[] = [];
 
-        allVaultFiles.forEach((file: TAbstractFile) => {
+        allVaultFiles?.forEach((file: TAbstractFile) => {
             if (
                 file instanceof TFolder &&
                 file.path.toLowerCase().contains(inputVal.toLowerCase())
@@ -225,10 +229,10 @@ export class FolderSuggest extends BaseSuggest<TFolder> {
 
 export class FileSuggest extends BaseSuggest<TFile> {
     getSuggestions(inputVal: string): TFile[] {
-        const allVaultFiles = window.app.vault.getAllLoadedFiles();
+        const allVaultFiles = PluginService.getPlugin()?.app.vault.getAllLoadedFiles();
         const files: TFile[] = [];
 
-        allVaultFiles.forEach((file: TAbstractFile) => {
+        allVaultFiles?.forEach((file: TAbstractFile) => {
             if (
                 file instanceof TFile &&
                 file.extension === "md" &&
@@ -306,11 +310,11 @@ export class HeadingsSuggest extends BaseSuggest<string> {
 
     async selectSuggestion(heading: string, _: KeyboardEvent | MouseEvent): Promise<void> {
         if (this.noHeadingsFound && heading.startsWith("+ Add")) {
-            const file = this.templatePath ? (window.app.vault.getAbstractFileByPath(this.templatePath) as TFile) : null;
+            const file = this.templatePath ? (PluginService.getPlugin()?.app.vault.getAbstractFileByPath(this.templatePath) as TFile) : null;
             if (file) {
-                const content = await window.app.vault.read(file)
+                const content = await PluginService.getPlugin()?.app.vault.read(file) ?? ""
                 if (this.newHeadingVal) {
-                    await window.app.vault.modify(file, `${content.trim() === "" ? this.newHeadingVal : `${content.trim()}\n\n${this.newHeadingVal}`}`)
+                    await PluginService.getPlugin()?.app.vault.modify(file, `${content.trim() === "" ? this.newHeadingVal : `${content.trim()}\n\n${this.newHeadingVal}`}`)
 
                     const metadataChangeCb = () => {
                         if (this.newHeadingVal) {
@@ -318,10 +322,10 @@ export class HeadingsSuggest extends BaseSuggest<string> {
                             this.inputEl.trigger("input");
                             this.suggestionSelected = true;
 
-                            window.app.metadataCache.off("changed", metadataChangeCb);
+                            PluginService.getPlugin()?.app.metadataCache.off("changed", metadataChangeCb);
                         }
                     }
-                    window.app.metadataCache.on("changed", metadataChangeCb);
+                    PluginService.getPlugin()?.app.metadataCache.on("changed", metadataChangeCb);
                 }
             }
         } else {

@@ -5,20 +5,19 @@
     import { IGranularity } from "@/io";
     import { settingsStore, TimelineViewMode } from "@/settings";
     import { localeSwitched } from "@/stores";
-    import { Arrow, Dot, ViewManager } from "@/ui";
+    import { Arrow, Dot } from "@/ui";
     import {
         cn,
         eventHandlers,
         getRelativeDate,
         isControlPressed,
     } from "@/ui/utils";
-    import { MarkdownView, setIcon, WorkspaceLeaf } from "obsidian";
+    import { setIcon } from "obsidian";
     import { onDestroy, onMount } from "svelte";
     import DateBttn from "../core/DateBttn.svelte";
     import { G_MAP, VIEW_MODES } from "./constants";
     import { isMobile } from "@/utils";
     import { TIMELINE_TYPE } from "@/constants";
-    import { isValidPeriodicNote } from "@/io/validation";
 
     interface Props {
         granularity: IGranularity;

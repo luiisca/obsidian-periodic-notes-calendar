@@ -5,6 +5,7 @@ import { get } from 'svelte/store';
 import { type IGranularity } from '../types';
 import { normalizePath } from 'obsidian';
 import { isTokenEffective } from './format';
+import { PluginService } from '@/app-service';
 
 export function removeEscapedCharacters(format: string): string {
     const withoutBrackets = format.replace(/\[[^\]]*\]/g, ''); // remove everything within brackets
@@ -83,7 +84,7 @@ export function validateFolder(folder: string): string {
         return "";
     }
 
-    if (!window.app.vault.getAbstractFileByPath(normalizePath(folder))) {
+    if (!PluginService.getPlugin()?.app.vault.getAbstractFileByPath(normalizePath(folder))) {
         return "Folder not found in vault";
     }
 
@@ -97,7 +98,7 @@ export function validateTemplate(template: string): string {
     const normalizedTemplate = normalizePath(
         !template.trim().endsWith(".md") ? `${template}.md` : template
     )
-    if (!window.app.vault.getAbstractFileByPath(normalizedTemplate)) {
+    if (!PluginService.getPlugin()?.app.vault.getAbstractFileByPath(normalizedTemplate)) {
         return "Template file not found";
     }
 
@@ -108,7 +109,7 @@ export function isTemplateValid(template: string): boolean {
         return false;
     }
 
-    return window.app.vault.getAbstractFileByPath(template) !== null;
+    return PluginService.getPlugin()?.app.vault.getAbstractFileByPath(template) !== null;
 }
 
 export * from "./format"

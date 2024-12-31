@@ -2,6 +2,7 @@ import { Modal } from 'obsidian';
 import { Component, mount } from 'svelte';
 import { ModalManager } from './modals-manager';
 import { ConfirmationModal as ConfirmationModalComponent } from '../components';
+import { PluginService } from '@/app-service';
 
 type TextContent = string | {
     Component: Component;
@@ -18,7 +19,10 @@ export interface IConfirmationDialogParams {
 
 export class ConfirmationModal extends Modal {
     constructor(config: IConfirmationDialogParams) {
-        super(window.app);
+        const app = PluginService.getPlugin()?.app
+        if (!app) return;
+
+        super(app);
         ModalManager.register(this);
 
         const { contentEl } = this;

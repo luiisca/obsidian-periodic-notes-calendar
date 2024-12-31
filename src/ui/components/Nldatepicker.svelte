@@ -9,6 +9,7 @@
     import { debounce } from "obsidian";
     import type NldatePickerModal from "../modals/nldate-picker";
     import { onMount } from "svelte";
+    import { PluginService } from "@/app-service";
 
     interface Props {
         modalClass: NldatePickerModal;
@@ -74,15 +75,16 @@
         if (parsedDate) {
             modalClass.close();
 
-            const { workspace } = window.app;
-            const leaf = workspace.getLeaf(false);
+            const leaf =
+                PluginService.getPlugin()?.app.workspace.getLeaf(false);
 
-            createOrOpenNote({
-                leaf,
-                date: parsedDate,
-                granularity: granularityInputVal,
-                confirmBeforeCreateOverride: false,
-            });
+            leaf &&
+                createOrOpenNote({
+                    leaf,
+                    date: parsedDate,
+                    granularity: granularityInputVal,
+                    confirmBeforeCreateOverride: false,
+                });
         }
     };
     const handleKeydown = (event: KeyboardEvent) => {

@@ -1,22 +1,24 @@
+import { PluginService } from "@/app-service";
 import { DEFAULT_FORMATS_PER_GRANULARITY } from "@/constants";
 import { getPeriodicityFromGranularity, IGranularity } from "@/io";
-import PeriodicNotesCalendarPlugin from "@/main";
 import Settings from "@/settings/ui/Index.svelte";
 import { genNoticeFragment } from "@/ui/utils";
 import { capitalize } from "@/utils";
 import { App, Notice, PluginSettingTab } from 'obsidian';
 import { mount, unmount } from "svelte";
 import { get } from "svelte/store";
-import { settingsStore } from "./store";
 import { v4 as uuidv4 } from "uuid";
+import { settingsStore } from "./store";
 
 export class SettingsTab extends PluginSettingTab {
-    public plugin: PeriodicNotesCalendarPlugin;
     private view: Record<string, any>;
 
-    constructor(app: App, plugin: PeriodicNotesCalendarPlugin) {
-        super(app, plugin);
-        this.plugin = plugin;
+    constructor() {
+        const plugin = PluginService.getPlugin();
+        const app = plugin?.app as App;
+        if (plugin && app) {
+            super(app, plugin);
+        }
     }
 
     display() {

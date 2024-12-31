@@ -2,6 +2,7 @@ import { DAILY_NOTES_PLUGIN_ID, DEFAULT_FORMATS_PER_GRANULARITY } from '@/consta
 import { getDefaultPeriodicNotesConfig, PeriodSettings, settingsStore } from '@/settings';
 import { get } from 'svelte/store';
 import { IGranularity } from './types';
+import { PluginService } from '@/app-service';
 
 export type DnPluginSettings = {
     enabled: boolean;
@@ -21,7 +22,7 @@ export type DnPluginSettings = {
 type TNormalizedPeriodSettings = Record<IGranularity, { settings: PeriodSettings, type: "period" | "daily" | "default" }>
 export function getNormalizedPeriodSettings(granularity: IGranularity): TNormalizedPeriodSettings[IGranularity] {
     const pluginSettings = get(settingsStore).periods;
-    const dailyNotesPlugin = (<any>window.app).internalPlugins?.getPluginById(DAILY_NOTES_PLUGIN_ID) as DnPluginSettings | undefined;
+    const dailyNotesPlugin = (<any>PluginService.getPlugin()?.app).internalPlugins?.getPluginById(DAILY_NOTES_PLUGIN_ID) as DnPluginSettings | undefined;
     const dailyNotesPluginSettings = dailyNotesPlugin?.instance?.options;
 
     const settings = pluginSettings[granularity];

@@ -3,7 +3,7 @@ import { settingsStore } from "@/settings";
 import { Component, unmount } from 'svelte';
 import { get } from 'svelte/store';
 import { type TWindowEvents } from '../types';
-import { getBehaviorInstance, Popover } from './base';
+import { getBehaviorInstance } from './base';
 import { BaseComponentBehavior } from './base-component-behavior';
 
 function getRefHtmlEl() {

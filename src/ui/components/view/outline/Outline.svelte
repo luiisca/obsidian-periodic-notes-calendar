@@ -9,6 +9,7 @@
     import { writable } from "svelte/store";
     import { slide } from "svelte/transition";
     import Node from "./Node.svelte";
+    import { PluginService } from "@/app-service";
 
     type TNode = HeadingCache & {
         parts?: string[];
@@ -22,7 +23,9 @@
         $settingsStore;
         $internalFileModStore;
         if (file) {
-            return window.app.metadataCache.getFileCache(file)?.headings;
+            return PluginService.getPlugin()?.app.metadataCache.getFileCache(
+                file,
+            )?.headings;
         }
     });
     let searchQuery = $state("");
@@ -170,9 +173,10 @@
         if ($previewLeafStore) {
             const filepath = $previewLeafStore.filepath;
             if (filepath) {
-                file = window.app.vault.getAbstractFileByPath(
-                    filepath,
-                ) as TFile | null;
+                file =
+                    PluginService.getPlugin()?.app.vault.getAbstractFileByPath(
+                        filepath,
+                    ) as TFile | null;
             }
             leaf = $previewLeafStore.leaf;
         }

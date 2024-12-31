@@ -1,15 +1,10 @@
-import { FILE_MENU_POPOVER_ID, STICKER_POPOVER_ID } from "@/constants";
+import { PluginService } from "@/app-service";
+import { FILE_MENU_POPOVER_ID } from "@/constants";
 import { TFileData, type IGranularity } from "@/io";
-import { settingsStore } from "@/settings";
-import { activeFileStore, displayedDateStore, mainLeafStore, previewLeafStore, spFileDataStore } from "@/stores";
-import { type Moment } from "moment";
-import { MarkdownView, Menu } from "obsidian";
-import { get } from "svelte/store";
-import { ViewManager } from "../components";
-import StickerPopoverComponent from "../components/StickerPopover.svelte";
-import { eventHandlers, isControlPressed } from "../utils";
-import { Popover } from "./base";
 import { isMobile } from "@/utils";
+import { type Moment } from "moment";
+import { Menu } from "obsidian";
+import { eventHandlers, isControlPressed } from "../utils";
 
 export type TFileMenuPopoverParams = {
     id: typeof FILE_MENU_POPOVER_ID,
@@ -27,7 +22,6 @@ export type TFileMenuOpenParams = {
 
 export class FileMenuPopoverBehavior {
     private menu: Menu | null = null;
-    private refHtmlEl: Element | null = null;
     public opened = false;
 
     constructor(params: TFileMenuPopoverParams) {
@@ -45,7 +39,6 @@ export class FileMenuPopoverBehavior {
     public open({ event, fileData, date, granularity, extraItems }: TFileMenuOpenParams) {
         this.opened = true;
 
-        this.refHtmlEl = event.target as Element;
         this.menu = new Menu();
 
         if (fileData.file) {
@@ -101,7 +94,7 @@ export class FileMenuPopoverBehavior {
                     .setTitle("Open in new tab")
                     .setIcon("lucide-file-plus")
                     .onClick(() => {
-                        window.app.workspace.openLinkText(file.path, "", "tab");
+                        PluginService.getPlugin()?.app.workspace.openLinkText(file.path, "", "tab");
                     })
             );
 
@@ -111,7 +104,7 @@ export class FileMenuPopoverBehavior {
                     .setTitle("Open to the right")
                     .setIcon("lucide-separator-vertical")
                     .onClick(() => {
-                        window.app.workspace.openLinkText(file.path, "", "split");
+                        PluginService.getPlugin()?.app.workspace.openLinkText(file.path, "", "split");
                     })
             );
 
@@ -121,9 +114,9 @@ export class FileMenuPopoverBehavior {
                     .setTitle("Make a copy")
                     .setIcon("lucide-files")
                     .onClick(() => {
-                        const newPath = (window.app.vault as any).getAvailablePath(file.path, file.extension);
-                        window.app.vault.copy(file, newPath).then((newFile) => {
-                            window.app.workspace.openLinkText(newFile.path, "", "tab");
+                        const newPath = (PluginService.getPlugin()?.app.vault as any).getAvailablePath(file.path, file.extension);
+                        PluginService.getPlugin()?.app.vault.copy(file, newPath).then((newFile) => {
+                            PluginService.getPlugin()?.app.workspace.openLinkText(newFile.path, "", "tab");
                         });
                     })
             );
@@ -134,14 +127,14 @@ export class FileMenuPopoverBehavior {
                     .setTitle("Delete")
                     .setIcon("lucide-trash-2")
                     .onClick(() => {
-                        (window.app as any).fileManager.promptForFileDeletion(file);
+                        (PluginService.getPlugin()?.app as any).fileManager.promptForFileDeletion(file);
                     }) as any)
                     .setWarning(true)
             );
 
             extraItems?.add?.(menu)
 
-            window.app.workspace.trigger("file-menu", menu, file, "custom-file-menu");
+            PluginService.getPlugin()?.app.workspace.trigger("file-menu", menu, file, "custom-file-menu");
         }
     }
 }

@@ -3,7 +3,6 @@
     import { previewLeafStore } from "@/stores";
     import { getPopoverInstance } from "@/ui/popovers";
     import { cn } from "@/ui/utils";
-    import { escapeRegex } from "@/utils";
     import { HeadingCache, MarkdownView, WorkspaceLeaf } from "obsidian";
     import { cubicOut } from "svelte/easing";
     import { tweened } from "svelte/motion";

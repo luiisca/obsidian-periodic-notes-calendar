@@ -22,6 +22,7 @@
     import { Outline } from "./outline";
     import { isValidPeriodicNote } from "@/io/validation";
     import { addExtraItems } from "./utils";
+    import { PluginService } from "@/app-service";
 
     interface Props {
         date: Moment;
@@ -56,12 +57,15 @@
     };
     const handleMoreClick = (event: MouseEvent) => {
         const tags = file
-            ? window.app.metadataCache.getFileCache(file)?.tags
+            ? PluginService.getPlugin()?.app.metadataCache.getFileCache(file)
+                  ?.tags
             : null;
         const sticker = getSticker(tags);
 
         const crrActiveLeaf =
-            window.app.workspace.getActiveViewOfType(MarkdownView)?.leaf;
+            PluginService.getPlugin()?.app.workspace.getActiveViewOfType(
+                MarkdownView,
+            )?.leaf;
         const crrActiveLeafId = (crrActiveLeaf as any)?.id as string | null;
         const previewLeafId = ($previewLeafStore?.leaf as any)?.id as
             | string
@@ -98,7 +102,7 @@
         const foundFile = getFileData(granularity, $todayStore).file;
         let file = foundFile;
         if (!foundFile) {
-            file = await createNote(granularity, $todayStore);
+            file = (await createNote(granularity, $todayStore)) ?? null;
         }
         const data = await ViewManager.getPreviewFileData();
         const previewLeaf =
@@ -117,9 +121,10 @@
         if ($previewLeafStore) {
             const filepath = $previewLeafStore.filepath;
             if (filepath) {
-                file = window.app.vault.getAbstractFileByPath(
-                    filepath,
-                ) as TFile | null;
+                file =
+                    PluginService.getPlugin()?.app.vault.getAbstractFileByPath(
+                        filepath,
+                    ) as TFile | null;
             }
             leaf = $previewLeafStore.leaf;
             if (leaf) {

@@ -4,7 +4,7 @@ import moment from 'moment';
 import { MarkdownView, Menu, Notice, Plugin, TAbstractFile, TFile, WorkspaceLeaf, WorkspaceRoot } from 'obsidian';
 import { mount, type SvelteComponent } from 'svelte';
 import { get } from 'svelte/store';
-import { CALENDAR_POPOVER_ID, CALENDAR_RIBBON_ID, FILE_MENU_POPOVER_ID, granularities, LEAF_TYPE, STICKER_POPOVER_ID } from './constants';
+import { CALENDAR_POPOVER_ID, CALENDAR_RIBBON_ID, granularities, LEAF_TYPE, STICKER_POPOVER_ID } from './constants';
 import { basename, createOrOpenNote, extractAndReplaceTODOItems, getFileData, getStartupNoteGranularity, storeAllVaultPeriodicFilepaths } from './io';
 import { getPeriodicityFromGranularity } from './io/parse';
 import type { IGranularity, IPeriodicity } from './io/types';
@@ -24,11 +24,11 @@ import {
 } from './stores';
 import StickerPopoverComponent from './ui/components/StickerPopover.svelte';
 import TimelineManager from './ui/components/timeline/manager';
-import { addExtraItems } from './ui/components/view/utils';
 import { createNldatePickerDialog } from './ui/modals/nldate-picker';
 import { getBehaviorInstance, getPopoverInstance, Popover } from './ui/popovers';
 import { getDailyNotesPlugin, handleLocaleCommands, isPhone } from './utils';
 import { CalendarView } from './view';
+import { PluginService } from './app-service';
 
 export default class PeriodicNotesCalendarPlugin extends Plugin {
     popovers: Record<string, SvelteComponent | null> = {};
@@ -42,7 +42,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
     }
 
     async onload() {
-        window.plugin = this;
+        PluginService.init(this);
 
         await this.loadSettings();
         this.registerEvents()
@@ -60,14 +60,14 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         const unsubSettingsStore = settingsStore.subscribe(this.saveSettings.bind(this))
         this.register(unsubSettingsStore);
 
-        this.addSettingTab(new SettingsTab(this.app, this));
+        this.addSettingTab(new SettingsTab());
 
         setupLocale()
         this.handleRibbon();
 
         // register view and preview
         // register a view under a specific leaf type so obsidian knows to render it when calling `setViewState` with LEAF_TYPE
-        this.registerView(LEAF_TYPE, (leaf) => new CalendarView(leaf, this));
+        this.registerView(LEAF_TYPE, (leaf) => new CalendarView(leaf));
 
         // Commands
         this.addCommand({
@@ -103,8 +103,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
                         : `${pos} ${getPeriodicityFromGranularity(granularity)}`
                         } note`,
                     callback: () => {
-                        const { workspace } = window.app;
-                        const leaf = workspace.getLeaf(false);
+                        const leaf = this.app.workspace.getLeaf(false);
                         const newDate = window
                             .moment()
                             .clone()
@@ -288,7 +287,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
 
     // registered events
     registerEvents() {
-        this.registerEvent(this.app.workspace.on('file-menu', (menu, file, source, leaf) => this.onFileMenu(menu, file as TFile, source, leaf)))
+        this.registerEvent(this.app.workspace.on('file-menu', (menu, file) => this.onFileMenu(menu, file as TFile)))
 
         this.registerEvent(
             this.app.workspace.on('css-change', () => {
@@ -309,16 +308,16 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
             )
         );
         this.registerEvent(
-            this.app.metadataCache.on('changed', (file: TFile) => this.onMetadataChanged(file))
+            this.app.metadataCache.on('changed', () => this.onMetadataChanged())
         )
     }
 
-    private async onFileMenu(_menu: Menu, file: TFile, source: string, leaf?: WorkspaceLeaf) {
+    private async onFileMenu(_menu: Menu, file: TFile) {
         if (!(file instanceof TFile)) return;
         const menu = _menu as Menu & { dom: Element; bgEl: Element }
 
         const { isValid, granularity, date } = isValidPeriodicNote(file.basename);
-        const activeCalendarView = window.app.workspace.getActiveViewOfType(CalendarView)
+        const activeCalendarView = PluginService.getPlugin()?.app.workspace.getActiveViewOfType(CalendarView)
         if (typeof isValid === 'boolean' && date && granularity) {
             // Reveal on calendar
             if (!activeCalendarView) {
@@ -365,7 +364,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         // preview
 
         // Open on preview
-        const crrActiveLeaf = window.app.workspace.getActiveViewOfType(MarkdownView)?.leaf;
+        const crrActiveLeaf = PluginService.getPlugin()?.app.workspace.getActiveViewOfType(MarkdownView)?.leaf;
         const crrActiveLeafId = (crrActiveLeaf as any)?.id as string | null;
         const previewLeafId = (get(previewLeafStore)?.leaf as any)?.id as string | null;
         const crrActiveLeafIsPreview = crrActiveLeafId && previewLeafId && (crrActiveLeafId === previewLeafId)
@@ -468,7 +467,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         })
     }
 
-    private onMetadataChanged(file: TFile) {
+    private onMetadataChanged() {
         internalFileModStore.set({ modified: Math.random() })
     }
 
