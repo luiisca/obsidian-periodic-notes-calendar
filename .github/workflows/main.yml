@@ -18,7 +18,6 @@ jobs:
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
-      test: "idk"
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -26,21 +25,6 @@ jobs:
           token: ${{ secrets.PAT }}
           release-type: node
           target-branch: action-test
-      - run: |
-          echo "release_created = ${{ steps.release.outputs.release_created }}"
-          echo "tag_name = ${{ steps.release.outputs.tag_name }}"
-          echo "release_created=${{ steps.release.outputs.release_created }}" >> $GITHUB_OUTPUT
-          echo "tag_name=${{ steps.release.outputs.tag_name }}" >> $GITHUB_OUTPUT
-        if: ${{ steps.release.outputs.release_created }}
-  echo:
-    runs-on: ubuntu-latest
-    needs: release-please
-    steps:
-      - name: log
-        run: |
-          echo "Release created: ${{ needs.release-please.outputs.release_created }}"
-          echo "Tag name: ${{ needs.release-please.outputs.tag_name }}"
-          echo "test: ${{ needs.release-please.outputs.test }}"
   build:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created }}
@@ -60,5 +44,5 @@ jobs:
           zip -r ${{ env.PLUGIN_ID }}.zip ${{ env.PLUGIN_ID }}
       - name: Upload release artifacts
         env:
-          GITHUB_TOKEN: ${{ secrets.actions }}
+          GITHUB_TOKEN: ${{ secrets.PAT }}
         run: gh release upload ${{ needs.release-please.outputs.tag_name }} manifest.json main.js styles.css ${{ env.PLUGIN_ID }}.zip
