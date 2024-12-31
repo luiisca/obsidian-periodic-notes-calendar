@@ -26,20 +26,20 @@ jobs:
           token: ${{ secrets.PAT }}
           release-type: node
           target-branch: action-test
+        run: |
+          echo "release_created = ${{ steps.release.outputs.release_created }}"
+          echo "tag_name = ${{ steps.release.outputs.tag_name }}"
+          echo "release_created=${{ steps.release.outputs.release_created }}" >> $GITHUB_OUTPUT
+          echo "tag_name=${{ steps.release.outputs.tag_name }}" >> $GITHUB_OUTPUT
   echo:
     runs-on: ubuntu-latest
     needs: release-please
-    env:
-        OUTPUT1: ${{ needs.release-please.outputs.release_created }}
-        OUTPUT2: ${{ needs.release-please.outputs.tag_name }}
-        OUTPUT3: ${{ needs.release-please.outputs.test }}
     steps:
-      - name: release-please
+      - name: log
         run: |
           echo "Release created: ${{ needs.release-please.outputs.release_created }}"
           echo "Tag name: ${{ needs.release-please.outputs.tag_name }}"
           echo "test: ${{ needs.release-please.outputs.test }}"
-          echo "$OUTPUT1 $OUTPUT2 $OUTPUT3"
   build:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created }}
