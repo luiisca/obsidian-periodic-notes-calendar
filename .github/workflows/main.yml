@@ -26,6 +26,7 @@ jobs:
           token: ${{ secrets.PAT }}
           release-type: node
           target-branch: action-test
+        if: ${{ steps.release.outputs.release_created }}
       - run: |
           echo "release_created = ${{ steps.release.outputs.release_created }}"
           echo "tag_name = ${{ steps.release.outputs.tag_name }}"
