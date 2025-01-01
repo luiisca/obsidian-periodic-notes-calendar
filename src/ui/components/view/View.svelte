@@ -1,18 +1,17 @@
 <script lang="ts">
-    import { settingsStore } from "@/settings";
     import "@/app.css";
-    import { cn } from "@/ui/utils";
-    import { onDestroy, setContext } from "svelte";
+    import { CALENDAR_POPOVER_ID } from "@/constants";
+    import { settingsStore } from "@/settings";
     import {
         displayedDateStore,
         isOpenPreviewBttnVisibleStore,
-        isPreviewMaximizedStore,
         isPreviewVisibleStore,
         todayStore,
     } from "@/stores";
-    import { CALENDAR_POPOVER_ID } from "@/constants";
-    import Calendar from "../Calendar.svelte";
     import { ViewManager } from "@/ui";
+    import { cn } from "@/ui/utils";
+    import { onDestroy, setContext } from "svelte";
+    import Calendar from "../Calendar.svelte";
 
     interface Props {
         popover?: boolean;
@@ -31,25 +30,26 @@
 
     setContext("minimalMode", minimalMode);
 
-    export function rerenderCalendar() {
-        // TODO: reimplement
-        // rerenderStore.update((val) => ({
-        // 	...val,
-        // 	rerender: true
-        // }));
-    }
-
     let heartbeat = setInterval(() => {
         // update today
+        let wasCrrMonthDisplayed =
+            $todayStore.month() === $displayedDateStore.month();
         todayStore.set(window.moment());
 
-        // update displayedDateStore to new current date only if new current date is one day ahead.
-        // useful to update display with new current month, year or years range automatically
-        if ($todayStore.isSame($displayedDateStore.clone().add(1, "day"))) {
-            console.log("⚙⚙⚙ RERENDERING CALENdAR ⚙⚙⚙️");
-
+        // update displayedDateStore to new current date only if new current date is one month ahead.
+        if (
+            wasCrrMonthDisplayed &&
+            $todayStore
+                .clone()
+                .startOf("month")
+                .isSame(
+                    $displayedDateStore
+                        .clone()
+                        .add(1, "month")
+                        .startOf("month"),
+                )
+        ) {
             displayedDateStore.set($todayStore);
-            rerenderCalendar();
         }
     }, 1000 * 60);
 

@@ -21,12 +21,14 @@
         }
     });
 
-    let minimalMode = getContext('minimalMode') as { value: boolean } | undefined;
+    let minimalMode = getContext("minimalMode") as
+        | { value: boolean }
+        | undefined;
 </script>
 
 <Header
+    leftDate={$displayedDateStore}
     leftTitle={{
-        date: $displayedDateStore,
         granularity: "year",
         fileData,
         formatValue: "YYYY",
@@ -36,7 +38,7 @@
         <button
             class={cn(
                 "text-[--interactive-accent] font-medium hover:!shadow-[0px_0px_0px_6px_var(--interactive-hover)] rounded-[2px]",
-                minimalMode?.value ? "text-sm" : "text-lg"
+                minimalMode?.value ? "text-sm" : "text-lg",
             )}
             id="years-range"
         >
@@ -46,26 +48,28 @@
 
     {#snippet bottomNavSnippet()}
         <DateNavigator
-        showingCrrDate={isToday}
-        type="year"
-        decrementdisplayedDate={() => {
-            displayedDateStore.update((date) =>
+            showingCrrDate={isToday}
+            type="year"
+            decrementdisplayedDate={() => {
+                displayedDateStore.update((date) =>
                     date.clone().subtract(1, "year"),
-                    );
-        }}
-        resetdisplayedDate={() => {
-            yearsRanges.update((values) => ({
-                        ...values,
-                        crrRangeIndex: values.ranges.findIndex(
-                                (range) => range === values.todayRange,
-                                ),
-                        }));
+                );
+            }}
+            resetdisplayedDate={() => {
+                yearsRanges.update((values) => ({
+                    ...values,
+                    crrRangeIndex: values.ranges.findIndex(
+                        (range) => range === values.todayRange,
+                    ),
+                }));
 
-            displayedDateStore.set($todayStore);
-        }}
-        incrementdisplayedDate={() => {
-            displayedDateStore.update((date) => date.clone().add(1, "year"));
-        }}
+                displayedDateStore.set($todayStore);
+            }}
+            incrementdisplayedDate={() => {
+                displayedDateStore.update((date) =>
+                    date.clone().add(1, "year"),
+                );
+            }}
         />
     {/snippet}
 </Header>

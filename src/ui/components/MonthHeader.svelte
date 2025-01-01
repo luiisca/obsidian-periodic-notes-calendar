@@ -24,14 +24,14 @@
 </script>
 
 <Header
+    leftDate={$displayedDateStore}
     leftTitle={{
-        date: $displayedDateStore,
         granularity: "month",
         fileData: monthFileData,
         formatValue: "MMM",
     }}
+    rightDate={$displayedDateStore.clone().startOf("year")}
     rightTitle={{
-        date: $displayedDateStore.clone().startOf("year"),
         granularity: "year",
         fileData: yearFileData,
         formatValue: "YYYY",
@@ -57,7 +57,9 @@
                 displayedDateStore.set($todayStore);
             }}
             incrementdisplayedDate={() => {
-                displayedDateStore.update((date) => date.clone().add(1, "month"));
+                displayedDateStore.update((date) =>
+                    date.clone().add(1, "month"),
+                );
             }}
         />
     {/snippet}
