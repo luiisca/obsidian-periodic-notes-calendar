@@ -8,9 +8,7 @@
 
     onMount(() => {
         if (containerEl?.parentElement) {
-            containerEl.parentElement.style.scrollbarGutter = "stable";
-            containerEl.parentElement.style.paddingRight =
-                "calc(var(--size-4-12) - 16px)";
+            containerEl.parentElement.id = "pnc-settings-container";
         }
     });
 </script>

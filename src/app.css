@@ -32,3 +32,31 @@
 .confirmation-modal h2 {
     @apply mt-0;
 }
+
+.pnc-popover {
+    @apply hidden opacity-0 z-[-9999] pointer-events-none;
+}
+.pnc-popover.visible {
+    @apply block opacity-100 z-[9999] pointer-events-auto;
+}
+
+#pnc-calendar-parent {
+    scrollbar-gutter: stable;
+    @apply pr-0 overflow-x-hidden
+}
+
+#pnc-settings-container {
+    scrollbar-gutter: stable;
+    padding-right: calc(var(--size-4-12) - 16px)
+}
+
+#pnc-preview-tabheader-visible {
+    display: flex
+}
+#pnc-preview-tabheader-hidden {
+    display: none
+}
+
+.pnc-suggestion-item {
+    @apply cursor-pointer;
+}

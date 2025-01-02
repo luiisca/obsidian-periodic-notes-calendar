@@ -159,8 +159,7 @@ abstract class BaseSuggest<T> extends PopoverSuggest<T> {
         */
     private renderSuggestions(values: T[]) {
         values.forEach(value => {
-            const el = this.suggestionItemsContainerEl.createDiv({ cls: 'suggestion-item' });
-            el.style.cursor = 'pointer';
+            const el = this.suggestionItemsContainerEl.createDiv({ cls: 'suggestion-item pnc-suggestion-item' });
             if (el) {
                 this.renderSuggestion(value, el);
                 this.suggestions.push({ value, el })

@@ -45,6 +45,7 @@ export class BaseComponentBehavior {
             }
         });
         this.componentHtmlEl = document.querySelector(`#${id}[data-popover="true"]`) as HTMLElement;
+        this.componentHtmlEl.addClass("pnc-popover");
     }
 
     public toggle(param: Element) {
@@ -216,15 +217,10 @@ export class BaseComponentBehavior {
     };
 
     private show() {
-        this.componentHtmlEl.style.display = 'block';
-        this.componentHtmlEl.style.opacity = '1';
-        this.componentHtmlEl.style.zIndex = '9999';
-        this.componentHtmlEl.style.pointerEvents = 'auto';
+        this.componentHtmlEl.addClass("visible")
     }
     private hide() {
-        this.componentHtmlEl.style.display = 'none';
-        this.componentHtmlEl.style.opacity = '0';
-        this.componentHtmlEl.style.zIndex = '-9999';
+        this.componentHtmlEl.removeClass("visible")
     }
     private setInteractivity(enabled = true) {
         if (enabled) {

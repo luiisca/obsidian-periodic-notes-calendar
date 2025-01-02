@@ -53,9 +53,7 @@
 
     onMount(() => {
         if (containerEl?.parentElement) {
-            containerEl.parentElement.style.scrollbarGutter = "stable";
-            containerEl.parentElement.style.paddingRight = "0px";
-            containerEl.parentElement.style.overflowX = "hidden";
+            containerEl.parentElement.id = "pnc-calendar-parent";
         }
     });
 </script>

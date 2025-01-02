@@ -523,9 +523,9 @@ export class ViewManager {
 
         if (this.previewTabHeaderEl && !this.checkIfPreviewIsMaximized(previewLeaf) && this.getLeafSplitPosition(previewLeaf) !== 'root') {
             if (!get(settingsStore).preview.tabHeaderVisible) {
-                this.previewTabHeaderEl.style.display = 'none'
+                this.previewTabHeaderEl.id = "pnc-preview-tabheader-hidden"
             } else {
-                this.previewTabHeaderEl.style.display = 'flex'
+                this.previewTabHeaderEl.id = "pnc-preview-tabheader-visible"
             }
         }
     }
