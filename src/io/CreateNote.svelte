@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { capitalize, getDailyNotesPlugin } from "@/utils";
+    import { getDailyNotesPlugin } from "@/utils";
     import { getPeriodicityFromGranularity } from "./parse";
     import { DnPluginSettings, getNormalizedPeriodSettings } from "./settings";
     import { IGranularity } from "./types";
@@ -9,7 +9,7 @@
     }
     const { granularity }: Props = $props();
 
-    const periodicity = capitalize(getPeriodicityFromGranularity(granularity));
+    const periodicity = getPeriodicityFromGranularity(granularity);
     let dnPlugin: DnPluginSettings | undefined = $state();
     let dnPluginLoaded = $state(false);
     $effect.pre(() => {
@@ -26,7 +26,7 @@
     Note: Using {periodicity} format
     <span class="u-pop">{periodSettings.selectedFormat.value}</span>
 {:else if periodSettingsType === "daily"}
-    Note: Using Daily Notes plugin format <span class="u-pop"
+    Note: Using Daily notes plugin format <span class="u-pop"
         >{periodSettings.selectedFormat.value}</span
     >
 {:else if periodSettingsType === "default"}
@@ -34,6 +34,6 @@
         >{periodSettings.selectedFormat.value}</span
     >
     {#if granularity === "day" && dnPluginLoaded && !dnPlugin?.enabled}
-        (Daily Notes plugin disabled)
+        (Daily notes plugin disabled)
     {/if}
 {/if}

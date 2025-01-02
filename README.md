@@ -34,12 +34,12 @@ https://github.com/user-attachments/assets/290c8646-f3fb-4550-8a00-2d5818193cce
 
 **Command Palette**
 
-Access the Command Palette (Cmd/Ctrl + P) and type `Periodic Notes Calendar:`
+Access the Command Palette (Cmd/Ctrl + P) and type `Periodic notes calendar:`
 
 **Calendar UI**
 
 1. Click the calendar icon in the ribbon or use the command
-   `Periodic Notes Calendar: Open Calendar`
+   `Periodic notes calendar: Toggle calendar interface`
 2. Select a date to create or open a note for that day
 
 ### Floating Mode
@@ -58,7 +58,7 @@ Type "#emoji" anywhere in your note (e.g., #🎉). The emoji will automatically 
 **From the calendar**:
 
 1. Right-click on a date
-2. Select "Add Sticker"
+2. Select "Add sticker"
 3. Choose an emoji from the picker
 
 Stickers appear above note icons in the calendar, providing a quick visual overview without opening the notes.
@@ -68,7 +68,7 @@ Stickers appear above note icons in the calendar, providing a quick visual overv
 Create notes for specific dates using natural language expressions:
 
 1. Open the Command Palette (Cmd/Ctrl + P)
-2. Type `Periodic Notes Calendar: Open Periodic Note from Natural Language Date`
+2. Type `Periodic notes calendar: Open periodic note from natural language date`
 3. Enter expressions like `next tuesday` or `two months from now`
 4. Optionally customize the format (default: YYYY-MM-DD) and periodicity (default: daily)
 5. Press Enter to create or open the note
@@ -148,7 +148,7 @@ Invalid placeholders remain unchanged for easy debugging. All date expressions r
 
 https://github.com/user-attachments/assets/8dd3a39a-e0c6-4757-a3a4-34d1d4b175e5
 
-1. Go to Settings → Periodic Notes Calendar → Periods and add your desired formats to the list of recognized formats.
+1. Go to Settings → Periodic notes calendar → Periods and add your desired formats to the list of recognized formats.
 2. Bulk operations are immediately available for all formats in the list. Select a format to access its tools:
    - Left Button: Open a list of files using this format, where you can open, delete individually, or delete all files.
    - First Right Button: Rename files in other formats to this one.
@@ -159,13 +159,13 @@ These features ensure effortless organization and allow you to experiment with n
 
 ### Note Preview Panel
 
-1. Go to Settings → Periodic Notes Calendar → Calendar and enable the Preview feature.
+1. Go to Settings → Periodic notes calendar → Calendar and enable the Preview feature.
 2. Configure default settings like split mode, zen mode, and tab header visibility.
 3. Navigate to the calendar view, where you'll find an `Open Preview` button. Click it to open a preview panel displaying notes for the currently enabled periods (e.g., day, week, month, quarter, year, or multiple).
 
 ### Locale Customization
 
-1. Go to Settings → Periodic Notes Calendar → Locale and select your preferred locale from the list.
+1. Go to Settings → Periodic notes calendar → Locale and select your preferred locale from the list.
 2. Use the `Switch Locale` command in the command palette to quickly change locales if enabled.
 3. The selected locale will update the calendar display, filename formatting of future notes, and week start day automatically.
 
@@ -242,7 +242,7 @@ Changes are applied immediately when you save your CSS file—no need to restart
 <!---->
 <!-- 1. Open Obsidian and go to Settings → Community Plugins -->
 <!-- 2. Disable Safe Mode -->
-<!-- 3. Click "Browse" and search for "Periodic Notes Calendar" -->
+<!-- 3. Click "Browse" and search for "Periodic notes calendar" -->
 <!-- 4. Click "Install", then "Enable" to activate the plugin -->
 
 **From GitHub**
@@ -251,7 +251,7 @@ Changes are applied immediately when you save your CSS file—no need to restart
 2. Open Command Palette and run `BRAT: Add a beta plugin for testing`
 3. Enter repository URL: `https://github.com/luiisca/obsidian-periodic-notes-calendar`
 4. Wait for installation to complete
-5. Enable `Periodic Notes Calendar` in Settings → Community Plugins
+5. Enable `Periodic notes calendar` in Settings → Community Plugins
 
 For detailed setup instructions, see [BRAT's quick guide](https://tfthacker.com/brat-quick-guide).
 
@@ -288,7 +288,7 @@ exact date.
 
 If your notes use different formats, like `YYYY-MM-DD` and `YYYY/MM/DD`, and you want to standardize them, follow these steps:
 
-1. Open Settings → Periodic Notes Calendar → Periods.
+1. Open Settings → Periodic notes calendar → Periods.
 2. Add all the formats you’ve used to the list of recognized formats so the plugin can detect them.
 3. Click the first button on the right under the format you want to use.
 
@@ -304,7 +304,7 @@ Pin frequently used plugin commands for quick access:
 
 1. Go to Settings → Command palette
 2. Click the "Select a command ..." input box
-3. Type `Periodic Notes Calendar`
+3. Type `Periodic notes calendar`
 4. Select and pin desired command
 
 For more details, visit [obsidian help](https://help.obsidian.md/Plugins/Command+palette#Pinned+commands).
@@ -328,11 +328,11 @@ using the variables in the [Customization](#customization) section.
 
 ### How do I reopen the calendar if I close it?
 
-Use the Command Palette and search for `Periodic Notes Calendar: Toggle calendar interface`.
+Use the Command Palette and search for `Periodic notes calendar: Toggle calendar interface`.
 
 ### How do I change the calendar's start day?
 
-Go to Settings → Periodic Notes Calendar → Calendar → Localization and choose your preferred start day.
+Go to Settings → Periodic notes calendar → Calendar → Localization and choose your preferred start day.
 
 ### Is this plugin compatible with mobile?
 

@@ -72,7 +72,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         // Commands
         this.addCommand({
             id: 'toggle-calendar-view',
-            name: 'Toggle calendar Interface',
+            name: 'Toggle calendar interface',
             callback: () => {
                 this.toggleView();
             }
@@ -118,7 +118,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
 
         this.addCommand({
             id: 'open-nldate-note',
-            name: 'Open Periodic Note from Natural Language Date',
+            name: 'Open periodic note from natural language date',
             callback: createNldatePickerDialog,
         });
 
@@ -337,10 +337,10 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
                         })
                 )
             }
-            // Add custom "Add Sticker" option
+            // Add custom "Add sticker" option
             menu.addItem((item) =>
                 item.setSection("action")
-                    .setTitle("Add Sticker")
+                    .setTitle("Add sticker")
                     .setIcon("lucide-smile-plus")
                     .onClick((evt) => {
                         evt.preventDefault()

@@ -76,7 +76,7 @@
 <SettingItem isHeading={true} name="Preview" />
 {#if $settingsStore.preview.enabled}
     <SettingItem
-        name="Main Section"
+        name="Main section"
         description="Set the default section where note previews open. Leave empty to open from the top. Example: '## Links'."
     >
         {#snippet control()}
@@ -93,7 +93,7 @@
 {/if}
 
 <SettingItem
-    name="Todo Section"
+    name="Todo section"
     description="Uncompleted tasks will be moved to this section in new periodic notes. Leave empty to disable. Searches up to 3 previous notes. Example: '## TODO'."
 >
     {#snippet control()}
@@ -110,7 +110,7 @@
 
 {#if $settingsStore.preview.enabled}
     <SettingItem
-        name="Open Notes In"
+        name="Open notes in"
         description="Choose whether notes open in the main section or in a preview below the calendar interface."
         type="dropdown"
     >

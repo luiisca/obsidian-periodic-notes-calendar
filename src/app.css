@@ -29,10 +29,6 @@
     @apply bg-transparent hover:bg-[var(--interactive-hover)] [&:not(:focus-visible)]:shadow-none cursor-pointer;
 }
 
-.confirmation-modal h2 {
-    @apply mt-0;
-}
-
 .pnc-popover {
     @apply hidden opacity-0 z-[-9999] pointer-events-none;
 }

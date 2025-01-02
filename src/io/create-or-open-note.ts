@@ -1,7 +1,6 @@
 import { settingsStore } from "@/settings";
 import { activeFileStore, internalFileModStore } from "@/stores/notes";
 import { createConfirmationDialog } from "@/ui/modals/confirmation";
-import { capitalize } from "@/utils";
 import { type Moment } from "moment";
 import { Notice, TAbstractFile, TFile, WorkspaceLeaf } from "obsidian";
 import { get } from "svelte/store";
@@ -65,11 +64,11 @@ export async function createOrOpenNote({
     if (file) {
         await openFile(file);
     } else {
-        const periodicity = capitalize(getPeriodicityFromGranularity(granularity));
+        const periodicity = getPeriodicityFromGranularity(granularity);
 
         if (confirmBeforeCreateOverride) {
             createConfirmationDialog({
-                title: `New ${periodicity} Note`,
+                title: `New ${periodicity} note`,
                 text: `File ${filename} does not exist. Would you like to create it?`,
                 note: {
                     Component: CreateNote,

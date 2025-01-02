@@ -59,7 +59,6 @@ export function escapeRegex(string: string) {
 export function handleLocaleCommands() {
     let localeItems: ILocaleItem[] = []
     const COMMAND = 'switch-locale'
-    const allowLocalesSwitchFromCommandPalette = get(settingsStore).allowLocalesSwitchFromCommandPalette
     if (!PluginService.getPlugin()) return;
 
     window.moment.locales().forEach((momentLocale) => {
@@ -69,16 +68,13 @@ export function handleLocaleCommands() {
         })
     });
 
-    PluginService.getPlugin()?.removeCommand(COMMAND)
-    if (allowLocalesSwitchFromCommandPalette) {
-        PluginService.getPlugin()?.addCommand({
-            id: COMMAND,
-            name: 'Switch locale',
-            callback: () => {
-                createLocalesPickerDialog(localeItems)
-            }
-        });
-    }
+    PluginService.getPlugin()?.addCommand({
+        id: COMMAND,
+        name: 'Switch locale',
+        callback: () => {
+            createLocalesPickerDialog(localeItems)
+        }
+    });
 }
 
 export function isMobile() {

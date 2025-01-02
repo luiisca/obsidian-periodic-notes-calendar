@@ -110,9 +110,6 @@ export interface ISettings {
         /** Close popovers when pressing Esc in the search input instead of default blur*/
         closeOnEscStickerSearchInput: boolean;
     };
-
-    /** Whether to allow switching locales from the Command Palette */
-    allowLocalesSwitchFromCommandPalette: boolean;
 }
 
 export function getDefaultPeriodicNotesConfig(
@@ -198,6 +195,4 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
         closePopoversOneByOneOnEscKeydown: true,
         closeOnEscStickerSearchInput: true,
     },
-
-    allowLocalesSwitchFromCommandPalette: false,
 });

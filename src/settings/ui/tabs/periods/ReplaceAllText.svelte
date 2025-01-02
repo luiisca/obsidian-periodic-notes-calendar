@@ -1,6 +1,5 @@
 <script lang="ts">
     import { getPeriodicityFromGranularity, IGranularity } from "@/io";
-    import { capitalize } from "@/utils";
 
     interface Props {
         replacingFormat: string;
@@ -9,7 +8,7 @@
 
     let { replacingFormat, granularity }: Props = $props();
 
-    const periodicity = capitalize(getPeriodicityFromGranularity(granularity));
+    const periodicity = getPeriodicityFromGranularity(granularity);
 </script>
 
 All existing {periodicity} notes (if any) will be renamed to match this format:

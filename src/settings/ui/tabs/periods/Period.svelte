@@ -165,12 +165,12 @@
         onclick={toggleExpand}
     >
         <div class="setting-item-info flex justify-between items-center">
-            <h3
+            <div
                 class="setting-item-name flex items-center text-lg font-semibold m-0"
             >
                 <Arrow {isExpanded} />
                 <span class="ml-2">
-                    {capitalize(getPeriodicityFromGranularity(granularity))} Notes
+                    {capitalize(getPeriodicityFromGranularity(granularity))} notes
                 </span>
                 {#if $settings.openAtStartup}
                     <span
@@ -178,7 +178,7 @@
                         >Opens at startup</span
                     >
                 {/if}
-            </h3>
+            </div>
         </div>
         <div class="setting-item-control">
             <Toggle

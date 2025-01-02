@@ -13,7 +13,7 @@
     import { View, ViewManager } from "@/ui";
     import TimelineManager from "@/ui/components/timeline/manager";
     import { Popover } from "@/ui/popovers";
-    import { handleLocaleCommands, isMobile, isTablet } from "@/utils";
+    import { isMobile, isTablet } from "@/utils";
     import { derived as derivedStore } from "svelte/store";
     import { selectedTabStore } from "../../stores";
 
@@ -319,23 +319,11 @@
 
         return options;
     });
-
-    const handleAllowLocalesSwitchFromCommandPalette = (
-        allowLocalesSwitchFromCommandPalette: boolean,
-    ) => {
-        settingsStore.update((settings) => ({
-            ...settings,
-            allowLocalesSwitchFromCommandPalette,
-        }));
-
-        handleLocaleCommands();
-    };
 </script>
 
-<SettingItem isHeading={true} name="Essential" />
 <SettingItem
-    name="Calendar Panel Location"
-    description="Choose where the calendar appears in your workspace (left or right sidebar)"
+    name="Calendar panel location"
+    description="Choose where the calendar appears in your workspace (left or right sidebar)."
     type="dropdown"
 >
     {#snippet control()}
@@ -353,8 +341,8 @@
 
 {#if !isMobile()}
     <SettingItem
-        name="Minimal Mode"
-        description="Use compact layout with simplified visuals"
+        name="Minimal mode"
+        description="Use compact layout with simplified visuals."
     >
         {#snippet control()}
             <Toggle
@@ -365,8 +353,8 @@
     </SettingItem>
 
     <SettingItem
-        name="Floating Mode"
-        description="Show calendar on ribbon click or hover (always available in panel or through command palette)"
+        name="Floating mode"
+        description="Show calendar on ribbon click or hover (always available in panel or through command palette)."
     >
         {#snippet control()}
             <Toggle
@@ -378,7 +366,7 @@
 
     {#if $settingsStore.floatingMode}
         <SettingItem
-            name="Quick Access"
+            name="Quick access"
             description="Enable opening the calendar on ribbon hover instead of click."
         >
             {#snippet control()}
@@ -389,8 +377,8 @@
             {/snippet}
         </SettingItem>
         <SettingItem
-            name="Always Minimal"
-            description="Keep floating view compact for quick reference"
+            name="Always minimal"
+            description="Keep floating view compact for quick reference."
         >
             {#snippet control()}
                 <Toggle
@@ -403,8 +391,8 @@
 {/if}
 
 <SettingItem
-    name="Auto-sync Calendar Date"
-    description="Automatically update calendar to display date of current periodic note"
+    name="Auto-sync calendar date"
+    description="Automatically update calendar to display date of current periodic note."
 >
     {#snippet control()}
         <Toggle
@@ -435,7 +423,7 @@
 
 {#if $settingsStore.preview.enabled}
     <SettingItem
-        name="Preview Calendar Notes"
+        name="Preview calendar notes"
         description="Display opened periodic notes in preview mode by default."
     >
         {#snippet control()}
@@ -448,7 +436,7 @@
 
     {#if !isMobile()}
         <SettingItem
-            name="Display Tab Header"
+            name="Display tab header"
             description="By default, the tab header (showing the note's icon) is hidden. Toggle this option to make it visible."
         >
             {#snippet control()}
@@ -460,7 +448,7 @@
         </SettingItem>
 
         <SettingItem
-            name="Split Mode for Side Panels"
+            name="Split mode for side panels"
             description="Select how the preview panel will be split in the left and right panels."
         >
             {#snippet control()}
@@ -483,7 +471,7 @@
 
     {#if ($settingsStore.viewLeafPosition === "root" && isTablet()) || !isMobile()}
         <SettingItem
-            name="Split Mode for Main Panel"
+            name="Split mode for main panel"
             description="Select how the preview panel will be split in the main panel."
         >
             {#snippet control()}
@@ -504,7 +492,7 @@
         </SettingItem>
 
         <SettingItem
-            name="Expansion Mode"
+            name="Expansion mode"
             description="Choose whether the preview panel fills the entire panel (maximized) or appears as a split view."
         >
             {#snippet control()}
@@ -534,10 +522,10 @@
 {/if}
 
 {#if $settingsStore.floatingMode && !isMobile()}
-    <SettingItem isHeading={true} name="Popover Windows" />
+    <SettingItem isHeading={true} name="Popover windows" />
     <SettingItem
-        name="Sequential Dismissal (Click)"
-        description="Close floating windows one at a time when clicking outside"
+        name="Sequential dismissal (click)"
+        description="Close floating windows one at a time when clicking outside."
     >
         {#snippet control()}
             <Toggle
@@ -549,8 +537,8 @@
     </SettingItem>
 
     <SettingItem
-        name="Sequential Dismissal (Esc)"
-        description="Close floating windows one at a time when pressing Escape"
+        name="Sequential dismissal (esc)"
+        description="Close floating windows one at a time when pressing Escape."
     >
         {#snippet control()}
             <Toggle
@@ -579,7 +567,7 @@
 
 {#if $settingsStore.timeline.enabled}
     <SettingItem
-        name="Unique Timelines for Periodic Notes"
+        name="Unique timelines for periodic notes"
         description="Toggle to show a specific timeline for each type of periodic note. When off, all periodic notes share the same week-based timeline."
     >
         {#snippet control()}
@@ -590,7 +578,7 @@
         {/snippet}
     </SettingItem>
     <SettingItem
-        name="Periodic Notes Timeline View Mode"
+        name="Periodic notes timeline view mode"
         description="Set the default display mode for the timeline, either expanded or collapsed."
     >
         {#snippet control()}
@@ -606,7 +594,7 @@
     </SettingItem>
 
     <SettingItem
-        name="Show Timeline Everywhere"
+        name="Show timeline everywhere"
         description="Enable the timeline for all notes, not just periodic ones."
     >
         {#snippet control()}
@@ -618,8 +606,8 @@
     </SettingItem>
 
     <SettingItem
-        name="Show Timeline Stickers"
-        description="Show emoji stickers in the timeline view"
+        name="Show timeline stickers"
+        description="Show emoji stickers in the timeline view."
     >
         {#snippet control()}
             <Toggle
@@ -631,7 +619,7 @@
 
     {#if $settingsStore.timeline.displayOnRestNotes}
         <SettingItem
-            name="Non-Periodic Notes Timeline View Mode"
+            name="Non-periodic notes timeline view mode"
             description="Set the default display mode for the timeline on non-periodic notes."
         >
             {#snippet control()}
@@ -648,11 +636,11 @@
     {/if}
 {/if}
 
-<SettingItem isHeading={true} name="Interaction Behavior" />
+<SettingItem isHeading={true} name="Interaction behavior" />
 
 <SettingItem
-    name="Creation Confirmation"
-    description="Prompt before creating new periodic notes to prevent accidental entries"
+    name="Creation confirmation"
+    description="Prompt before creating new periodic notes to prevent accidental entries."
 >
     {#snippet control()}
         <Toggle
@@ -664,8 +652,8 @@
 
 {#if !isMobile()}
     <SettingItem
-        name="Hover Preview"
-        description="Instantly preview notes by hovering over dates (no modifier key needed)"
+        name="Hover preview"
+        description="Instantly preview notes by hovering over dates (no modifier key needed)."
     >
         {#snippet control()}
             <Toggle
@@ -678,8 +666,8 @@
 
 <SettingItem isHeading={true} name="Localization" />
 <SettingItem
-    name="Calendar Language"
-    description="Set a specific language for the calendar interface"
+    name="Calendar language"
+    description="Set a specific language for the calendar interface."
 >
     {#snippet control()}
         <Dropdown
@@ -691,26 +679,14 @@
 </SettingItem>
 
 <SettingItem
-    name="Week Starts On"
-    description="Choose which day your week begins with"
+    name="Week starts on"
+    description="Choose which day your week begins with."
 >
     {#snippet control()}
         <Dropdown
             options={$weekdayOptionsStore}
             onChange={handleFirstWeekdayChange}
             value={firstWeekday}
-        />
-    {/snippet}
-</SettingItem>
-
-<SettingItem
-    name="Quick Language Switching"
-    description="Enable language switching through the command palette (command: Switch locale)"
->
-    {#snippet control()}
-        <Toggle
-            onChange={handleAllowLocalesSwitchFromCommandPalette}
-            isEnabled={$settingsStore.allowLocalesSwitchFromCommandPalette}
         />
     {/snippet}
 </SettingItem>

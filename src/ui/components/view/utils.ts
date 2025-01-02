@@ -115,7 +115,7 @@ export const addExtraItems = (menu: Menu) => {
         menu.addItem((item) => {
             return item
                 .setSection("preview")
-                .setTitle("Display Tab Header")
+                .setTitle("Display tab header")
                 .setChecked(get(settingsStore).preview.tabHeaderVisible)
                 .setIcon("lucide-layout-panel-top")
                 .onClick(() => {
