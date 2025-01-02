@@ -640,10 +640,4 @@ export class ViewManager {
 
         return file
     }
-
-    static unload() {
-        // PluginService.getPlugin()?.app.workspace.detachLeavesOfType(LEAF_TYPE);
-        // this.cleanupPreview();
-        this.cleaunupPreviewEvHandlers()
-    }
 }

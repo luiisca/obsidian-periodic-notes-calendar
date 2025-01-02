@@ -159,8 +159,4 @@ export default class TimelineManager {
             TimelineManager.cleanup(crrActiveLeaf);
         }
     }
-
-    static unload() {
-        this.unmountAll();
-    }
 }

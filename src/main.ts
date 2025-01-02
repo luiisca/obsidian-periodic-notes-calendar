@@ -32,14 +32,9 @@ import { PluginService } from './app-service';
 
 export default class PeriodicNotesCalendarPlugin extends Plugin {
     popovers: Record<string, SvelteComponent | null> = {};
-    popoversCleanups: (() => void)[] = [];
     popoverAutoUpdateCleanup: (() => void) | null = null;
 
-    onunload() {
-        ViewManager.unload();
-        TimelineManager.unload();
-        this.popoversCleanups.forEach((cleanup) => cleanup());
-    }
+    onunload() { }
 
     async onload() {
         PluginService.init(this);
