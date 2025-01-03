@@ -46,3 +46,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
         run: gh release upload ${{ needs.release-please.outputs.tag_name }} manifest.json main.js styles.css ${{ env.PLUGIN_ID }}.zip
+      - name: Update manifest version
+        run: sed "s/\"version\": \".*\"/\"version\": \"${{ needs.release-please.outputs.tag_name }}\"/" manifest.json | tee manifest.json
