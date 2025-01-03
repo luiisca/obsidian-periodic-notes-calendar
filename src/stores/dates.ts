@@ -3,12 +3,12 @@ import { DEFAULT_SETTINGS } from '@/settings';
 import type { Moment } from 'moment';
 import { get, writable } from 'svelte/store';
 
-type IRanges = `${string}-${string}`[];
+type IRange = `${string}-${string}`
 function createYearsRangesStore() {
     const defaultRange =
-        `${DEFAULT_SETTINGS.yearsRangesStart}-${DEFAULT_SETTINGS.yearsRangesStart + YEARS_RANGE_SIZE - 1}` as `${string}-${string}`;
+        `${DEFAULT_SETTINGS.yearsRangesStart}-${DEFAULT_SETTINGS.yearsRangesStart + YEARS_RANGE_SIZE - 1}` as IRange;
     const store = writable<{
-        ranges: IRanges;
+        ranges: IRange[];
         todayRange: `${string}-${string}`;
         crrRangeIndex: number;
     }>({
@@ -51,7 +51,7 @@ function createYearsRangesStore() {
             const prevRange = ranges[crrRangeIndex - 1];
 
             displayedDateStore.set(
-                get(todayStore).year(+crrRangeStartYear + (displayedDateModifier || -1)).startOf('year')
+                get(todayStore).clone().year(+crrRangeStartYear + (displayedDateModifier || -1)).startOf('year')
             );
 
             !prevRange &&
@@ -68,7 +68,7 @@ function createYearsRangesStore() {
         if (action === 'increment') {
             const nextRange = ranges[crrRangeIndex + 1];
 
-            displayedDateStore.set(get(todayStore).year(+crrRangeEndYear + 1).startOf('year'));
+            displayedDateStore.set(get(todayStore).clone().year(+crrRangeEndYear + 1).startOf('year'));
 
             !nextRange && addNewRange({ startYear: +crrRangeEndYear + 1, action: 'increment' });
             updateCrrRangeIndex({ modifier: +1 });
