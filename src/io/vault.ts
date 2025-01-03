@@ -130,3 +130,14 @@ export async function getTemplateInfo(
         return ["", null];
     }
 }
+
+export async function modifyFile(file: TFile, updatedContent: string) {
+    const app = PluginService.getPlugin()?.app
+    const activeEditor = app?.workspace.activeEditor
+    const editor = activeEditor?.editor
+    if (editor && activeEditor.file === file) {
+        editor.setValue(updatedContent)
+    } else {
+        await app?.vault.process(file, (crrContent) => updatedContent)
+    }
+}

@@ -1,5 +1,5 @@
 import { STICKER_POPOVER_ID } from "@/constants";
-import { TFileData } from "@/io";
+import { modifyFile, TFileData } from "@/io";
 import { settingsStore } from "@/settings";
 import data from "@emoji-mart/data";
 import { Picker } from "emoji-mart";
@@ -56,6 +56,7 @@ export function initializePicker(
             const { file, sticker } = fileData;
 
             if (file) {
+                const app = PluginService.getPlugin()?.app
                 // update note with new emoji tag
                 const content = await PluginService.getPlugin()?.app.vault.read(file) ?? ""
                 let updatedContent = content
@@ -65,10 +66,12 @@ export function initializePicker(
                     const aft = updatedContent.slice(sticker.endOffset)
                     updatedContent = `${bef}#${emoji.native}${aft}`;
 
-                    PluginService.getPlugin()?.app.vault.modify(file, updatedContent)
+                    await modifyFile(file, updatedContent)
                 } else {
                     const firstLine = updatedContent.split('\n')[0].trim();
-                    PluginService.getPlugin()?.app.vault.modify(file, `#${emoji.native}${firstLine !== "" ? " \n" : ""}${updatedContent} `)
+                    updatedContent = `#${emoji.native}${firstLine !== "" ? " \n" : ""}${updatedContent} `
+
+                    await modifyFile(file, updatedContent)
                 }
             };
         },

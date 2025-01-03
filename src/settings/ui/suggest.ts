@@ -1,4 +1,5 @@
 import { PluginService } from "@/app-service";
+import { modifyFile } from "@/io";
 import { type TWindowEvents, type WindowEventHandler } from "@/ui/types";
 import { autoUpdate, computePosition, flip } from "@floating-ui/dom";
 import { debounce, PopoverSuggest, Scope, TAbstractFile, TFile, TFolder } from "obsidian";
@@ -309,11 +310,12 @@ export class HeadingsSuggest extends BaseSuggest<string> {
 
     async selectSuggestion(heading: string, _: KeyboardEvent | MouseEvent): Promise<void> {
         if (this.noHeadingsFound && heading.startsWith("+ Add")) {
-            const file = this.templatePath ? (PluginService.getPlugin()?.app.vault.getAbstractFileByPath(this.templatePath) as TFile) : null;
+            const app = PluginService.getPlugin()?.app
+            const file = this.templatePath ? (app?.vault.getAbstractFileByPath(this.templatePath) as TFile) : null;
             if (file) {
-                const content = await PluginService.getPlugin()?.app.vault.read(file) ?? ""
+                const content = await app?.vault.read(file) ?? ""
                 if (this.newHeadingVal) {
-                    await PluginService.getPlugin()?.app.vault.modify(file, `${content.trim() === "" ? this.newHeadingVal : `${content.trim()}\n\n${this.newHeadingVal}`}`)
+                    await modifyFile(file, `${content.trim() === "" ? this.newHeadingVal : `${content.trim()}\n\n${this.newHeadingVal}`}`)
 
                     const metadataChangeCb = () => {
                         if (this.newHeadingVal) {
@@ -321,10 +323,10 @@ export class HeadingsSuggest extends BaseSuggest<string> {
                             this.inputEl.trigger("input");
                             this.suggestionSelected = true;
 
-                            PluginService.getPlugin()?.app.metadataCache.off("changed", metadataChangeCb);
+                            app?.metadataCache.off("changed", metadataChangeCb);
                         }
                     }
-                    PluginService.getPlugin()?.app.metadataCache.on("changed", metadataChangeCb);
+                    app?.metadataCache.on("changed", metadataChangeCb);
                 }
             }
         } else {

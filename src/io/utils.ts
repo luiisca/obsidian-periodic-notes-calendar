@@ -7,7 +7,7 @@ import { getNormalizedPeriodSettings } from "./settings";
 import { type IGranularity } from "./types";
 import { isValidPeriodicNote } from "./validation";
 import { Moment } from "moment";
-import { getFileData } from "./vault";
+import { getFileData, modifyFile } from "./vault";
 import { PluginService } from "@/app-service";
 
 export function storeAllVaultPeriodicFilepaths(
@@ -81,16 +81,18 @@ export function getStartupNoteGranularity() {
 export async function extractAndReplaceTODOItems(date: Moment, granularity: IGranularity, file: TFile, c = 0) {
     const previewSettings = get(settingsStore).periods[granularity].preview
     if (previewSettings.todoSection.trim() !== "") {
+        const app = PluginService.getPlugin()?.app
         const prevPeriodDate = date.clone().subtract(1, granularity);
         const { file: prevPeriodFile } = getFileData(granularity, prevPeriodDate);
         if (prevPeriodFile) {
-            const content = await PluginService.getPlugin()?.app.vault.read(prevPeriodFile) ?? ""
+            const content = await app?.vault.read(prevPeriodFile) ?? ""
             const todos = extractTODOs(content, granularity);
 
             if (todos.length > 0) {
-                const currentFileContent = await PluginService.getPlugin()?.app.vault.read(file) ?? "";
+                const currentFileContent = await app?.vault.read(file) ?? "";
                 const updatedContent = appendTODOs(currentFileContent, todos, granularity);
-                await PluginService.getPlugin()?.app.vault.modify(file, updatedContent);
+
+                await modifyFile(file, updatedContent)
             }
         } else {
             if (c < 3) {
