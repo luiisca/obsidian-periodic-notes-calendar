@@ -1,7 +1,6 @@
 import { settingsStore } from "@/settings";
 import { capitalize } from "@/utils";
 import { get } from "svelte/store";
-import { isWeekFormatAmbiguous } from ".";
 import { getPeriodicityFromGranularity } from "../parse";
 import { type IGranularity } from "../types";
 
@@ -208,12 +207,11 @@ export function validateFormat(
     const currentDate = window.moment();
     const formattedDate = window.moment().format(value);
     let parsedDate = window.moment(formattedDate, value, true);
-    if (granularity === 'week' && isWeekFormatAmbiguous(value)) {
-        parsedDate = window.moment(
-            formattedDate,
-            value.replace(/M{1,4}/g, '').replace(/D{1,4}/g, ''),
-            false
-        );
+    if (granularity === 'week') {
+        // moment wrongly parses some formatted dates containing week numbers,
+        // omitting this parsing step fixes the issue, I don't think it'll bring any new bug
+        // there are a couple of extra checks down the line to make sure the format is valid
+        parsedDate = window.moment();
     }
 
     // Check for ambiguous formats

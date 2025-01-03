@@ -18,15 +18,6 @@ export function getBasename(format: string): string {
     return isTemplateNested ? format.split('/').pop() ?? '' : format;
 }
 
-/**
- * When parsing dates that contain both week numbers and months,
- * Moment ignores the week numbers. Remove both M{1,4} and D{1,4} from format to patch.
- */
-export function isWeekFormatAmbiguous(format: string) {
-    const cleanFormat = removeEscapedCharacters(format);
-    return /w{1,2}/i.test(cleanFormat) && (/M{1,4}/.test(cleanFormat) || /D{1,4}/.test(cleanFormat));
-}
-
 export function isValidPeriodicNote(fileName: string, customGranularities = granularities as unknown as IGranularity[], customFormats?: Record<string, TFormat>)
     : { isValid: boolean, granularity: IGranularity, date: Moment, format: PeriodSettings['formats'][0] } | { isValid: null, granularity: null, date: null, format: null } {
 
