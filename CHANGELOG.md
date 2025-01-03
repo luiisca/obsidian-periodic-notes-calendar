@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.1](https://github.com/luiisca/obsidian-periodic-notes-calendar/compare/v1.0.0...v1.0.1) (2025-01-03)
+
+
+### Bug Fixes
+
+* avoid using the global app object, closses [#33](https://github.com/luiisca/obsidian-periodic-notes-calendar/issues/33) ([28af269](https://github.com/luiisca/obsidian-periodic-notes-calendar/commit/28af26905a79c94187dfa11a4d6d741bf9ce3d41))
+* follow plugin guideline no hardcoded styles, closes [#34](https://github.com/luiisca/obsidian-periodic-notes-calendar/issues/34) ([4c07c6a](https://github.com/luiisca/obsidian-periodic-notes-calendar/commit/4c07c6a360806cd43d0861b57049cfa89af4808f))
+* follow resource management obsidian plugin guidelines ([222f6bc](https://github.com/luiisca/obsidian-periodic-notes-calendar/commit/222f6bcc5073ecbd338c2c2ab1e73dca3433b551))
+* follow UI text obsidian plugin guideline ([1ecfa63](https://github.com/luiisca/obsidian-periodic-notes-calendar/commit/1ecfa638528e262103368525337a719d54ad8dfd))
+* follow vault obsidian plugin guidelines ([c9c0e5b](https://github.com/luiisca/obsidian-periodic-notes-calendar/commit/c9c0e5bd57760058208627d12700974dd895d2af))
+
 ## 1.0.0 (2024-12-31)
 
 
