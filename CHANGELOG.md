@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/luiisca/obsidian-periodic-notes-calendar/compare/v1.0.1...v1.0.2) (2025-01-03)
+
+
+### Bug Fixes
+
+* reset date fails on year tab, closes [#35](https://github.com/luiisca/obsidian-periodic-notes-calendar/issues/35) ([1a1d265](https://github.com/luiisca/obsidian-periodic-notes-calendar/commit/1a1d26565ad3ebfde19b985d07b8530884258b2d))
+
 ## [1.0.1](https://github.com/luiisca/obsidian-periodic-notes-calendar/compare/v1.0.0...v1.0.1) (2025-01-03)
 
 
