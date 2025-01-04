@@ -352,14 +352,14 @@
     }
 
     onMount(() => {
-        if (type !== "skeleton") {
-            error = validateFormat(value, granularity, format.id);
-            trySelectLastOnlyFormat();
+        if (type === "skeleton") return;
 
-            // set icons
-            setIcon(replaceBttnEl, "replace-all");
-            setIcon(removeBttnEl, "x");
-        }
+        error = validateFormat(value, granularity, format.id);
+        trySelectLastOnlyFormat();
+
+        // set icons
+        setIcon(replaceBttnEl, "replace-all");
+        setIcon(removeBttnEl, "x");
     });
 
     function trySelectLastOnlyFormat() {
@@ -384,12 +384,16 @@
     }
 
     $effect(() => {
+        if (type === "skeleton") return;
+
         if ($triggerRerender) {
             error = validateFormat(value, granularity, format.id);
         }
     });
 
     $effect(() => {
+        if (type === "skeleton") return;
+
         settings.update((s) => {
             if (formatId === s.selectedFormat.id) {
                 s.selectedFormat.error = error;
@@ -401,18 +405,18 @@
     });
 
     $effect(() => {
-        if (labelEl) {
-            labelEl.tabIndex = 0;
-            labelEl.onkeydown = (event) => {
-                if (
-                    event.target === event.currentTarget &&
-                    (event.key === "Enter" || event.key === " ")
-                ) {
-                    selected = true;
-                    handleSelect();
-                }
-            };
-        }
+        if (type === "skeleton" || !labelEl) return;
+
+        labelEl.tabIndex = 0;
+        labelEl.onkeydown = (event) => {
+            if (
+                event.target === event.currentTarget &&
+                (event.key === "Enter" || event.key === " ")
+            ) {
+                selected = true;
+                handleSelect();
+            }
+        };
     });
 </script>
 
