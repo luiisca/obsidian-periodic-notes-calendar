@@ -25,6 +25,7 @@ jobs:
           token: ${{ secrets.PAT }}
           release-type: node
           target-branch: main
+          prefix: ''
   build:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created }}
