@@ -3,6 +3,7 @@ import { capitalize } from "@/utils";
 import { get } from "svelte/store";
 import { getPeriodicityFromGranularity } from "../parse";
 import { type IGranularity } from "../types";
+import { DUP_ERROR_PREFIX } from "./constants";
 
 // https://github.com/liamcain/obsidian-periodic-notes
 function validateFilename(filename: string): boolean {
@@ -174,7 +175,7 @@ function checkIfDuplicateFormat(
             if (format.id !== id && format.value === value) {
                 return {
                     duplicate: true,
-                    errorMsg: `Duplicate format ${granularity === g
+                    errorMsg: `${DUP_ERROR_PREFIX} ${granularity === g
                         ? ""
                         : `from ${capitalize(getPeriodicityFromGranularity(g as IGranularity))
                         } Notes settings`

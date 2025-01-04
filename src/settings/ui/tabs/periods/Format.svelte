@@ -7,7 +7,7 @@
         type IGranularity,
     } from "@/io";
     import { validateFormat } from "@/io/validation";
-    import { settingsStore, type PeriodSettings } from "@/settings";
+    import { settingsStore, TFormat, type PeriodSettings } from "@/settings";
     import { internalFileModStore } from "@/stores/notes";
     import { createConfirmationDialog } from "@/ui/modals/confirmation";
     import { INotesContext } from "@/ui/types";
@@ -75,7 +75,10 @@
             });
         } else {
             settings.update((s) => {
-                s.formats[format.id].loading = loading;
+                const crrFormat = s.formats[format.id] as TFormat | null;
+                if (crrFormat) {
+                    crrFormat.loading = loading;
+                }
 
                 return s;
             });
@@ -361,10 +364,22 @@
 
     function trySelectLastOnlyFormat() {
         if (Object.keys($settings.formats).length === 1) {
-            settings.update((s) => ({
-                ...s,
-                selectedFormat: Object.values(s.formats)[0],
-            }));
+            const lastFormat = Object.values($settings.formats)[0];
+            error = validateFormat(
+                lastFormat.value,
+                granularity,
+                lastFormat.id,
+            );
+            const newSelectedFormat = {
+                ...lastFormat,
+                error,
+            };
+            settings.update((s) => {
+                s.selectedFormat = newSelectedFormat;
+                s.formats[newSelectedFormat.id] = newSelectedFormat;
+
+                return s;
+            });
         }
     }
 
@@ -375,16 +390,14 @@
     });
 
     $effect(() => {
-        if (error) {
-            settings.update((s) => {
-                if (formatId === s.selectedFormat.id) {
-                    s.selectedFormat.error = error;
-                }
-                s.formats[formatId].error = error;
+        settings.update((s) => {
+            if (formatId === s.selectedFormat.id) {
+                s.selectedFormat.error = error;
+            }
+            s.formats[formatId].error = error;
 
-                return s;
-            });
-        }
+            return s;
+        });
     });
 
     $effect(() => {

@@ -9,6 +9,7 @@ import { mount, unmount } from "svelte";
 import { get } from "svelte/store";
 import { v4 as uuidv4 } from "uuid";
 import { settingsStore } from "./store";
+import { DUP_ERROR_PREFIX } from "@/io/validation";
 
 export class SettingsTab extends PluginSettingTab {
     private view: Record<string, any>;
@@ -55,46 +56,69 @@ export class SettingsTab extends PluginSettingTab {
     }
 
     /**
-        * Check if the selected format for a given period is invalid, if so replace it with a valid format from the formats list or a default format.
-        * This ensures that the user can create a note with a valid format.
+        * Check if the selected format is invalid, if so replace it with a valid format from the formats list or a default format.
+        * This ensures that creating a note will always have a valid format.
         */
     private replaceSelectedFormatIfNeeded(granularity: IGranularity) {
-        const periodSettings = get(settingsStore).periods[granularity];
-        let invalidValue: string;
-        let correctedValue: string;
+        const periodSettings = get(settingsStore).periods[granularity]
+        const selectedFormat = periodSettings.selectedFormat;
+        let correctedValue: string | null = null;
 
-        if (periodSettings.selectedFormat.error.trim()) {
-            invalidValue = periodSettings.selectedFormat.value;
+        if (!selectedFormat.error.trim()) return;
 
-            const foundValidFormat = Object.values(periodSettings.formats).find(format => !format.error.trim());
-            const id = uuidv4();
-            const defaultFormat = {
-                id,
-                value: DEFAULT_FORMATS_PER_GRANULARITY[granularity],
-                error: '',
-                loading: false,
-            }
+        const foundValidFormat = Object.values(periodSettings.formats).find(format => !format.error.trim());
+        if (foundValidFormat) {
             settingsStore.update((s) => {
-                s.periods[granularity].selectedFormat = foundValidFormat || defaultFormat;
-                if (!foundValidFormat) {
-                    s.periods[granularity].formats[id] = defaultFormat;
-                }
+                s.periods[granularity].selectedFormat = foundValidFormat;
 
                 return s;
             })
+            correctedValue = foundValidFormat.value
+        } else {
+            const isSelectedFormatDup = selectedFormat.error.includes(DUP_ERROR_PREFIX)
+            // remove extra duplicated formats
+            if (isSelectedFormatDup) {
+                settingsStore.update(s => {
+                    Object.values(s.periods[granularity].formats).forEach(format => {
+                        if (selectedFormat.id !== format.id && selectedFormat.value === format.value) {
+                            delete s.periods[granularity].formats[format.id]
+                        }
+                    });
+                    s.periods[granularity].selectedFormat.error = '';
 
-            correctedValue = foundValidFormat?.value || defaultFormat.value;
+                    return s
+                })
+            } else {
+                // add a default format
+                const id = uuidv4();
+                const defaultFormat = {
+                    id,
+                    value: DEFAULT_FORMATS_PER_GRANULARITY[granularity],
+                    error: '',
+                    loading: false,
+                }
+                settingsStore.update(s => {
+                    s.periods[granularity].selectedFormat = defaultFormat;
+                    s.periods[granularity].formats[id] = defaultFormat;
 
-            const periodicity = capitalize(getPeriodicityFromGranularity(granularity));
-            new Notice(genNoticeFragment([
-                [periodicity, 'u-pop'],
-                [' format '],
-                [invalidValue, 'u-pop'],
-                [' is invalid. '],
-                ['Using '],
-                [correctedValue, 'u-pop'],
-                [' to prevent errors.'],
-            ]), 8000)
+                    return s
+                })
+                correctedValue = defaultFormat.value
+            }
         }
+
+        if (!correctedValue) return;
+
+        const periodicity = capitalize(getPeriodicityFromGranularity(granularity));
+        const invalidValue = selectedFormat.value;
+        new Notice(genNoticeFragment([
+            [periodicity, 'u-pop'],
+            [' format '],
+            [invalidValue, 'u-pop'],
+            [' is invalid. '],
+            ['Using '],
+            [correctedValue, 'u-pop'],
+            [' to prevent errors.'],
+        ]), 8000)
     }
 }

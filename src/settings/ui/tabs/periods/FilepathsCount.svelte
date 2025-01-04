@@ -30,7 +30,8 @@
     );
     let _selected = $derived(selected);
 
-    function handleClick() {
+    function handleClick(e: MouseEvent) {
+        e.preventDefault();
         new FilepathModal(Object.keys(filepaths), format.value).open();
     }
 </script>

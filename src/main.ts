@@ -4,6 +4,7 @@ import moment from 'moment';
 import { MarkdownView, Menu, Notice, Plugin, TAbstractFile, TFile, WorkspaceLeaf, WorkspaceRoot } from 'obsidian';
 import { mount, type SvelteComponent } from 'svelte';
 import { get } from 'svelte/store';
+import { PluginService } from './app-service';
 import { CALENDAR_POPOVER_ID, CALENDAR_RIBBON_ID, granularities, LEAF_TYPE, STICKER_POPOVER_ID } from './constants';
 import { basename, createOrOpenNote, extractAndReplaceTODOItems, getFileData, getStartupNoteGranularity, storeAllVaultPeriodicFilepaths } from './io';
 import { getPeriodicityFromGranularity } from './io/parse';
@@ -28,7 +29,6 @@ import { createNldatePickerDialog } from './ui/modals/nldate-picker';
 import { getBehaviorInstance, getPopoverInstance, Popover } from './ui/popovers';
 import { getDailyNotesPlugin, handleLocaleCommands, isPhone } from './utils';
 import { CalendarView } from './view';
-import { PluginService } from './app-service';
 
 export default class PeriodicNotesCalendarPlugin extends Plugin {
     popovers: Record<string, SvelteComponent | null> = {};
@@ -121,9 +121,6 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         handleLocaleCommands()
 
         this.app.workspace.onLayoutReady(() => {
-            // index existing notes
-            storeAllVaultPeriodicFilepaths(true)
-
             ViewManager.initView({ active: false });
             ViewManager.handleLayoutChange();
             TimelineManager.initAll();
@@ -151,6 +148,9 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
                     openInPreview: get(settingsStore).preview.enabled && get(settingsStore).preview.openNotesInPreview
                 });
             }
+
+            // index existing notes
+            storeAllVaultPeriodicFilepaths(true)
         });
     }
 
