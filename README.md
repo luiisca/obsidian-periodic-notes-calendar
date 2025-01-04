@@ -4,7 +4,7 @@ Obsidian calendar plugin for writing and organizing periodic notes (daily to
 yearly). Navigate via command palette or calendar UI. Summarize entries with
 stickers in calendar view. Streamline planning, reviewing, and reflection.
 
-https://github.com/user-attachments/assets/290c8646-f3fb-4550-8a00-2d5818193cce
+https://github.com/user-attachments/assets/bd3d6e27-264c-40c0-9c40-2b4255fc315a
 
 ## Features
 
@@ -44,7 +44,7 @@ Access the Command Palette (Cmd/Ctrl + P) and type `Periodic notes calendar:`
 
 ### Floating Mode
 
-https://github.com/user-attachments/assets/e419c3e5-a37c-455c-a1c8-e217577ba747
+https://github.com/user-attachments/assets/63c78a91-1ff1-4354-b9e3-0f84fff384f2
 
 
 ### Emoji Summaries
@@ -81,7 +81,7 @@ Examples of natural language inputs:
 
 ### Template Support
 
-https://github.com/user-attachments/assets/9c1b62f6-848a-4278-a5e0-f22645394b2c
+https://github.com/user-attachments/assets/f6dce348-7951-4a15-828c-1c473990f9a5
 
 Templates use `{{}}` placeholders to dynamically insert dates and times. Each placeholder can include an identifier, optional adjustment, and optional format: `{{identifier[±adjustment][:format]}}`.
 
@@ -146,7 +146,7 @@ Invalid placeholders remain unchanged for easy debugging. All date expressions r
 
 ### Bulk Management by Format
 
-https://github.com/user-attachments/assets/8dd3a39a-e0c6-4757-a3a4-34d1d4b175e5
+https://github.com/user-attachments/assets/14a19d98-29e1-4c38-9f04-64345f3cfe5a
 
 1. Go to Settings → Periodic notes calendar → Periods and add your desired formats to the list of recognized formats.
 2. Bulk operations are immediately available for all formats in the list. Select a format to access its tools:
