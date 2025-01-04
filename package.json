@@ -1,6 +1,6 @@
 {
     "name": "periodic-notes-calendar",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Obsidian plugin to organize periodic notes from daily to yearly with a calendar interface. Navigate and summarize entries using stickers in the calendar view.",
     "author": "luiisca",
     "main": "main.js",

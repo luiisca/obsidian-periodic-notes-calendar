@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/luiisca/obsidian-periodic-notes-calendar/compare/1.0.0...v1.0.1) (2025-01-04)
+
+
+### Bug Fixes
+
+* trying to set error value to skeleton format ([130ccf3](https://github.com/luiisca/obsidian-periodic-notes-calendar/commit/130ccf3b32288072228114d466b6d80fb0696c30))
+
 ## [1.0.0](https://github.com/luiisca/obsidian-periodic-notes-calendar/compare/v1.0.2...v1.0.0) (2025-01-04)
 
 
