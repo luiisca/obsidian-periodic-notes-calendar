@@ -1,11 +1,9 @@
 import { Notice } from 'obsidian';
-import { get } from 'svelte/store';
+import { PluginService } from './app-service';
 import { DAILY_NOTES_PLUGIN_ID } from './constants';
 import { DnPluginSettings } from './io/settings';
 import locales from './locales';
-import { settingsStore } from './settings';
 import { createLocalesPickerDialog, ILocaleItem } from './ui/modals/locales-picker';
-import { PluginService } from './app-service';
 
 export async function fetchWithRetry<T>(url: string, retries = 0): Promise<T | null> {
     try {

@@ -1,21 +1,30 @@
 <script lang="ts">
+    import { PeriodSettings, TFormat } from "@/settings";
+    import Button from "./button.svelte";
     import { Writable } from "svelte/store";
-    import DeleteBttn from "./DeleteBttn.svelte";
 
     interface Props {
         filepath?: string;
+        onMove: () => Promise<void>;
         onDelete: () => Promise<void>;
-        deletingAllStore: Writable<boolean>;
+        settingsStore: Writable<PeriodSettings>;
+        format: TFormat;
     }
 
-    let { filepath = "", onDelete, deletingAllStore }: Props = $props();
+    let {
+        filepath = "",
+        onMove,
+        onDelete,
+        settingsStore,
+        format,
+    }: Props = $props();
 
     const basename = filepath.split("/").pop() || "";
     const path = filepath.substring(0, filepath.lastIndexOf("/"));
-    let deleting = $state(false);
+    let loading = $derived($settingsStore.formats[format.id].loading);
 </script>
 
-<div class="py-1 px-0 flex justify-between items-center">
+<div class="px-0 flex justify-between items-center">
     <div class="flex items-baseline">
         <span class="font-medium">{basename}</span>
         {#if path}
@@ -24,12 +33,23 @@
             >
         {/if}
     </div>
-    <DeleteBttn
-        loading={$deletingAllStore || deleting}
-        onClick={async () => {
-            deleting = true;
-            await onDelete();
-            deleting = false;
-        }}
-    />
+    <div class="flex items-center space-x-1">
+        <Button
+            {loading}
+            onClick={async () => {
+                !loading && (await onMove());
+            }}
+            ariaLabel="Move note"
+            icon="lucide-folder-input"
+        />
+        <Button
+            {loading}
+            onClick={async () => {
+                !loading && (await onDelete());
+            }}
+            className="is-warning"
+            ariaLabel="Delete note"
+            icon="lucide-trash-2"
+        />
+    </div>
 </div>

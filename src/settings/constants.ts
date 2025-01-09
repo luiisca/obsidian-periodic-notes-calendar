@@ -75,6 +75,8 @@ export interface ISettings {
     /** Whether to show a confirmation dialog before replacing all formats with selected one on "Notes" settings tab */
     shouldConfirmBeforeReplaceAllFormats: boolean;
 
+    shouldConfirmBeforeMoveFile: boolean;
+    shouldConfirmBeforeMoveAllFiles: boolean;
     shouldConfirmBeforeDeleteFile: boolean;
     shouldConfirmBeforeDeleteAllFiles: boolean;
 
@@ -178,6 +180,8 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
     shouldConfirmBeforeCreate: true,
     shouldConfirmBeforeDeleteFormat: true,
     shouldConfirmBeforeReplaceAllFormats: true,
+    shouldConfirmBeforeMoveFile: true,
+    shouldConfirmBeforeMoveAllFiles: true,
     shouldConfirmBeforeDeleteFile: true,
     shouldConfirmBeforeDeleteAllFiles: true,
     yearsRangesStart: 2020,

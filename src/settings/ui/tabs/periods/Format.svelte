@@ -325,7 +325,7 @@
                     title: `Delete format`,
                     text: {
                         Component: DeleteFormatText,
-                        props: { format },
+                        props: { settings, format },
                     },
                     note: {
                         Component: DeleteFormatNote,
@@ -481,7 +481,7 @@
 
         <div class="flex items-center justify-between pl-[1px]">
             <div class="[font-size:calc(var(--font-ui-small)+1px)]">
-                <FilepathsCount {format} {selected} {error} />
+                <FilepathsCount {settings} {format} {selected} {error} />
                 {#if error}
                     <span class="text-[var(--text-error)]"
                         >{window.moment().format(value)} •
@@ -558,3 +558,4 @@
         >
     {/if}
 </label>
+

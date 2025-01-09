@@ -18,7 +18,7 @@ https://github.com/user-attachments/assets/bd3d6e27-264c-40c0-9c40-2b4255fc315a
 - [**Natural Language Commands**](#create-notes-with-natural-language-dates): Create notes for specific dates using intuitive
   language.
 - [**Template Support**](#template-support): Create dynamic notes using `{{}}` placeholders for dates and times with support for natural language inputs (e.g., "next friday"), time adjustments, and custom formatting.
-- [**Bulk Management by Format**](#bulk-management-by-format): Perform bulk actions (rename, delete, switch formats) for notes organized by user-defined formats.
+- [**Bulk Management by Format**](#bulk-management-by-format): Perform bulk actions (move, delete, switch formats) for notes organized by user-defined formats.
 - **Timeline Quickview**: A mini-calendar displayed at the top of periodic notes, with the option to enable it for all notes.
   It supports unique timelines for each type of periodic note.
 - [**Note Preview Panel**](#note-preview-panel): Offers a configurable preview leaf for your notes, periodic and non periodic, supporting vertical or horizontal splits, zen mode for minimal distractions, optional tab headers and more.
@@ -146,12 +146,15 @@ Invalid placeholders remain unchanged for easy debugging. All date expressions r
 
 ### Bulk Management by Format
 
-https://github.com/user-attachments/assets/14a19d98-29e1-4c38-9f04-64345f3cfe5a
+https://github.com/user-attachments/assets/40c21e84-83cc-4852-8720-4aaab663b921
 
 1. Go to Settings → Periodic notes calendar → Periods and add your desired formats to the list of recognized formats.
 2. Bulk operations are immediately available for all formats in the list. Select a format to access its tools:
-   - Left Button: Open a list of files using this format, where you can open, delete individually, or delete all files.
-   - First Right Button: Rename files in other formats to this one.
+   - Left Button: Opens a file management menu that lets you:
+        - View and open a list of all files
+        - Move, or delete files individually
+        - Move or delete all files at once
+   - First Right Button: Rename all files from other formats to match this format
    - Last Right Button: Remove this format from the list (existing files remain unchanged).
 
 These features ensure effortless organization and allow you to experiment with new formats without losing control, making it simple to manage and update your periodic notes.
@@ -245,7 +248,7 @@ Changes are applied immediately when you save your CSS file—no need to restart
 <!-- 3. Click "Browse" and search for "Periodic notes calendar" -->
 <!-- 4. Click "Install", then "Enable" to activate the plugin -->
 
-**From GitHub**
+**BRAT**
 
 1. Install BRAT from Obsidian Community Plugins
 2. Open Command Palette and run `BRAT: Add a beta plugin for testing`
@@ -254,6 +257,12 @@ Changes are applied immediately when you save your CSS file—no need to restart
 5. Enable `Periodic notes calendar` in Settings → Community Plugins
 
 For detailed setup instructions, see [BRAT's quick guide](https://tfthacker.com/brat-quick-guide).
+
+**Manually**
+
+1. Download the [latest release](https://github.com/luiisca/obsidian-periodic-notes-calendar/releases) from Github
+2. Extract to `path-to-your-vault/.obsidian/plugins`
+3. Enable `Periodic notes calendar` in Settings > community plugins
 
 
 ## Tips and Tricks

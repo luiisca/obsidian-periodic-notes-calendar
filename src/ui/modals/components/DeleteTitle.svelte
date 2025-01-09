@@ -1,10 +1,10 @@
 <script lang="ts">
     interface Props {
-        filename: string;
+        filepath: string;
     }
 
-    let { filename }: Props = $props();
+    let { filepath }: Props = $props();
 </script>
 
 Are you sure you want to delete
-<span class="u-pop">{filename}</span>?
+<span class="u-pop">{filepath}</span>?

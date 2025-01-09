@@ -6,8 +6,10 @@
     } from "@/settings";
     import { FilepathModal } from "@/ui/modals/filepath-select";
     import { cn } from "@/ui/utils";
+    import { Writable } from "svelte/store";
 
     interface Props {
+        settings: Writable<PeriodSettings>;
         format: PeriodSettings["formats"][number];
         selected?: boolean;
         error?: string;
@@ -15,6 +17,7 @@
     }
 
     let {
+        settings,
         format,
         selected = false,
         error = "",
@@ -32,7 +35,8 @@
 
     function handleClick(e: MouseEvent) {
         e.preventDefault();
-        new FilepathModal(Object.keys(filepaths), format.value).open();
+        !format.loading &&
+            new FilepathModal(Object.keys(filepaths), settings, format).open();
     }
 </script>
 
