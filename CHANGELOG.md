@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/luiisca/obsidian-periodic-notes-calendar/compare/1.0.0...v1.1.0) (2025-01-09)
+
+
+### Features
+
+* **bulk-management:** support moving individual files and file lists to a folder ([256302e](https://github.com/luiisca/obsidian-periodic-notes-calendar/commit/256302e6392aca83b2ddc41cc5c75de894ff569f))
+
 ## [1.0.0](https://github.com/luiisca/obsidian-periodic-notes-calendar/compare/v1.0.0...v1.0.0) (2025-01-04)
 
 
