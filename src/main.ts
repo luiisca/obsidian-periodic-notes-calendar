@@ -282,7 +282,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
 
     // registered events
     registerEvents() {
-        this.registerEvent(this.app.workspace.on('file-menu', (menu, file) => this.onFileMenu(menu, file as TFile)))
+        this.registerEvent(this.app.workspace.on('file-menu', (menu, file) => this.onFileMenu(menu, file)))
 
         this.registerEvent(
             this.app.workspace.on('css-change', () => {
@@ -292,14 +292,14 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
             })
         )
         this.registerEvent(
-            this.app.vault.on('create', (file: TAbstractFile) => this.onFileCreated(file as TFile))
+            this.app.vault.on('create', (file) => this.onFileCreated(file))
         );
         this.registerEvent(
-            this.app.vault.on('delete', (file: TAbstractFile) => this.onFileDeleted(file as TFile))
+            this.app.vault.on('delete', (file) => this.onFileDeleted(file))
         );
         this.registerEvent(
-            this.app.vault.on('rename', (file: TAbstractFile, oldPath: string) =>
-                this.onFileRenamed(file as TFile, oldPath)
+            this.app.vault.on('rename', (file, oldPath) =>
+                this.onFileRenamed(file, oldPath)
             )
         );
         this.registerEvent(
@@ -307,8 +307,9 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         )
     }
 
-    private async onFileMenu(_menu: Menu, file: TFile) {
+    private async onFileMenu(_menu: Menu, file: TAbstractFile) {
         if (!(file instanceof TFile)) return;
+
         const menu = _menu as Menu & { dom: Element; bgEl: Element }
 
         const { isValid, granularity, date } = isValidPeriodicNote(file.basename);
@@ -378,7 +379,9 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         }
     }
 
-    private onFileCreated(file: TFile) {
+    private onFileCreated(file: TAbstractFile) {
+        if (!(file instanceof TFile)) return;
+
         if (get(internalFileModStore) === 'created') return;
 
 
@@ -408,7 +411,9 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         }
     }
 
-    private async onFileDeleted(file: TFile): Promise<void> {
+    private async onFileDeleted(file: TAbstractFile): Promise<void> {
+        if (!(file instanceof TFile)) return;
+
         if (get(internalFileModStore) === 'deleted') return;
 
         if (this.app.workspace.layoutReady) {
@@ -428,7 +433,9 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         }
     }
 
-    private async onFileRenamed(renamedFile: TFile, oldPath: string): Promise<void> {
+    private async onFileRenamed(renamedFile: TAbstractFile, oldPath: string): Promise<void> {
+        if (!(renamedFile instanceof TFile)) return;
+
         if (get(internalFileModStore) === 'renamed') return;
 
         const _oldData = isValidPeriodicNote(basename(oldPath));

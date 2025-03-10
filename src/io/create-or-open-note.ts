@@ -42,27 +42,29 @@ export async function createOrOpenNote({
     //     date,
     //     formattedDate: date.format("YYYY-MM-DD, [W]W, [w]w")
     // })
-    let file = PluginService.getPlugin()?.app.vault.getAbstractFileByPath(normalizedPath)
 
-    async function openFile(file: TAbstractFile | undefined | null) {
+    async function openFile(file: TFile | undefined | null) {
         if (file) {
             if (openInPreview) {
                 ViewManager.revealView();
-                ViewManager.tryInitPreview(file as TFile, true);
+                ViewManager.tryInitPreview(file, true);
             } else {
-                await leaf?.openFile(file as TFile, openState);
+                await leaf?.openFile(file, openState);
             }
             activeFileStore.update(d => {
                 if (d) {
-                    d.file = file as TFile;
+                    d.file = file;
                 }
                 return d
             })
         }
     }
 
-    if (file) {
+    let file = PluginService.getPlugin()?.app.vault.getAbstractFileByPath(normalizedPath)
+    if (file && file instanceof TFile) {
         await openFile(file);
+    } else if (file && !(file instanceof TFile)) {
+        return new Notice(`Not a file: ${normalizedPath}`);
     } else {
         const periodicity = getPeriodicityFromGranularity(granularity);
 
@@ -78,8 +80,8 @@ export async function createOrOpenNote({
                 },
                 cta: 'Create',
                 onAccept: async (dontAskAgain) => {
-                    file = await createNote(granularity, date);
-                    await openFile(file);
+                    const newFile = await createNote(granularity, date);
+                    await openFile(newFile);
 
                     if (dontAskAgain) {
                         settingsStore.update((settings) => ({
@@ -90,8 +92,8 @@ export async function createOrOpenNote({
                 }
             });
         } else {
-            file = await createNote(granularity, date);
-            await openFile(file);
+            const newFile = await createNote(granularity, date);
+            await openFile(newFile);
         }
     }
 }
@@ -110,7 +112,7 @@ export async function createNote(granularity: IGranularity, date: Moment) {
             normalizedPath,
             replaceTemplateContents(date, selectedFormat.value, templateContents)
         );
-        if (!file) return;
+        if (!file || !(file instanceof TFile)) return;
 
         await extractAndReplaceTODOItems(date, granularity, file);
 

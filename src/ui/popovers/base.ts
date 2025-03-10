@@ -1,7 +1,7 @@
 import { BASE_POPOVER_ID, CALENDAR_POPOVER_ID, FILE_MENU_POPOVER_ID, STICKER_POPOVER_ID } from "@/constants";
 import { BaseComponentBehavior, TBasePopoverId, TBasePopoverParams } from "./base-component-behavior";
 import { CalendarPopoverBehavior, type TCalendarPopoverParams } from "./calendar";
-import { FileMenuPopoverBehavior, type TFileMenuOpenParams, type TFileMenuPopoverParams } from "./file-menu";
+import { FileMenuPopoverBehavior, type FileMenuOpenParams, type TFileMenuPopoverParams } from "./file-menu";
 import { StickerPopoverBehavior, type TStickerPopoverParams } from "./sticker";
 
 export type TPopoverId = TBasePopoverId | typeof FILE_MENU_POPOVER_ID;
@@ -34,18 +34,18 @@ export class Popover {
         Popover.mutationObserverStarted = false;
     }
 
-    public toggle(param: TFileMenuOpenParams | Element) {
+    public toggle(param: FileMenuOpenParams | Element) {
         if (param instanceof Element) {
             (this.behavior as BaseComponentBehavior).toggle(param);
         } else if (typeof param === "object") {
-            (this.behavior as FileMenuPopoverBehavior).toggle(param as TFileMenuOpenParams);
+            (this.behavior as FileMenuPopoverBehavior).toggle(param as FileMenuOpenParams);
         }
     }
-    public open(param: TFileMenuOpenParams | Element) {
+    public open(param: FileMenuOpenParams | Element) {
         if (param instanceof Element) {
             (this.behavior as BaseComponentBehavior).open(param);
         } else if (typeof param === "object") {
-            (this.behavior as FileMenuPopoverBehavior).open(param as TFileMenuOpenParams);
+            (this.behavior as FileMenuPopoverBehavior).open(param as FileMenuOpenParams);
         }
     }
 

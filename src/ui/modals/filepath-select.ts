@@ -222,11 +222,11 @@ export class FilepathModal extends FuzzySuggestModal<string> {
     private async handleDeleteFile(filepath: string) {
         const file = this.app.vault.getAbstractFileByPath(filepath);
         const isFileValid = this.isFileValid(filepath, file);
-        if (!isFileValid || !file) return;
+        if (!isFileValid || !(file instanceof TFile)) return;
 
         const deleteFile = async () => {
             try {
-                await this.deleteFile(file as TFile, filepath)
+                await this.deleteFile(file, filepath)
 
                 this.filePaths = this.filePaths.filter(path => path !== filepath);
                 // @ts-ignore
@@ -295,10 +295,10 @@ export class FilepathModal extends FuzzySuggestModal<string> {
             for (const filepath of this.filePaths) {
                 const file = this.app.vault.getAbstractFileByPath(filepath);
                 const isFileValid = this.isFileValid(filepath, file);
-                if (!isFileValid || !file) continue;
+                if (!isFileValid || !(file instanceof TFile)) continue;
 
                 try {
-                    await this.deleteFile(file as TFile, filepath);
+                    await this.deleteFile(file, filepath);
                     deletedFilesCountStore.update((count) => count + 1);
                 } catch (error) {
                     new Notice(

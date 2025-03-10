@@ -6,7 +6,7 @@ import type { Moment } from 'moment';
 import { TFile, WorkspaceLeaf } from 'obsidian';
 import { get } from 'svelte/store';
 import { Popover } from '../popovers';
-import { TFileMenuOpenParams } from '../popovers/file-menu';
+import { FileMenuOpenParams } from '../popovers/file-menu';
 import { PluginService } from '@/app-service';
 
 type TOnClickParams = {
@@ -60,7 +60,7 @@ const onHover = ({
     }
 };
 
-const onContextMenu = ({ event, fileData, date, granularity }: TFileMenuOpenParams): void => {
+const onContextMenu = ({ event, fileData, date, granularity }: FileMenuOpenParams): void => {
     Popover.create({
         id: FILE_MENU_POPOVER_ID
     }).open({ event, fileData, date, granularity });

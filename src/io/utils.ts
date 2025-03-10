@@ -9,6 +9,7 @@ import { isValidPeriodicNote } from "./validation";
 import { Moment } from "moment";
 import { getFileData, modifyFile } from "./vault";
 import { PluginService } from "@/app-service";
+import { genNoticeFragment } from "@/ui/utils";
 
 export function storeAllVaultPeriodicFilepaths(
     firstRun = false,
@@ -35,13 +36,17 @@ export function storeAllVaultPeriodicFilepaths(
 
         Object.entries(uniqueFolders).forEach(([uniqueFolder, customGranularities]) => {
             try {
-                const notesFolder = PluginService.getPlugin()?.app.vault.getAbstractFileByPath(normalizePath(uniqueFolder)) as TFolder;
+                const notesFolder = PluginService.getPlugin()?.app.vault.getAbstractFileByPath(normalizePath(uniqueFolder));
 
-                if (!notesFolder) {
-                    throw new Error(
-                        `Unable to locate ${customGranularities.map((g) => getPeriodicityFromGranularity(g)).join(', ')} 
-                    notes folder. Check your plugin's settings or restart calendar plugin.`
-                    );
+                if (!notesFolder || !(notesFolder instanceof TFolder)) {
+                    return new Notice(genNoticeFragment([
+                        ['Warning: Missing or invalid folders for these periods: '],
+                        [customGranularities.map((g) => getPeriodicityFromGranularity(g)).join(', '), 'u-pop'],
+                        ['. \n'],
+                        ['1. Check your folder paths in plugin settings. \n'],
+                        ['2. Ensure they exist as actual folders. \n'],
+                        ['3. Restart Obsidian to apply changes.']
+                    ]), 10000);
                 }
 
                 Vault.recurseChildren(notesFolder, (file) => {

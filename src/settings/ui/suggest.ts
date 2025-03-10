@@ -311,8 +311,8 @@ export class HeadingsSuggest extends BaseSuggest<string> {
     async selectSuggestion(heading: string, _: KeyboardEvent | MouseEvent): Promise<void> {
         if (this.noHeadingsFound && heading.startsWith("+ Add")) {
             const app = PluginService.getPlugin()?.app
-            const file = this.templatePath ? (app?.vault.getAbstractFileByPath(this.templatePath) as TFile) : null;
-            if (file) {
+            const file = this.templatePath ? app?.vault.getAbstractFileByPath(this.templatePath) : null;
+            if (file && file instanceof TFile) {
                 const content = await app?.vault.read(file) ?? ""
                 if (this.newHeadingVal) {
                     await modifyFile(file, `${content.trim() === "" ? this.newHeadingVal : `${content.trim()}\n\n${this.newHeadingVal}`}`)

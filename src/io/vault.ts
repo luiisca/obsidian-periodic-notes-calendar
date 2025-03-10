@@ -92,9 +92,15 @@ export function getFileData(
     date: Moment | null,
 ): TFileData {
     const filePath = granularity && date && getNotePath(granularity, date);
-    const file = filePath ? (PluginService.getPlugin()?.app.vault.getAbstractFileByPath(filePath) as TFile) : null;
-    const tags = file ? PluginService.getPlugin()?.app.metadataCache.getFileCache(file)?.tags : null;
-    const sticker = getSticker(tags)
+    const abstractFile = filePath ? PluginService.getPlugin()?.app.vault.getAbstractFileByPath(filePath) : null;
+
+    let file = null;
+    let sticker = null;
+    if (abstractFile instanceof TFile) {
+        file = abstractFile
+        const tags = PluginService.getPlugin()?.app.metadataCache.getFileCache(file)?.tags;
+        sticker = getSticker(tags)
+    }
 
     return {
         file,
@@ -115,8 +121,14 @@ export async function getTemplateInfo(
 
     try {
         // get First file matching given normalizedPath
-        const templateFile = app?.vault.getAbstractFileByPath(normalizedPath);
-        const contents = await app?.vault.cachedRead(templateFile as TFile) ?? "";
+        const abstractFile = app?.vault.getAbstractFileByPath(normalizedPath);
+
+        let templateFile = null;
+        let contents = "";
+        if (abstractFile instanceof TFile) {
+            templateFile = abstractFile
+            contents = await app?.vault.cachedRead(templateFile) || "";
+        }
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const IFoldInfo = (PluginService.getPlugin()?.app as any).foldManager.load(templateFile);

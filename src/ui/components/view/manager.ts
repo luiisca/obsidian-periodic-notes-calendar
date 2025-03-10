@@ -129,7 +129,7 @@ export class ViewManager {
         // leaf.view.state.file will be used when markdown view is not visible and leaf.view.file.path would return undefined
         // this value is undefined when markdown view is visible
         const previewFilepath = (previewLeaf?.view as any)?.state?.file as string | undefined || (previewLeaf?.view as any)?.file?.path as string | null
-        const previewFile = (previewFilepath ? PluginService.getPlugin()?.app.vault.getAbstractFileByPath(previewFilepath) : null) as TFile | null
+        const previewFile = (previewFilepath ? PluginService.getPlugin()?.app.vault.getAbstractFileByPath(previewFilepath) : null)
         let isOpenPreviewBttnVisible =
             get(settingsStore).preview.enabled
             && (
@@ -145,7 +145,7 @@ export class ViewManager {
             isOpenPreviewBttnVisible = false
         }
 
-        if (this.firstLayoutChange && previewLeaf && previewFile) {
+        if (this.firstLayoutChange && previewLeaf && previewFile && previewFile instanceof TFile) {
             const { granularity } = await this.getPreviewFileData();
             // setup existing preview leaf with preview controls and all stuff required to make a preview leaf
             this.setupOpenPreviewLeaf({
@@ -297,9 +297,10 @@ export class ViewManager {
 
     private static isLeafVisible(leaf: WorkspaceLeaf): boolean {
         const _leaf = leaf as WorkspaceLeaf & { containerEl: HTMLElement, width: number, height: number };
+        const display = _leaf.containerEl.style.display;
         // Check if the leaf is in the DOM and visible
         return (
-            _leaf.containerEl.style.display !== 'none' &&
+            display !== 'none' &&
             _leaf.width > 0 &&
             _leaf.height > 0
         );
@@ -562,7 +563,7 @@ export class ViewManager {
         }
 
         return {
-            file: file as TFile,
+            file: file,
             granularity: granularity as unknown as IGranularity,
             date
         };
@@ -635,7 +636,8 @@ export class ViewManager {
         const leafFilepath = _file?.path || leafView?.state?.file as string | undefined || (leaf?.view as any).file?.path as string | undefined;
         if (!leafFilepath) return;
 
-        const file = PluginService.getPlugin()?.app.vault.getAbstractFileByPath(leafFilepath) as TFile | null;
+        const file = PluginService.getPlugin()?.app.vault.getAbstractFileByPath(leafFilepath);
+        if (file && !(file instanceof TFile)) return;
         if (!file) return;
 
         return file

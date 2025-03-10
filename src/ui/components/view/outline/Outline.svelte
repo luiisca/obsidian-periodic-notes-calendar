@@ -173,10 +173,13 @@
         if ($previewLeafStore) {
             const filepath = $previewLeafStore.filepath;
             if (filepath) {
-                file =
+                const abstractFile =
                     PluginService.getPlugin()?.app.vault.getAbstractFileByPath(
                         filepath,
-                    ) as TFile | null;
+                    );
+                if (abstractFile instanceof TFile) {
+                    file = abstractFile;
+                }
             }
             leaf = $previewLeafStore.leaf;
         }

@@ -9,7 +9,7 @@ import { eventHandlers, isControlPressed } from "../utils";
 export type TFileMenuPopoverParams = {
     id: typeof FILE_MENU_POPOVER_ID,
 }
-export type TFileMenuOpenParams = {
+export type FileMenuOpenParams = {
     event: MouseEvent,
     fileData: TFileData,
     date: Moment,
@@ -28,7 +28,7 @@ export class FileMenuPopoverBehavior {
         // Do nothing
     }
 
-    public toggle(param: TFileMenuOpenParams) {
+    public toggle(param: FileMenuOpenParams) {
         if (this.opened) {
             this.close()
         } else {
@@ -36,7 +36,7 @@ export class FileMenuPopoverBehavior {
         }
     }
 
-    public open({ event, fileData, date, granularity, extraItems }: TFileMenuOpenParams) {
+    public open({ event, fileData, date, granularity, extraItems }: FileMenuOpenParams) {
         this.opened = true;
 
         this.menu = new Menu();
@@ -72,7 +72,7 @@ export class FileMenuPopoverBehavior {
         this.menu?.unload();
     }
 
-    private openCustomFileMenu(menu: Menu, fileData: TFileData, date: Moment, granularity?: IGranularity, extraItems?: TFileMenuOpenParams['extraItems']) {
+    private openCustomFileMenu(menu: Menu, fileData: TFileData, date: Moment, granularity?: IGranularity, extraItems?: FileMenuOpenParams['extraItems']) {
         const file = fileData.file;
         if (file) {
             // Add sections to the menu

@@ -12,7 +12,7 @@
     import { createConfirmationDialog } from "@/ui/modals/confirmation";
     import { INotesContext } from "@/ui/types";
     import { cn, genNoticeFragment } from "@/ui/utils";
-    import { Notice, debounce, setIcon, type TFile } from "obsidian";
+    import { Notice, debounce, setIcon, TFile } from "obsidian";
     import { getContext, onMount } from "svelte";
     import { type Writable } from "svelte/store";
     import DeleteFormatText from "./DeleteFormatText.svelte";
@@ -170,10 +170,15 @@
 
                 Object.keys(oldFilepaths).forEach(
                     async (oldFilepath, oldFilepathIndex) => {
-                        const oldFile =
+                        const abstractFile =
                             PluginService.getPlugin()?.app.vault.getAbstractFileByPath(
                                 oldFilepath,
-                            ) as TFile | null;
+                            );
+                        if (abstractFile && !(abstractFile instanceof TFile)) {
+                            return;
+                        }
+                        const oldFile = abstractFile;
+
                         const date = window.moment(
                             oldFile?.basename,
                             oldFormat.value,
@@ -558,4 +563,3 @@
         >
     {/if}
 </label>
-

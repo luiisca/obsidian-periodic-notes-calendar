@@ -23,12 +23,12 @@
         $settings.preview.mainSection; // force update
         $settings.preview.todoSection; // force update
         const file = $settings.templatePath
-            ? (PluginService.getPlugin()?.app.vault.getAbstractFileByPath(
+            ? PluginService.getPlugin()?.app.vault.getAbstractFileByPath(
                   $settings.templatePath,
-              ) as TFile)
+              )
             : null;
         let h: string[] = [];
-        if (file) {
+        if (file && file instanceof TFile) {
             h =
                 PluginService.getPlugin()
                     ?.app.metadataCache.getFileCache(file)
