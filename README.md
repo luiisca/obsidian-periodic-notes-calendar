@@ -1,4 +1,4 @@
-# 📅 Obsidian Periodic Notes Calendar Plugin
+# 📅 Periodic Notes Calendar Plugin for Obsidian
 
 Obsidian calendar plugin for writing and organizing periodic notes (daily to
 yearly). Navigate via command palette or calendar UI. Summarize entries with
