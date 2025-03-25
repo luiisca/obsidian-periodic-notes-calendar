@@ -2,6 +2,7 @@
     import type { Moment } from "moment";
     import { fly } from "svelte/transition";
 
+    import { TIMELINE_TYPE } from "@/constants";
     import { IGranularity } from "@/io";
     import { settingsStore, TimelineViewMode } from "@/settings";
     import { localeSwitched } from "@/stores";
@@ -12,12 +13,10 @@
         getRelativeDate,
         isControlPressed,
     } from "@/ui/utils";
-    import { setIcon } from "obsidian";
+    import { setIcon, Platform } from "obsidian";
     import { onDestroy, onMount } from "svelte";
     import DateBttn from "../core/DateBttn.svelte";
     import { G_MAP, VIEW_MODES } from "./constants";
-    import { isMobile } from "@/utils";
-    import { TIMELINE_TYPE } from "@/constants";
 
     interface Props {
         granularity: IGranularity;
@@ -194,7 +193,7 @@
             viewMode === "expanded" &&
                 "[border-bottom:1px_solid_var(--divider-color)]",
             isSide
-                ? isMobile()
+                ? Platform.isPhone
                     ? "top-[26px] bg-[var(--mobile-sidebar-background)]"
                     : "top-[26px] bg-[var(--background-secondary)]"
                 : "top-[56px] bg-[var(--background-primary)]",
@@ -283,7 +282,7 @@
                     : "top-[calc(100%+0.15rem)]",
                 viewMode === "expanded" && "w-auto min-w-full",
                 isSide
-                    ? isMobile()
+                    ? Platform.isPhone
                         ? "bg-[var(--mobile-sidebar-background)] hover:bg-[var(--background-secondary)]"
                         : "bg-[var(--background-secondary)] hover:bg-[var(--color-base-25)]"
                     : "bg-[var(--background-primary)] hover:bg-[var(--color-base-10)]",

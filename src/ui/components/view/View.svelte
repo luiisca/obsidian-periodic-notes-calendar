@@ -12,7 +12,7 @@
     import { cn } from "@/ui/utils";
     import { onDestroy, setContext } from "svelte";
     import Calendar from "../Calendar.svelte";
-    import { isMobile } from "@/utils";
+    import { Platform } from "obsidian";
 
     interface Props {
         popover?: boolean;
@@ -95,7 +95,7 @@
                     id="preview-open-bttn"
                     class={cn(
                         "clickable-icon view-action italic absolute [transform:translateY(-50%)] w-fit cursor-pointer py-3 hover:!bg-transparent",
-                        isMobile()
+                        Platform.isPhone
                             ? "!bg-[var(--mobile-sidebar-background)] hover:!bg-[var(--mobile-sidebar-background)]"
                             : "!bg-[var(--background-secondary)] hover:!bg-[var(--background-secondary)]",
                         $mainLeafStore?.splitPos === "left" && "left-0 pr-3",

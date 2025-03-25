@@ -3,9 +3,9 @@ import { createNote, getFileData, IGranularity } from '@/io';
 import { isValidPeriodicNote } from '@/io/validation';
 import { PeriodSettings, settingsStore, type ISettings } from '@/settings';
 import { activeFileStore, mainLeafStore, previewLeafStore, processingPreviewChangeStore } from '@/stores';
-import { capitalize, isMobile, isPhone } from '@/utils';
+import { capitalize } from '@/utils';
 import moment, { Moment } from 'moment';
-import { MarkdownView, TFile, View, WorkspaceLeaf } from 'obsidian';
+import { MarkdownView, TFile, View, WorkspaceLeaf, Platform } from 'obsidian';
 import { mount, unmount } from 'svelte';
 import { get } from 'svelte/store';
 import { PreviewControls } from '.';
@@ -141,7 +141,7 @@ export class ViewManager {
 
         // hide open preview button when there is not enough room for it, should only work on desktop and tablets, phones do not have enough space
         const isMoreThanOneSplitleaf = Array.from((mainLeaf?.parent?.parent as any)?.children || [])?.length > 1
-        if (!isPhone() && !previewLeafVisible && isMoreThanOneSplitleaf && (mainLeafHeight + 100 >= mainLeafParentHeight)) {
+        if (!Platform.isPhone && !previewLeafVisible && isMoreThanOneSplitleaf && (mainLeafHeight + 100 >= mainLeafParentHeight)) {
             isOpenPreviewBttnVisible = false
         }
 
@@ -379,7 +379,7 @@ export class ViewManager {
         let previewIsOnlyWorkspaceLeaf = true;
         let previewIsCalendarLeafSibling = false;
 
-        const closestWorkspaceClassname = isMobile() ? ".workspace-drawer" : ".workspace-split"
+        const closestWorkspaceClassname = Platform.isPhone ? ".workspace-drawer" : ".workspace-split"
         const children = leaf?.containerEl?.closest(closestWorkspaceClassname)?.children || null
         const tabs = Array.from(children || []).filter((el: HTMLElement) => {
             if (el.className.includes('workspace-tabs')) {
@@ -417,7 +417,7 @@ export class ViewManager {
         const leaf = workspaceLeaf as WorkspaceLeaf & { containerEl: HTMLElement; tabHeaderEl: HTMLElement } | null
         if (!leaf) return null;
 
-        const closestWorkspaceClassname = isMobile() ? ".workspace-drawer" : ".workspace-split"
+        const closestWorkspaceClassname = Platform.isPhone ? ".workspace-drawer" : ".workspace-split"
         const closestWorkspaceSplitClassName =
             leaf?.containerEl.closest(closestWorkspaceClassname)?.className;
 

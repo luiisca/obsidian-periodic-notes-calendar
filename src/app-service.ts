@@ -1,6 +1,6 @@
 import { App, Plugin } from "obsidian";
 
-type TPlugin = Plugin & { app: App & { isMobile: boolean } }
+type TPlugin = Plugin & { app: App }
 export class PluginService {
     private static instance: TPlugin | null
 

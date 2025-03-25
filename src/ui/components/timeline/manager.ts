@@ -1,4 +1,4 @@
-import { FileView, MarkdownView, TFile, WorkspaceLeaf } from "obsidian";
+import { FileView, MarkdownView, TFile, WorkspaceLeaf, Platform } from "obsidian";
 import { mount, unmount } from "svelte";
 
 import { LEAF_TYPE, TIMELINE_TYPE } from "@/constants";
@@ -7,7 +7,6 @@ import { isValidPeriodicNote } from "@/io/validation";
 import { settingsStore } from "@/settings";
 import { displayedDateStore, timelineParentFileStore } from "@/stores";
 import { crrTabStore, getEnabledPeriods, periodTabs } from "@/stores/calendar";
-import { isMobile } from "@/utils";
 import moment, { Moment } from "moment";
 import { get } from "svelte/store";
 import { ViewManager } from "../view";
@@ -51,7 +50,7 @@ export default class TimelineManager {
         }
     }
     static mount(leaf: WorkspaceLeaf, periodicData: { isPeriodic: boolean, granularity: IGranularity | null, date: Moment | null } | null = null, file: TFile) {
-        const closestWorkspaceClassname = isMobile() ? ".workspace-drawer" : ".workspace-split"
+        const closestWorkspaceClassname = Platform.isPhone ? ".workspace-drawer" : ".workspace-split"
         const leafContainerClassname =
             (leaf as WorkspaceLeaf & { containerEl: HTMLElement })?.containerEl?.closest(closestWorkspaceClassname)?.className;
 

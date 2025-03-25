@@ -1,6 +1,6 @@
 <script lang="ts">
     import { cn } from "@/ui/utils";
-    import { isMobile } from "@/utils";
+    import { Platform } from "obsidian";
 
     interface Props {
         onClick: (ev: MouseEvent) => void;
@@ -18,7 +18,7 @@
     class={cn(
         "flex items-center !px-1.5",
         direction === "right" && "[transform:rotate(180deg)]",
-        isMobile() ? "[&>svg]:w-3.5" : "[&>svg]:w-2.5",
+        Platform.isPhone ? "[&>svg]:w-3.5" : "[&>svg]:w-2.5",
         className,
     )}
     id="arrow"

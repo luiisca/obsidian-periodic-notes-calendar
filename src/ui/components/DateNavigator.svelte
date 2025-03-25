@@ -1,8 +1,9 @@
 <script lang="ts">
-    import { capitalize, isMobile } from "@/utils";
+    import { capitalize } from "@/utils";
     import { getContext } from "svelte";
     import { cn } from "../utils";
     import { Arrow, Dot } from "./core";
+    import { Platform } from "obsidian";
 
     interface Props {
         showingCrrDate: boolean;
@@ -28,7 +29,7 @@
 <div
     class={cn(
         "flex items-center",
-        minimalMode?.value || isMobile() ? "-ml-2" : "-ml-1",
+        minimalMode?.value || Platform.isPhone ? "-ml-2" : "-ml-1",
     )}
     id="bottom-nav"
 >
@@ -36,7 +37,9 @@
         direction="left"
         onClick={decrementdisplayedDate}
         tooltip={`Previous ${capitalize(type)}`}
-        className={cn((minimalMode?.value || isMobile()) && "[&>svg]:w-1.5")}
+        className={cn(
+            (minimalMode?.value || Platform.isPhone) && "[&>svg]:w-1.5",
+        )}
     />
     <button
         class={cn(
@@ -52,7 +55,7 @@
         <Dot
             className={cn(
                 "h-[8px] w-[8px]",
-                (minimalMode?.value || isMobile()) && "w-[0.3rem]",
+                (minimalMode?.value || Platform.isPhone) && "w-[0.3rem]",
             )}
             isFilled={showingCrrDate}
         />
@@ -61,6 +64,8 @@
         direction="right"
         onClick={incrementdisplayedDate}
         tooltip={`Next ${capitalize(type)}`}
-        className={cn((minimalMode?.value || isMobile()) && "[&>svg]:w-1.5")}
+        className={cn(
+            (minimalMode?.value || Platform.isPhone) && "[&>svg]:w-1.5",
+        )}
     />
 </div>

@@ -5,7 +5,7 @@ import { get } from 'svelte/store';
 import { type TWindowEvents } from '../types';
 import { Popover } from './base';
 import { BaseComponentBehavior } from './base-component-behavior';
-import { isMobile } from '@/utils';
+import { Platform } from 'obsidian'
 
 export type TStickerPopoverParams = {
     id: typeof STICKER_POPOVER_ID,
@@ -24,7 +24,7 @@ export class StickerPopoverBehavior extends BaseComponentBehavior {
 
     public open(refHtmlEl: HTMLElement) {
         this.refHtmlEl = refHtmlEl;
-        super.open(refHtmlEl, false, !isMobile());
+        super.open(refHtmlEl, false, !Platform.isPhone);
 
         this.getSearchInput()?.focus();
         this.addWindowListeners(this.getWindowEvents(), this, this.boundCallbacks);

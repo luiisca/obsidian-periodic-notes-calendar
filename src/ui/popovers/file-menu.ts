@@ -1,9 +1,8 @@
 import { PluginService } from "@/app-service";
 import { FILE_MENU_POPOVER_ID } from "@/constants";
 import { TFileData, type IGranularity } from "@/io";
-import { isMobile } from "@/utils";
 import { type Moment } from "moment";
-import { Menu } from "obsidian";
+import { Menu, Platform } from "obsidian";
 import { eventHandlers, isControlPressed } from "../utils";
 
 export type TFileMenuPopoverParams = {
@@ -78,8 +77,7 @@ export class FileMenuPopoverBehavior {
             // Add sections to the menu
             (menu as any).addSections([...(extraItems?.newSections || []), "title", "open", "action-primary", "action", "info", "view", "system", "", "danger"]);
 
-            // Add title (for mobile)
-            if (isMobile()) {
+            if (Platform.isPhone) {
                 menu.addItem((item) =>
                     item.setSection("title")
                         .setIcon("lucide-file")

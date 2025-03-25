@@ -1,7 +1,7 @@
 import { DEFAULT_SETTINGS, settingsStore, SettingsTab, type ISettings } from '@/settings';
 import { InvalidFormat, View, ViewManager } from '@/ui';
 import moment from 'moment';
-import { MarkdownView, Menu, Notice, Plugin, TAbstractFile, TFile, WorkspaceLeaf, WorkspaceRoot } from 'obsidian';
+import { MarkdownView, Menu, Notice, Plugin, TAbstractFile, TFile, WorkspaceLeaf, WorkspaceRoot, Platform } from 'obsidian';
 import { mount, type SvelteComponent } from 'svelte';
 import { get } from 'svelte/store';
 import { PluginService } from './app-service';
@@ -27,7 +27,7 @@ import StickerPopoverComponent from './ui/components/StickerPopover.svelte';
 import TimelineManager from './ui/components/timeline/manager';
 import { createNldatePickerDialog } from './ui/modals/nldate-picker';
 import { getBehaviorInstance, getPopoverInstance, Popover } from './ui/popovers';
-import { getDailyNotesPlugin, handleLocaleCommands, isPhone } from './utils';
+import { getDailyNotesPlugin, handleLocaleCommands } from './utils';
 import { CalendarView } from './view';
 
 export default class PeriodicNotesCalendarPlugin extends Plugin {
@@ -170,7 +170,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
                 ...newSettings,
                 preview: {
                     ...newSettings.preview,
-                    defaultExpansionMode: isPhone() ? "maximized" : newSettings.preview.defaultExpansionMode
+                    defaultExpansionMode: Platform.isPhone ? "maximized" : newSettings.preview.defaultExpansionMode
                 },
                 // reset formats loading state
                 periods

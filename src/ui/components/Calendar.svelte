@@ -21,7 +21,7 @@
     import { Tabs } from "./core";
     import DateBttn from "./core/DateBttn.svelte";
     import { settingsStore } from "@/settings";
-    import { isMobile } from "@/utils";
+    import { Platform } from "obsidian";
 
     let { weekdaysShort } = $derived($localeDataStore);
     let month = $derived(getMonth($displayedDateStore));
@@ -104,7 +104,7 @@
                                     granularity="week"
                                     className={cn(
                                         "px-1 !pt-2.5 !pb-4 opacity-85 mx-auto",
-                                        minimalMode?.value || isMobile()
+                                        minimalMode?.value || Platform.isPhone
                                             ? "[font-size:var(--font-ui-smaller)] "
                                             : "[font-size:var(--font-ui-small)] ",
                                     )}
@@ -128,7 +128,7 @@
                                     granularity="day"
                                     className={cn(
                                         "px-1 !pt-2.5 !pb-4",
-                                        minimalMode?.value || isMobile()
+                                        minimalMode?.value || Platform.isPhone
                                             ? "text-xs"
                                             : "text-sm",
                                     )}
@@ -159,7 +159,7 @@
                                     granularity="quarter"
                                     className={cn(
                                         "px-1 !pt-2.5 !pb-4 opacity-85",
-                                        minimalMode?.value || isMobile()
+                                        minimalMode?.value || Platform.isPhone
                                             ? "[font-size:var(--font-ui-smaller)]"
                                             : "[font-size:var(--font-ui-small)] ",
                                     )}
@@ -183,19 +183,19 @@
                                     granularity="month"
                                     className={cn(
                                         "px-1 mb-3 items-center justify-center",
-                                        minimalMode?.value || isMobile()
+                                        minimalMode?.value || Platform.isPhone
                                             ? "text-sm !pt-2.5 !pb-4"
                                             : "text-base py-8",
                                     )}
                                     dotContainerClassName={cn(
                                         "[transform:translateY(100%)]",
-                                        minimalMode?.value || isMobile()
+                                        minimalMode?.value || Platform.isPhone
                                             ? "bottom-[calc(1rem/2)]"
                                             : "bottom-[calc(1.75rem/2)]",
                                     )}
                                 >
                                     {#snippet text()}
-                                        {#if !minimalMode?.value || isMobile()}
+                                        {#if !minimalMode?.value || Platform.isPhone}
                                             <p
                                                 id="month-index"
                                                 class="text-5xl font-normal opacity-15 text-[--text-muted] absolute top-1/2 left-1/2 [transform:translate(-50%,-50%)] m-0"
@@ -234,7 +234,7 @@
                                     granularity="year"
                                     className={cn(
                                         "tracking-wide px-1 !pt-2.5 !pb-4",
-                                        minimalMode?.value || isMobile()
+                                        minimalMode?.value || Platform.isPhone
                                             ? "text-base"
                                             : "text-xl",
                                     )}

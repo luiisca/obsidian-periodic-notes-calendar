@@ -7,7 +7,7 @@
     import { Header } from "./core";
     import DateNavigator from "./DateNavigator.svelte";
     import { cn } from "../utils";
-    import { isMobile } from "@/utils";
+    import { Platform } from "obsidian";
 
     let fileData = $derived.by(() => {
         $settingsStore.filepaths; // trigger reactivity
@@ -40,7 +40,7 @@
             id="years-range"
             class={cn(
                 "font-medium rounded-[2px]",
-                minimalMode?.value || isMobile() ? "text-sm" : "text-lg",
+                minimalMode?.value || Platform.isPhone ? "text-sm" : "text-lg",
             )}
         >
             {$yearsRanges.ranges[$yearsRanges.crrRangeIndex]}

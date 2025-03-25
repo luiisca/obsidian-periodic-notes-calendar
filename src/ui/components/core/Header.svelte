@@ -1,8 +1,8 @@
 <script lang="ts">
     import { IGranularity, TFileData } from "@/io";
     import { cn, eventHandlers, isControlPressed } from "@/ui/utils";
-    import { isMobile } from "@/utils";
     import { getContext, Snippet } from "svelte";
+    import { Platform } from "obsidian";
 
     interface Props {
         leftDate?: moment.Moment | null;
@@ -47,7 +47,9 @@
             <button
                 class={cn(
                     "h-auto font-semibold !text-[--color-text-header-title] hover:!shadow-[0px_0px_0_7px_var(--interactive-hover)] rounded-[2px] !p-0",
-                    minimalMode?.value || isMobile() ? "text-xl" : "text-7xl",
+                    minimalMode?.value || Platform.isPhone
+                        ? "text-xl"
+                        : "text-7xl",
                 )}
                 id={leftTitle.granularity}
                 onclick={(event) =>
@@ -80,7 +82,9 @@
             <button
                 class={cn(
                     "!text-[--interactive-accent] font-medium hover:!shadow-[0px_0px_0px_6px_var(--interactive-hover)] rounded-[2px] !p-0",
-                    minimalMode?.value || isMobile() ? "text-sm" : "text-lg",
+                    minimalMode?.value || Platform.isPhone
+                        ? "text-sm"
+                        : "text-lg",
                 )}
                 id={rightTitle.granularity}
                 onclick={(event) =>

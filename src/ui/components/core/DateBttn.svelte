@@ -15,7 +15,7 @@
     import Dot from "./Dot.svelte";
     import { getContext, Snippet } from "svelte";
     import { Sticker } from "..";
-    import { isMobile } from "@/utils";
+    import { Platform } from "obsidian";
 
     interface Props {
         // Properties
@@ -128,7 +128,9 @@
     {#if displayDot}
         <div class={cn("absolute leading-[0]", dotContainerClassName)}>
             <Dot
-                className={cn((minimalMode?.value || isMobile()) && "w-1")}
+                className={cn(
+                    (minimalMode?.value || Platform.isPhone) && "w-1",
+                )}
                 isVisible={!!file}
                 isFilled={!!file}
                 {isActive}

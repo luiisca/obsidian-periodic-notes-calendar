@@ -5,7 +5,7 @@
     import { Header } from "./core";
     import { getContext } from "svelte";
     import { cn } from "../utils";
-    import { isMobile } from "@/utils";
+    import { Platform } from "obsidian";
 
     let showingCurrentRange: boolean = $derived(
         $yearsRanges.todayRange ===
@@ -33,7 +33,7 @@
             id="years-range"
             class={cn(
                 "!text-[--color-text-header-title] text-6xl font-semibold",
-                minimalMode?.value || isMobile() ? "text-xl" : "text-7xl",
+                minimalMode?.value || Platform.isPhone ? "text-xl" : "text-7xl",
             )}
         >
             {crrRange[0].slice(2)} - {crrRange[1].slice(2)}

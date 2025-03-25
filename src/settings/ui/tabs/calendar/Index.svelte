@@ -13,9 +13,9 @@
     import { View, ViewManager } from "@/ui";
     import TimelineManager from "@/ui/components/timeline/manager";
     import { Popover } from "@/ui/popovers";
-    import { isMobile, isTablet } from "@/utils";
     import { derived as derivedStore } from "svelte/store";
     import { selectedTabStore } from "../../stores";
+    import { Platform } from "obsidian";
 
     // Essential
     const handleViewLeafPositionChange = async (
@@ -23,7 +23,7 @@
     ) => {
         settingsStore.update((s) => {
             s.viewLeafPosition = position as ISettings["viewLeafPosition"];
-            if (position !== "root" && isMobile()) {
+            if (position !== "root" && Platform.isPhone) {
                 s.preview.defaultExpansionMode = "maximized";
             }
             return s;
@@ -339,7 +339,7 @@
     {/snippet}
 </SettingItem>
 
-{#if !isMobile()}
+{#if !Platform.isPhone}
     <SettingItem
         name="Minimal mode"
         description="Use compact layout with simplified visuals."
@@ -434,7 +434,7 @@
         {/snippet}
     </SettingItem>
 
-    {#if !isMobile()}
+    {#if !Platform.isPhone}
         <SettingItem
             name="Display tab header"
             description="By default, the tab header (showing the note's icon) is hidden. Toggle this option to make it visible."
@@ -469,7 +469,7 @@
         </SettingItem>
     {/if}
 
-    {#if ($settingsStore.viewLeafPosition === "root" && isTablet()) || !isMobile()}
+    {#if ($settingsStore.viewLeafPosition === "root" && Platform.isTablet) || !Platform.isPhone}
         <SettingItem
             name="Split mode for main panel"
             description="Select how the preview panel will be split in the main panel."
@@ -521,7 +521,7 @@
     </SettingItem>
 {/if}
 
-{#if $settingsStore.floatingMode && !isMobile()}
+{#if $settingsStore.floatingMode && !Platform.isPhone}
     <SettingItem isHeading={true} name="Popover windows" />
     <SettingItem
         name="Sequential dismissal (click)"
@@ -650,7 +650,7 @@
     {/snippet}
 </SettingItem>
 
-{#if !isMobile()}
+{#if !Platform.isPhone}
     <SettingItem
         name="Hover preview"
         description="Instantly preview notes by hovering over dates (no modifier key needed)."
