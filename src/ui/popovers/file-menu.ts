@@ -45,7 +45,7 @@ export class FileMenuPopoverBehavior {
         } else if (date && granularity) {
             this.menu.addItem((item) => {
                 item
-                    .setTitle("Create Note")
+                    .setTitle("Create note")
                     .setIcon("document")
                     .onClick(() => {
                         eventHandlers.onClick({
