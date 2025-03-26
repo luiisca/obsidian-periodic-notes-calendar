@@ -5,7 +5,7 @@ import { MarkdownView, Menu, Notice, Plugin, TAbstractFile, TFile, WorkspaceLeaf
 import { mount, type SvelteComponent } from 'svelte';
 import { get } from 'svelte/store';
 import { PluginService } from './app-service';
-import { CALENDAR_POPOVER_ID, CALENDAR_RIBBON_ID, granularities, LEAF_TYPE, STICKER_POPOVER_ID } from './constants';
+import { CALENDAR_LUCIDE_ICON, CALENDAR_POPOVER_ID, CALENDAR_RIBBON_ID, granularities, LEAF_TYPE, STICKER_POPOVER_ID } from './constants';
 import { basename, createOrOpenNote, extractAndReplaceTODOItems, getFileData, getStartupNoteGranularity, storeAllVaultPeriodicFilepaths } from './io';
 import { getPeriodicityFromGranularity } from './io/parse';
 import type { IGranularity, IPeriodicity } from './io/types';
@@ -180,7 +180,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
     }
 
     handleRibbon() {
-        const ribbonEl = this.addRibbonIcon('calendar-days', 'Open calendar', (ev) => {
+        const ribbonEl = this.addRibbonIcon(CALENDAR_LUCIDE_ICON, 'Open calendar', (ev) => {
             const calendarPopover = getPopoverInstance(CALENDAR_POPOVER_ID);
             const calendarBehavior = getBehaviorInstance(CALENDAR_POPOVER_ID);
 

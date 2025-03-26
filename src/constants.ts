@@ -1,5 +1,6 @@
 import { type IGranularity } from "./io";
 
+export const CALENDAR_LUCIDE_ICON = 'calendar-days';
 export const LEAF_TYPE = 'periodic-notes-calendar-view';
 export const PREVIEW_CONTROLS_TYPE = 'periodic-notes-calendar-preview-controls';
 export const TIMELINE_TYPE = 'periodic-notes-calendar-timeline';

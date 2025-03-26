@@ -5,7 +5,7 @@ import {
 
 import { View } from '@/ui';
 import { mount, unmount } from "svelte";
-import { LEAF_TYPE } from './constants';
+import { CALENDAR_LUCIDE_ICON, LEAF_TYPE } from './constants';
 
 export class CalendarView extends ItemView {
     private view: Record<string, any>;
@@ -32,5 +32,10 @@ export class CalendarView extends ItemView {
         unmount(this.view);
 
         return Promise.resolve();
+    }
+
+    // TODO: might use user defined icon, like day planner plugindoes
+    getIcon() {
+        return CALENDAR_LUCIDE_ICON;
     }
 }
