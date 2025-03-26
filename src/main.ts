@@ -27,7 +27,7 @@ import StickerPopoverComponent from './ui/components/StickerPopover.svelte';
 import TimelineManager from './ui/components/timeline/manager';
 import { createNldatePickerDialog } from './ui/modals/nldate-picker';
 import { getBehaviorInstance, getPopoverInstance, Popover } from './ui/popovers';
-import { getDailyNotesPlugin, handleLocaleCommands } from './utils';
+import { getDailyNotesPlugin } from './utils';
 import { CalendarView } from './view';
 
 export default class PeriodicNotesCalendarPlugin extends Plugin {
@@ -116,9 +116,6 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
             name: 'Open periodic note from natural language date',
             callback: createNldatePickerDialog,
         });
-
-        // add quick locales switch commands
-        handleLocaleCommands()
 
         this.app.workspace.onLayoutReady(() => {
             ViewManager.initView({ active: false });

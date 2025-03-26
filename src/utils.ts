@@ -2,8 +2,6 @@ import { Notice } from 'obsidian';
 import { PluginService } from './app-service';
 import { DAILY_NOTES_PLUGIN_ID } from './constants';
 import { DnPluginSettings } from './io/settings';
-import locales from './locales';
-import { createLocalesPickerDialog, ILocaleItem } from './ui/modals/locales-picker';
 
 export async function fetchWithRetry<T>(url: string, retries = 0): Promise<T | null> {
     try {
@@ -52,25 +50,4 @@ export async function getDailyNotesPlugin() {
 
 export function escapeRegex(string: string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-export function handleLocaleCommands() {
-    let localeItems: ILocaleItem[] = []
-    const COMMAND = 'switch-locale'
-    if (!PluginService.getPlugin()) return;
-
-    window.moment.locales().forEach((momentLocale) => {
-        localeItems.push({
-            momentLocale,
-            label: locales.get(momentLocale) || momentLocale
-        })
-    });
-
-    PluginService.getPlugin()?.addCommand({
-        id: COMMAND,
-        name: 'Switch locale',
-        callback: () => {
-            createLocalesPickerDialog(localeItems)
-        }
-    });
 }
