@@ -1,11 +1,10 @@
 import { IGranularity } from '@/io';
-import { Moment } from 'moment';
 import { TFile } from 'obsidian';
 import { writable } from 'svelte/store';
 
 type TActiveFile = {
     file: TFile | null;
-    date: Moment | null;
+    date: moment.Moment | null;
     granularity: IGranularity | null;
 }
 const activeFileStore = writable<TActiveFile | null>({ file: null, date: null, granularity: null });

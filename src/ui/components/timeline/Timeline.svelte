@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { Moment } from "moment";
+    
     import { fly } from "svelte/transition";
 
     import { TIMELINE_TYPE } from "@/constants";
@@ -20,7 +20,7 @@
 
     interface Props {
         granularity: IGranularity;
-        initialDate: Moment;
+        initialDate: moment.Moment;
         isPeriodic?: boolean | null;
         isSide?: boolean | null;
         viewModeOverride?: TimelineViewMode | null;
@@ -55,10 +55,10 @@
         $localeSwitched;
         return getRelativeDate(derivedG, crrDisplayedDate);
     });
-    let dates: Moment[] = $derived.by(() => {
+    let dates: moment.Moment[] = $derived.by(() => {
         $localeSwitched;
 
-        let dates: Moment[] = [];
+        let dates: moment.Moment[] = [];
 
         if (derivedG === "week") {
             function getWeeksInMonth() {
@@ -84,7 +84,7 @@
             return dates;
         }
 
-        let startOfDate: Moment = crrDisplayedDate;
+        let startOfDate: moment.Moment = crrDisplayedDate;
         if (derivedG === "year") {
             startOfDate = crrDisplayedDate.clone().subtract(2, "year");
         } else {
@@ -125,7 +125,7 @@
             granularity: derivedG,
         });
     }
-    function handleSelectDate(d: Moment) {
+    function handleSelectDate(d: moment.Moment) {
         crrSelectedDate = d;
     }
     function handleToggleViewMode() {

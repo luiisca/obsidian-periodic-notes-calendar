@@ -1,4 +1,3 @@
-import { type Moment } from "moment";
 import type { App } from "obsidian";
 
 import type {
@@ -11,7 +10,7 @@ import type {
 declare global {
     interface Window {
         app: App;
-        moment: Moment;
+        moment: moment.Moment;
     }
 }
 

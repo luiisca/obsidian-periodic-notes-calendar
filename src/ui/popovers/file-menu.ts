@@ -1,7 +1,7 @@
 import { PluginService } from "@/app-service";
 import { FILE_MENU_POPOVER_ID } from "@/constants";
 import { TFileData, type IGranularity } from "@/io";
-import { type Moment } from "moment";
+
 import { Menu, Platform } from "obsidian";
 import { eventHandlers, isControlPressed } from "../utils";
 
@@ -11,7 +11,7 @@ export type TFileMenuPopoverParams = {
 export type FileMenuOpenParams = {
     event: MouseEvent,
     fileData: TFileData,
-    date: Moment,
+    date: moment.Moment,
     granularity?: IGranularity,
     extraItems?: {
         add: (menu: Menu) => void,
@@ -71,7 +71,7 @@ export class FileMenuPopoverBehavior {
         this.menu?.unload();
     }
 
-    private openCustomFileMenu(menu: Menu, fileData: TFileData, date: Moment, granularity?: IGranularity, extraItems?: FileMenuOpenParams['extraItems']) {
+    private openCustomFileMenu(menu: Menu, fileData: TFileData, date: moment.Moment, granularity?: IGranularity, extraItems?: FileMenuOpenParams['extraItems']) {
         const file = fileData.file;
         if (file) {
             // Add sections to the menu

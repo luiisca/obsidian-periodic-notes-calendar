@@ -5,7 +5,7 @@
     import { getNormalizedPeriodSettings } from "@/io/settings";
     import { LoadingCircle, settingsStore } from "@/settings";
     import { capitalize } from "@/utils";
-    import type { Moment } from "moment";
+    
     import { debounce } from "obsidian";
     import type NldatePickerModal from "../modals/nldate-picker";
     import { onMount } from "svelte";
@@ -20,7 +20,7 @@
     let nlDateInputVal = $state("Today");
     let granularityInputVal: IGranularity = $state("day");
     let formatInputVal = $state(DEFAULT_DAILY_NOTE_FORMAT);
-    let parsedDate: Moment | null = $state(window.moment());
+    let parsedDate: moment.Moment | null = $state(window.moment());
     let formattedDate: string = $derived(
         parsedDate?.format(formatInputVal) || "",
     );

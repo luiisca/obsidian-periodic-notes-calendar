@@ -16,7 +16,6 @@
     import { Popover } from "@/ui/popovers";
     import { cn, getSticker } from "@/ui/utils";
     import { capitalize } from "@/utils";
-    import { Moment } from "moment";
     import { MarkdownView, setIcon, TFile, WorkspaceLeaf } from "obsidian";
     import { Dot } from "../core";
     import { Outline } from "./outline";
@@ -25,7 +24,7 @@
     import { PluginService } from "@/app-service";
 
     interface Props {
-        date: Moment;
+        date: moment.Moment;
     }
     const { date }: Props = $props();
 

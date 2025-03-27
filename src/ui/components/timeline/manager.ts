@@ -7,7 +7,7 @@ import { isValidPeriodicNote } from "@/io/validation";
 import { settingsStore } from "@/settings";
 import { displayedDateStore, timelineParentFileStore } from "@/stores";
 import { crrTabStore, getEnabledPeriods, periodTabs } from "@/stores/calendar";
-import moment, { Moment } from "moment";
+
 import { get } from "svelte/store";
 import { ViewManager } from "../view";
 import Timeline from "./Timeline.svelte";
@@ -49,7 +49,7 @@ export default class TimelineManager {
             this.cleanup(leaf);
         }
     }
-    static mount(leaf: WorkspaceLeaf, periodicData: { isPeriodic: boolean, granularity: IGranularity | null, date: Moment | null } | null = null, file: TFile) {
+    static mount(leaf: WorkspaceLeaf, periodicData: { isPeriodic: boolean, granularity: IGranularity | null, date: moment.Moment | null } | null = null, file: TFile) {
         const closestWorkspaceClassname = Platform.isPhone ? ".workspace-drawer" : ".workspace-split"
         const leafContainerClassname =
             (leaf as WorkspaceLeaf & { containerEl: HTMLElement })?.containerEl?.closest(closestWorkspaceClassname)?.className;
@@ -61,7 +61,7 @@ export default class TimelineManager {
             target: leaf.view.containerEl,
             props: {
                 granularity: periodicData?.granularity || "day",
-                initialDate: periodicData?.date || moment(),
+                initialDate: periodicData?.date || window.moment(),
                 isPeriodic: periodicData?.isPeriodic,
                 isSide: leafContainerClassname?.includes(`mod-left`) || leafContainerClassname?.includes(`mod-right`),
                 viewModeOverride: enoughRoom ? (periodicData?.isPeriodic ? get(settingsStore).timeline.viewMode : get(settingsStore).timeline.restViewMode) : 'collapsed'
@@ -89,7 +89,7 @@ export default class TimelineManager {
         });
     }
 
-    static restart(leaf: WorkspaceLeaf, periodicData: { isPeriodic: boolean, granularity: IGranularity | null, date: Moment | null } | null = null, file: TFile) {
+    static restart(leaf: WorkspaceLeaf, periodicData: { isPeriodic: boolean, granularity: IGranularity | null, date: moment.Moment | null } | null = null, file: TFile) {
         this.cleanup(leaf)
         this.mount(leaf, periodicData, file)
     }

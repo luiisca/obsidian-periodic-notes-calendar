@@ -1,7 +1,6 @@
 import { settingsStore } from "@/settings";
 import { activeFileStore, internalFileModStore } from "@/stores/notes";
 import { createConfirmationDialog } from "@/ui/modals/confirmation";
-import { type Moment } from "moment";
 import { Notice, TAbstractFile, TFile, WorkspaceLeaf } from "obsidian";
 import { get } from "svelte/store";
 import CreateNote from "./CreateNote.svelte";
@@ -22,7 +21,7 @@ export async function createOrOpenNote({
     openInPreview,
 }: {
     leaf: WorkspaceLeaf | null;
-    date: Moment;
+    date: moment.Moment;
     openState?: Record<string, any>;
     granularity: IGranularity;
     confirmBeforeCreateOverride?: boolean;
@@ -98,7 +97,7 @@ export async function createOrOpenNote({
     }
 }
 
-export async function createNote(granularity: IGranularity, date: Moment) {
+export async function createNote(granularity: IGranularity, date: moment.Moment) {
     const { settings: { templatePath, selectedFormat } } = getNormalizedPeriodSettings(granularity);
 
     const normalizedPath = getNotePath(granularity, date);

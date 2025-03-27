@@ -1,6 +1,5 @@
 import { granularities } from '@/constants';
 import { PeriodSettings, settingsStore, TFormat } from '@/settings';
-import { type Moment } from 'moment';
 import { get } from 'svelte/store';
 import { type IGranularity } from '../types';
 import { normalizePath } from 'obsidian';
@@ -28,7 +27,7 @@ export function isWeekFormatAmbiguous(format: string) {
 }
 
 export function isValidPeriodicNote(fileName: string, customGranularities = granularities as unknown as IGranularity[], customFormats?: Record<string, TFormat>)
-    : { isValid: boolean, granularity: IGranularity, date: Moment, format: PeriodSettings['formats'][0] } | { isValid: null, granularity: null, date: null, format: null } {
+    : { isValid: boolean, granularity: IGranularity, date: moment.Moment, format: PeriodSettings['formats'][0] } | { isValid: null, granularity: null, date: null, format: null } {
 
     for (const granularity of customGranularities) {
         const formats = customFormats || get(settingsStore).periods[granularity].formats;

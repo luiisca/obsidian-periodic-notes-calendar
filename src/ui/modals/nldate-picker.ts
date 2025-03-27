@@ -2,7 +2,6 @@ import { Modal } from 'obsidian';
 import NldatepickerComponent from '../components/Nldatepicker.svelte';
 import { ModalManager } from './modals-manager';
 import { mount } from "svelte";
-import { Moment } from 'moment';
 import { PluginService } from '@/app-service';
 
 export interface NldPlugin {
@@ -11,7 +10,7 @@ export interface NldPlugin {
 interface NldResult {
     formattedString: string;
     date: Date;
-    moment: Moment;
+    moment: moment.Moment;
 }
 export default class NldatePickerModal extends Modal {
     constructor() {

@@ -1,5 +1,4 @@
 import * as chrono from 'chrono-node';
-import moment, { type Moment } from "moment";
 import type { IGranularity, IPeriodicity } from './types';
 
 
@@ -50,11 +49,11 @@ const REGEX = (function generateRegex(): RegExp {
  * @returns The template string with all placeholders replaced by formatted date strings
  */
 export function replaceTemplateContents(
-    date: Moment,
+    date: moment.Moment,
     defaultFormat: string,
     template: string
 ): string {
-    const now = moment();
+    const now = window.moment();
     const localeWeekdays = (function getLocaleWeekdays(): string[] {
         const { moment } = window;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -71,7 +70,7 @@ export function replaceTemplateContents(
 
     return template.replace(REGEX,
         (match, type) => {
-            let momentDate: Moment;
+            let momentDate: moment.Moment;
             let modifiedDefaultFormat = defaultFormat;
 
             const minusIndex = match.indexOf('-');
@@ -142,11 +141,11 @@ export function replaceTemplateContents(
     );
 }
 
-export function parseNlDate(text: string, refMomentDate: Moment = moment()) {
+export function parseNlDate(text: string, refMomentDate: moment.Moment = window.moment()) {
     const refJsDate = refMomentDate.toDate();
     const parsedDate = chrono.parseDate(text, refJsDate);
     if (parsedDate) {
-        return moment(parsedDate);
+        return window.moment(parsedDate);
     }
 }
 
@@ -172,4 +171,4 @@ export function parseNlDate(text: string, refMomentDate: Moment = moment()) {
 //     Wrong: {{wrong:W}}
 // `;
 
-// console.log(replaceTemplateContents(moment(), 'YYYY-MM-DD', exampleTemplate));
+// console.log(replaceTemplateContents(window.moment(), 'YYYY-MM-DD', exampleTemplate));

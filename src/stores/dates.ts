@@ -1,6 +1,5 @@
 import { YEARS_RANGE_SIZE } from '@/constants';
 import { DEFAULT_SETTINGS } from '@/settings';
-import type { Moment } from 'moment';
 import { get, writable } from 'svelte/store';
 
 type IRange = `${string}-${string}`
@@ -167,8 +166,8 @@ function createYearsRangesStore() {
     };
 }
 
-const todayStore = writable<Moment>(window.moment());
-const displayedDateStore = writable<Moment>(window.moment());
+const todayStore = writable<moment.Moment>(window.moment());
+const displayedDateStore = writable<moment.Moment>(window.moment());
 const yearsRanges = createYearsRangesStore();
 
 export { displayedDateStore, todayStore, yearsRanges };

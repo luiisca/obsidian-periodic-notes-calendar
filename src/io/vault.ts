@@ -1,6 +1,5 @@
 import { normalizePath, Notice, TFile } from "obsidian";
 import { IGranularity } from "./types";
-import { Moment } from "moment";
 import { getNormalizedPeriodSettings } from "./settings";
 import { getSticker, TSticker } from "@/ui/utils";
 import { PeriodSettings } from "@/settings";
@@ -73,7 +72,7 @@ async function ensureTemplateExists(path: string) {
 
 export function getNotePath(
     granularity: IGranularity,
-    date: Moment,
+    date: moment.Moment,
     customFormat?: PeriodSettings["formats"][0],
     customFolder?: string,
 ) {
@@ -89,7 +88,7 @@ export function getNotePath(
 
 export function getFileData(
     granularity: IGranularity | null,
-    date: Moment | null,
+    date: moment.Moment | null,
 ): TFileData {
     const filePath = granularity && date && getNotePath(granularity, date);
     const abstractFile = filePath ? PluginService.getPlugin()?.app.vault.getAbstractFileByPath(filePath) : null;

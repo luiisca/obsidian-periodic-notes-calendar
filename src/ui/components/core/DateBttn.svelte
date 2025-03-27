@@ -1,7 +1,7 @@
 <script lang="ts">
     import { IGranularity } from "@/io";
 
-    import type { Moment } from "moment";
+    
 
     import { getFileData } from "@/io";
     import { settingsStore } from "@/settings";
@@ -19,7 +19,7 @@
 
     interface Props {
         // Properties
-        date: Moment;
+        date: moment.Moment;
         granularity: IGranularity;
         isActiveOverride?: boolean | null;
         displaySticker?: boolean;

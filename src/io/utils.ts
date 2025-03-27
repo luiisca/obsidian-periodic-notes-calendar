@@ -6,7 +6,6 @@ import { getPeriodicityFromGranularity } from "./parse";
 import { getNormalizedPeriodSettings } from "./settings";
 import { type IGranularity } from "./types";
 import { isValidPeriodicNote } from "./validation";
-import { Moment } from "moment";
 import { getFileData, modifyFile } from "./vault";
 import { PluginService } from "@/app-service";
 import { genNoticeFragment } from "@/ui/utils";
@@ -83,7 +82,7 @@ export function getStartupNoteGranularity() {
     }
 }
 
-export async function extractAndReplaceTODOItems(date: Moment, granularity: IGranularity, file: TFile, c = 0) {
+export async function extractAndReplaceTODOItems(date: moment.Moment, granularity: IGranularity, file: TFile, c = 0) {
     const previewSettings = get(settingsStore).periods[granularity].preview
     if (previewSettings.todoSection.trim() !== "") {
         const app = PluginService.getPlugin()?.app

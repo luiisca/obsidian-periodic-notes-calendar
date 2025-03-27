@@ -1,6 +1,5 @@
 import { DEFAULT_SETTINGS, settingsStore, SettingsTab, type ISettings } from '@/settings';
 import { InvalidFormat, View, ViewManager } from '@/ui';
-import moment from 'moment';
 import { MarkdownView, Menu, Notice, Plugin, TAbstractFile, TFile, WorkspaceLeaf, WorkspaceRoot, Platform } from 'obsidian';
 import { mount, type SvelteComponent } from 'svelte';
 import { get } from 'svelte/store';
@@ -326,7 +325,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
                                 }
                                 return d
                             })
-                            displayedDateStore.set(moment())
+                            displayedDateStore.set(window.moment())
                         })
                 )
             }

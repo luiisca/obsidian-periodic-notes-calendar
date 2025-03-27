@@ -1,11 +1,10 @@
 import { HUMAN_FORMATS_PER_GRANULARITY } from '@/constants';
 import { IGranularity } from '@/io';
 import { localeDataStore, todayStore } from '@/stores';
-import type { Moment } from 'moment';
 import { get } from 'svelte/store';
 
 export interface IWeek {
-    days: Moment[];
+    days: moment.Moment[];
     weekNum: number;
 }
 
@@ -23,25 +22,25 @@ export function getDaysOfWeek(): string[] {
     return window.moment.weekdaysShort(true);
 }
 
-export function isWeekend(date: Moment): boolean {
+export function isWeekend(date: moment.Moment): boolean {
     return date.isoWeekday() === 6 || date.isoWeekday() === 7;
 }
 
-export function getStartOfWeek(days: Moment[]): Moment {
+export function getStartOfWeek(days: moment.Moment[]): moment.Moment {
     return days[0].weekday(0);
 }
 /**
  * Generate a 2D array of daily information to power
  * the calendar view.
  */
-export function getMonth(displayedDate: Moment): IMonth {
+export function getMonth(displayedDate: moment.Moment): IMonth {
     const locale = displayedDate.locale();
     const month = [];
     let week: IWeek = { days: [], weekNum: 0 };
 
     const startOfMonth = displayedDate.clone().locale(locale).date(1);
     const startOffset = get(localeDataStore).weekdays.indexOf(startOfMonth.format('dddd'));
-    let date: Moment = startOfMonth.clone().subtract(startOffset, 'days');
+    let date: moment.Moment = startOfMonth.clone().subtract(startOffset, 'days');
 
     for (let _day = 0; _day < 42; _day++) {
         if (_day % 7 === 0) {
@@ -79,7 +78,7 @@ export function getYears({ startRangeYear }: { startRangeYear: number }): IYears
     return years;
 }
 
-export function getRelativeDate(granularity: IGranularity, date: Moment) {
+export function getRelativeDate(granularity: IGranularity, date: moment.Moment) {
     const startOfDate = date.clone().startOf(granularity);
     const startOfToday = get(todayStore).clone().startOf(granularity);
     const diff = startOfDate.diff(startOfToday, granularity);

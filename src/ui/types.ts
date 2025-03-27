@@ -1,5 +1,5 @@
 import type { IGranularity } from "@/io";
-import type { Moment } from "moment";
+
 import type { TFile } from "obsidian";
 import { Writable } from "svelte/store";
 
@@ -36,7 +36,7 @@ export interface ICalendarSource {
 
     getMetadata?: (
         granularity: IGranularity,
-        date: Moment,
+        date: moment.Moment,
         file: TFile
     ) => Promise<IEvaluatedMetadata>;
 

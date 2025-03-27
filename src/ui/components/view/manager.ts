@@ -4,7 +4,6 @@ import { isValidPeriodicNote } from '@/io/validation';
 import { PeriodSettings, settingsStore, type ISettings } from '@/settings';
 import { activeFileStore, mainLeafStore, previewLeafStore, processingPreviewChangeStore } from '@/stores';
 import { capitalize } from '@/utils';
-import moment, { Moment } from 'moment';
 import { MarkdownView, TFile, View, WorkspaceLeaf, Platform } from 'obsidian';
 import { mount, unmount } from 'svelte';
 import { get } from 'svelte/store';
@@ -534,7 +533,7 @@ export class ViewManager {
     static async getPreviewFileData() {
         let file: TFile | null = null;
         let granularity: IGranularity | null = null;
-        let date: Moment = moment();
+        let date: moment.Moment = window.moment();
         let createNewFile = false;
         Object.entries(get(settingsStore).periods).forEach(async (entry) => {
             const [g, s] = entry as [IGranularity, PeriodSettings];
@@ -577,7 +576,7 @@ export class ViewManager {
     }: {
         file: TFile;
         granularity: IGranularity;
-        date?: Moment | null;
+        date?: moment.Moment | null;
         previewLeaf: WorkspaceLeaf;
         openFile?: boolean;
     }) {
