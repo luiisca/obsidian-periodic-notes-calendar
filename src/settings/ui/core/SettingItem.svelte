@@ -1,32 +1,33 @@
 <script lang="ts">
-    import { cn } from '@/ui/utils';
+    import { cn } from "@/ui/utils";
+    import { Snippet } from "svelte";
 
-	interface Props {
-		name?: string;
+    interface Props {
+        name?: string;
         className?: string;
-		description?: string;
-		isHeading?: boolean;
-		type?: 'dropdown' | 'toggle' | undefined;
-		control?: import('svelte').Snippet;
-	}
+        description?: string | Snippet;
+        isHeading?: boolean;
+        type?: "dropdown" | "toggle" | undefined;
+        control?: Snippet;
+    }
 
-	let {
-		name,
-        className = '',
-		description = '',
-		isHeading = false,
-		type = undefined,
-		control
-	}: Props = $props();
+    let {
+        name,
+        className = "",
+        description,
+        isHeading = false,
+        type = undefined,
+        control,
+    }: Props = $props();
 </script>
 
 <!-- doubles as section title thanks to `setting-item-heading` -->
 <div
-	class={cn("setting-item", className)}
-	class:setting-item-heading={isHeading}
-	class:mod-dropdown={type === 'dropdown'}
+    class={cn("setting-item", className)}
+    class:setting-item-heading={isHeading}
+    class:mod-dropdown={type === "dropdown"}
 >
-	<div class="setting-item-info">
+    <div class="setting-item-info">
         {#if name}
             <div class="setting-item-name">
                 <div>
@@ -34,13 +35,19 @@
                 </div>
             </div>
         {/if}
-		{#if description}
-			<div class="setting-item-description">
-				{description}
-			</div>
-		{/if}
-	</div>
-	<div class="setting-item-control">
-		{@render control?.()}
-	</div>
+        {#if description}
+            {#if typeof description === "string"}
+                <div class="setting-item-description">
+                    {description}
+                </div>
+            {:else}
+                <div class="setting-item-description">
+                    {@render description()}
+                </div>
+            {/if}
+        {/if}
+    </div>
+    <div class="setting-item-control">
+        {@render control?.()}
+    </div>
 </div>

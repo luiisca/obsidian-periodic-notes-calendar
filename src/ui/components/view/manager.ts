@@ -11,6 +11,7 @@ import { PreviewControls } from '.';
 import { goToNoteHeading } from './utils';
 import TimelineManager from '../timeline/manager';
 import { PluginService } from '@/app-service';
+import { TSticker } from '@/ui/utils';
 
 export class ViewManager {
     static previewControlsComponent: Record<string, any> | null;
@@ -18,31 +19,16 @@ export class ViewManager {
     static previewLeafCleanups: (() => void)[] = [];
     private static firstLayoutChange = true;
 
-    static async restartView({ active }: { active: boolean } = { active: true }) {
-        PluginService.getPlugin()?.app.workspace.detachLeavesOfType(LEAF_TYPE);
-        this.initView({ active })
-    }
     static async initView({ active }: { active: boolean } = { active: true }) {
         let mainLeaf = this.getMainLeaf();
 
-        const leafPosition = get(settingsStore).viewLeafPosition as ISettings["viewLeafPosition"];
-        if (leafPosition === 'root') {
-            if (!mainLeaf) {
-                mainLeaf = PluginService.getPlugin()?.app.workspace.getLeaf('tab') ?? null
-            }
-            mainLeaf?.setViewState({
-                type: LEAF_TYPE,
-                active
-            })
-        } else {
-            if (!mainLeaf) {
-                mainLeaf = PluginService.getPlugin()?.app.workspace[`get${capitalize(leafPosition) as "Left" | "Right"}Leaf`](false) ?? null;
-            }
-            mainLeaf?.setViewState({
-                type: LEAF_TYPE,
-                active
-            });
+        if (!mainLeaf) {
+            mainLeaf = PluginService.getPlugin()?.app.workspace.getRightLeaf(false) ?? null;
         }
+        mainLeaf?.setViewState({
+            type: LEAF_TYPE,
+            active
+        });
 
         if (mainLeaf && get(settingsStore).preview.enabled) {
             this.setupPreviewEvHandlers()
@@ -224,7 +210,7 @@ export class ViewManager {
 
         if (!get(processingPreviewChangeStore)) {
             const previewMaximized =
-                get(settingsStore).preview.defaultExpansionMode === "maximized"
+                !get(settingsStore).preview.splitMode
                 || get(previewLeafStore)?.maximized
 
 
@@ -242,7 +228,7 @@ export class ViewManager {
 
             // PREVIEWLEAF
             // very especific check for when an expanded preview panel is moved to a split window
-            if (previewLeafVisible && (get(settingsStore).preview.defaultExpansionMode === "maximized" && !isPreviewMaximized)) {
+            if (previewLeafVisible && (!get(settingsStore).preview.splitMode && !isPreviewMaximized)) {
                 settingsStore.update(s => {
                     s.preview.tabHeaderVisible = true;
                     return s;
@@ -281,8 +267,8 @@ export class ViewManager {
                 })
                 return;
             }
-            // moved out of calendar view to a different tab
-            if (previewLeaf && previewLeafVisible && !mainLeafvisible && previewSplitPosition === get(settingsStore).viewLeafPosition && !previewMaximized) {
+            // moved preview split out of calendar view to a different tab, should close preview leaf
+            if (previewLeaf && previewLeafVisible && !mainLeafvisible && get(settingsStore).preview.splitMode && !previewMaximized) {
                 this.cleanupPreview({ leaf: previewLeaf });
                 processingPreviewChangeStore.set(true);
                 // console.log("❌ moved out of calendar view to a different tab, removed preview")
@@ -304,9 +290,32 @@ export class ViewManager {
             _leaf.height > 0
         );
     }
-    static restartPreview(defaultFile?: TFile, reveal?: boolean) {
+    /**
+     * The worskpace split where leaf is currently attached to
+     * based on closest `.workspace-split` className
+     */
+    static getLeafSplitPosition(workspaceLeaf: WorkspaceLeaf | null) {
+        const leaf = workspaceLeaf as WorkspaceLeaf & { containerEl: HTMLElement; tabHeaderEl: HTMLElement } | null
+        if (!leaf) return null;
+
+        const closestWorkspaceClassname = Platform.isPhone ? ".workspace-drawer" : ".workspace-split"
+        const closestWorkspaceSplitClassName =
+            leaf?.containerEl.closest(closestWorkspaceClassname)?.className;
+
+        if (closestWorkspaceSplitClassName?.includes('left')) {
+            return 'left';
+        }
+
+        if (closestWorkspaceSplitClassName?.includes('right')) {
+            return 'right';
+        }
+
+        return 'root';
+    }
+
+    static restartPreview(defaultFile?: TFile, reveal?: boolean, overrideSplitDirection?: 'vertical' | 'horizontal') {
         this.cleanupPreview();
-        this.initPreview(defaultFile, reveal);
+        this.initPreview(defaultFile, reveal, overrideSplitDirection);
     }
 
     static async tryInitPreview(defaultFile?: TFile, reveal?: boolean) {
@@ -327,24 +336,22 @@ export class ViewManager {
             reveal && this.revealView('preview', previewLeaf);
         }
     }
-    static async initPreview(defaultFile?: TFile, reveal?: boolean) {
+    static async initPreview(defaultFile?: TFile, reveal?: boolean, overrideSplitDirection?: 'vertical' | 'horizontal') {
         const data = await this.getPreviewFileData();
         const file = defaultFile || data.file;
         const mainLeaf = this.getMainLeaf();
         let previewLeaf: WorkspaceLeaf | null = null;
+        const viewLeafPosition = this.getLeafSplitPosition(mainLeaf);
 
         if (file && mainLeaf) {
-            const viewLeafPosition = get(settingsStore).viewLeafPosition
-            const splitMode = viewLeafPosition === 'root' ? get(settingsStore).preview.centerDefaultSplitMode : get(settingsStore).preview.defaultSplitMode
-            const expandMode = get(settingsStore).preview.defaultExpansionMode;
+            const splitDirection =
+                overrideSplitDirection
+                || (viewLeafPosition === 'root'
+                    ? get(settingsStore).preview.centerSplitDirection
+                    : get(settingsStore).preview.sideSplitDirection)
+            const splitMode = !!overrideSplitDirection || get(settingsStore).preview.splitMode;
 
-            if (expandMode === 'maximized') {
-                if (viewLeafPosition === 'root') {
-                    previewLeaf = PluginService.getPlugin()?.app.workspace.getLeaf('tab') ?? null
-                } else {
-                    previewLeaf = PluginService.getPlugin()?.app.workspace[`get${capitalize(viewLeafPosition) as "Left" | "Right"}Leaf`](false) ?? null;
-                }
-            } else {
+            if (splitMode) {
                 const mainLeafParent = mainLeaf?.parent?.parent;
                 const mainLeafSplitParentChildren = Array.from((mainLeafParent as any)?.children || []) as WorkspaceLeaf[]
                 if (mainLeafSplitParentChildren.length > 1) {
@@ -354,7 +361,16 @@ export class ViewManager {
 
                     previewLeaf = PluginService.getPlugin()?.app.workspace.createLeafInParent(previewLeafParent as WorkspaceLeaf, previewLeafParentChildren.length) ?? null
                 } else {
-                    previewLeaf = PluginService.getPlugin()?.app.workspace.createLeafBySplit(mainLeaf, splitMode) ?? null;
+                    previewLeaf = PluginService.getPlugin()?.app.workspace.createLeafBySplit(mainLeaf, splitDirection) ?? null;
+                }
+            } else {
+                if (viewLeafPosition) {
+                    if (viewLeafPosition === 'root') {
+                        // previewLeaf = PluginService.getPlugin()?.app.workspace.getLeaf('tab') ?? null
+                        previewLeaf = PluginService.getPlugin()?.app.workspace.getLeaf(false) ?? null;
+                    } else {
+                        previewLeaf = PluginService.getPlugin()?.app.workspace[`get${capitalize(viewLeafPosition) as "Left" | "Right"}Leaf`](false) ?? null;
+                    }
                 }
             }
 
@@ -407,28 +423,6 @@ export class ViewManager {
     }
     static getPreviewSplitDirection(previewLeaf: WorkspaceLeaf | null) {
         return ((previewLeaf?.parent?.parent as any)?.direction || null) as 'vertical' | 'horizontal' | null;
-    }
-    /**
-     * The worskpace split where leaf is currently attached to
-     * based on closest `.workspace-split` className
-     */
-    static getLeafSplitPosition(workspaceLeaf: WorkspaceLeaf | null) {
-        const leaf = workspaceLeaf as WorkspaceLeaf & { containerEl: HTMLElement; tabHeaderEl: HTMLElement } | null
-        if (!leaf) return null;
-
-        const closestWorkspaceClassname = Platform.isPhone ? ".workspace-drawer" : ".workspace-split"
-        const closestWorkspaceSplitClassName =
-            leaf?.containerEl.closest(closestWorkspaceClassname)?.className;
-
-        if (closestWorkspaceSplitClassName?.includes('left')) {
-            return 'left';
-        }
-
-        if (closestWorkspaceSplitClassName?.includes('right')) {
-            return 'right';
-        }
-
-        return 'root';
     }
     static cleanupPreview({ leaf }: { leaf?: WorkspaceLeaf } = {}) {
         const previewLeaf = leaf || this.searchPreviewLeaf() || get(previewLeafStore)?.leaf
@@ -532,6 +526,7 @@ export class ViewManager {
 
     static async getPreviewFileData() {
         let file: TFile | null = null;
+        let sticker: TSticker | null = null;
         let granularity: IGranularity | null = null;
         let date: moment.Moment = window.moment();
         let createNewFile = false;
@@ -546,11 +541,12 @@ export class ViewManager {
                             return s
                         })
                     }
-                    const foundFile = getFileData(g, date).file;
-                    if (!foundFile) {
+                    const fileData = getFileData(g, date);
+                    if (!fileData.file) {
                         createNewFile = true
                     } else {
-                        file = foundFile
+                        file = fileData.file
+                        sticker = fileData.sticker
                     }
                     granularity = g
                 }
@@ -562,7 +558,8 @@ export class ViewManager {
         }
 
         return {
-            file: file,
+            file,
+            sticker: sticker as TSticker | null,
             granularity: granularity as unknown as IGranularity,
             date
         };

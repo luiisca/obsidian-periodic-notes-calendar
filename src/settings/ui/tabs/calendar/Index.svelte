@@ -18,20 +18,6 @@
     import { Platform } from "obsidian";
 
     // Essential
-    const handleViewLeafPositionChange = async (
-        position: ISettings["viewLeafPosition"],
-    ) => {
-        settingsStore.update((s) => {
-            s.viewLeafPosition = position as ISettings["viewLeafPosition"];
-            if (position !== "root" && Platform.isPhone) {
-                s.preview.defaultExpansionMode = "maximized";
-            }
-            return s;
-        });
-
-        ViewManager.cleanupPreview();
-        ViewManager.restartView({ active: false });
-    };
     const handleFloatingModeToggle = (floatingMode: boolean) => {
         Popover.cleanup();
 
@@ -120,15 +106,15 @@
             ViewManager.restartPreview();
         }
     };
-    const handleSelectDefaultSplitMode = (
-        splitMode: ISettings["preview"]["defaultSplitMode"],
-        panel: ISettings["viewLeafPosition"],
+    const handleSelectDefaultSplitDirection = (
+        splitMode: ISettings["preview"]["sideSplitDirection"],
+        panel: "side" | "root",
     ) => {
         settingsStore.update((s) => {
             if (panel === "root") {
-                s.preview.centerDefaultSplitMode = splitMode;
+                s.preview.centerSplitDirection = splitMode;
             } else {
-                s.preview.defaultSplitMode = splitMode;
+                s.preview.sideSplitDirection = splitMode;
             }
             return s;
         });
@@ -137,10 +123,10 @@
         }
     };
     const handleSelectDefaultExpansionMode = (
-        expansionMode: ISettings["preview"]["defaultExpansionMode"],
+        splitMode: ISettings["preview"]["splitMode"],
     ) => {
         settingsStore.update((s) => {
-            s.preview.defaultExpansionMode = expansionMode;
+            s.preview.splitMode = splitMode;
             return s;
         });
         ViewManager.cleanupPreview();
@@ -321,24 +307,6 @@
     });
 </script>
 
-<SettingItem
-    name="Calendar panel location"
-    description="Choose where the calendar appears in your workspace (left or right sidebar)."
-    type="dropdown"
->
-    {#snippet control()}
-        <Dropdown
-            options={[
-                { label: "Left", value: "left" },
-                { label: "Main", value: "root" },
-                { label: "Right", value: "right" },
-            ]}
-            onChange={handleViewLeafPositionChange}
-            value={$settingsStore.viewLeafPosition}
-        />
-    {/snippet}
-</SettingItem>
-
 {#if !Platform.isPhone}
     <SettingItem
         name="Minimal mode"
@@ -435,77 +403,86 @@
     </SettingItem>
 
     {#if !Platform.isPhone}
-        <SettingItem
-            name="Display tab header"
-            description="By default, the tab header (showing the note's icon) is hidden. Toggle this option to make it visible."
-        >
+        <SettingItem name="Enable split mode">
+            {#snippet description()}
+                <span>
+                    <p class="m-0">
+                        Force preview opening actions to create a split pane.
+                    </p>
+                    <p class="m-0 text-[var(--text-warning)]">
+                        Note: This may change how panels behave compared to the
+                        standard view.
+                    </p>
+                </span>
+            {/snippet}
             {#snippet control()}
                 <Toggle
-                    onChange={handlePreviewTabHeaderToggle}
-                    isEnabled={$settingsStore.preview.tabHeaderVisible}
-                />
-            {/snippet}
-        </SettingItem>
-
-        <SettingItem
-            name="Split mode for side panels"
-            description="Select how the preview panel will be split in the left and right panels."
-        >
-            {#snippet control()}
-                <Dropdown
-                    options={[
-                        { label: "Horizontal", value: "horizontal" },
-                        { label: "Vertical", value: "vertical" },
-                    ]}
-                    onChange={(
-                        splitMode: ISettings["preview"]["defaultSplitMode"],
-                    ) =>
-                        splitMode
-                            ? handleSelectDefaultSplitMode(splitMode, "left")
-                            : null}
-                    value={$settingsStore.preview.defaultSplitMode}
-                />
-            {/snippet}
-        </SettingItem>
-    {/if}
-
-    {#if ($settingsStore.viewLeafPosition === "root" && Platform.isTablet) || !Platform.isPhone}
-        <SettingItem
-            name="Split mode for main panel"
-            description="Select how the preview panel will be split in the main panel."
-        >
-            {#snippet control()}
-                <Dropdown
-                    options={[
-                        { label: "Horizontal", value: "horizontal" },
-                        { label: "Vertical", value: "vertical" },
-                    ]}
-                    onChange={(
-                        splitMode: ISettings["preview"]["defaultSplitMode"],
-                    ) =>
-                        splitMode
-                            ? handleSelectDefaultSplitMode(splitMode, "root")
-                            : null}
-                    value={$settingsStore.preview.centerDefaultSplitMode}
-                />
-            {/snippet}
-        </SettingItem>
-
-        <SettingItem
-            name="Expansion mode"
-            description="Choose whether the preview panel fills the entire panel (maximized) or appears as a split view."
-        >
-            {#snippet control()}
-                <Dropdown
-                    options={[
-                        { label: "Maximized", value: "maximized" },
-                        { label: "Split", value: "split" },
-                    ]}
                     onChange={handleSelectDefaultExpansionMode}
-                    value={$settingsStore.preview.defaultExpansionMode}
+                    isEnabled={$settingsStore.preview.splitMode}
                 />
             {/snippet}
         </SettingItem>
+
+        {#if $settingsStore.preview.splitMode}
+            <SettingItem
+                name="Preview tab header visibility"
+                description="Show/hide the preview pane's tab header when split mode is enabled. (Visible by default)."
+            >
+                {#snippet control()}
+                    <Toggle
+                        onChange={handlePreviewTabHeaderToggle}
+                        isEnabled={$settingsStore.preview.tabHeaderVisible}
+                    />
+                {/snippet}
+            </SettingItem>
+            <SettingItem
+                name="Editor split direction"
+                description="Choose how the preview panel splits within the editor view."
+            >
+                {#snippet control()}
+                    <Dropdown
+                        options={[
+                            { label: "Horizontal", value: "horizontal" },
+                            { label: "Vertical", value: "vertical" },
+                        ]}
+                        onChange={(
+                            splitMode: ISettings["preview"]["sideSplitDirection"],
+                        ) =>
+                            splitMode
+                                ? handleSelectDefaultSplitDirection(
+                                      splitMode,
+                                      "root",
+                                  )
+                                : null}
+                        value={$settingsStore.preview.centerSplitDirection}
+                    />
+                {/snippet}
+            </SettingItem>
+
+            <SettingItem
+                name="Side view split direction"
+                description="Choose how the preview panel splits within the side view."
+            >
+                {#snippet control()}
+                    <Dropdown
+                        options={[
+                            { label: "Horizontal", value: "horizontal" },
+                            { label: "Vertical", value: "vertical" },
+                        ]}
+                        onChange={(
+                            splitMode: ISettings["preview"]["sideSplitDirection"],
+                        ) =>
+                            splitMode
+                                ? handleSelectDefaultSplitDirection(
+                                      splitMode,
+                                      "side",
+                                  )
+                                : null}
+                        value={$settingsStore.preview.sideSplitDirection}
+                    />
+                {/snippet}
+            </SettingItem>
+        {/if}
     {/if}
 
     <SettingItem

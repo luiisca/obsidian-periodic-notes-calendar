@@ -9,3 +9,4 @@ data.sync*.json
 main.js
 main.js.map
 styles.css
+.aider*

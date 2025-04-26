@@ -166,7 +166,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
                 ...newSettings,
                 preview: {
                     ...newSettings.preview,
-                    defaultExpansionMode: Platform.isPhone ? "maximized" : newSettings.preview.defaultExpansionMode
+                    splitMode: Platform.isPhone ? false : newSettings.preview.splitMode
                 },
                 // reset formats loading state
                 periods
@@ -245,11 +245,11 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         // eval root split
         if (crrSplit instanceof WorkspaceRoot) {
             if (leafActive) {
-                // 1. root split && leaf active
+                // a. root split && leaf active
                 leaf.view.unload();
                 await ViewManager.initView({ active: false });
             } else {
-                // 2. root split && leaf NOT active
+                // b. root split && leaf NOT active
                 ViewManager.revealView();
             }
 
@@ -260,14 +260,14 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
         // only leftSplit and rightSplit can be collapsed
         if (!crrSplit?.collapsed) {
             if (leafActive) {
-                // 3. crr split open and leaf active
+                // c. crr split open and leaf active
                 crrSplit?.collapse();
             } else {
-                // 4. crr split open and leaf NOT active
+                // d. crr split open and leaf NOT active
                 ViewManager.revealView();
             }
         } else {
-            // 5. crr split collapsed
+            // e. crr split collapsed
             ViewManager.revealView();
         }
     }
@@ -370,6 +370,30 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
                             await ViewManager.revealView();
                         }
                         ViewManager.restartPreview(file, true)
+                    })
+            );
+            menu.addItem((item) =>
+                item.setSection("open")
+                    .setTitle("Open in preview panel (right)")
+                    .setIcon("lucide-eye")
+                    .onClick(async () => {
+                        if (!get(mainLeafStore)?.visible) {
+                            await ViewManager.revealView();
+                        }
+                        // TODO: avoid rebuilding the preview leaf, try to `reveal` an exisitng one when possible
+                        ViewManager.restartPreview(file, true, 'vertical')
+                    })
+            );
+            menu.addItem((item) =>
+                item.setSection("open")
+                    .setTitle("Open in preview panel (down)")
+                    .setIcon("lucide-eye")
+                    .onClick(async () => {
+                        if (!get(mainLeafStore)?.visible) {
+                            await ViewManager.revealView();
+                        }
+                        // TODO: avoid rebuilding the preview leaf, try to `reveal` an exisitng one when possible
+                        ViewManager.restartPreview(file, true, 'horizontal')
                     })
             );
         }
