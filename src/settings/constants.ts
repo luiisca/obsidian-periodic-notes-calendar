@@ -34,9 +34,9 @@ export interface ISettings {
         openNotesInPreview: boolean;
         zenMode: boolean;
         tabHeaderVisible: boolean;
-        defaultSplitMode: "vertical" | "horizontal";
-        centerDefaultSplitMode: "vertical" | "horizontal";
-        defaultExpansionMode: 'maximized' | 'split';
+        sideSplitDirection: "vertical" | "horizontal";
+        centerSplitDirection: "vertical" | "horizontal";
+        splitMode: boolean;
         lastPreview: {
             filepath: string;
             splitPos?: "left" | "root" | "right" | null;
@@ -55,8 +55,6 @@ export interface ISettings {
     };
     filepaths: Record<string, string>;
     filepathsByFormatValue: Record<string, Record<string, string> | undefined>;
-    /** Position of the calendar view leaf ('left' or 'right') */
-    viewLeafPosition: "left" | "root" | "right";
 
     floatingMode: boolean;
     syncCalendar: boolean;
@@ -151,10 +149,10 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
         open: false,
         openNotesInPreview: false,
         zenMode: false,
-        tabHeaderVisible: false,
-        defaultSplitMode: "horizontal" as const,
-        centerDefaultSplitMode: "vertical" as const,
-        defaultExpansionMode: "split" as const,
+        tabHeaderVisible: true,
+        sideSplitDirection: "horizontal" as const,
+        centerSplitDirection: "vertical" as const,
+        splitMode: false,
         lastPreview: {
             filepath: "",
             splitPos: null,
@@ -172,7 +170,6 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
     },
     filepaths: {},
     filepathsByFormatValue: {},
-    viewLeafPosition: "right",
     floatingMode: false,
     syncCalendar: true,
     minimalMode: false,

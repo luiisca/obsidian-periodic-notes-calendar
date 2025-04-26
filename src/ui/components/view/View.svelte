@@ -9,10 +9,11 @@
         todayStore,
     } from "@/stores";
     import { ViewManager } from "@/ui";
-    import { cn } from "@/ui/utils";
+    import { cn, eventHandlers, isControlPressed, TSticker } from "@/ui/utils";
     import { onDestroy, setContext } from "svelte";
     import Calendar from "../Calendar.svelte";
-    import { Platform } from "obsidian";
+    import { Platform, TFile } from "obsidian";
+    import { IGranularity } from "@/io";
 
     interface Props {
         popover?: boolean;
@@ -20,6 +21,12 @@
 
     let { popover = false }: Props = $props();
     let minimalMode = $state({ value: false });
+    let previewFileData = $state<{
+        file: TFile | null;
+        sticker: TSticker | null;
+        granularity: IGranularity;
+        date: moment.Moment;
+    }>();
 
     $effect.pre(() => {
         if (popover) {
@@ -27,6 +34,11 @@
         } else {
             minimalMode.value = $settingsStore.minimalMode;
         }
+    });
+    $effect.pre(() => {
+        ViewManager.getPreviewFileData().then((data) => {
+            previewFileData = data;
+        });
     });
 
     setContext("minimalMode", minimalMode);
@@ -105,8 +117,10 @@
                     )}
                     onclick={async () => {
                         ViewManager.tryInitPreview(undefined, true);
-                    }}>Open preview</button
+                    }}
                 >
+                    Open preview
+                </button>
             </div>
         </div>
     {/if}
