@@ -24,7 +24,7 @@ https://github.com/user-attachments/assets/25b380df-3f15-4492-8119-3d95a7604c9e
 - [**Note Preview Panel**](#note-preview-panel): Offers a configurable preview leaf for your notes, periodic and non periodic, supporting vertical or horizontal splits, zen mode for minimal distractions, optional tab headers and more.
   Easily integrates with the calendar view or works in a separate tab.
 - **Open notes at startup**: Automatically open or create a periodic note (daily, weekly, monthly, quarterly, or yearly) when launching your vault..
-- [**Locale Customization**](#locale-customization): Allows users to set a default locale for the calendar interface, filename formatting, and week start day.
+- **Switch Language**: Pick your preferred calendar language in the plugin settings.
 - [**Customizable Appearance**](#customization): Modify the plugin's UI to match your style using CSS snippets, with full control over colors, layouts, and elements.
 
 ## Usage
