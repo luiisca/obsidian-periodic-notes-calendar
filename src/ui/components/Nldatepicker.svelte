@@ -127,7 +127,7 @@
     </div>
     <div class="setting-item">
         <div class="setting-item-info">
-            <div class="setting-item-name">Date Format</div>
+            <div class="setting-item-name">Date format</div>
             <div class="setting-item-description">Moment format to be used</div>
         </div>
         <div class="setting-item-control">
