@@ -26,7 +26,6 @@ https://github.com/user-attachments/assets/25b380df-3f15-4492-8119-3d95a7604c9e
 - **Open notes at startup**: Automatically open or create a periodic note (daily, weekly, monthly, quarterly, or yearly) when launching your vault..
 - [**Locale Customization**](#locale-customization): Allows users to set a default locale for the calendar interface, filename formatting, and week start day.
 - [**Customizable Appearance**](#customization): Modify the plugin's UI to match your style using CSS snippets, with full control over colors, layouts, and elements.
-  Switch locales on the fly via the command palette or disable the command if not needed.
 
 ## Usage
 
@@ -165,12 +164,6 @@ These features ensure effortless organization and allow you to experiment with n
 1. Go to Settings → Periodic notes calendar → Calendar and enable the Preview feature.
 2. Configure default settings like split mode, zen mode, and tab header visibility.
 3. Navigate to the calendar view, where you'll find an `Open Preview` button. Click it to open a preview panel displaying notes for the currently enabled periods (e.g., day, week, month, quarter, year, or multiple).
-
-### Locale Customization
-
-1. Go to Settings → Periodic notes calendar → Locale and select your preferred locale from the list.
-2. Use the `Switch Locale` command in the command palette to quickly change locales if enabled.
-3. The selected locale will update the calendar display, filename formatting of future notes, and week start day automatically.
 
 ### Customization
 
