@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.1](https://github.com/luiisca/obsidian-periodic-notes-calendar/compare/1.1.0...v1.1.1) (2025-08-07)
+
+
+### Bug Fixes
+
+* Nldatepicker title sentece case ([6c04492](https://github.com/luiisca/obsidian-periodic-notes-calendar/commit/6c04492dfad041a3853b7c1297a416788b0eebf0))
+* title case on file-menu popover ([13164b5](https://github.com/luiisca/obsidian-periodic-notes-calendar/commit/13164b5592dc35594db0817e0ab23b7f5cd705a9))
+
 ## [1.1.0](https://github.com/luiisca/obsidian-periodic-notes-calendar/compare/1.0.0...v1.1.0) (2025-01-09)
 
 
