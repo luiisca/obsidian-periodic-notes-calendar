@@ -1,7 +1,7 @@
 {
   "id": "periodic-notes-calendar",
   "name": "Periodic notes calendar",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Organize periodic notes from daily to yearly with a calendar interface. Navigate and summarize entries using stickers in the calendar view.",
   "author": "Luis Cadillo",
   "authorUrl": "https://github.com/luiisca",
