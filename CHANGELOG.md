@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/luiisca/obsidian-periodic-notes-calendar/compare/1.1.1...v1.1.2) (2025-09-11)
+
+
+### Bug Fixes
+
+* avoid inline style check in preview leaf visibility to satisfy theme guidelines ([43ac26c](https://github.com/luiisca/obsidian-periodic-notes-calendar/commit/43ac26c1b733327f612efc93f10dd6b758a13ede))
+
 ## [1.1.1](https://github.com/luiisca/obsidian-periodic-notes-calendar/compare/1.1.0...v1.1.1) (2025-08-07)
 
 
