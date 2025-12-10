@@ -3,14 +3,14 @@ import type { IGranularity, IPeriodicity } from './types';
 
 
 export function getPeriodicityFromGranularity(granularity: IGranularity): IPeriodicity {
-    return granularity === 'day' ? 'daily' : `${granularity}ly`;
+  return granularity === 'day' ? 'daily' : `${granularity}ly`;
 }
 
 const REGEX = (function generateRegex(): RegExp {
-    const staticParts = ['title', 'date', 'time', 'currentdate', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const allParts = [...staticParts];
+  const staticParts = ['title', 'date', 'time', 'currentdate', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const allParts = [...staticParts];
 
-    return new RegExp(`{{\\s*(${allParts.join("|")}|[^-+:}]+)(([+-])\\s*(\\d+)\\s*([yQMwWdhms])\\s*)?:?([^}]+)?}}`, "gi")
+  return new RegExp(`{{\\s*(${allParts.join("|")}|[^-+:}]+)(([+-])\\s*(\\d+)\\s*([yQMwWdhms])\\s*)?:?([^}]+)?}}`, "gi")
 })()
 
 /**
@@ -49,104 +49,108 @@ const REGEX = (function generateRegex(): RegExp {
  * @returns The template string with all placeholders replaced by formatted date strings
  */
 export function replaceTemplateContents(
-    date: moment.Moment,
-    defaultFormat: string,
-    template: string
+  date: moment.Moment,
+  defaultFormat: string,
+  template: string
 ): string {
-    const now = window.moment();
-    const localeWeekdays = (function getLocaleWeekdays(): string[] {
-        const { moment } = window;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let weekStart = (<any>moment.localeData())._week.dow;
-        const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const now = window.moment();
+  const localeWeekdays = (function getLocaleWeekdays(): string[] {
+    const { moment } = window;
+    let weekStart = moment.localeData().firstDayOfWeek();
+    const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
-        while (weekStart) {
-            weekdays.push(weekdays.shift() as string);
-            weekStart--;
-        }
+    while (weekStart) {
+      weekdays.push(weekdays.shift() as string);
+      weekStart--;
+    }
 
-        return weekdays;
-    })()
+    return weekdays;
+  })()
 
-    return template.replace(REGEX,
-        (match, type) => {
-            let momentDate: moment.Moment;
-            let modifiedDefaultFormat = defaultFormat;
+  return template.replace(REGEX,
+    (match, type: string | undefined | null) => {
+      if (!type) {
+        return match
+      }
 
-            const minusIndex = match.indexOf('-');
-            const plusIndex = match.indexOf('-');
-            const colonIndex = match.indexOf(':');
-            let delta = "";
-            let unit = "";
-            let format = "";
+      let momentDate: moment.Moment | null = null;
+      let modifiedDefaultFormat = defaultFormat;
 
-            if ((match.includes('+') && (colonIndex === -1 || plusIndex < colonIndex)) || (match.includes('-') && (colonIndex === -1 || minusIndex < colonIndex))) {
-                const pattern = `([+-])\\s*(\\d+)\\s*([yQMwWdhms])\\s*`
-                const [, _symbol, _amount, _unit] = match.match(new RegExp(pattern, 'i')) || []
-                delta = `${_symbol}${_amount}`
-                unit = _unit
-            }
-            if (match.includes(':')) {
-                const pattern = `:([^}]+)`
-                const [, _format] = match.match(new RegExp(pattern, 'i')) || []
-                format = _format?.trim() || ""
-            }
+      const minusIndex = match.indexOf('-');
+      const plusIndex = match.indexOf('-');
+      const colonIndex = match.indexOf(':');
+      let delta = "";
+      let unit = "";
+      let format = "";
 
-            switch (type.toLowerCase()) {
-                case 'title':
-                case 'date':
-                    momentDate = date.clone();
-                    break;
+      if ((match.includes('+') && (colonIndex === -1 || plusIndex < colonIndex)) || (match.includes('-') && (colonIndex === -1 || minusIndex < colonIndex))) {
+        const pattern = `([+-])\\s*(\\d+)\\s*([yQMwWdhms])\\s*`
+        const [, _symbol, _amount, _unit] = match.match(new RegExp(pattern, 'i')) || []
+        delta = `${_symbol}${_amount}`
+        unit = _unit
+      }
+      if (match.includes(':')) {
+        const pattern = `:([^}]+)`
+        const [, _format] = match.match(new RegExp(pattern, 'i')) || []
+        format = _format?.trim() || ""
+      }
 
-                case 'time':
-                    momentDate = now.clone();
-                    modifiedDefaultFormat = 'HH:mm';
-                    break;
+      switch (type.toLowerCase()) {
+        case 'title':
+        case 'date':
+          momentDate = date.clone();
+          break;
 
-                case 'currentdate':
-                    momentDate = now.clone();
-                    break;
+        case 'time':
+          momentDate = now.clone();
+          modifiedDefaultFormat = 'HH:mm';
+          break;
 
-                default:
-                    if (localeWeekdays.includes(type.toLowerCase())) {
-                        // handle weekdays
-                        momentDate = date.clone().weekday(localeWeekdays.indexOf(type.toLowerCase()));
-                    } else {
-                        const parsedUnadjustedDate = parseNlDate(type, date)
-                        const parsedDate = parseNlDate(
-                            match,
-                            date
-                        );
-                        if (parsedDate?.isValid()) {
-                            if (!parsedDate.isSame(parsedUnadjustedDate)) {
-                                // avoid adjustment if done by chrono already
-                                delta = '';
-                            }
-                            momentDate = parsedDate;
-                        } else {
-                            return match; // Return unchanged if not recognized
-                        }
-                    }
-                    break;
-            }
+        case 'currentdate':
+          momentDate = now.clone();
+          break;
 
-            if (delta && unit) {
-                momentDate.add(parseInt(delta, 10), unit as moment.DurationInputArg2);
-            }
-
-            return momentDate.format(
-                format || modifiedDefaultFormat
+        default:
+          if (localeWeekdays.includes(type.toLowerCase())) {
+            // handle weekdays
+            momentDate = date.clone().weekday(localeWeekdays.indexOf(type.toLowerCase()));
+          } else {
+            const parsedUnadjustedDate = parseNlDate(type, date)
+            const parsedDate = parseNlDate(
+              match,
+              date
             );
-        }
-    );
+            if (parsedDate?.isValid()) {
+              if (!parsedDate.isSame(parsedUnadjustedDate)) {
+                // avoid adjustment if done by chrono already
+                delta = '';
+              }
+              momentDate = parsedDate;
+            } else {
+              return match; // Return unchanged if not recognized
+            }
+          }
+          break;
+      }
+
+
+      if (delta && unit) {
+        momentDate.add(parseInt(delta, 10), unit as moment.DurationInputArg2);
+      }
+
+      return momentDate.format(
+        format || modifiedDefaultFormat
+      );
+    }
+  );
 }
 
 export function parseNlDate(text: string, refMomentDate: moment.Moment = window.moment()) {
-    const refJsDate = refMomentDate.toDate();
-    const parsedDate = chrono.parseDate(text, refJsDate);
-    if (parsedDate) {
-        return window.moment(parsedDate);
-    }
+  const refJsDate = refMomentDate.toDate();
+  const parsedDate = chrono.parseDate(text, refJsDate);
+  if (parsedDate) {
+    return window.moment(parsedDate);
+  }
 }
 
 // Example usage

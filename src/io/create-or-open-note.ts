@@ -45,8 +45,8 @@ export async function createOrOpenNote({
   async function openFile(file: TFile | undefined | null) {
     if (file) {
       if (openInPreview) {
-        ViewManager.revealView();
-        ViewManager.tryInitPreview(file, true);
+        await ViewManager.revealView();
+        await ViewManager.tryInitPreview(file, true);
       } else {
         await leaf?.openFile(file, openState);
       }
@@ -114,9 +114,6 @@ export async function createNote(granularity: IGranularity, date: moment.Moment)
     if (!file || !(file instanceof TFile)) return;
 
     await extractAndReplaceTODOItems(date, granularity, file);
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (PluginService.getPlugin()?.app as any).foldManager.save(file, IFoldInfo);
 
     settingsStore.addFilepath(normalizedPath, selectedFormat.value)
     internalFileModStore.set(null)
