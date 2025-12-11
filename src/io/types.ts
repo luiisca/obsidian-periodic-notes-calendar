@@ -8,10 +8,26 @@ export interface IPeriodicNoteSettings {
   template: string;
 }
 
+interface IFold {
+  from: number;
+  to: number;
+}
+export interface IFoldInfo {
+  folds: IFold[];
+}
+
 declare module 'obsidian' {
   interface App {
     internalPlugins: {
       getPluginById<T = unknown>(id: string): T | undefined;
+    }
+    foldManager: {
+      load(file: TFile | null): IFoldInfo | null
+    }
+    plugins: {
+      enabledPlugins: Set<string>;
+      enablePluginAndSave(id: string): Promise<void>;
+      getPlugin(id: string): Plugin | undefined;
     };
   }
 }

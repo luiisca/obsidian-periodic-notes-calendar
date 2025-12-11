@@ -29,10 +29,10 @@ export function capitalize(string: string) {
 }
 
 export async function getPlugin(pluginId: string): Promise<any | null> {
-  const plugins = (PluginService.getPlugin()?.app as any).plugins;
-  const enabledPlugins = plugins?.enabledPlugins as Set<string>
+  const plugins = PluginService.getPlugin()?.app.plugins;
+  const enabledPlugins = plugins?.enabledPlugins
 
-  if (!enabledPlugins.has(pluginId)) {
+  if (enabledPlugins && !enabledPlugins.has(pluginId)) {
     await plugins?.enablePluginAndSave(pluginId);
   }
 
