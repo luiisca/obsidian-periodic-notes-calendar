@@ -16,6 +16,7 @@ export default defineConfig([
     rules: {
       // example: turn off a rule from the recommended set
       "obsidianmd/sample-names": "off",
+      "no-undef": "off",
       // example: add a rule not in the recommended set and set its severity
       "obsidianmd/prefer-file-manager-trash-file": "error",
     },

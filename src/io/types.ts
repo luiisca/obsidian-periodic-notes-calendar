@@ -30,4 +30,8 @@ declare module 'obsidian' {
       getPlugin(id: string): Plugin | undefined;
     };
   }
+
+  interface WorkspaceLeaf {
+    id: string;
+  }
 }

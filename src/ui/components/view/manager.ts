@@ -19,7 +19,7 @@ export class ViewManager {
   static previewLeafCleanups: (() => void)[] = [];
   private static firstLayoutChange = true;
 
-  static async initView({ active }: { active: boolean } = { active: true }) {
+  static initView({ active }: { active: boolean } = { active: true }) {
     let mainLeaf = this.getMainLeaf();
 
     if (!mainLeaf) {
@@ -28,7 +28,7 @@ export class ViewManager {
     mainLeaf?.setViewState({
       type: LEAF_TYPE,
       active
-    });
+    }).catch(console.error);
 
     if (mainLeaf && get(settingsStore).preview.enabled) {
       this.setupPreviewEvHandlers()
