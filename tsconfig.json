@@ -18,7 +18,9 @@
     "importsNotUsedAsValues": "remove",
     "lib": [
       "dom",
+      "dom.iterable",
       "es5",
+      "es6",
       "scripthost",
       "es2015"
     ]

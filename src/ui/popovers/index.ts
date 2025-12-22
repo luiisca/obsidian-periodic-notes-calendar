@@ -1,1 +1,1 @@
-export { Popover, getPopoverInstance, getBehaviorInstance } from "./base";
+export { Popover } from "./base";

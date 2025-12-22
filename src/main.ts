@@ -25,9 +25,10 @@ import {
 import StickerPopoverComponent from './ui/components/StickerPopover.svelte';
 import TimelineManager from './ui/components/timeline/manager';
 import { createNldatePickerDialog } from './ui/modals/nldate-picker';
-import { getBehaviorInstance, getPopoverInstance, Popover } from './ui/popovers';
+import { Popover } from './ui/popovers';
 import { getDailyNotesPlugin } from './utils';
 import { CalendarView } from './view';
+import { createCalendarPopover, createStickerPopover } from './ui/popovers/base';
 
 export default class PeriodicNotesCalendarPlugin extends Plugin {
   popovers: Record<string, SvelteComponent | null> = {};
@@ -121,15 +122,14 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
       TimelineManager.initAll();
 
       if (get(settingsStore).openPopoverOnRibbonHover) {
-        Popover.create({
-          id: CALENDAR_POPOVER_ID,
+        createCalendarPopover({
           view: {
             Component: View,
             props: {
               popover: true
             }
           }
-        });
+        })
       }
 
       // open note at startup
@@ -185,14 +185,13 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
 
   handleRibbon() {
     const ribbonEl = this.addRibbonIcon(CALENDAR_LUCIDE_ICON, 'Open calendar', (ev) => {
-      const calendarPopover = getPopoverInstance(CALENDAR_POPOVER_ID);
-      const calendarBehavior = getBehaviorInstance(CALENDAR_POPOVER_ID);
+      const calendarPopover = Popover.calendarSingleton;
 
       if (!get(settingsStore).floatingMode) {
         this.toggleView().catch(console.error);
 
-        if (get(settingsStore).openPopoverOnRibbonHover && calendarBehavior?.opened) {
-          calendarBehavior.close();
+        if (get(settingsStore).openPopoverOnRibbonHover && calendarPopover?.behaviors?.opened) {
+          calendarPopover.behaviors.close();
         }
 
         return;
@@ -205,15 +204,14 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
           !calendarPopover &&
           target
         ) {
-          Popover.create({
-            id: CALENDAR_POPOVER_ID,
+          createCalendarPopover({
             view: {
               Component: View,
               props: {
                 popover: true,
               }
             }
-          }).open(target);
+          }).open(target)
         } else {
           calendarPopover?.toggle(target)
         }
@@ -344,8 +342,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
             spFileDataStore.set(fileData);
 
             if (menu.dom || menu.bgEl) {
-              Popover.create({
-                id: STICKER_POPOVER_ID,
+              createStickerPopover({
                 view: {
                   Component: StickerPopoverComponent,
                 },

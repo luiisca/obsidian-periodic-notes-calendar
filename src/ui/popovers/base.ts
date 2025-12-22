@@ -1,82 +1,66 @@
-import { BASE_POPOVER_ID, CALENDAR_POPOVER_ID, FILE_MENU_POPOVER_ID, STICKER_POPOVER_ID } from "@/constants";
-import { BaseComponentBehavior, TBasePopoverId, TBasePopoverParams } from "./base-component-behavior";
+import { BASE_POPOVER_ID } from "@/constants";
+import { BaseComponentBehavior, TBasePopoverParams } from "./base-component-behavior";
 import { CalendarPopoverBehavior, type TCalendarPopoverParams } from "./calendar";
-import { FileMenuPopoverBehavior, type FileMenuOpenParams, type TFileMenuPopoverParams } from "./file-menu";
+import { FileMenuPopoverBehavior, type FileMenuOpenParams } from "./file-menu";
 import { StickerPopoverBehavior, type TStickerPopoverParams } from "./sticker";
 
-export type TPopoverId = TBasePopoverId | typeof FILE_MENU_POPOVER_ID;
-export type TPopoverParams = TCalendarPopoverParams | TStickerPopoverParams | TFileMenuPopoverParams | TBasePopoverParams;
+export class Popover<T extends CalendarPopoverBehavior | StickerPopoverBehavior | FileMenuPopoverBehavior | BaseComponentBehavior> {
+  static calendarSingleton: Popover<CalendarPopoverBehavior> | null = null;
+  static stickerSingleton: Popover<StickerPopoverBehavior> | null = null;
+  static fileMenuSingleton: Popover<FileMenuPopoverBehavior> | null = null;
+  static baseSingleton: Popover<BaseComponentBehavior> | null = null;
+  open: (param: FileMenuOpenParams | Element) => void;
+  close: () => void;
+  toggle: (param: FileMenuOpenParams | Element) => void;
+  cleanup: () => void;
 
-export class Popover {
-    static instances = new Map<TPopoverId, Popover>();
-    static behaviorInstances = new Map<TPopoverId, ReturnType<typeof createBehavior>>();
-    static mutationObserverStarted = false;
+  static mutationObserverStarted = false;
 
-    constructor(
-        private id: TPopoverId,
-        private behavior: BaseComponentBehavior | FileMenuPopoverBehavior,
-    ) { }
+  constructor(public behaviors: T) {
+    this.open = behaviors.open.bind(behaviors);
+    this.close = behaviors.close.bind(behaviors);
+    this.toggle = behaviors.toggle.bind(behaviors);
+    this.cleanup = behaviors.cleanup.bind(behaviors);
+  }
 
-    static create(params: TPopoverParams) {
-        let popover = getPopoverInstance(params.id);
-        if (!popover) {
-            const behavior = createBehavior(params);
-            popover = new Popover(params.id, behavior);
-            Popover.instances.set(params.id, popover);
-            Popover.behaviorInstances.set(params.id, behavior);
-        }
+  static cleanup() {
+    Popover.calendarSingleton = null;
+    Popover.stickerSingleton = null;
+    Popover.fileMenuSingleton = null;
+    Popover.baseSingleton = null;
 
-        return popover;
-    }
-    static cleanup() {
-        Popover.instances.forEach((popover) => popover.cleanup());
-        Popover.instances.clear();
-        Popover.mutationObserverStarted = false;
-    }
+    Popover.mutationObserverStarted = false;
+  }
 
-    public toggle(param: FileMenuOpenParams | Element) {
-        if (param instanceof Element) {
-            (this.behavior as BaseComponentBehavior).toggle(param);
-        } else if (typeof param === "object") {
-            (this.behavior as FileMenuPopoverBehavior).toggle(param as FileMenuOpenParams);
-        }
-    }
-    public open(param: FileMenuOpenParams | Element) {
-        if (param instanceof Element) {
-            (this.behavior as BaseComponentBehavior).open(param);
-        } else if (typeof param === "object") {
-            (this.behavior as FileMenuPopoverBehavior).open(param as FileMenuOpenParams);
-        }
-    }
-
-    public close() {
-        this.behavior.close();
-    }
-    public cleanup() {
-        this.behavior.cleanup();
-    }
+  static closeAll() {
+    Popover.calendarSingleton?.close();
+    Popover.stickerSingleton?.close();
+    Popover.fileMenuSingleton?.close();
+    Popover.baseSingleton?.close();
+  }
 }
 
-function createBehavior(params: TPopoverParams) {
-    switch (params.id) {
-        case CALENDAR_POPOVER_ID:
-            return new CalendarPopoverBehavior(params);
-        case STICKER_POPOVER_ID:
-            return new StickerPopoverBehavior(params);
-        case FILE_MENU_POPOVER_ID:
-            return new FileMenuPopoverBehavior(params);
-        default:
-            return new BaseComponentBehavior(params.id, params.view, params.cbs);
-    }
+export const createCalendarPopover = (params: TCalendarPopoverParams) => {
+  if (!Popover.calendarSingleton) {
+    Popover.calendarSingleton = new Popover(new CalendarPopoverBehavior(params))
+  }
+  return Popover.calendarSingleton
 }
-
-export function getPopoverInstance(id: TPopoverId) {
-    return Popover.instances.get(id);
+export const createStickerPopover = (params: TStickerPopoverParams) => {
+  if (!Popover.stickerSingleton) {
+    Popover.stickerSingleton = new Popover(new StickerPopoverBehavior(params))
+  }
+  return Popover.stickerSingleton
 }
-export function getBehaviorInstance(id: typeof CALENDAR_POPOVER_ID): CalendarPopoverBehavior | undefined;
-export function getBehaviorInstance(id: typeof STICKER_POPOVER_ID): StickerPopoverBehavior | undefined;
-export function getBehaviorInstance(id: typeof BASE_POPOVER_ID): BaseComponentBehavior | undefined;
-export function getBehaviorInstance(id: typeof FILE_MENU_POPOVER_ID): FileMenuPopoverBehavior | undefined;
-export function getBehaviorInstance(id: TPopoverId): CalendarPopoverBehavior | StickerPopoverBehavior | BaseComponentBehavior | FileMenuPopoverBehavior | undefined {
-    return Popover.behaviorInstances.get(id);
+export const createFileMenuPopover = () => {
+  if (!Popover.fileMenuSingleton) {
+    Popover.fileMenuSingleton = new Popover(new FileMenuPopoverBehavior())
+  }
+  return Popover.fileMenuSingleton
+}
+export const createBasePopover = (params: TBasePopoverParams) => {
+  if (!Popover.baseSingleton) {
+    Popover.baseSingleton = new Popover(new BaseComponentBehavior(BASE_POPOVER_ID, params.view, params.cbs))
+  }
+  return Popover.baseSingleton
 }

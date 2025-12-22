@@ -28,7 +28,10 @@ declare module 'obsidian' {
       enabledPlugins: Set<string>;
       enablePluginAndSave(id: string): Promise<void>;
       getPlugin(id: string): Plugin | undefined;
-    };
+    }
+  }
+  interface Vault {
+    getAvailablePath: (path: string, extension: string) => string;
   }
 
   interface WorkspaceLeaf {
