@@ -6,88 +6,89 @@ import { Picker } from "emoji-mart";
 import emojiRegex from "emoji-regex";
 import { type TagCache } from "obsidian";
 import { get } from "svelte/store";
-import { getBehaviorInstance, getPopoverInstance, Popover } from "../popovers";
+import { Popover } from "../popovers";
 import { PluginService } from "@/app-service";
 
 type TEmoji = {
-    aliases?: string[],
-    id: string,
-    keywords: string[],
-    name: string,
-    native: string,
-    shortcodes: string,
-    skin?: number,
-    unified: string,
+  aliases?: string[],
+  id: string,
+  keywords: string[],
+  name: string,
+  native: string,
+  shortcodes: string,
+  skin?: number,
+  unified: string,
 }
 export type TSticker = {
-    emoji: string,
-    startOffset: number,
-    endOffset: number,
+  emoji: string,
+  startOffset: number,
+  endOffset: number,
 }
 
 export const onInputKeydown = (ev: KeyboardEvent) => {
-    const input = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
-    const settings = get(settingsStore);
-    const stickerInstance = getPopoverInstance(STICKER_POPOVER_ID);
-    const stickerBehaviorInstance = getBehaviorInstance(STICKER_POPOVER_ID);
+  const input = document.querySelector('em-emoji-picker')?.shadowRoot?.querySelector('input');
+  const settings = get(settingsStore);
+  const stickerInstance = Popover.stickerSingleton;
 
-    if (ev.key === 'Escape') {
-        if (settings.popoversClosing.closePopoversOneByOneOnEscKeydown) {
-            input && input.blur();
-            stickerInstance?.close()
-        } else {
-            Popover.instances.forEach((instance) => instance?.close());
-        }
-        stickerBehaviorInstance?.refHtmlEl?.focus();
+  if (ev.key === 'Escape') {
+    if (settings.popoversClosing.closePopoversOneByOneOnEscKeydown) {
+      if (input) {
+        input.blur();
+      }
+      stickerInstance?.close()
+    } else {
+      Popover.closeAll()
     }
+    stickerInstance?.behaviors?.refHtmlEl?.focus();
+  }
 };
 
 export function initializePicker(
-    container: HTMLElement,
-    theme: "light" | "dark" | null,
-    fileData: TFileData
+  container: HTMLElement,
+  theme: "light" | "dark" | null,
+  fileData: TFileData
 ) {
-    const pickerOptions = {
-        data,
-        onEmojiSelect: async (emoji: TEmoji) => {
-            const stickerInstance = getPopoverInstance(STICKER_POPOVER_ID);
-            stickerInstance?.close()
+  const pickerOptions = {
+    data,
+    onEmojiSelect: async (emoji: TEmoji) => {
+      const stickerInstance = Popover.stickerSingleton;
+      stickerInstance?.close()
 
-            const { file, sticker } = fileData;
+      const { file, sticker } = fileData;
 
-            if (file) {
-                const app = PluginService.getPlugin()?.app
-                // update note with new emoji tag
-                const content = await PluginService.getPlugin()?.app.vault.read(file) ?? ""
-                let updatedContent = content
+      if (file) {
+        const app = PluginService.getPlugin()?.app
+        // update note with new emoji tag
+        const content = await PluginService.getPlugin()?.app.vault.read(file) ?? ""
+        let updatedContent = content
 
-                if (sticker) {
-                    const bef = updatedContent.slice(0, sticker.startOffset)
-                    const aft = updatedContent.slice(sticker.endOffset)
-                    updatedContent = `${bef}#${emoji.native}${aft}`;
+        if (sticker) {
+          const bef = updatedContent.slice(0, sticker.startOffset)
+          const aft = updatedContent.slice(sticker.endOffset)
+          updatedContent = `${bef}#${emoji.native}${aft}`;
 
-                    await modifyFile(file, updatedContent)
-                } else {
-                    const firstLine = updatedContent.split('\n')[0].trim();
-                    updatedContent = `#${emoji.native}${firstLine !== "" ? " \n" : ""}${updatedContent} `
+          await modifyFile(file, updatedContent)
+        } else {
+          const firstLine = updatedContent.split('\n')[0].trim();
+          updatedContent = `#${emoji.native}${firstLine !== "" ? " \n" : ""}${updatedContent} `
 
-                    await modifyFile(file, updatedContent)
-                }
-            };
-        },
-        autoFocus: true,
-        emojiButtonColors: ['color-mix(in srgb, var(--interactive-accent) 20%, transparent)'],
-        theme,
-    };
+          await modifyFile(file, updatedContent)
+        }
+      };
+    },
+    autoFocus: true,
+    emojiButtonColors: ['color-mix(in srgb, var(--interactive-accent) 20%, transparent)'],
+    theme,
+  };
 
-    const pickerEl = new Picker(pickerOptions);
-    const style = getComputedStyle(document.body)
-    const h = parseInt(style.getPropertyValue('--accent-h'));
-    const s = parseInt(style.getPropertyValue('--accent-s'));
-    const l = parseInt(style.getPropertyValue('--accent-l'));
+  const pickerEl = new Picker(pickerOptions);
+  const style = getComputedStyle(document.body)
+  const h = parseInt(style.getPropertyValue('--accent-h'));
+  const s = parseInt(style.getPropertyValue('--accent-s'));
+  const l = parseInt(style.getPropertyValue('--accent-l'));
 
-    const accentRgb = hslToRgb(h / 360, s / 100, l / 100)
-    pickerEl.injectStyles(`
+  const accentRgb = hslToRgb(h / 360, s / 100, l / 100)
+  pickerEl.injectStyles(`
         section#root {
             font-family: var(--font-interface);
             font-weight: 400 !important;
@@ -100,29 +101,33 @@ export function initializePicker(
         }
     `);
 
-    const pickerHtmlEl = pickerEl as unknown as HTMLElement
-    container.firstChild && container.removeChild(container.firstChild);
-    container.appendChild(pickerHtmlEl);
+  const pickerHtmlEl = pickerEl as unknown as HTMLElement
+  if (container.firstChild) {
+    container.removeChild(container.firstChild);
+  }
+  container.appendChild(pickerHtmlEl);
 
-    handleMutationObserver(pickerHtmlEl.shadowRoot);
+  handleMutationObserver(pickerHtmlEl.shadowRoot);
 }
 
 function handleMutationObserver(shadowRoot: ShadowRoot | null) {
-    const observer = new MutationObserver((mutations) => {
-        mutations.forEach(() => {
-            const input = shadowRoot?.querySelector('input');
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach(() => {
+      const input = shadowRoot?.querySelector('input');
 
-            if (input) {
-                input.addEventListener('keydown', onInputKeydown, true);
+      if (input) {
+        input.addEventListener('keydown', onInputKeydown, true);
 
-                // Stop observing once the element is found
-                observer.disconnect();
-            }
-        });
+        // Stop observing once the element is found
+        observer.disconnect();
+      }
     });
+  });
 
-    // Start observing changes in the shadow DOM
-    shadowRoot && observer.observe(shadowRoot, { subtree: true, childList: true });
+  // Start observing changes in the shadow DOM
+  if (shadowRoot) {
+    observer.observe(shadowRoot, { subtree: true, childList: true });
+  }
 }
 
 /**
@@ -137,51 +142,51 @@ function handleMutationObserver(shadowRoot: ShadowRoot | null) {
  * @return  {Array}           The RGB representation
  */
 function hslToRgb(h: number, s: number, l: number): Array<number> {
-    let r, g, b;
+  let r, g, b;
 
-    if (s === 0) {
-        r = g = b = l; // achromatic
-    } else {
-        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-        const p = 2 * l - q;
-        r = hueToRgb(p, q, h + 1 / 3);
-        g = hueToRgb(p, q, h);
-        b = hueToRgb(p, q, h - 1 / 3);
-    }
+  if (s === 0) {
+    r = g = b = l; // achromatic
+  } else {
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hueToRgb(p, q, h + 1 / 3);
+    g = hueToRgb(p, q, h);
+    b = hueToRgb(p, q, h - 1 / 3);
+  }
 
-    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
 }
 
 function hueToRgb(p: number, q: number, t: number) {
-    if (t < 0) t += 1;
-    if (t > 1) t -= 1;
-    if (t < 1 / 6) return p + (q - p) * 6 * t;
-    if (t < 1 / 2) return q;
-    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-    return p;
+  if (t < 0) t += 1;
+  if (t > 1) t -= 1;
+  if (t < 1 / 6) return p + (q - p) * 6 * t;
+  if (t < 1 / 2) return q;
+  if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+  return p;
 }
 
 export function getSticker(tags: TagCache[] | null | undefined): TSticker | null {
-    if (!tags) {
-        return null
+  if (!tags) {
+    return null
+  }
+
+  let sticker: { emoji: string, startOffset: number, endOffset: number } | null = null;
+  for (let index = 0; index < tags.length; index++) {
+    const tagObj = tags[index];
+    const match = tagObj.tag.match(emojiRegex())
+    if (match?.[0].length === tagObj.tag.length - 1) {
+      sticker = {
+        emoji: tagObj.tag.slice(1),
+        startOffset: tagObj.position.start.offset,
+        endOffset: tagObj.position.end.offset,
+      }
+
+      break;
+    } else {
+      continue;
     }
+  }
 
-    let sticker: { emoji: string, startOffset: number, endOffset: number } | null = null;
-    for (let index = 0; index < tags.length; index++) {
-        const tagObj = tags[index];
-        const match = tagObj.tag.match(emojiRegex())
-        if (match?.[0].length === tagObj.tag.length - 1) {
-            sticker = {
-                emoji: tagObj.tag.slice(1),
-                startOffset: tagObj.position.start.offset,
-                endOffset: tagObj.position.end.offset,
-            }
-
-            break;
-        } else {
-            continue;
-        }
-    }
-
-    return sticker;
+  return sticker;
 }

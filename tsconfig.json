@@ -12,12 +12,15 @@
     "allowJs": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
+    "strictBindCallApply": true,
     "moduleResolution": "node",
     "importHelpers": true,
     "importsNotUsedAsValues": "remove",
     "lib": [
       "dom",
+      "dom.iterable",
       "es5",
+      "es6",
       "scripthost",
       "es2015"
     ]
