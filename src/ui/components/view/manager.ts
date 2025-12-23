@@ -217,10 +217,10 @@ export class ViewManager {
       const previewMovedFromSideToRoot = prevPreviewLeaf && previewLeaf && prevPreviewIsSide && !crrPrevIsSide
       const previewMovedFromRootToSide = prevPreviewLeaf && previewLeaf && !prevPreviewIsSide && crrPrevIsSide
       if (previewMovedFromSideToRoot || previewMovedFromRootToSide) {
-        TimelineManager.cleanup(previewLeaf)
-        TimelineManager.tryMount(previewLeaf)
+        TimelineManager.instance?.unmount(previewLeaf)
+        TimelineManager.instance?.tryMount(previewLeaf)
       }
-      TimelineManager.handleLayoutChange()
+      TimelineManager.instance?.layoutSync()
 
       // PREVIEWLEAF
       // very especific check for when an expanded preview panel is moved to a split window

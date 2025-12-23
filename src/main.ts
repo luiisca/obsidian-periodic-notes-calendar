@@ -119,7 +119,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
     this.app.workspace.onLayoutReady(async () => {
       ViewManager.initView({ active: false });
       ViewManager.handleLayoutChange().catch(console.error);
-      TimelineManager.initAll();
+      TimelineManager.create()?.mountAll();
 
       if (get(settingsStore).openPopoverOnRibbonHover) {
         createCalendarPopover({

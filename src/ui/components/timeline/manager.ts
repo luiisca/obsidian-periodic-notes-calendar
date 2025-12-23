@@ -14,22 +14,24 @@ import Timeline from "./Timeline.svelte";
 import { PluginService } from "@/app-service";
 
 export default class TimelineManager {
-  static timelineComponents: Record<string, Record<string, unknown>> = {}
+  static components: Record<string, Record<string, unknown>> = {}
+  static instance: TimelineManager | null = null;
 
-  static initAll(): void {
-    if (get(settingsStore).timeline.enabled) {
-      PluginService.getPlugin()?.app.workspace.iterateAllLeaves((leaf) => {
-        const leafView = leaf.view as MarkdownView;
-        const isLeafViewMarkdown = leaf.getViewState().type === 'markdown'
-        const isLeafCalendar = leafView?.containerEl?.dataset?.type === LEAF_TYPE
+  constructor() { }
 
-        if (!isLeafViewMarkdown || isLeafCalendar) return;
+  public mountAll(): void {
+    PluginService.getPlugin()?.app.workspace.iterateAllLeaves((leaf) => {
+      const isLeafViewMarkdown = leaf.getViewState().type === 'markdown'
+      const isLeafCalendar = (leaf.view as MarkdownView)?.containerEl?.dataset?.type === LEAF_TYPE
 
-        this.tryMount(leaf);
-      });
-    }
+      if (!isLeafViewMarkdown) return;
+      if (isLeafCalendar) return;
+
+      this.tryMount(leaf);
+    });
   }
-  static tryMount(leaf: WorkspaceLeaf, _file?: TFile) {
+
+  public tryMount(leaf: WorkspaceLeaf, _file?: TFile) {
     const file = _file || ViewManager.getFileFromLeaf(leaf);
     if (!file) return;
 
@@ -46,18 +48,19 @@ export default class TimelineManager {
         file
       );
     } else {
-      this.cleanup(leaf);
+      this.unmount(leaf);
     }
   }
-  static mount(leaf: WorkspaceLeaf, periodicData: { isPeriodic: boolean, granularity: IGranularity | null, date: moment.Moment | null } | null = null, file: TFile) {
+
+  public mount(leaf: WorkspaceLeaf, periodicData: { isPeriodic: boolean, granularity: IGranularity | null, date: moment.Moment | null } | null = null, file: TFile) {
     const closestWorkspaceClassname = Platform.isPhone ? ".workspace-drawer" : ".workspace-split"
     const leafContainerClassname =
       (leaf as WorkspaceLeaf & { containerEl: HTMLElement })?.containerEl?.closest(closestWorkspaceClassname)?.className;
 
-    this.isMounted(leaf, true);
+    this.isMountedIn(leaf, true);
     const enoughRoom = leaf.view.containerEl.getBoundingClientRect().width > 640;
 
-    this.timelineComponents[file.path] = mount(Timeline, {
+    TimelineManager.components[file.path] = mount(Timeline, {
       target: leaf.view.containerEl,
       props: {
         granularity: periodicData?.granularity || "day",
@@ -67,9 +70,9 @@ export default class TimelineManager {
         viewModeOverride: enoughRoom ? (periodicData?.isPeriodic ? get(settingsStore).timeline.viewMode : get(settingsStore).timeline.restViewMode) : 'collapsed'
       },
     })
-
   }
-  static isMounted(leaf: WorkspaceLeaf | null, remove: boolean = false) {
+
+  public isMountedIn(leaf: WorkspaceLeaf | null, remove: boolean = false) {
     if (!leaf) return;
 
     return Array.from(leaf.view.containerEl.children).find((el: HTMLElement) => {
@@ -81,7 +84,22 @@ export default class TimelineManager {
       }
     });
   }
-  static cleanup(leaf: WorkspaceLeaf | null) {
+
+  public restart(leaf: WorkspaceLeaf, periodicData: { isPeriodic: boolean, granularity: IGranularity | null, date: moment.Moment | null } | null = null, file: TFile) {
+    this.unmount(leaf)
+    this.mount(leaf, periodicData, file)
+  }
+  public restartAll() {
+    this.unmountAll();
+    this.mountAll();
+  }
+
+  /**
+    * unmount a timeline component from a specific leaf
+  */
+  public unmount(leaf: WorkspaceLeaf | null) {
+    // we don't use unmount from svelte
+    // since it's impossible AFAIK to identity a specific timeline component 
     if (!leaf) return;
 
     Array.from(leaf.view.containerEl.children).forEach((el: HTMLElement) => {
@@ -91,23 +109,14 @@ export default class TimelineManager {
     });
   }
 
-  static restart(leaf: WorkspaceLeaf, periodicData: { isPeriodic: boolean, granularity: IGranularity | null, date: moment.Moment | null } | null = null, file: TFile) {
-    this.cleanup(leaf)
-    this.mount(leaf, periodicData, file)
-  }
-  static restartAll() {
-    this.unmountAll();
-    this.initAll();
-  }
-
-  static unmountAll() {
-    for (const timeline of Object.values(this.timelineComponents)) {
+  public unmountAll() {
+    for (const timeline of Object.values(TimelineManager.components)) {
       unmount(timeline);
     }
-    this.timelineComponents = {};
+    TimelineManager.components = {};
   }
 
-  static handleLayoutChange() {
+  public layoutSync() {
     const prevTimelineParentFile = get(timelineParentFileStore);
     const activeFile = PluginService.getPlugin()?.app.workspace.getActiveFile();
     const crrActiveLeaf = PluginService.getPlugin()?.app.workspace.getActiveViewOfType(MarkdownView)?.leaf;
@@ -126,38 +135,57 @@ export default class TimelineManager {
 
 
     const { isValid, granularity, date } = isValidPeriodicNote(activeFile.basename);
+    const isPeriodicNote = typeof isValid === "boolean" && date && granularity
 
-    if (typeof isValid === "boolean" && date && granularity) {
-      TimelineManager.restart(crrActiveLeaf, { isPeriodic: true, granularity, date }, activeFile);
-
+    if (isPeriodicNote) {
+      this.restart(crrActiveLeaf, { isPeriodic: true, granularity, date }, activeFile);
       timelineParentFileStore.set(activeFile)
 
       if (
-        !PluginService.getPlugin()?.app.workspace.layoutReady
-        || ViewManager.isMainLeaf(crrActiveLeaf)
-        || (!crrActiveLeaf?.view || !(crrActiveLeaf?.view instanceof FileView))
-        || ViewManager.isPreviewLeaf(crrActiveLeaf)?.leaf
+        PluginService.getPlugin()?.app.workspace.layoutReady
+        && !ViewManager.isMainLeaf(crrActiveLeaf)
+        && crrActiveLeaf?.view
+        && crrActiveLeaf?.view instanceof FileView
+        && !ViewManager.isPreviewLeaf(crrActiveLeaf)?.leaf
+        && get(settingsStore).syncCalendar
       ) {
-        return
-      }
-
-      if (get(settingsStore).syncCalendar) {
         displayedDateStore.set(date)
         const enabledPeriodsRes = getEnabledPeriods();
         if (enabledPeriodsRes.tabs.includes(granularity as typeof periodTabs[number])) {
           crrTabStore.set(granularity as typeof periodTabs[number])
         }
       }
-    } else {
-      if (get(settingsStore).timeline.displayOnRestNotes) {
-        // restart timeline view to display today date on rest notes
-        TimelineManager.restart(crrActiveLeaf, null, activeFile);
 
-        return;
-      }
-      if (!TimelineManager.isMounted(crrActiveLeaf)) return;
+      return;
+    }
 
-      TimelineManager.cleanup(crrActiveLeaf);
+    if (!isPeriodicNote && get(settingsStore).timeline.displayOnRestNotes) {
+      // restart timeline with today's date on non-periodic notes
+      this.restart(crrActiveLeaf, null, activeFile);
+      return;
+    }
+
+    if (!isPeriodicNote && this.isMountedIn(crrActiveLeaf)) {
+      this.unmount(crrActiveLeaf);
+      return;
+    };
+  }
+
+
+  /**
+    * only instantiates TimelineManager if enabled 
+  */
+  static create() {
+    if (!TimelineManager.instance && get(settingsStore).timeline.enabled) {
+      TimelineManager.instance = new TimelineManager()
+    }
+    return TimelineManager.instance
+  }
+
+  static destroy() {
+    if (TimelineManager.instance) {
+      TimelineManager.instance.unmountAll()
+      TimelineManager.instance = null
     }
   }
 }

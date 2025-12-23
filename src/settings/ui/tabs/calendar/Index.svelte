@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { CALENDAR_POPOVER_ID } from "@/constants";
   import locales from "@/locales";
   import { defaultWeekdays, sysLocaleKey } from "@/localization";
   import { ISettings, TimelineViewMode } from "@/settings/constants";
@@ -206,9 +205,9 @@
       return s;
     });
     if (enabled) {
-      TimelineManager.restartAll();
+      TimelineManager.create()?.mountAll();
     } else {
-      TimelineManager.unmountAll();
+      TimelineManager.destroy();
     }
   };
 
@@ -217,35 +216,35 @@
       s.timeline.granularityBased = granularityBased;
       return s;
     });
-    TimelineManager.restartAll();
+    TimelineManager.instance?.restartAll();
   };
   const handleSetViewMode = (viewMode: TimelineViewMode) => {
     settingsStore.update((s) => {
       s.timeline.viewMode = viewMode;
       return s;
     });
-    TimelineManager.restartAll();
+    TimelineManager.instance?.restartAll();
   };
   const handleToggleDisplayOnRestNotes = (displayOnRestNotes: boolean) => {
     settingsStore.update((s) => {
       s.timeline.displayOnRestNotes = displayOnRestNotes;
       return s;
     });
-    TimelineManager.restartAll();
+    TimelineManager.instance?.restartAll();
   };
   const handleToggleDisplayStickers = (displayStickers: boolean) => {
     settingsStore.update((s) => {
       s.timeline.displayStickers = displayStickers;
       return s;
     });
-    TimelineManager.restartAll();
+    TimelineManager.instance?.restartAll();
   };
   const handleSetRestViewMode = (restViewMode: TimelineViewMode) => {
     settingsStore.update((s) => {
       s.timeline.restViewMode = restViewMode;
       return s;
     });
-    TimelineManager.restartAll();
+    TimelineManager.instance?.restartAll();
   };
 
   // Localization
