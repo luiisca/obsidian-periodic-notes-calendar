@@ -124,7 +124,7 @@ export function getDefaultPeriodicNotesConfig(
   }
 
   return {
-    enabled: granularity === "day",
+    enabled: granularity === "day" || granularity === 'week',
     openAtStartup: false,
 
     selectedFormat,
