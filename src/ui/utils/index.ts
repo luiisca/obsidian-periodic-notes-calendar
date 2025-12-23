@@ -24,8 +24,9 @@ export function isWeekend(date: moment.Moment): boolean {
 }
 
 export function getStartOfWeek(days: moment.Moment[]): moment.Moment {
-  return days[0].weekday(0);
+  return days[0];
 }
+
 /**
  * Generate a 2D array of daily information to power
  * the calendar view.
