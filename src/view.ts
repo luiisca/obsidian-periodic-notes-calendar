@@ -8,7 +8,7 @@ import { mount, unmount } from "svelte";
 import { CALENDAR_LUCIDE_ICON, LEAF_TYPE } from './constants';
 
 export class CalendarView extends ItemView {
-  private view: Record<string, any>;
+  private view: Record<string, unknown>;
 
   constructor(leaf: WorkspaceLeaf) {
     super(leaf);
