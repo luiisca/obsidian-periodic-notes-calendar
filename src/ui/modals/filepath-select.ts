@@ -89,7 +89,6 @@ export class FilepathModal extends FuzzySuggestModal<string> {
           await this.app.vault.rename(file, newPath);
 
           this.filePaths.splice(this.filePaths.indexOf(filepath), 1, newPath);
-          // @ts-ignore
           this.updateSuggestions();
           new Notice(genNoticeFragment([
             [filepath, 'u-pop'],
@@ -100,7 +99,7 @@ export class FilepathModal extends FuzzySuggestModal<string> {
           new Notice(
             genNoticeFragment([
               [`Error moving ${filepath} to ${targetFolderpath}`],
-              [error.message, 'u-pop']
+              error instanceof Error ? [error.message, 'u-pop'] : null
             ]),
             4000
           );
@@ -120,7 +119,7 @@ export class FilepathModal extends FuzzySuggestModal<string> {
           text: "",
           cta: "Move",
           onAccept: async (dontAskAgain) => {
-            move();
+            move().catch(console.error);
             if (dontAskAgain) {
               settingsStore.update((settings) => ({
                 ...settings,
@@ -130,7 +129,7 @@ export class FilepathModal extends FuzzySuggestModal<string> {
           }
         });
       } else {
-        move();
+        move().catch(console.error);
       }
     }
     new FolderpathsModal(selectFolderpath).open();
@@ -142,8 +141,7 @@ export class FilepathModal extends FuzzySuggestModal<string> {
         folderpathsModal.close();
         const fragment = document.createDocumentFragment();
         mount(MovedFilesCount, {
-          // @ts-ignore
-          target: fragment,
+          target: fragment as unknown as Element,
           props: {
             filepathsLength: this.filePaths.length,
             targetFolderpath
@@ -171,7 +169,7 @@ export class FilepathModal extends FuzzySuggestModal<string> {
             new Notice(
               genNoticeFragment([
                 [`Error moving ${filepath}`],
-                [error.message, 'u-pop']
+                error instanceof Error ? [error.message, 'u-pop'] : null
               ]),
               4000
             );
@@ -182,7 +180,6 @@ export class FilepathModal extends FuzzySuggestModal<string> {
           return s
         })
         this.filePaths = newFilepaths;
-        // @ts-ignore
         this.updateSuggestions();
         notice.hide()
 
@@ -202,7 +199,7 @@ export class FilepathModal extends FuzzySuggestModal<string> {
           text: "",
           cta: "Move all",
           onAccept: async (dontAskAgain) => {
-            moveAll();
+            moveAll().catch(console.error);
 
             if (dontAskAgain) {
               settingsStore.update((settings) => ({
@@ -213,7 +210,7 @@ export class FilepathModal extends FuzzySuggestModal<string> {
           }
         });
       } else {
-        moveAll()
+        moveAll().catch(console.error);
       }
     }
     new FolderpathsModal(selectFolderpath).open();
@@ -229,7 +226,6 @@ export class FilepathModal extends FuzzySuggestModal<string> {
         await this.deleteFile(file, filepath)
 
         this.filePaths = this.filePaths.filter(path => path !== filepath);
-        // @ts-ignore
         this.updateSuggestions();
         new Notice(genNoticeFragment([
           [filepath, 'u-pop'],
@@ -240,7 +236,7 @@ export class FilepathModal extends FuzzySuggestModal<string> {
         new Notice(
           genNoticeFragment([
             ['Error deleting file'],
-            [error.message, 'u-pop']
+            error instanceof Error ? [error.message, 'u-pop'] : null
           ]),
           4000
         );
@@ -259,7 +255,7 @@ export class FilepathModal extends FuzzySuggestModal<string> {
         text: "",
         cta: "Delete",
         onAccept: async (dontAskAgain) => {
-          deleteFile();
+          deleteFile().catch(console.error);
           if (dontAskAgain) {
             settingsStore.update((settings) => ({
               ...settings,
@@ -269,7 +265,7 @@ export class FilepathModal extends FuzzySuggestModal<string> {
         }
       });
     } else {
-      deleteFile();
+      deleteFile().catch(console.error);;
     }
   }
 
@@ -304,7 +300,7 @@ export class FilepathModal extends FuzzySuggestModal<string> {
           new Notice(
             genNoticeFragment([
               [`Error deleting ${filepath}`],
-              [error.message, 'u-pop']
+              error instanceof Error ? [error.message, 'u-pop'] : null
             ]),
             4000
           );
@@ -332,7 +328,7 @@ export class FilepathModal extends FuzzySuggestModal<string> {
         text: "",
         cta: "Delete all",
         onAccept: async (dontAskAgain) => {
-          deleteAllFiles();
+          deleteAllFiles().catch(console.error);
 
           if (dontAskAgain) {
             settingsStore.update((settings) => ({
@@ -343,36 +339,36 @@ export class FilepathModal extends FuzzySuggestModal<string> {
         }
       });
     } else {
-      deleteAllFiles()
+      deleteAllFiles().catch(console.error)
     }
   }
 
-  async onChooseItem(filePath: string) {
+  onChooseItem(filePath: string) {
     // Close all modals
     ModalManager.closeAll();
 
     // close settings tab
-    if ((PluginService.getPlugin()?.app as any).setting.activeTab) {
-      (PluginService.getPlugin()?.app as any).setting.close();
+    const app = PluginService.getPlugin()?.app
+    if (app?.setting && app?.setting?.activeTab) {
+      app.setting.close?.();
     }
 
     const file = this.app.vault.getAbstractFileByPath(filePath);
     if (file instanceof TFile) {
       // Open the file in the current leaf (tab)
-      await this.app.workspace.getLeaf().openFile(file);
+      this.app.workspace.getLeaf().openFile(file).catch(console.error);
 
       // Get the file explorer view
       const fileExplorer = this.app.workspace.getLeavesOfType('file-explorer')[0]?.view;
       if (fileExplorer) {
         // Reveal and focus the file in the explorer
-        // @ts-ignore (the fileExplorer.reveal method exists but might not be in the type definitions)
-        await fileExplorer.revealInFolder(file);
+        fileExplorer?.revealInFolder(file);
       }
     }
   }
 
   onOpen() {
-    super.onOpen();
+    void super.onOpen();
     const modalEl = this.modalEl;
     const inputContainer = modalEl.querySelector('.prompt-input-container');
 

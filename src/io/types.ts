@@ -29,6 +29,13 @@ declare module 'obsidian' {
       enablePluginAndSave(id: string): Promise<void>;
       getPlugin(id: string): Plugin | undefined;
     }
+    setting?: {
+      activeTab?: Record<string, unknown>;
+      close?: () => void;
+    }
+  }
+  interface View {
+    revealInFolder: (file: TFile) => void;
   }
   interface Vault {
     getAvailablePath: (path: string, extension: string) => string;
@@ -37,5 +44,9 @@ declare module 'obsidian' {
   interface WorkspaceLeaf {
     id: string;
     containerEl?: HTMLElement;
+  }
+
+  interface FuzzySuggestModal<T> {
+    updateSuggestions: () => void
   }
 }
