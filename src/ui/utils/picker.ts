@@ -32,7 +32,9 @@ export const onInputKeydown = (ev: KeyboardEvent) => {
 
   if (ev.key === 'Escape') {
     if (settings.popoversClosing.closePopoversOneByOneOnEscKeydown) {
-      input && input.blur();
+      if (input) {
+        input.blur();
+      }
       stickerInstance?.close()
     } else {
       Popover.closeAll()
@@ -100,7 +102,9 @@ export function initializePicker(
     `);
 
   const pickerHtmlEl = pickerEl as unknown as HTMLElement
-  container.firstChild && container.removeChild(container.firstChild);
+  if (container.firstChild) {
+    container.removeChild(container.firstChild);
+  }
   container.appendChild(pickerHtmlEl);
 
   handleMutationObserver(pickerHtmlEl.shadowRoot);
@@ -121,7 +125,9 @@ function handleMutationObserver(shadowRoot: ShadowRoot | null) {
   });
 
   // Start observing changes in the shadow DOM
-  shadowRoot && observer.observe(shadowRoot, { subtree: true, childList: true });
+  if (shadowRoot) {
+    observer.observe(shadowRoot, { subtree: true, childList: true });
+  }
 }
 
 /**

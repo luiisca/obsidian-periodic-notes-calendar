@@ -1,6 +1,7 @@
 import { HUMAN_FORMATS_PER_GRANULARITY } from '@/constants';
 import { IGranularity } from '@/io';
 import { localeDataStore, todayStore } from '@/stores';
+import { Platform } from 'obsidian';
 import { get } from 'svelte/store';
 
 export interface IWeek {
@@ -10,12 +11,8 @@ export interface IWeek {
 
 export type IMonth = IWeek[];
 
-function isMacOS() {
-  return navigator.appVersion.indexOf('Mac') !== -1;
-}
-
 export function isControlPressed(e: MouseEvent | KeyboardEvent): boolean {
-  return isMacOS() ? e.metaKey : e.ctrlKey;
+  return Platform.isMacOS ? e.metaKey : e.ctrlKey;
 }
 
 export function getDaysOfWeek(): string[] {
@@ -65,7 +62,7 @@ export function getYears({ startRangeYear }: { startRangeYear: number }): IYears
   const COLUMNS = 3;
   const ROWS = 4;
   const years: IYearsGroup = Array.from({ length: ROWS }, () =>
-    Array(COLUMNS).fill(0)
+    Array(COLUMNS).fill(0) as 0[]
   ) as IYearsGroup;
 
   for (let rowIndex = 0; rowIndex < ROWS; rowIndex++) {

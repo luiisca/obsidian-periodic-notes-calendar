@@ -13,7 +13,7 @@ type TOnClickParams = {
   date: moment.Moment;
   createNewSplitLeaf: boolean;
   granularity: IGranularity;
-  openState?: Record<string, any>;
+  openState?: Record<string, unknown>;
 };
 type TOnHoverParams = {
   event: PointerEvent | null;
@@ -39,7 +39,7 @@ const onClick = async ({
     date,
     openState,
     granularity,
-  });
+  }).catch(console.error);
 };
 
 const onHover = ({
