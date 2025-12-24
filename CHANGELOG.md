@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.3](https://github.com/luiisca/obsidian-periodic-notes-calendar/compare/1.1.2...v1.1.3) (2025-12-24)
+
+
+### Bug Fixes
+
+* calendar rendering when week starts on non-Sunday ([#73](https://github.com/luiisca/obsidian-periodic-notes-calendar/issues/73)) ([1e23fcf](https://github.com/luiisca/obsidian-periodic-notes-calendar/commit/1e23fcfb1d091d76ffc88c30bd71723f13186728))
+* **eslint:** fix eslint issues marked as required by obsidian review bot ([44566ab](https://github.com/luiisca/obsidian-periodic-notes-calendar/commit/44566abb8570dfc78282220ea82874489af1e5ee))
+* reduce spacing in compact mode ([38fb9e3](https://github.com/luiisca/obsidian-periodic-notes-calendar/commit/38fb9e3d496cca3ab3f767df8142ed1ba1717d41)), closes [#72](https://github.com/luiisca/obsidian-periodic-notes-calendar/issues/72)
+* timeline will not disable even after restarting obsidian ([b97f929](https://github.com/luiisca/obsidian-periodic-notes-calendar/commit/b97f92985239f013b261e9be9b0b282e320d04f4)), closes [#70](https://github.com/luiisca/obsidian-periodic-notes-calendar/issues/70)
+
 ## [1.1.2](https://github.com/luiisca/obsidian-periodic-notes-calendar/compare/1.1.1...v1.1.2) (2025-09-11)
 
 
