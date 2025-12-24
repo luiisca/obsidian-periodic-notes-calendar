@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.4](https://github.com/luiisca/obsidian-periodic-notes-calendar/compare/1.1.3...v1.1.4) (2025-12-24)
+
+
+### Bug Fixes
+
+* current date related commands not loading ([6b120eb](https://github.com/luiisca/obsidian-periodic-notes-calendar/commit/6b120ebf396c6223a7e8d41e4715b40823166470)), closes [#78](https://github.com/luiisca/obsidian-periodic-notes-calendar/issues/78)
+
 ## [1.1.3](https://github.com/luiisca/obsidian-periodic-notes-calendar/compare/1.1.2...v1.1.3) (2025-12-24)
 
 
