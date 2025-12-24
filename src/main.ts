@@ -74,35 +74,24 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
     });
 
     granularities.forEach((granularity) => {
-      (['previous', 'next'] as const).forEach((pos) => {
-        const periodicity = getPeriodicityFromGranularity(granularity) as Exclude<
-          IPeriodicity,
-          'daily'
-        >;
+      (['previous', 'current', 'next'] as const).forEach((pos) => {
+        const periodicity = getPeriodicityFromGranularity(granularity)
 
         let posText:
-          | `${typeof pos}-${Exclude<typeof periodicity, 'daily'>}`
-          | 'tomorrow'
-          | 'yesterday';
-
-        if (granularity === 'day') {
-          posText = pos === 'next' ? 'tomorrow' : 'yesterday';
-        } else {
-          posText = `${pos}-${periodicity}`;
-        }
+          | `${typeof pos}-${typeof periodicity}` = `${pos}-${periodicity}`
 
         this.addCommand({
           id: `create-${posText}-note`,
-          name: `Open ${granularity === 'day'
-            ? `${posText}'s`
-            : `${pos} ${getPeriodicityFromGranularity(granularity)}`
-            } note`,
+          name: `Open${pos === 'current' ? '' : ` ${pos}`} ${periodicity} note`,
           callback: () => {
             const leaf = this.app.workspace.getLeaf(false);
-            const newDate = window
+            let newDate = window
               .moment()
-              .clone()[pos === 'next' ? 'add' : 'subtract'](1, granularity)
+              .clone()
               .startOf(granularity);
+            if (pos !== 'current') {
+              newDate = newDate.clone()[pos === 'next' ? 'add' : 'subtract'](1, granularity)
+            }
 
             createOrOpenNote({ leaf, date: newDate, granularity, confirmBeforeCreateOverride: false }).catch(console.error);
           }
