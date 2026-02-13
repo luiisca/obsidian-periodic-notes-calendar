@@ -69,7 +69,6 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
       name: 'Toggle calendar interface',
       callback: () => {
         this.toggleView().catch(console.error);
-        throw new Error('testing error')
       }
     });
 

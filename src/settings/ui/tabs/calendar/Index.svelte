@@ -16,6 +16,8 @@
   import { selectedTabStore } from "../../stores";
   import { Platform } from "obsidian";
   import { createCalendarPopover } from "@/ui/popovers/base";
+  import { trim } from "@/io";
+  import StickerPopover from "@/ui/components/StickerPopover.svelte";
 
   // Essential
   const handleFloatingModeToggle = (floatingMode: boolean) => {
@@ -64,6 +66,14 @@
   const handleToggleSyncCalendar = (syncCalendar: boolean) => {
     settingsStore.update((s) => {
       s.syncCalendar = syncCalendar;
+      return s;
+    });
+  };
+
+  let stickerPrefix: string = $state("");
+  const handleStickerPrefixInput = () => {
+    settingsStore.update((s) => {
+      s.stickerPrefix = trim(stickerPrefix);
       return s;
     });
   };
@@ -302,6 +312,9 @@
   });
 </script>
 
+<!-- ------------------------ -->
+<!-- --- Main section ---- -->
+<!-- ------------------------ -->
 {#if !Platform.isPhone}
   <SettingItem
     name="Minimal mode"
@@ -365,6 +378,25 @@
   {/snippet}
 </SettingItem>
 
+<SettingItem
+  name="Sticker prefix"
+  description="Prepend text to group new stickers (e.g., 'sticker/')."
+>
+  {#snippet control()}
+    <input
+      class="flex-grow"
+      bind:value={stickerPrefix}
+      type="text"
+      spellcheck={false}
+      placeholder="sticker/"
+      oninput={handleStickerPrefixInput}
+    />
+  {/snippet}
+</SettingItem>
+
+<!-- ------------------------ -->
+<!-- --- Preview section ---- -->
+<!-- ------------------------ -->
 <SettingItem isHeading={true} name="Preview" className="pb-0" />
 <div class="flex justify-between">
   <p>

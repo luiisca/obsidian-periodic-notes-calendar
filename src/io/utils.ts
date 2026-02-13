@@ -180,3 +180,11 @@ function appendTODOs(content: string, todos: string[], granularity: IGranularity
 
   return updatedLines.join('\n');
 }
+
+export function trim(s: string) {
+  return s
+    .trim()
+    .split(" ")
+    .filter((s) => s.trim())
+    .join(" ");
+}

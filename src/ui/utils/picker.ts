@@ -1,5 +1,5 @@
 import { STICKER_POPOVER_ID } from "@/constants";
-import { modifyFile, TFileData } from "@/io";
+import { modifyFile, TFileData, trim } from "@/io";
 import { settingsStore } from "@/settings";
 import data from "@emoji-mart/data";
 import { Picker } from "emoji-mart";
@@ -61,16 +61,17 @@ export function initializePicker(
         // update note with new emoji tag
         const content = await PluginService.getPlugin()?.app.vault.read(file) ?? ""
         let updatedContent = content
+        const stickerString = `${trim(get(settingsStore).stickerPrefix)}${emoji.native}`
 
         if (sticker) {
           const bef = updatedContent.slice(0, sticker.startOffset)
           const aft = updatedContent.slice(sticker.endOffset)
-          updatedContent = `${bef}#${emoji.native}${aft}`;
+          updatedContent = `${bef}#${stickerString}${aft}`;
 
           await modifyFile(file, updatedContent)
         } else {
           const firstLine = updatedContent.split('\n')[0].trim();
-          updatedContent = `#${emoji.native}${firstLine !== "" ? " \n" : ""}${updatedContent} `
+          updatedContent = `#${stickerString}${firstLine !== "" ? " \n" : ""}${updatedContent} `
 
           await modifyFile(file, updatedContent)
         }
@@ -174,10 +175,13 @@ export function getSticker(tags: TagCache[] | null | undefined): TSticker | null
   let sticker: { emoji: string, startOffset: number, endOffset: number } | null = null;
   for (let index = 0; index < tags.length; index++) {
     const tagObj = tags[index];
-    const match = tagObj.tag.match(emojiRegex())
-    if (match?.[0].length === tagObj.tag.length - 1) {
+    const stickerPrefix = trim(get(settingsStore).stickerPrefix);
+    const emoji = tagObj.tag.slice(1).slice(stickerPrefix.length)
+    const match = emoji.match(emojiRegex())
+
+    if (match?.[0].length === emoji.length) {
       sticker = {
-        emoji: tagObj.tag.slice(1),
+        emoji,
         startOffset: tagObj.position.start.offset,
         endOffset: tagObj.position.end.offset,
       }

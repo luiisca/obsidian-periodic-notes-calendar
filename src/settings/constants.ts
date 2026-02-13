@@ -61,6 +61,7 @@ export interface ISettings {
 
   /** Whether to show a minimal view of the calendar */
   minimalMode: boolean;
+  stickerPrefix: string;
   /** Whether to always show a minimal view of the calendar when in floating mode*/
   floatingViewAlwaysMinimal: boolean;
 
@@ -173,6 +174,7 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
   floatingMode: false,
   syncCalendar: true,
   minimalMode: false,
+  stickerPrefix: "",
   floatingViewAlwaysMinimal: true,
   shouldConfirmBeforeCreate: true,
   shouldConfirmBeforeDeleteFormat: true,
