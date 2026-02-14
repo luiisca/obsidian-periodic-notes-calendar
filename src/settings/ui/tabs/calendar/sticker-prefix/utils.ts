@@ -85,6 +85,11 @@ export const handlePNMigrate = async () => {
     );
     const newPrefix = trim(get(settingsStore).stickerPrefix);
 
+    if (lastUsedPrefixes.length === 1 && lastUsedPrefixes[0] === newPrefix) {
+      new Notice("No periodic notes to migrate.");
+      return;
+    }
+
     let migratedCount = 0;
     new Notice(genNoticeFragment([
       ['Starting migration of stickers in '],
@@ -107,6 +112,7 @@ export const handlePNMigrate = async () => {
         const tagWithoutHash = tagObj.tag.slice(1);
 
         for (const prefix of lastUsedPrefixes) {
+          if (prefix === newPrefix) continue;
           if (tagWithoutHash.startsWith(prefix)) {
             const emojiCandidate = tagWithoutHash.slice(prefix.length);
             const match = emojiCandidate.match(emojiRegex());
@@ -136,14 +142,15 @@ export const handlePNMigrate = async () => {
         const updatedContent = `${bef}#${stickerString}${aft}`;
 
         await modifyFile(file, updatedContent);
-        settingsStore.update((s) => {
-          s.lastUsedStickerPrefixes = [newPrefix];
-          return s;
-        });
 
         migratedCount++;
       }
     }
+
+    settingsStore.update((s) => {
+      s.lastUsedStickerPrefixes = [newPrefix];
+      return s;
+    });
 
     new Notice(genNoticeFragment([
       ['Migration complete! '],
