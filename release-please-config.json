@@ -1,25 +1,26 @@
 {
-    "packages": {
-        ".": {
-          "release-type": "simple",
-          "include-component-in-tag": false,
-          "extra-files": [
-            {
-              "type": "json",
-              "path": "manifest.json",
-              "jsonpath": "$.version"
-            },
-            {
-              "type": "json",
-              "path": "package.json",
-              "jsonpath": "$.version"
-            },
-            {
-              "type": "json",
-              "path": "package-lock.json",
-              "jsonpath": "$.version"
-            }
-          ]
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "include-v-in-tag": false,
+      "include-component-in-tag": false,
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "manifest.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "package-lock.json",
+          "jsonpath": "$.version"
         }
+      ]
     }
+  }
 }
