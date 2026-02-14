@@ -99,7 +99,7 @@
   onkeydown={handleNodeClick}
 >
   <div
-    class={cn("tree-item-self is-clickable mod-collapsible cursor-pointer")}
+    class={cn("tree-item-self is-clickable mod-collapsible cursor-[var(--cursor)]")}
     style={depth > 0
       ? `margin-left: -${depth * 16}px; padding-left: calc(${depth * 16 + 24}px);`
       : ""}

@@ -1,7 +1,7 @@
 import { HUMAN_FORMATS_PER_GRANULARITY } from '@/constants';
 import { IGranularity } from '@/io';
 import { localeDataStore, todayStore } from '@/stores';
-import { Platform } from 'obsidian';
+import { Platform, setIcon } from 'obsidian';
 import { get } from 'svelte/store';
 
 export interface IWeek {
@@ -113,6 +113,16 @@ export function genNoticeFragment(mssgFragments: ([string] | [string, string] | 
 
   return fragment;
 }
+
+export const useIcon = (node: HTMLElement, iconId: string) => {
+  setIcon(node, iconId);
+
+  return {
+    update(newIconId: string) {
+      setIcon(node, newIconId);
+    },
+  };
+};
 
 export * from './cn';
 export * from './event-handlers';

@@ -13,6 +13,7 @@
   import { settingsStore } from "@/settings";
   import { previewLeafStore, todayStore } from "@/stores";
   import { ViewManager } from "@/ui";
+  import { Button } from "@/ui/components/core";
   import { Popover } from "@/ui/popovers";
   import { createBasePopover, createFileMenuPopover } from "@/ui/popovers/base";
   import { cn, getSticker } from "@/ui/utils";
@@ -152,7 +153,7 @@
       role="button"
       class={cn(
         "preview-controls-button",
-        "clickable-icon view-action cursor-pointer !transition-none",
+        "clickable-icon view-action cursor-[var(--cursor)] !transition-none",
       )}
       aria-label={`Outline of ${file.basename}`}
       data-tooltip-delay="200"
@@ -172,17 +173,17 @@
 {/snippet}
 {#snippet MoreBttn()}
   {#if $previewLeafStore?.splitPos !== "root"}
-    <button
+    <Button
       id="preview-controls-more-bttn"
       class={cn(
         "preview-controls-button",
-        "clickable-icon view-action ml-0 cursor-pointer",
+        "clickable-icon view-action ml-0 cursor-[var(--cursor)]",
       )}
       bind:this={moreEl}
       aria-label="More options"
       data-tooltip-delay="200"
       onclick={handleMoreClick}
-    ></button>
+    ></Button>
   {/if}
 {/snippet}
 
@@ -213,7 +214,7 @@
               id="preview-controls-granularity"
               tabindex="0"
               role="button"
-              class="cursor-pointer px-1.5"
+              class="cursor-[var(--cursor)] px-1.5"
               onclick={() => handleDotClick(g)}
               onkeydown={() => handleDotClick(g)}
               aria-label={`${capitalize(getPeriodicityFromGranularity(g))} preview`}

@@ -1,36 +1,29 @@
 <script lang="ts">
-    interface Props {
-        isEnabled: boolean;
-        onChange: (value: boolean) => void;
-    }
+  interface Props {
+    isEnabled: boolean;
+    onChange: (value: boolean) => void;
+  }
 
-    let { isEnabled, onChange }: Props = $props();
-
-    let labelEl: HTMLLabelElement;
-    $effect(() => {
-        if (labelEl) {
-            labelEl.tabIndex = 0;
-            labelEl.onkeydown = (event) => {
-                if (
-                    event.target === event.currentTarget &&
-                    (event.key === "Enter" || event.key === " ")
-                ) {
-                    onChange(!isEnabled);
-                }
-            };
-        }
-    });
+  let { isEnabled, onChange }: Props = $props();
 </script>
 
 <label
-    bind:this={labelEl}
-    class="checkbox-container cursor-pointer focus-visible:shadow-[0_0_0_3px_var(--background-modifier-border-focus)] outline-none"
-    class:is-enabled={isEnabled}
+  class="checkbox-container cursor-[var(--cursor)]"
+  class:is-enabled={isEnabled}
+  tabindex="0"
+  onkeydown={(event) => {
+    if (
+      event.target === event.currentTarget &&
+      (event.key === "Enter" || event.key === " ")
+    ) {
+      onChange(!isEnabled);
+    }
+  }}
 >
-    <input
-        type="checkbox"
-        tabindex="-1"
-        onchange={() => onChange(!isEnabled)}
-        class="hidden"
-    />
+  <input
+    class="cursor-[var(--cursor)]"
+    type="checkbox"
+    tabindex="0"
+    onchange={() => onChange(!isEnabled)}
+  />
 </label>

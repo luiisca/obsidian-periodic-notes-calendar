@@ -161,10 +161,9 @@
         </div>
     </div>
     <div class="modal-button-container mt-3">
-        <button class="cursor-pointer" onclick={handleCancel}>Never mind</button
-        >
+        <button class="cursor-[var(--cursor)]" onclick={handleCancel}>Never mind</button>
         <button
-            class={`mod-cta ${parsedDate ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}
+            class={`mod-cta ${parsedDate ? "cursor-[var(--cursor)]" : "cursor-not-allowed opacity-60"}`}
             aria-disabled={!parsedDate}
             disabled={!parsedDate}
             onclick={handleAccept}>Open</button

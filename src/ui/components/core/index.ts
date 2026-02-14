@@ -1,4 +1,5 @@
 export { default as Arrow } from "./Arrow.svelte"
+export { default as Button } from "./Button.svelte"
 export { default as Dot } from "./Dot.svelte"
 export { default as Tabs } from "./Tabs.svelte"
 export { default as Header } from "./Header.svelte"

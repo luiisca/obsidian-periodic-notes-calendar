@@ -5,7 +5,7 @@ import { mount, type SvelteComponent } from 'svelte';
 import { get, Subscriber } from 'svelte/store';
 import { PluginService } from './app-service';
 import { CALENDAR_LUCIDE_ICON, CALENDAR_POPOVER_ID, CALENDAR_RIBBON_ID, granularities, LEAF_TYPE, STICKER_POPOVER_ID } from './constants';
-import { basename, createOrOpenNote, extractAndReplaceTODOItems, getFileData, getStartupNoteGranularity, storeAllVaultPeriodicFilepaths } from './io';
+import { basename, createOrOpenNote, extractAndReplaceTODOItems, getFileData, getStartupNoteGranularity, isBackupPath, storeAllVaultPeriodicFilepaths } from './io';
 import { getPeriodicityFromGranularity } from './io/parse';
 import type { IGranularity, IPeriodicity } from './io/types';
 import { isValidPeriodicNote } from './io/validation';
@@ -394,6 +394,7 @@ export default class PeriodicNotesCalendarPlugin extends Plugin {
 
     if (this.app.workspace.layoutReady) {
       if (file.extension !== 'md') return;
+      if (isBackupPath(file.path)) return;
 
       const { isValid, date, granularity, format } = isValidPeriodicNote(file.basename);
 

@@ -52,6 +52,8 @@ export function storeAllVaultPeriodicFilepaths(
           if (file instanceof TFile) {
             if (file.extension !== 'md') return;
 
+            if (isBackupPath(file.path)) return;
+
             const { isValid, format } = isValidPeriodicNote(file.basename, customGranularities, customFormats);
 
             if (typeof isValid === "boolean") {
@@ -187,4 +189,14 @@ export function trim(s: string) {
     .split(" ")
     .filter((s) => s.trim())
     .join(" ");
+}
+
+export function isBackupPath(path: string): boolean {
+  return path.split("/").some((segment) => {
+    if (segment.startsWith("periodic-notes-BACKUP-")) {
+      const timestamp = segment.replace("periodic-notes-BACKUP-", "");
+      return window.moment(timestamp, "YYYYMMDDHHmmss", true).isValid();
+    }
+    return false;
+  });
 }

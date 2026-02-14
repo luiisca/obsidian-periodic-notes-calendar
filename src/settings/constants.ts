@@ -61,9 +61,11 @@ export interface ISettings {
 
   /** Whether to show a minimal view of the calendar */
   minimalMode: boolean;
-  stickerPrefix: string;
   /** Whether to always show a minimal view of the calendar when in floating mode*/
   floatingViewAlwaysMinimal: boolean;
+  lastUsedStickerPrefixes: string[];
+  stickerPrefix: string;
+  shouldConfirmBeforeStickerMigrate: boolean;
 
   /** Whether to show a confirmation dialog before creating a new note */
   shouldConfirmBeforeCreate: boolean;
@@ -174,8 +176,10 @@ export const DEFAULT_SETTINGS: ISettings = Object.freeze({
   floatingMode: false,
   syncCalendar: true,
   minimalMode: false,
-  stickerPrefix: "",
   floatingViewAlwaysMinimal: true,
+  lastUsedStickerPrefixes: [],
+  stickerPrefix: "",
+  shouldConfirmBeforeStickerMigrate: true,
   shouldConfirmBeforeCreate: true,
   shouldConfirmBeforeDeleteFormat: true,
   shouldConfirmBeforeReplaceAllFormats: true,

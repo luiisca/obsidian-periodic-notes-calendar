@@ -34,7 +34,7 @@
         "relative menu-item clickable-icon flex items-center no-underline hover:no-underline",
         loading
             ? "opacity-60 hover:bg-transparent cursor-not-allowed"
-            : "hover:bg-[var(--background-modifier-hover)] cursor-pointer",
+            : "hover:bg-[var(--background-modifier-hover)] cursor-[var(--cursor)]",
         "py-[var(--size-2-2)] px-[var(--size-2-3)]",
         className,
     )}

@@ -354,15 +354,17 @@ export class FilepathModal extends FuzzySuggestModal<string> {
     }
 
     const file = this.app.vault.getAbstractFileByPath(filePath);
-    if (file instanceof TFile) {
+    const isFileValid = this.isFileValid(filePath, file)
+
+    if (isFileValid && file instanceof TFile) {
       // Open the file in the current leaf (tab)
       this.app.workspace.getLeaf().openFile(file).catch(console.error);
 
       // Get the file explorer view
       const fileExplorer = this.app.workspace.getLeavesOfType('file-explorer')[0]?.view;
-      if (fileExplorer) {
+      if (fileExplorer && 'revealInFolder' in fileExplorer) {
         // Reveal and focus the file in the explorer
-        fileExplorer?.revealInFolder(file);
+        fileExplorer.revealInFolder(file);
       }
     }
   }

@@ -53,10 +53,10 @@
         </p>
     {/if}
     <div class="modal-button-container">
-        <label class="mod-checkbox hover:cursor-pointer">
+        <label class="mod-checkbox hover:cursor-[var(--cursor)]">
             <input
                 type="checkbox"
-                class="hover:cursor-pointer text-[14px]"
+                class="hover:cursor-[var(--cursor)] text-[14px]"
                 bind:checked={dontAskAgain}
             /> Don't ask again
         </label>

@@ -1,58 +1,57 @@
 #pnc-container {
-    --color-background-table-header: transparent;
-    --color-background-day-bttn: transparent;
-    --color-background-week-bttn: transparent;
-    --color-background-month-bttn: transparent;
-    --color-background-quarter-bttn: transparent;
-    --color-background-year-bttn: transparent;
-    --color-background-weekend: transparent; /* weekend column */
+  --color-background-table-header: transparent;
+  --color-background-day-bttn: transparent;
+  --color-background-week-bttn: transparent;
+  --color-background-month-bttn: transparent;
+  --color-background-quarter-bttn: transparent;
+  --color-background-year-bttn: transparent;
+  --color-background-weekend: transparent;
+  /* weekend column */
 
-    --color-dot: var(--text-muted);
-    --color-arrow: var(--text-muted);
+  --color-dot: var(--text-muted);
+  --color-arrow: var(--text-muted);
 
-    --color-text-header-title: var(--text-normal);
-    --color-text-table-header: var(--text-muted);
-    --color-text-today: var(--interactive-accent);
-    --color-text-day-bttn: var(--text-normal);
-    --color-text-week-bttn: var(--text-muted);
-    --color-text-month-bttn: var(--text-normal);
-    --color-text-quarter-bttn: var(--text-normal);
-    --color-text-year-bttn: var(--text-normal);
+  --color-text-header-title: var(--text-normal);
+  --color-text-table-header: var(--text-muted);
+  --color-text-today: var(--interactive-accent);
+  --color-text-day-bttn: var(--text-normal);
+  --color-text-week-bttn: var(--text-muted);
+  --color-text-month-bttn: var(--text-normal);
+  --color-text-quarter-bttn: var(--text-normal);
+  --color-text-year-bttn: var(--text-normal);
 }
 
 .weekend {
-    background-color: var(--color-background-weekend);
+  background-color: var(--color-background-weekend);
 }
 
-
-#pnc-container button {
-    @apply bg-transparent hover:bg-[var(--interactive-hover)] [&:not(:focus-visible)]:shadow-none cursor-pointer;
-}
 
 .pnc-popover {
-    @apply hidden opacity-0 z-[-9999] pointer-events-none;
+  @apply hidden opacity-0 z-[-9999] pointer-events-none;
 }
+
 .pnc-popover.visible {
-    @apply block opacity-100 z-[9999] pointer-events-auto;
+  @apply block opacity-100 z-[9999] pointer-events-auto;
 }
 
 #pnc-calendar-parent {
-    scrollbar-gutter: stable;
-    @apply pr-0 overflow-x-hidden
+  scrollbar-gutter: stable;
+  @apply pr-0 overflow-x-hidden
 }
 
 #pnc-settings-container {
-    scrollbar-gutter: stable;
-    padding-right: calc(var(--size-4-12) - 16px)
+  scrollbar-gutter: stable;
+  padding-right: calc(var(--size-4-12) - 16px)
 }
 
 #pnc-preview-tabheader-visible {
-    display: flex
+  display: flex
 }
+
 #pnc-preview-tabheader-hidden {
-    display: none
+  display: none
 }
 
 .pnc-suggestion-item {
-    @apply cursor-pointer;
+  @apply cursor-[var(--cursor)];
 }

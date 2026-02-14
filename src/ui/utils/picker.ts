@@ -173,15 +173,24 @@ export function getSticker(tags: TagCache[] | null | undefined): TSticker | null
   }
 
   let sticker: { emoji: string, startOffset: number, endOffset: number } | null = null;
-  for (let index = 0; index < tags.length; index++) {
-    const tagObj = tags[index];
-    const stickerPrefix = trim(get(settingsStore).stickerPrefix);
-    const emoji = tagObj.tag.slice(1).slice(stickerPrefix.length)
-    const match = emoji.match(emojiRegex())
+  const prefix = trim(get(settingsStore).stickerPrefix);
 
-    if (match?.[0].length === emoji.length) {
+  for (const tagObj of tags) {
+    // tagObj.tag includes the '#'
+    const tagWithoutHash = tagObj.tag.slice(1);
+    if (!tagWithoutHash.startsWith(prefix)) {
+      continue;
+    }
+
+    const emojiCandidate = tagWithoutHash.slice(prefix.length);
+    const match = emojiCandidate.match(emojiRegex());
+
+    if (
+      match?.[0] === emojiCandidate &&
+      match?.[0].length === emojiCandidate.length
+    ) {
       sticker = {
-        emoji,
+        emoji: emojiCandidate,
         startOffset: tagObj.position.start.offset,
         endOffset: tagObj.position.end.offset,
       }

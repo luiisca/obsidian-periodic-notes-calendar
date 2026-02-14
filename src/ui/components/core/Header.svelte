@@ -1,6 +1,7 @@
 <script lang="ts">
   import { IGranularity, TFileData } from "@/io";
   import { cn, eventHandlers, isControlPressed } from "@/ui/utils";
+  import { Button } from "@/ui/components/core";
   import { getContext, Snippet } from "svelte";
   import { Platform } from "obsidian";
 
@@ -54,7 +55,7 @@
     <!-- left title -->
     {@render leftTitleSnippet?.()}
     {#if leftTitle && leftDate}
-      <button
+      <Button
         class={cn(
           "h-auto font-semibold !text-[--color-text-header-title] hover:!shadow-[0px_0px_0_7px_var(--interactive-hover)] rounded-[2px] !p-0",
           minimalMode?.value || Platform.isPhone ? "text-xl" : "text-7xl",
@@ -82,12 +83,12 @@
         }}
       >
         {leftDate.format(leftTitle.formatValue)}
-      </button>
+      </Button>
     {/if}
     <!-- right title -->
     {@render rightTitleSnippet?.()}
     {#if rightTitle && rightDate}
-      <button
+      <Button
         class={cn(
           "h-auto !text-[--interactive-accent] font-medium hover:!shadow-[0px_0px_0px_6px_var(--interactive-hover)] rounded-[2px] !p-0",
           minimalMode?.value || Platform.isPhone ? "text-sm" : "text-lg",
@@ -115,7 +116,7 @@
         }}
       >
         {rightDate.format(rightTitle.formatValue)}
-      </button>
+      </Button>
     {/if}
   </div>
 

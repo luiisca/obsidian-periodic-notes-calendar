@@ -161,7 +161,7 @@
 >
     <a
         href={null}
-        class="setting-item setting-item-heading text-transparent !p-6 cursor-pointer flex items-center justify-between focus-visible:shadow-[0_0_0_3px_var(--background-modifier-border-focus)] outline-none hover:text-transparent"
+        class="setting-item setting-item-heading text-transparent !p-6 cursor-[var(--cursor)] flex items-center justify-between focus-visible:shadow-[0_0_0_3px_var(--background-modifier-border-focus)] outline-none hover:text-transparent"
         onclick={toggleExpand}
     >
         <div class="setting-item-info flex justify-between items-center">
