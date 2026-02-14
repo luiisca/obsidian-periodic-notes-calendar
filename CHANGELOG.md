@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.2.0](https://github.com/luiisca/obsidian-periodic-notes-calendar/compare/1.1.3...v1.2.0) (2026-02-14)
+
+
+### Features
+
+* add migrate all stickers to new prefix syntax + some codebase refactoring ([71de32c](https://github.com/luiisca/obsidian-periodic-notes-calendar/commit/71de32cca11e54040a273845e356a629e7fa4f25))
+* add sticker prefix setting ([b51e3a4](https://github.com/luiisca/obsidian-periodic-notes-calendar/commit/b51e3a42046e46dae1046ced9555c31c92e62d02))
+
+
+### Bug Fixes
+
+* current date related commands not loading ([6b120eb](https://github.com/luiisca/obsidian-periodic-notes-calendar/commit/6b120ebf396c6223a7e8d41e4715b40823166470)), closes [#78](https://github.com/luiisca/obsidian-periodic-notes-calendar/issues/78)
+
 ## [1.1.3](https://github.com/luiisca/obsidian-periodic-notes-calendar/compare/1.1.2...v1.1.3) (2025-12-24)
 
 
