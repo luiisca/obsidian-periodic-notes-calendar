@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/luiisca/obsidian-periodic-notes-calendar/compare/1.2.0...1.2.1) (2026-02-14)
+
+
+### Bug Fixes
+
+* add checks to ensure already migrated stickers aren't migrated again ([5956b62](https://github.com/luiisca/obsidian-periodic-notes-calendar/commit/5956b624a8f907f958291f1c2d6afcc512e1b419))
+
 ## [1.2.0](https://github.com/luiisca/obsidian-periodic-notes-calendar/compare/1.1.3...v1.2.0) (2026-02-14)
 
 
